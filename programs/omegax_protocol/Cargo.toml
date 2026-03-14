@@ -1,0 +1,28 @@
+[package]
+name = "omegax_protocol"
+version = "0.1.0"
+description = "OmegaX permissionless pool protocol (rewards + coverage)"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "omegax_protocol"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+custom-heap = []
+custom-panic = []
+anchor-debug = []
+
+[dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl = "0.32.1"
+blake3 = "=1.5.5"
+solana-sdk-ids = "2.2.1"
+solana-sha256-hasher = "2.3.0"

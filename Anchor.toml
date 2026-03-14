@@ -1,0 +1,21 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[workspace]
+members = ["programs/omegax_protocol"]
+
+[programs.localnet]
+omegax_protocol = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+
+[programs.devnet]
+omegax_protocol = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "node --import tsx --test tests/**/*.test.ts"

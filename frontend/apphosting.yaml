@@ -1,0 +1,99 @@
+# Public-safe Firebase App Hosting configuration for the protocol console.
+# Runtime-only service values are resolved from Secret Manager so this file can
+# stay in a public repository without exposing credentials.
+env:
+  - variable: NEXT_PUBLIC_SOLANA_RPC_URL
+    value: "https://api.devnet.solana.com"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL
+    value: "https://api.devnet.solana.com"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL
+    value: "https://api.mainnet-beta.solana.com"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER
+    value: "devnet"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_PROTOCOL_PROGRAM_ID
+    value: "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_IPFS_GATEWAY_BASE
+    value: "https://ipfs.io/ipfs,https://gateway.pinata.cloud/ipfs"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_DEFAULT_POOL_ADDRESS
+    value: "36mWBmjuKrYmdtnB8nbAD9pbGpzm9yr4E6ecQKiNjw7F"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_DEFAULT_ORACLE_ADDRESS
+    value: "FFmj5G6RGDKxptWMr2aZBgBLSX2rZCzMZ5t7bwgVmRZw"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_REQUIRED_BUSINESS_ORACLE_ADDRESS
+    value: "FFmj5G6RGDKxptWMr2aZBgBLSX2rZCzMZ5t7bwgVmRZw"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_DEFAULT_TOKEN_GATE_MINT
+    value: "FPiaHdzVPsbyKToNvpBhSJf8mHKeGjbHv4gE8psNCjAZ"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_GOVERNANCE_REALM
+    value: "4ESvrUJ9bjyykG6gkR51qUDPQREJKJMmZ7gkv1E7q6QA"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_GOVERNANCE_CONFIG
+    value: "27AFKaBMMPYzSBxBR24hyVDZE7GDYBFE7ae1hrYWBPFP"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_GOVERNANCE_TOKEN_MINT
+    value: "8sz6kowsPjiLtCrdgcva8mS1CMZdZ9ZBFNzgEfpLoJxf"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FAUCET_ENABLED
+    value: "true"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_FAUCET_MINT
+    value: "FPiaHdzVPsbyKToNvpBhSJf8mHKeGjbHv4gE8psNCjAZ"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    value: "0x4AAAAAACgt7ZOtAq1lrSvG"
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_SOURCE_REPO_URL
+    value: "https://github.com/OmegaX-Health/omegax-protocol"
+    availability: [BUILD, RUNTIME]
+
+  - variable: FAUCET_INTERNAL_BASE_URL
+    secret: protocolFaucetBaseUrl
+    availability: [RUNTIME]
+
+  - variable: FAUCET_INTERNAL_BASE_URL_V2
+    secret: protocolFaucetBaseUrlV2
+    availability: [RUNTIME]
+
+  - variable: FAUCET_INTERNAL_API_TOKEN
+    secret: protocolFaucetToken
+    availability: [RUNTIME]
+
+  - variable: FAUCET_INTERNAL_API_TOKEN_V2
+    secret: protocolFaucetTokenV2
+    availability: [RUNTIME]
+
+  - variable: FAUCET_CHALLENGE_SECRET
+    secret: protocolFaucetChallengeSecret
+    availability: [RUNTIME]
+
+  - variable: FAUCET_SKIP_CAPTCHA
+    value: "false"
+    availability: [RUNTIME]
+
+  - variable: TURNSTILE_SECRET_KEY
+    secret: turnstileSecretKey
+    availability: [RUNTIME]

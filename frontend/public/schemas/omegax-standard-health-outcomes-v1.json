@@ -1,0 +1,5074 @@
+{
+  "specVersion": "omegax.schema.v2",
+  "name": "OmegaX Standard Health Outcomes",
+  "publisher": "OmegaX Health",
+  "schemaKey": "omegax.standard.health_outcomes",
+  "schemaVersion": 1,
+  "metricsRegistry": {
+    "source": "omegaxhealth_agent",
+    "registryVersion": "metrics_v1"
+  },
+  "goalCatalog": {
+    "source": "omegaxhealth_agent",
+    "version": 5
+  },
+  "outcomes": [
+    {
+      "id": "a1c_control",
+      "label": "Diabetes HbA1c Managed",
+      "description": "Most recent HbA1c lab result. Target condition: <= 6.5 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hba1c_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 6.5,
+      "unit": "%",
+      "severity": "primary",
+      "tags": [
+        "goal:glucose_control",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ec856f4f9b8ba4c628d31c6d47e8d0a0f1494d1b21394d2736c7b959a34aa7c7"
+    },
+    {
+      "id": "active_energy_burned_avg_per_day_7d_ge_200",
+      "label": "Active energy >= 200 kcal/day",
+      "description": "Estimated mean daily active energy in kilocalories over the last 7 days (total divided by 7). Target condition: >= 200 kcal/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 200,
+      "unit": "kcal/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "221286027287c47cd94cc899da8cd40140675528fb143a74dc5586875e5a396d"
+    },
+    {
+      "id": "active_energy_burned_avg_per_day_7d_ge_300",
+      "label": "Active energy >= 300 kcal/day",
+      "description": "Estimated mean daily active energy in kilocalories over the last 7 days (total divided by 7). Target condition: >= 300 kcal/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 300,
+      "unit": "kcal/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "1409b02ec9804c083dc7eff79ccb97c5153abcd81ad7a7ac6faf80070968218c"
+    },
+    {
+      "id": "active_energy_burned_avg_per_day_7d_ge_500",
+      "label": "Active energy >= 500 kcal/day",
+      "description": "Estimated mean daily active energy in kilocalories over the last 7 days (total divided by 7). Target condition: >= 500 kcal/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 500,
+      "unit": "kcal/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "4bfe1d7c42915327bbbb1fd3258644f7dd7c9210d17e7ecf51d90f1d8d860fef"
+    },
+    {
+      "id": "active_energy_burned_sum_7d_ge_1500",
+      "label": "Active energy >= 1500 kcal",
+      "description": "Total active energy burned over the last 7 days. Target condition: >= 1500 kcal.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 1500,
+      "unit": "kcal",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ded6cbf4ba62a37e87a59dd5cfd7627ef52849b9ee9d611f6b8deb4ecafca895"
+    },
+    {
+      "id": "active_energy_burned_sum_7d_ge_2500",
+      "label": "Active energy >= 2500 kcal",
+      "description": "Total active energy burned over the last 7 days. Target condition: >= 2500 kcal.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 2500,
+      "unit": "kcal",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "7a0808f262b07ab4df6ae6e615321fbaec642ec8cf7446ff2e903b7fcdab2db2"
+    },
+    {
+      "id": "active_energy_burned_sum_7d_ge_3500",
+      "label": "Active energy >= 3500 kcal",
+      "description": "Total active energy burned over the last 7 days. Target condition: >= 3500 kcal.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3500,
+      "unit": "kcal",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "eddf7727d7076784a76acf59b5f69562079292a4df6393543b1bf3deedbf68d7"
+    },
+    {
+      "id": "adherence_7d_ge_0p6",
+      "label": "Adherence >= 0.6 ratio",
+      "description": "Completed tasks divided by scheduled tasks over the last 7 days (core task types). Target condition: >= 0.6 ratio.",
+      "domain": "adherence",
+      "kind": "metric_threshold",
+      "metricId": "adherence_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 0.6,
+      "unit": "ratio",
+      "severity": "secondary",
+      "tags": [
+        "adherence",
+        "goal:focus_performance",
+        "goal:hypertension",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "kpi",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "14e9ce653a45fcc3a70f534bcabd315dfd1a9c9680664cf66a79e1dbc26e4392"
+    },
+    {
+      "id": "adherence_7d_ge_0p7",
+      "label": "Adherence >= 0.7 ratio",
+      "description": "Completed tasks divided by scheduled tasks over the last 7 days (core task types). Target condition: >= 0.7 ratio.",
+      "domain": "adherence",
+      "kind": "metric_threshold",
+      "metricId": "adherence_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 0.7,
+      "unit": "ratio",
+      "severity": "secondary",
+      "tags": [
+        "adherence",
+        "goal:focus_performance",
+        "goal:hypertension",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "kpi",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "071313fd4af73c8f8c6350bf67da2e58b1ea88479739094f2567683409b5e2f1"
+    },
+    {
+      "id": "adherence_7d_ge_0p8",
+      "label": "Adherence >= 0.8 ratio",
+      "description": "Completed tasks divided by scheduled tasks over the last 7 days (core task types). Target condition: >= 0.8 ratio.",
+      "domain": "adherence",
+      "kind": "metric_threshold",
+      "metricId": "adherence_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 0.8,
+      "unit": "ratio",
+      "severity": "secondary",
+      "tags": [
+        "adherence",
+        "goal:focus_performance",
+        "goal:hypertension",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "kpi",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f46c4114dbe93744e9889a8413e346c1ed9986a409090bc34711eeb23dcbcb39"
+    },
+    {
+      "id": "apob_latest_le_120",
+      "label": "ApoB <= 120 mg/dL",
+      "description": "Most recent Apolipoprotein B value. Target condition: <= 120 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "apob_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 120,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "b523d28556bc5457f24b363709bd2b34be5f7d68806926bb5da8fc45391a9ee8"
+    },
+    {
+      "id": "apob_latest_le_70",
+      "label": "ApoB <= 70 mg/dL",
+      "description": "Most recent Apolipoprotein B value. Target condition: <= 70 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "apob_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 70,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "5c495d9bec8c916623161beecbce1580aa9a8143edae11bd2ab256328d57b437"
+    },
+    {
+      "id": "apob_latest_le_90",
+      "label": "ApoB <= 90 mg/dL",
+      "description": "Most recent Apolipoprotein B value. Target condition: <= 90 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "apob_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 90,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "44910c9fc82a66d0eef326c927db0339f6342fdf266818dc6203e0651dbfa4b7"
+    },
+    {
+      "id": "blood_oxygen_avg_7d_ge_95",
+      "label": "Blood oxygen >= 95 %",
+      "description": "Mean blood oxygen saturation over the last 7 days. Target condition: >= 95 %.",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "blood_oxygen_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 95,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "2b759b76f4c18a002f2fccfd01bafa87011f442480e17e3a416123e23c8c537c"
+    },
+    {
+      "id": "blood_oxygen_avg_7d_ge_97",
+      "label": "Blood oxygen >= 97 %",
+      "description": "Mean blood oxygen saturation over the last 7 days. Target condition: >= 97 %.",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "blood_oxygen_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 97,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "4b66a795bbd9afa56172330e86995f8bffd829c3a7fbccf51df6008cc05776ff"
+    },
+    {
+      "id": "blood_oxygen_avg_7d_ge_98",
+      "label": "Blood oxygen >= 98 %",
+      "description": "Mean blood oxygen saturation over the last 7 days. Target condition: >= 98 %.",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "blood_oxygen_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 98,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e74b772dc79217e56d266e6e0a7876844e166af9114d502af448f3721802d832"
+    },
+    {
+      "id": "body_fat_percentage_latest_le_20",
+      "label": "Body fat % <= 20 %",
+      "description": "Most recent body fat percentage measurement. Target condition: <= 20 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "body_fat_percentage_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 20,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "metabolic",
+        "metric_threshold",
+        "other"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "dd5ef10289bb11a80d8696a4194acb53c1eaec4c22ad779daf05c2b550881296"
+    },
+    {
+      "id": "body_fat_percentage_latest_le_25",
+      "label": "Body fat % <= 25 %",
+      "description": "Most recent body fat percentage measurement. Target condition: <= 25 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "body_fat_percentage_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 25,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "metabolic",
+        "metric_threshold",
+        "other"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e327be6c62cee7fd70e57d3975c608f7d99ae170a8acabff37721c9d05d697cd"
+    },
+    {
+      "id": "body_fat_percentage_latest_le_30",
+      "label": "Body fat % <= 30 %",
+      "description": "Most recent body fat percentage measurement. Target condition: <= 30 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "body_fat_percentage_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 30,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "metabolic",
+        "metric_threshold",
+        "other"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ec6addf6c57acb5925f0fc7036f572ae17bda3843ffa0a979994ffc4bd09c824"
+    },
+    {
+      "id": "bp_diastolic_avg_7d_le_70",
+      "label": "Diastolic BP <= 70 mmHg",
+      "description": "Mean diastolic blood pressure over the last 7 days. Target condition: <= 70 mmHg.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_diastolic_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 70,
+      "unit": "mmHg",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "3202de4aed3ca8f68c5635a70d5ce57503a4cb9f70aac9c9c3307df5727f88b1"
+    },
+    {
+      "id": "bp_diastolic_avg_7d_le_80",
+      "label": "Diastolic BP <= 80 mmHg",
+      "description": "Mean diastolic blood pressure over the last 7 days. Target condition: <= 80 mmHg.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_diastolic_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 80,
+      "unit": "mmHg",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "2e119d44b6f9d26419cfaa72f6d392603903ce2a5bd8a5a7e6a316d8eb0be2a0"
+    },
+    {
+      "id": "bp_diastolic_avg_7d_le_90",
+      "label": "Diastolic BP <= 90 mmHg",
+      "description": "Mean diastolic blood pressure over the last 7 days. Target condition: <= 90 mmHg.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_diastolic_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 90,
+      "unit": "mmHg",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f875f8f010b7a116436fb5673b402e39d8977b5d2cd9171715347cd38130bac8"
+    },
+    {
+      "id": "bp_readings_count_14d_ge_10",
+      "label": "BP readings >= 10 count",
+      "description": "Count of blood pressure readings over the last 14 days. Target condition: >= 10 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "bp_readings_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 10,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:hypertension",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "b53ad5711614253619ea26c356a1049e0edc2592801c5625eca9fca79f68bc51"
+    },
+    {
+      "id": "bp_readings_count_14d_ge_14",
+      "label": "BP readings >= 14 count",
+      "description": "Count of blood pressure readings over the last 14 days. Target condition: >= 14 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "bp_readings_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 14,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:hypertension",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e308b2b216183fc8c113fe9a45e828a1406e1da11f3dfe377df1ba0f50b4534f"
+    },
+    {
+      "id": "bp_readings_count_14d_ge_6",
+      "label": "BP readings >= 6 count",
+      "description": "Count of blood pressure readings over the last 14 days. Target condition: >= 6 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "bp_readings_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 6,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:hypertension",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "7d889fece19b565480188ddf1605117bcd168271671dd7134c3c916d8acd6664"
+    },
+    {
+      "id": "bp_systolic_avg_7d_le_120",
+      "label": "Systolic BP <= 120 mmHg",
+      "description": "Mean systolic blood pressure over the last 7 days. Target condition: <= 120 mmHg.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_systolic_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 120,
+      "unit": "mmHg",
+      "severity": "primary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "01a1e2d53af1a5ba635e67d0e7f1dbcb88b754c67360f017687758dcf0262b2f"
+    },
+    {
+      "id": "bp_systolic_avg_7d_le_140",
+      "label": "Systolic BP <= 140 mmHg",
+      "description": "Mean systolic blood pressure over the last 7 days. Target condition: <= 140 mmHg.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_systolic_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 140,
+      "unit": "mmHg",
+      "severity": "primary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "16cd8ac59a262d60702d347f024da38f91cb1dc3afd3d719ba8ec98001927085"
+    },
+    {
+      "id": "bp_systolic_control",
+      "label": "Blood Pressure Managed",
+      "description": "Mean systolic blood pressure over the last 7 days. Target condition: <= 130 mmHg.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_systolic_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 130,
+      "unit": "mmHg",
+      "severity": "primary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "3340e47784cded267e0ea3e33f9f56ec3af1bfb914a6962f4a3f87330546c3e5"
+    },
+    {
+      "id": "cgm_glucose_cv_14d_le_30",
+      "label": "CGM glucose CV <= 30 %",
+      "description": "Coefficient of variation for CGM glucose over 14 days. Target condition: <= 30 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_glucose_cv_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 30,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "1257c0b9c1a28f266e33282aac82e83a72bdc1b8c263d10cb1c48b68907d14f6"
+    },
+    {
+      "id": "cgm_glucose_cv_14d_le_33",
+      "label": "CGM glucose CV <= 33 %",
+      "description": "Coefficient of variation for CGM glucose over 14 days. Target condition: <= 33 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_glucose_cv_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 33,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "92be11305ebab8bf8bcd93428da44b941958d60210ce7e814af3d12a4dcdb565"
+    },
+    {
+      "id": "cgm_glucose_cv_14d_le_36",
+      "label": "CGM glucose CV <= 36 %",
+      "description": "Coefficient of variation for CGM glucose over 14 days. Target condition: <= 36 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_glucose_cv_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 36,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "c80d25c660334b30b689878d13533f22496055a2996d9e8c927c23f50dc2fcbb"
+    },
+    {
+      "id": "cgm_mean_glucose_avg_14d_le_110",
+      "label": "CGM mean glucose <= 110 mg/dL",
+      "description": "Mean CGM glucose value over the last 14 days. Target condition: <= 110 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_mean_glucose_avg_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 110,
+      "unit": "mg/dL",
+      "severity": "primary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "bb2d3400158a0720b91ed430e66af6bca0a2a3e90688e3050618d5637c3679ee"
+    },
+    {
+      "id": "cgm_mean_glucose_avg_14d_le_140",
+      "label": "CGM mean glucose <= 140 mg/dL",
+      "description": "Mean CGM glucose value over the last 14 days. Target condition: <= 140 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_mean_glucose_avg_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 140,
+      "unit": "mg/dL",
+      "severity": "primary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "6bd85a7dc08a730f0bab6d1a61c2f278a69ffb1a3c5d911de98cd29963606132"
+    },
+    {
+      "id": "cgm_mean_glucose_avg_14d_le_154",
+      "label": "CGM mean glucose <= 154 mg/dL",
+      "description": "Mean CGM glucose value over the last 14 days. Target condition: <= 154 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_mean_glucose_avg_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 154,
+      "unit": "mg/dL",
+      "severity": "primary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "4e399c5e7dd05895795c87a44a56b56b7c8207b8f70f60db12430eb26333a678"
+    },
+    {
+      "id": "cgm_time_above_range_pct_14d_le_15",
+      "label": "CGM time above range <= 15 %",
+      "description": "Share of CGM readings above 180 mg/dL over 14 days. Target condition: <= 15 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_above_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 15,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "7128265b1b203ba3e6a73add47492615348032fa08e70b4f98827b5e38814fc7"
+    },
+    {
+      "id": "cgm_time_above_range_pct_14d_le_25",
+      "label": "CGM time above range <= 25 %",
+      "description": "Share of CGM readings above 180 mg/dL over 14 days. Target condition: <= 25 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_above_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 25,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "763f5375971aedbb52d911f4e42469239fc6b88072226b5d040a91febe8c2ade"
+    },
+    {
+      "id": "cgm_time_above_range_pct_14d_le_5",
+      "label": "CGM time above range <= 5 %",
+      "description": "Share of CGM readings above 180 mg/dL over 14 days. Target condition: <= 5 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_above_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 5,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "0b2066d5ac6a0e238c2396d6fbf0c1cc458658ae6a0e710eb9c77df61afac644"
+    },
+    {
+      "id": "cgm_time_below_range_pct_14d_le_1",
+      "label": "CGM time below range <= 1 %",
+      "description": "Share of CGM readings below 70 mg/dL over 14 days. Target condition: <= 1 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_below_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 1,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "303afe7db1fdb2af9807f82fc6e9248a9c1b44779db95a2481ac332d3b84db1a"
+    },
+    {
+      "id": "cgm_time_below_range_pct_14d_le_2",
+      "label": "CGM time below range <= 2 %",
+      "description": "Share of CGM readings below 70 mg/dL over 14 days. Target condition: <= 2 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_below_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 2,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "fe9e7fa0b0f3b445030c7ca8dbbd1963a7c7aca0d96b5a219054938ebd8dce36"
+    },
+    {
+      "id": "cgm_time_below_range_pct_14d_le_4",
+      "label": "CGM time below range <= 4 %",
+      "description": "Share of CGM readings below 70 mg/dL over 14 days. Target condition: <= 4 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_below_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 4,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "b93650de493726e491afbe140ba690ac190db5fd55522b5399483ffa6002d197"
+    },
+    {
+      "id": "cgm_time_in_range_pct_14d_ge_70",
+      "label": "CGM time in range >= 70 %",
+      "description": "Share of CGM readings between 70 and 180 mg/dL over 14 days. Target condition: >= 70 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_in_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 70,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "8aaecd0114d079f3197c26c033cd97f706f1716a50a0450383b3140895aa432c"
+    },
+    {
+      "id": "cgm_time_in_range_pct_14d_ge_80",
+      "label": "CGM time in range >= 80 %",
+      "description": "Share of CGM readings between 70 and 180 mg/dL over 14 days. Target condition: >= 80 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_in_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 80,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e8508411e8a591ee6386a9dc3d9e60adf19dfdd5d6a7ebcac3d8a7ec53eb17a3"
+    },
+    {
+      "id": "cgm_time_in_range_pct_14d_ge_90",
+      "label": "CGM time in range >= 90 %",
+      "description": "Share of CGM readings between 70 and 180 mg/dL over 14 days. Target condition: >= 90 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_in_range_pct_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 90,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f83069ed7569580d0c6fda40bc37a754e5f53abb9fc6770abea957f29f01e8cb"
+    },
+    {
+      "id": "data_completeness_14d_ge_0p6",
+      "label": "Data completeness >= 0.6 ratio",
+      "description": "Share of days (0..1) in the last 14 days where at least one core signal exists (sleep/steps/weight). Target condition: >= 0.6 ratio.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "data_completeness_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 0.6,
+      "unit": "ratio",
+      "severity": "secondary",
+      "tags": [
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ea2f177264c6aec298642853d1e07014e3a35f56364ac36c32800904459f3af5"
+    },
+    {
+      "id": "data_completeness_14d_ge_0p75",
+      "label": "Data completeness >= 0.75 ratio",
+      "description": "Share of days (0..1) in the last 14 days where at least one core signal exists (sleep/steps/weight). Target condition: >= 0.75 ratio.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "data_completeness_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 0.75,
+      "unit": "ratio",
+      "severity": "secondary",
+      "tags": [
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "a50aa38a5b99a279b60e11155252d2b8302a0af7558dae86cb9bf33de80a3ba2"
+    },
+    {
+      "id": "data_completeness_14d_ge_0p9",
+      "label": "Data completeness >= 0.9 ratio",
+      "description": "Share of days (0..1) in the last 14 days where at least one core signal exists (sleep/steps/weight). Target condition: >= 0.9 ratio.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "data_completeness_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 0.9,
+      "unit": "ratio",
+      "severity": "secondary",
+      "tags": [
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "1035bad1b956aadb42e8d5cce4b21443770cb5c73be11511f3f5ef3d372b04da"
+    },
+    {
+      "id": "distance_meters_avg_per_day_7d_ge_1500",
+      "label": "Distance >= 1500 m/day",
+      "description": "Estimated mean daily distance in meters over the last 7 days (total divided by 7). Target condition: >= 1500 m/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 1500,
+      "unit": "m/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "8c78b7540c1eadebfa21a650250f6ca51b8a1f7b1cdc2767c7752dcad995ec66"
+    },
+    {
+      "id": "distance_meters_avg_per_day_7d_ge_3000",
+      "label": "Distance >= 3000 m/day",
+      "description": "Estimated mean daily distance in meters over the last 7 days (total divided by 7). Target condition: >= 3000 m/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3000,
+      "unit": "m/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "dbec8468ebb6c98450432e3d4a6f8f8ae30495283a9c33bb58fbfcdea559f4a3"
+    },
+    {
+      "id": "distance_meters_avg_per_day_7d_ge_6000",
+      "label": "Distance >= 6000 m/day",
+      "description": "Estimated mean daily distance in meters over the last 7 days (total divided by 7). Target condition: >= 6000 m/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 6000,
+      "unit": "m/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f0be4dc63446a23cba8173aae81151f641de9fdde90322d21b1bfa01cefd9661"
+    },
+    {
+      "id": "distance_meters_sum_7d_ge_10000",
+      "label": "Distance >= 10000 m",
+      "description": "Total distance in meters over the last 7 days. Target condition: >= 10000 m.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 10000,
+      "unit": "m",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "0f773b4341b7e4421e25bdb7cb167f8f39f5fe760061b1ef4ada926c31870ae0"
+    },
+    {
+      "id": "distance_meters_sum_7d_ge_20000",
+      "label": "Distance >= 20000 m",
+      "description": "Total distance in meters over the last 7 days. Target condition: >= 20000 m.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 20000,
+      "unit": "m",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "2558686fe718593f479facb3d1e4aa983c2bcaf8c5a196cb8ef48c77ac4b9826"
+    },
+    {
+      "id": "distance_meters_sum_7d_ge_40000",
+      "label": "Distance >= 40000 m",
+      "description": "Total distance in meters over the last 7 days. Target condition: >= 40000 m.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 40000,
+      "unit": "m",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "669b2e5a7c92ecf5d7ee416599d7e4678e857bf1073ee315d252e9f29bdbd0df"
+    },
+    {
+      "id": "energy_level_avg_7d_ge_3",
+      "label": "Energy level >= 3 rating",
+      "description": "Mean energy rating over the last 7 days. Target condition: >= 3 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "energy_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "01579e19c1c713ed92bd7d3244cfd291ffac77885acf2553abed5e67c809177c"
+    },
+    {
+      "id": "energy_level_avg_7d_ge_3p5",
+      "label": "Energy level >= 3.5 rating",
+      "description": "Mean energy rating over the last 7 days. Target condition: >= 3.5 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "energy_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3.5,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e17df325f72492bc14fa3778ebea1e2a785cc6ed1ae941b4c453c21ca0fddc52"
+    },
+    {
+      "id": "energy_level_avg_7d_ge_4",
+      "label": "Energy level >= 4 rating",
+      "description": "Mean energy rating over the last 7 days. Target condition: >= 4 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "energy_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 4,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ca175d265171934b0ad182abe4213f995d75201df6fa6ea93fc595ba9b31b297"
+    },
+    {
+      "id": "focus_level_avg_7d_ge_3",
+      "label": "Focus level >= 3 rating",
+      "description": "Mean focus rating over the last 7 days. Target condition: >= 3 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "focus_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e92ce47fca381636b942b3be01145f5a6efa7362068ac1786cb44be238c276da"
+    },
+    {
+      "id": "focus_level_avg_7d_ge_3p5",
+      "label": "Focus level >= 3.5 rating",
+      "description": "Mean focus rating over the last 7 days. Target condition: >= 3.5 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "focus_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3.5,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "7ffed5f6a2f4b5d3b3cce42030de49627eb763c9fa7a163c61f44aa43679b8d3"
+    },
+    {
+      "id": "focus_level_avg_7d_ge_4",
+      "label": "Focus level >= 4 rating",
+      "description": "Mean focus rating over the last 7 days. Target condition: >= 4 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "focus_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 4,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "950c4731d1c8f9ae64de0c381fd07881a88bb9d141bc67b8a363252d55a61517"
+    },
+    {
+      "id": "gmi_14d_le_5p7",
+      "label": "GMI <= 5.7 %",
+      "description": "Glucose Management Indicator derived from 14-day mean glucose. Target condition: <= 5.7 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "gmi_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 5.7,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "702d9587604cda064227567cd9d7778499a7e317dbdb866f789bc1e19064d8ce"
+    },
+    {
+      "id": "gmi_14d_le_6p5",
+      "label": "GMI <= 6.5 %",
+      "description": "Glucose Management Indicator derived from 14-day mean glucose. Target condition: <= 6.5 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "gmi_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 6.5,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "37675090344ad8731977d6096ddb1c2d022f663bd89bb69cbaac6a8826b42631"
+    },
+    {
+      "id": "gmi_14d_le_7",
+      "label": "GMI <= 7 %",
+      "description": "Glucose Management Indicator derived from 14-day mean glucose. Target condition: <= 7 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "gmi_14d",
+      "metricWindow": "14d",
+      "comparator": "<=",
+      "threshold": 7,
+      "unit": "%",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "21270bdd501bd72600fd146fdf3e604e54608ac7db8265cbad65236e99e28eec"
+    },
+    {
+      "id": "hba1c_latest_le_5p7",
+      "label": "HbA1c <= 5.7 %",
+      "description": "Most recent HbA1c lab result. Target condition: <= 5.7 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hba1c_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 5.7,
+      "unit": "%",
+      "severity": "primary",
+      "tags": [
+        "goal:glucose_control",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "b3181ac632bab8af18f979c8dc93489d17593cef71796070f22f36d99bb320be"
+    },
+    {
+      "id": "hba1c_latest_le_7",
+      "label": "HbA1c <= 7 %",
+      "description": "Most recent HbA1c lab result. Target condition: <= 7 %.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hba1c_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 7,
+      "unit": "%",
+      "severity": "primary",
+      "tags": [
+        "goal:glucose_control",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "17e17c3512df20528df752c5d99c8c7de83eb37f708af91fd387223162266940"
+    },
+    {
+      "id": "hdl_latest_ge_40",
+      "label": "HDL >= 40 mg/dL",
+      "description": "Most recent HDL cholesterol value. Target condition: >= 40 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hdl_latest",
+      "metricWindow": "latest",
+      "comparator": ">=",
+      "threshold": 40,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "a3aa767f7e169b46ce09846ebacd87af11d37c1bd516ccae4f08acd1cb8ee71a"
+    },
+    {
+      "id": "hdl_latest_ge_50",
+      "label": "HDL >= 50 mg/dL",
+      "description": "Most recent HDL cholesterol value. Target condition: >= 50 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hdl_latest",
+      "metricWindow": "latest",
+      "comparator": ">=",
+      "threshold": 50,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "eab4793d49d1c029fefac83bbc495386794be7ca29fc76e936d220df8fdd7cea"
+    },
+    {
+      "id": "hdl_latest_ge_60",
+      "label": "HDL >= 60 mg/dL",
+      "description": "Most recent HDL cholesterol value. Target condition: >= 60 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hdl_latest",
+      "metricWindow": "latest",
+      "comparator": ">=",
+      "threshold": 60,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "0b2494f8bfa5043126a3d8dc224404f0133e9e735cc85162805d209ee98ba14a"
+    },
+    {
+      "id": "heart_rate_variability_avg_7d_ge_20",
+      "label": "HRV >= 20 ms",
+      "description": "Mean heart rate variability over the last 7 days. Target condition: >= 20 ms.",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "heart_rate_variability_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 20,
+      "unit": "ms",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "61dfcdd750b82756072cce2c27f729f9c215125282c0b4978473dafec35eb2d1"
+    },
+    {
+      "id": "heart_rate_variability_avg_7d_ge_30",
+      "label": "HRV >= 30 ms",
+      "description": "Mean heart rate variability over the last 7 days. Target condition: >= 30 ms.",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "heart_rate_variability_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 30,
+      "unit": "ms",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "0ac3e17ff5f48e442bde23b22c48711353d1e0afed63b2347182a0cd1c0a698e"
+    },
+    {
+      "id": "heart_rate_variability_avg_7d_ge_50",
+      "label": "HRV >= 50 ms",
+      "description": "Mean heart rate variability over the last 7 days. Target condition: >= 50 ms.",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "heart_rate_variability_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 50,
+      "unit": "ms",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "df6c59089d922bf03f353bce77c85211c4f071acc116f0aae57d97ef5460169f"
+    },
+    {
+      "id": "hydration_ml_avg_per_day_7d_ge_1500",
+      "label": "Hydration >= 1500 ml/day",
+      "description": "Estimated mean daily hydration in milliliters over the last 7 days (total divided by 7). Target condition: >= 1500 ml/day.",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 1500,
+      "unit": "ml/day",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "b71dff7d753b19b26c6936c080162f57cab754d5b79bfee3258f76509211d6e1"
+    },
+    {
+      "id": "hydration_ml_avg_per_day_7d_ge_2000",
+      "label": "Hydration >= 2000 ml/day",
+      "description": "Estimated mean daily hydration in milliliters over the last 7 days (total divided by 7). Target condition: >= 2000 ml/day.",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 2000,
+      "unit": "ml/day",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "7dcb6ca6586f3a95e49191ebf6d30dc0bcc8d33ffd93c4f2ad640510e9be0a0e"
+    },
+    {
+      "id": "hydration_ml_avg_per_day_7d_ge_2500",
+      "label": "Hydration >= 2500 ml/day",
+      "description": "Estimated mean daily hydration in milliliters over the last 7 days (total divided by 7). Target condition: >= 2500 ml/day.",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_avg_per_day_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 2500,
+      "unit": "ml/day",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "b396d744676ad32fca66b86e1208ea0418d19edd5ca71c6d3b1cdd6b965281f7"
+    },
+    {
+      "id": "hydration_ml_sum_7d_ge_10500",
+      "label": "Hydration >= 10500 ml",
+      "description": "Total logged hydration in milliliters over the last 7 days. Target condition: >= 10500 ml.",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 10500,
+      "unit": "ml",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "329b6af948e2aab0dc92b632138d9d2ecb70f0ed8b497de74d02b7479f3df722"
+    },
+    {
+      "id": "hydration_ml_sum_7d_ge_14000",
+      "label": "Hydration >= 14000 ml",
+      "description": "Total logged hydration in milliliters over the last 7 days. Target condition: >= 14000 ml.",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 14000,
+      "unit": "ml",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "5173b5f0df3da017d6f9cf851cc06e2bcb14d72f4a103521ef4b55a123365964"
+    },
+    {
+      "id": "hydration_ml_sum_7d_ge_17500",
+      "label": "Hydration >= 17500 ml",
+      "description": "Total logged hydration in milliliters over the last 7 days. Target condition: >= 17500 ml.",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 17500,
+      "unit": "ml",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "e6b04bcc2bf7a7ee9804ee4d9b08e2b737accfd9c83db6aa3d5ea9fef179cd54"
+    },
+    {
+      "id": "ldl_control",
+      "label": "LDL Cholesterol Managed",
+      "description": "Most recent LDL cholesterol value. Target condition: <= 100 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "ldl_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 100,
+      "unit": "mg/dL",
+      "severity": "primary",
+      "tags": [
+        "goal:lipid_optimization",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "74cada56ab76e7fbbc3dbd5eb1bcef4d58374c4d9055b99136467ba951408b84"
+    },
+    {
+      "id": "ldl_latest_le_130",
+      "label": "LDL <= 130 mg/dL",
+      "description": "Most recent LDL cholesterol value. Target condition: <= 130 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "ldl_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 130,
+      "unit": "mg/dL",
+      "severity": "primary",
+      "tags": [
+        "goal:lipid_optimization",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "712d06f56a18786b5d97f54cc082d00ea8ae6604816a688c0772e345da7b3def"
+    },
+    {
+      "id": "ldl_latest_le_70",
+      "label": "LDL <= 70 mg/dL",
+      "description": "Most recent LDL cholesterol value. Target condition: <= 70 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "ldl_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 70,
+      "unit": "mg/dL",
+      "severity": "primary",
+      "tags": [
+        "goal:lipid_optimization",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ae54dab71f22dba7693bfe3ace4d081dd865203ed008325531f887c49fd11ea8"
+    },
+    {
+      "id": "lpa_latest_le_20",
+      "label": "Lp(a) <= 20 mg/dL",
+      "description": "Most recent Lipoprotein(a) value. Target condition: <= 20 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "lpa_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 20,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "30377d4392826e32f5f0b81b5545d2082385134d5641018f087fa03659d45ebd"
+    },
+    {
+      "id": "lpa_latest_le_30",
+      "label": "Lp(a) <= 30 mg/dL",
+      "description": "Most recent Lipoprotein(a) value. Target condition: <= 30 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "lpa_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 30,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "bbfe43709d48bfcc49cab13f82c80d5ab7d09d60f61b22cd97b40ddd9f4a6e16"
+    },
+    {
+      "id": "lpa_latest_le_50",
+      "label": "Lp(a) <= 50 mg/dL",
+      "description": "Most recent Lipoprotein(a) value. Target condition: <= 50 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "lpa_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 50,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "d2acd3aebb64051f393b609cab462ccc42ab03cbf8274ef71590552ce84e8d15"
+    },
+    {
+      "id": "mindfulness_minutes_avg_7d_ge_10",
+      "label": "Mindfulness >= 10 min/day",
+      "description": "Mean daily mindfulness minutes over the last 7 days. Target condition: >= 10 min/day.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mindfulness_minutes_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 10,
+      "unit": "min/day",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:sleep_optimization",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "713464552c1102d800b567ef4bafbb9772233a6bce45d332e53d5e56892456b8"
+    },
+    {
+      "id": "mindfulness_minutes_avg_7d_ge_20",
+      "label": "Mindfulness >= 20 min/day",
+      "description": "Mean daily mindfulness minutes over the last 7 days. Target condition: >= 20 min/day.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mindfulness_minutes_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 20,
+      "unit": "min/day",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:sleep_optimization",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "9ee952b1cebe453246b448c17538b7bc4afc346ad0ebdc1e04a5982c85126982"
+    },
+    {
+      "id": "mindfulness_minutes_avg_7d_ge_5",
+      "label": "Mindfulness >= 5 min/day",
+      "description": "Mean daily mindfulness minutes over the last 7 days. Target condition: >= 5 min/day.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mindfulness_minutes_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 5,
+      "unit": "min/day",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:sleep_optimization",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "78ff4316bbdb7c68483378d0f9e748539f2e63750d102aa73b413a60eb641e09"
+    },
+    {
+      "id": "mood_rating_avg_7d_ge_3",
+      "label": "Mood rating >= 3 rating",
+      "description": "Mean mood rating over the last 7 days. Target condition: >= 3 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mood_rating_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ac94d407d07eaa9d10d0008fedde19b2444446cbacec794e57f2004517c02507"
+    },
+    {
+      "id": "mood_rating_avg_7d_ge_3p5",
+      "label": "Mood rating >= 3.5 rating",
+      "description": "Mean mood rating over the last 7 days. Target condition: >= 3.5 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mood_rating_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3.5,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "28d541c93c800bbd768018c9e708d4684a97a139f2e1d59d385a3c38e80ec0c1"
+    },
+    {
+      "id": "mood_rating_avg_7d_ge_4",
+      "label": "Mood rating >= 4 rating",
+      "description": "Mean mood rating over the last 7 days. Target condition: >= 4 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mood_rating_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 4,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "c93f501069d16de50aaeb9f12d9e0d288bc5fd599af0e8a1293f5452284cd4f2"
+    },
+    {
+      "id": "resting_heart_rate_avg_7d_le_60",
+      "label": "Resting heart rate <= 60 bpm",
+      "description": "Mean resting heart rate over the last 7 days. Target condition: <= 60 bpm.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 60,
+      "unit": "bpm",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "9f5ad134d2d79061d08844a8ff3df6b7d5faea44c1cfe58cfe56113563f54e71"
+    },
+    {
+      "id": "resting_heart_rate_avg_7d_le_70",
+      "label": "Resting heart rate <= 70 bpm",
+      "description": "Mean resting heart rate over the last 7 days. Target condition: <= 70 bpm.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 70,
+      "unit": "bpm",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "9365716b1b4c7c757656723ca65375a60992fad2913b1ed6b8ba5af0bb2d5e0a"
+    },
+    {
+      "id": "resting_heart_rate_avg_7d_le_80",
+      "label": "Resting heart rate <= 80 bpm",
+      "description": "Mean resting heart rate over the last 7 days. Target condition: <= 80 bpm.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 80,
+      "unit": "bpm",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "0a87e8636295fa90ce699ad8527728b648a1700e76b6541a347ca1046f30b4fc"
+    },
+    {
+      "id": "resting_heart_rate_latest_le_60",
+      "label": "Resting heart rate <= 60 bpm",
+      "description": "Most recent resting heart rate measurement. Target condition: <= 60 bpm.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 60,
+      "unit": "bpm",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "61a20ba15b7333287ad6c7008682d927953bd1bbfa171a099737afc20e328cc2"
+    },
+    {
+      "id": "resting_heart_rate_latest_le_70",
+      "label": "Resting heart rate <= 70 bpm",
+      "description": "Most recent resting heart rate measurement. Target condition: <= 70 bpm.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 70,
+      "unit": "bpm",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f99600cfbe36dc2f118183ebdc33c253cee359e114005351860637f8da95fb7d"
+    },
+    {
+      "id": "resting_heart_rate_latest_le_80",
+      "label": "Resting heart rate <= 80 bpm",
+      "description": "Most recent resting heart rate measurement. Target condition: <= 80 bpm.",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 80,
+      "unit": "bpm",
+      "severity": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "a341b637d8d96ae32705487bf705096a5979223884805d82470bf5ccfca4cb80"
+    },
+    {
+      "id": "sleep_duration_at_least_7h",
+      "label": "Better Sleep & Recovery",
+      "description": "Mean sleep duration in minutes over the last 7 days. Target condition: >= 420 min.",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_duration_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 420,
+      "unit": "min",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "23bac8b876461088813f21c2e4735ef33de2144f977d8328f599597aee5324d4"
+    },
+    {
+      "id": "sleep_duration_avg_7d_ge_360",
+      "label": "Sleep duration >= 360 min",
+      "description": "Mean sleep duration in minutes over the last 7 days. Target condition: >= 360 min.",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_duration_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 360,
+      "unit": "min",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "c7c3793acaadd03ce2b41670240a98a9cbb83b522ca0f1ebc0cd08b574d8e2fc"
+    },
+    {
+      "id": "sleep_duration_avg_7d_ge_480",
+      "label": "Sleep duration >= 480 min",
+      "description": "Mean sleep duration in minutes over the last 7 days. Target condition: >= 480 min.",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_duration_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 480,
+      "unit": "min",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "cbfdfdc12873dac637d0c5aaddcfceab7aca443550998663d003f09d7596ae51"
+    },
+    {
+      "id": "sleep_quality_rating_avg_7d_ge_3",
+      "label": "Sleep quality >= 3 rating",
+      "description": "Mean sleep quality rating over the last 7 days. Target condition: >= 3 rating.",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_quality_rating_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "444578eb08c94bbe4c05cdce629c870ec3c9b8998f376a7dc94bd6973c04f1cb"
+    },
+    {
+      "id": "sleep_quality_rating_avg_7d_ge_3p5",
+      "label": "Sleep quality >= 3.5 rating",
+      "description": "Mean sleep quality rating over the last 7 days. Target condition: >= 3.5 rating.",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_quality_rating_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3.5,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "6849d5fa3b1898d09d40b57e3253b5d309222f0891dad0a9851a6e3367b4a697"
+    },
+    {
+      "id": "sleep_quality_rating_avg_7d_ge_4",
+      "label": "Sleep quality >= 4 rating",
+      "description": "Mean sleep quality rating over the last 7 days. Target condition: >= 4 rating.",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_quality_rating_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 4,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "3f81d657faa2c62b1efd56f42f6cac098cf093814fb9ef02ad3b9b43ae2cc0fb"
+    },
+    {
+      "id": "sleep_sessions_count_14d_ge_10",
+      "label": "Sleep sessions >= 10 count",
+      "description": "Count of sleep sessions over the last 14 days. Target condition: >= 10 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "sleep_sessions_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 10,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f5cdc2ec4493062145e9585ccdc19b0d51d287878bc965aebc38eb0537489783"
+    },
+    {
+      "id": "sleep_sessions_count_14d_ge_12",
+      "label": "Sleep sessions >= 12 count",
+      "description": "Count of sleep sessions over the last 14 days. Target condition: >= 12 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "sleep_sessions_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 12,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "6d316c86b90e8f67b0514b3d516f30c99f96a4ecbfb45abb3223ab0716a5163f"
+    },
+    {
+      "id": "sleep_sessions_count_14d_ge_14",
+      "label": "Sleep sessions >= 14 count",
+      "description": "Count of sleep sessions over the last 14 days. Target condition: >= 14 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "sleep_sessions_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 14,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "eaa0f28a6b4cde1f225846e440e72d5a0ae85411e12a443db851d41296e4e4ab"
+    },
+    {
+      "id": "steps_avg_7d_ge_10000",
+      "label": "Steps >= 10000 steps/day",
+      "description": "Estimated mean daily steps over the last 7 days (sum of stepCount divided by 7). Target condition: >= 10000 steps/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 10000,
+      "unit": "steps/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "58e8781722cb406431d87aff80edf5aac5f5536e3bb4c5d3536383c64149fb56"
+    },
+    {
+      "id": "steps_avg_7d_ge_5000",
+      "label": "Steps >= 5000 steps/day",
+      "description": "Estimated mean daily steps over the last 7 days (sum of stepCount divided by 7). Target condition: >= 5000 steps/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 5000,
+      "unit": "steps/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "5f21879a0f3696b047685e97f0d11e69b620fefba9d595ed42351261a44e63c7"
+    },
+    {
+      "id": "steps_sum_7d_ge_35000",
+      "label": "Steps >= 35000 steps",
+      "description": "Total steps over the last 7 days. Target condition: >= 35000 steps.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 35000,
+      "unit": "steps",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "658689752a4e354858a0c09dc6230c29cbce9457d12f8abe53cf8cf6a3568c04"
+    },
+    {
+      "id": "steps_sum_7d_ge_49000",
+      "label": "Steps >= 49000 steps",
+      "description": "Total steps over the last 7 days. Target condition: >= 49000 steps.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 49000,
+      "unit": "steps",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "a2c45f595225bd42d6263729a3cfe92ec9335b39f5cfa20b85a33f65d29c5431"
+    },
+    {
+      "id": "steps_sum_7d_ge_70000",
+      "label": "Steps >= 70000 steps",
+      "description": "Total steps over the last 7 days. Target condition: >= 70000 steps.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 70000,
+      "unit": "steps",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "8737f91d9ec3cf1393dd0866a4ee67ac22ecd12ee483b23192aae3030404bd6e"
+    },
+    {
+      "id": "stress_level_avg_7d_le_2",
+      "label": "Stress level <= 2 rating",
+      "description": "Mean stress rating over the last 7 days. Target condition: <= 2 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "stress_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 2,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:glucose_control",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "aa1e76e380f6d72246cc46db98823cc19d17cf55cb867f147d8b63502a1a5f19"
+    },
+    {
+      "id": "stress_level_avg_7d_le_2p5",
+      "label": "Stress level <= 2.5 rating",
+      "description": "Mean stress rating over the last 7 days. Target condition: <= 2.5 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "stress_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 2.5,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:glucose_control",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "5a0cd2bd0cffc6ad32c7326c74e67281e3c48ece0437f0fcf51031aeb9191570"
+    },
+    {
+      "id": "stress_level_avg_7d_le_3",
+      "label": "Stress level <= 3 rating",
+      "description": "Mean stress rating over the last 7 days. Target condition: <= 3 rating.",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "stress_level_avg_7d",
+      "metricWindow": "7d",
+      "comparator": "<=",
+      "threshold": 3,
+      "unit": "rating",
+      "severity": "secondary",
+      "tags": [
+        "driver",
+        "goal:glucose_control",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidence": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "2f54839b2f6f7132a550e934037d7e8a229e617dec6790a5fdfa0f789017ca34"
+    },
+    {
+      "id": "total_cholesterol_latest_le_180",
+      "label": "Total cholesterol <= 180 mg/dL",
+      "description": "Most recent total cholesterol value. Target condition: <= 180 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "total_cholesterol_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 180,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "31c94dfcc2c72e5a379899616792f648db002123c3f35ef6ad4a6a0c1e52c64c"
+    },
+    {
+      "id": "total_cholesterol_latest_le_200",
+      "label": "Total cholesterol <= 200 mg/dL",
+      "description": "Most recent total cholesterol value. Target condition: <= 200 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "total_cholesterol_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 200,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "97cc715975c8ab3fbd7a8509cf4c62a285aaf8f9b96c6a86d7bf1fc82ed961fe"
+    },
+    {
+      "id": "total_cholesterol_latest_le_240",
+      "label": "Total cholesterol <= 240 mg/dL",
+      "description": "Most recent total cholesterol value. Target condition: <= 240 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "total_cholesterol_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 240,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "7d62a3bc23a96e88bef95f7b131d7ad6558201f566e7630a139f0a57008c36da"
+    },
+    {
+      "id": "triglycerides_latest_le_100",
+      "label": "Triglycerides <= 100 mg/dL",
+      "description": "Most recent triglycerides value. Target condition: <= 100 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "triglycerides_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 100,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "d0b48499f2d1abbdc171da38beb7b60f9d0c9c4ff6d191d4e34c707b5566feeb"
+    },
+    {
+      "id": "triglycerides_latest_le_150",
+      "label": "Triglycerides <= 150 mg/dL",
+      "description": "Most recent triglycerides value. Target condition: <= 150 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "triglycerides_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 150,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "1a35557e106c9e8cadd4257f5e874231179addf7bbfe29c78688d6d9fb771b98"
+    },
+    {
+      "id": "triglycerides_latest_le_200",
+      "label": "Triglycerides <= 200 mg/dL",
+      "description": "Most recent triglycerides value. Target condition: <= 200 mg/dL.",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "triglycerides_latest",
+      "metricWindow": "latest",
+      "comparator": "<=",
+      "threshold": 200,
+      "unit": "mg/dL",
+      "severity": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "a5639be1662ae12b746c807be91b0f7edf53b2289b6c042e2795bac53b9c9337"
+    },
+    {
+      "id": "weighin_count_14d_ge_10",
+      "label": "Weigh-ins >= 10 count",
+      "description": "Count of weight entries over the last 14 days. Target condition: >= 10 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "weighin_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 10,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "eb2f30baf7bcb3552f88cc18646aa7b573a5ae223b6fcfb1cf57edc36852c0d5"
+    },
+    {
+      "id": "weighin_count_14d_ge_4",
+      "label": "Weigh-ins >= 4 count",
+      "description": "Count of weight entries over the last 14 days. Target condition: >= 4 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "weighin_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 4,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "4b38bff69fad20b4ea44e9ecc5cf876493b71a21ca1afc15f989f200a6b962a8"
+    },
+    {
+      "id": "weighin_count_14d_ge_6",
+      "label": "Weigh-ins >= 6 count",
+      "description": "Count of weight entries over the last 14 days. Target condition: >= 6 count.",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "weighin_count_14d",
+      "metricWindow": "14d",
+      "comparator": ">=",
+      "threshold": 6,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "22e40696c99d5d331573a36cf6bdb8ff97bb53094eafd5186c598e69254e07d2"
+    },
+    {
+      "id": "wl_steps_on_track",
+      "label": "Sustained Weight Loss Activity",
+      "description": "Estimated mean daily steps over the last 7 days (sum of stepCount divided by 7). Target condition: >= 7000 steps/day.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_avg_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 7000,
+      "unit": "steps/day",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "76846baf8496aaffad39498024db69d353cbd89983e8ac860df7e90936ac7962"
+    },
+    {
+      "id": "workout_energy_burned_sum_7d_ge_1000",
+      "label": "Workout energy >= 1000 kcal",
+      "description": "Total workout energy burned over the last 7 days (from workout sessions). Target condition: >= 1000 kcal.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 1000,
+      "unit": "kcal",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "3b996920bb73d746788cde2b4693365ac5e7c4c52fc1bdc9b70d3be40780743c"
+    },
+    {
+      "id": "workout_energy_burned_sum_7d_ge_2000",
+      "label": "Workout energy >= 2000 kcal",
+      "description": "Total workout energy burned over the last 7 days (from workout sessions). Target condition: >= 2000 kcal.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 2000,
+      "unit": "kcal",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "ce693f2242201233d727811f084f7541a8952f0b4892bf097e619a008094e0d3"
+    },
+    {
+      "id": "workout_energy_burned_sum_7d_ge_500",
+      "label": "Workout energy >= 500 kcal",
+      "description": "Total workout energy burned over the last 7 days (from workout sessions). Target condition: >= 500 kcal.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 500,
+      "unit": "kcal",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "8def74ca1a567de0452cdf99989fe027c7114b6c15db3da8a793104769998701"
+    },
+    {
+      "id": "workout_minutes_sum_7d_ge_150",
+      "label": "Workout minutes >= 150 min",
+      "description": "Total workout minutes over the last 7 days. Target condition: >= 150 min.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_minutes_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 150,
+      "unit": "min",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:glucose_control",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "9bcc480432004d815899ca56840e051f9517f2ffb147b192786a5a706c0d2dfd"
+    },
+    {
+      "id": "workout_minutes_sum_7d_ge_300",
+      "label": "Workout minutes >= 300 min",
+      "description": "Total workout minutes over the last 7 days. Target condition: >= 300 min.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_minutes_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 300,
+      "unit": "min",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:glucose_control",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "d48f1fd79d327a7d3a671d69311a778354bee2ede964baff9946a60a1c4c2606"
+    },
+    {
+      "id": "workout_minutes_sum_7d_ge_90",
+      "label": "Workout minutes >= 90 min",
+      "description": "Total workout minutes over the last 7 days. Target condition: >= 90 min.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_minutes_sum_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 90,
+      "unit": "min",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:glucose_control",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "97755728dd630b9ac8fbe814d42e66a5b4dbdc74dcdea1a96a3a5aa7ef005c34"
+    },
+    {
+      "id": "workout_sessions_count_7d_ge_3",
+      "label": "Workout sessions >= 3 count",
+      "description": "Count of workout sessions over the last 7 days. Target condition: >= 3 count.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_sessions_count_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 3,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "6fce1f5ce01b5e6c9fdc14e64bbf5ce3df80249a8be2089a8e9a84784afd4b65"
+    },
+    {
+      "id": "workout_sessions_count_7d_ge_5",
+      "label": "Workout sessions >= 5 count",
+      "description": "Count of workout sessions over the last 7 days. Target condition: >= 5 count.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_sessions_count_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 5,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "53b7f3f96598193d5475c5ff94be30f09f8c1a482f0f461b69bf8cebcd55462c"
+    },
+    {
+      "id": "workout_sessions_count_7d_ge_7",
+      "label": "Workout sessions >= 7 count",
+      "description": "Count of workout sessions over the last 7 days. Target condition: >= 7 count.",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_sessions_count_7d",
+      "metricWindow": "7d",
+      "comparator": ">=",
+      "threshold": 7,
+      "unit": "count",
+      "severity": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidence": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "valueHashHex": "f75a77f7c89bf55955301315cb176fd22a9d4e84fb5d413e6a3ad55b93508940"
+    }
+  ],
+  "outcomeTemplates": [
+    {
+      "id": "active_energy_burned_avg_per_day_7d_threshold",
+      "label": "Active energy threshold template",
+      "description": "Parameterized threshold template derived from metric \"active_energy_burned_avg_per_day_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_avg_per_day_7d",
+      "metricWindow": "7d",
+      "unit": "kcal/day",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          200,
+          300,
+          500
+        ],
+        "min": 200,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "active_energy_burned_sum_7d_threshold",
+      "label": "Active energy threshold template",
+      "description": "Parameterized threshold template derived from metric \"active_energy_burned_sum_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "active_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "unit": "kcal",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          1500,
+          2500,
+          3500
+        ],
+        "min": 1500,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "adherence_7d_threshold",
+      "label": "Adherence threshold template",
+      "description": "Parameterized threshold template derived from metric \"adherence_7d\".",
+      "domain": "adherence",
+      "kind": "metric_threshold",
+      "metricId": "adherence_7d",
+      "metricWindow": "7d",
+      "unit": "ratio",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "adherence",
+        "goal:focus_performance",
+        "goal:hypertension",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "kpi",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          0.6,
+          0.7,
+          0.8
+        ],
+        "min": 0.6,
+        "max": null,
+        "step": 0.05,
+        "decimals": 2
+      }
+    },
+    {
+      "id": "apob_latest_threshold",
+      "label": "ApoB threshold template",
+      "description": "Parameterized threshold template derived from metric \"apob_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "apob_latest",
+      "metricWindow": "latest",
+      "unit": "mg/dL",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          120,
+          90,
+          70
+        ],
+        "min": null,
+        "max": 120,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "blood_oxygen_avg_7d_threshold",
+      "label": "Blood oxygen threshold template",
+      "description": "Parameterized threshold template derived from metric \"blood_oxygen_avg_7d\".",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "blood_oxygen_avg_7d",
+      "metricWindow": "7d",
+      "unit": "%",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          95,
+          97,
+          98
+        ],
+        "min": 95,
+        "max": null,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "body_fat_percentage_latest_threshold",
+      "label": "Body fat % threshold template",
+      "description": "Parameterized threshold template derived from metric \"body_fat_percentage_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "body_fat_percentage_latest",
+      "metricWindow": "latest",
+      "unit": "%",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "metabolic",
+        "metric_threshold",
+        "other"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          30,
+          25,
+          20
+        ],
+        "min": null,
+        "max": 30,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "bp_diastolic_avg_7d_threshold",
+      "label": "Diastolic BP threshold template",
+      "description": "Parameterized threshold template derived from metric \"bp_diastolic_avg_7d\".",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_diastolic_avg_7d",
+      "metricWindow": "7d",
+      "unit": "mmHg",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          90,
+          80,
+          70
+        ],
+        "min": null,
+        "max": 90,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "bp_readings_count_14d_threshold",
+      "label": "BP readings threshold template",
+      "description": "Parameterized threshold template derived from metric \"bp_readings_count_14d\".",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "bp_readings_count_14d",
+      "metricWindow": "14d",
+      "unit": "count",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "goal:hypertension",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          6,
+          10,
+          14
+        ],
+        "min": 6,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "bp_systolic_avg_7d_threshold",
+      "label": "Systolic BP threshold template",
+      "description": "Parameterized threshold template derived from metric \"bp_systolic_avg_7d\".",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "bp_systolic_avg_7d",
+      "metricWindow": "7d",
+      "unit": "mmHg",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "primary",
+      "tags": [
+        "cardio",
+        "driver",
+        "goal:hypertension",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          140,
+          130,
+          120
+        ],
+        "min": null,
+        "max": 140,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "cgm_glucose_cv_14d_threshold",
+      "label": "CGM glucose CV threshold template",
+      "description": "Parameterized threshold template derived from metric \"cgm_glucose_cv_14d\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_glucose_cv_14d",
+      "metricWindow": "14d",
+      "unit": "%",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          36,
+          33,
+          30
+        ],
+        "min": null,
+        "max": 36,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "cgm_mean_glucose_avg_14d_threshold",
+      "label": "CGM mean glucose threshold template",
+      "description": "Parameterized threshold template derived from metric \"cgm_mean_glucose_avg_14d\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_mean_glucose_avg_14d",
+      "metricWindow": "14d",
+      "unit": "mg/dL",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "primary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          154,
+          140,
+          110
+        ],
+        "min": null,
+        "max": 154,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "cgm_time_above_range_pct_14d_threshold",
+      "label": "CGM time above range threshold template",
+      "description": "Parameterized threshold template derived from metric \"cgm_time_above_range_pct_14d\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_above_range_pct_14d",
+      "metricWindow": "14d",
+      "unit": "%",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          25,
+          15,
+          5
+        ],
+        "min": null,
+        "max": 25,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "cgm_time_below_range_pct_14d_threshold",
+      "label": "CGM time below range threshold template",
+      "description": "Parameterized threshold template derived from metric \"cgm_time_below_range_pct_14d\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_below_range_pct_14d",
+      "metricWindow": "14d",
+      "unit": "%",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          4,
+          2,
+          1
+        ],
+        "min": null,
+        "max": 4,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "cgm_time_in_range_pct_14d_threshold",
+      "label": "CGM time in range threshold template",
+      "description": "Parameterized threshold template derived from metric \"cgm_time_in_range_pct_14d\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "cgm_time_in_range_pct_14d",
+      "metricWindow": "14d",
+      "unit": "%",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          70,
+          80,
+          90
+        ],
+        "min": 70,
+        "max": null,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "data_completeness_14d_threshold",
+      "label": "Data completeness threshold template",
+      "description": "Parameterized threshold template derived from metric \"data_completeness_14d\".",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "data_completeness_14d",
+      "metricWindow": "14d",
+      "unit": "ratio",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          0.6,
+          0.75,
+          0.9
+        ],
+        "min": 0.6,
+        "max": null,
+        "step": 0.05,
+        "decimals": 2
+      }
+    },
+    {
+      "id": "distance_meters_avg_per_day_7d_threshold",
+      "label": "Distance threshold template",
+      "description": "Parameterized threshold template derived from metric \"distance_meters_avg_per_day_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_avg_per_day_7d",
+      "metricWindow": "7d",
+      "unit": "m/day",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          1500,
+          3000,
+          6000
+        ],
+        "min": 1500,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "distance_meters_sum_7d_threshold",
+      "label": "Distance threshold template",
+      "description": "Parameterized threshold template derived from metric \"distance_meters_sum_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "distance_meters_sum_7d",
+      "metricWindow": "7d",
+      "unit": "m",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          10000,
+          20000,
+          40000
+        ],
+        "min": 10000,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "energy_level_avg_7d_threshold",
+      "label": "Energy level threshold template",
+      "description": "Parameterized threshold template derived from metric \"energy_level_avg_7d\".",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "energy_level_avg_7d",
+      "metricWindow": "7d",
+      "unit": "rating",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          3,
+          3.5,
+          4
+        ],
+        "min": 3,
+        "max": null,
+        "step": 0.5,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "focus_level_avg_7d_threshold",
+      "label": "Focus level threshold template",
+      "description": "Parameterized threshold template derived from metric \"focus_level_avg_7d\".",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "focus_level_avg_7d",
+      "metricWindow": "7d",
+      "unit": "rating",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          3,
+          3.5,
+          4
+        ],
+        "min": 3,
+        "max": null,
+        "step": 0.5,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "gmi_14d_threshold",
+      "label": "GMI threshold template",
+      "description": "Parameterized threshold template derived from metric \"gmi_14d\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "gmi_14d",
+      "metricWindow": "14d",
+      "unit": "%",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 20,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          7,
+          6.5,
+          5.7
+        ],
+        "min": null,
+        "max": 7,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "hba1c_latest_threshold",
+      "label": "HbA1c threshold template",
+      "description": "Parameterized threshold template derived from metric \"hba1c_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hba1c_latest",
+      "metricWindow": "latest",
+      "unit": "%",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "primary",
+      "tags": [
+        "goal:glucose_control",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          7,
+          6.5,
+          5.7
+        ],
+        "min": null,
+        "max": 7,
+        "step": 0.1,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "hdl_latest_threshold",
+      "label": "HDL threshold template",
+      "description": "Parameterized threshold template derived from metric \"hdl_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "hdl_latest",
+      "metricWindow": "latest",
+      "unit": "mg/dL",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          40,
+          50,
+          60
+        ],
+        "min": 40,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "heart_rate_variability_avg_7d_threshold",
+      "label": "HRV threshold template",
+      "description": "Parameterized threshold template derived from metric \"heart_rate_variability_avg_7d\".",
+      "domain": "recovery",
+      "kind": "metric_threshold",
+      "metricId": "heart_rate_variability_avg_7d",
+      "metricWindow": "7d",
+      "unit": "ms",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "recovery"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          20,
+          30,
+          50
+        ],
+        "min": 20,
+        "max": null,
+        "step": null,
+        "decimals": null
+      }
+    },
+    {
+      "id": "hydration_ml_avg_per_day_7d_threshold",
+      "label": "Hydration threshold template",
+      "description": "Parameterized threshold template derived from metric \"hydration_ml_avg_per_day_7d\".",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_avg_per_day_7d",
+      "metricWindow": "7d",
+      "unit": "ml/day",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          1500,
+          2000,
+          2500
+        ],
+        "min": 1500,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "hydration_ml_sum_7d_threshold",
+      "label": "Hydration threshold template",
+      "description": "Parameterized threshold template derived from metric \"hydration_ml_sum_7d\".",
+      "domain": "nutrition",
+      "kind": "metric_threshold",
+      "metricId": "hydration_ml_sum_7d",
+      "metricWindow": "7d",
+      "unit": "ml",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "nutrition"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          10500,
+          14000,
+          17500
+        ],
+        "min": 10500,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "ldl_latest_threshold",
+      "label": "LDL threshold template",
+      "description": "Parameterized threshold template derived from metric \"ldl_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "ldl_latest",
+      "metricWindow": "latest",
+      "unit": "mg/dL",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "primary",
+      "tags": [
+        "goal:lipid_optimization",
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          130,
+          100,
+          70
+        ],
+        "min": null,
+        "max": 130,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "lpa_latest_threshold",
+      "label": "Lp(a) threshold template",
+      "description": "Parameterized threshold template derived from metric \"lpa_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "lpa_latest",
+      "metricWindow": "latest",
+      "unit": "mg/dL",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          50,
+          30,
+          20
+        ],
+        "min": null,
+        "max": 50,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "mindfulness_minutes_avg_7d_threshold",
+      "label": "Mindfulness threshold template",
+      "description": "Parameterized threshold template derived from metric \"mindfulness_minutes_avg_7d\".",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mindfulness_minutes_avg_7d",
+      "metricWindow": "7d",
+      "unit": "min/day",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:sleep_optimization",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          5,
+          10,
+          20
+        ],
+        "min": 5,
+        "max": null,
+        "step": null,
+        "decimals": null
+      }
+    },
+    {
+      "id": "mood_rating_avg_7d_threshold",
+      "label": "Mood rating threshold template",
+      "description": "Parameterized threshold template derived from metric \"mood_rating_avg_7d\".",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "mood_rating_avg_7d",
+      "metricWindow": "7d",
+      "unit": "rating",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          3,
+          3.5,
+          4
+        ],
+        "min": 3,
+        "max": null,
+        "step": 0.5,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "resting_heart_rate_avg_7d_threshold",
+      "label": "Resting heart rate threshold template",
+      "description": "Parameterized threshold template derived from metric \"resting_heart_rate_avg_7d\".",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_avg_7d",
+      "metricWindow": "7d",
+      "unit": "bpm",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          80,
+          70,
+          60
+        ],
+        "min": null,
+        "max": 80,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "resting_heart_rate_latest_threshold",
+      "label": "Resting heart rate threshold template",
+      "description": "Parameterized threshold template derived from metric \"resting_heart_rate_latest\".",
+      "domain": "cardio",
+      "kind": "metric_threshold",
+      "metricId": "resting_heart_rate_latest",
+      "metricWindow": "latest",
+      "unit": "bpm",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "cardio",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          80,
+          70,
+          60
+        ],
+        "min": null,
+        "max": 80,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "sleep_duration_avg_7d_threshold",
+      "label": "Sleep duration threshold template",
+      "description": "Parameterized threshold template derived from metric \"sleep_duration_avg_7d\".",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_duration_avg_7d",
+      "metricWindow": "7d",
+      "unit": "min",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          360,
+          420,
+          480
+        ],
+        "min": 360,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "sleep_quality_rating_avg_7d_threshold",
+      "label": "Sleep quality threshold template",
+      "description": "Parameterized threshold template derived from metric \"sleep_quality_rating_avg_7d\".",
+      "domain": "sleep",
+      "kind": "metric_threshold",
+      "metricId": "sleep_quality_rating_avg_7d",
+      "metricWindow": "7d",
+      "unit": "rating",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "sleep"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          3,
+          3.5,
+          4
+        ],
+        "min": 3,
+        "max": null,
+        "step": 0.5,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "sleep_sessions_count_14d_threshold",
+      "label": "Sleep sessions threshold template",
+      "description": "Parameterized threshold template derived from metric \"sleep_sessions_count_14d\".",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "sleep_sessions_count_14d",
+      "metricWindow": "14d",
+      "unit": "count",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "goal:sleep_optimization",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          10,
+          12,
+          14
+        ],
+        "min": 10,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "steps_avg_7d_threshold",
+      "label": "Steps threshold template",
+      "description": "Parameterized threshold template derived from metric \"steps_avg_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_avg_7d",
+      "metricWindow": "7d",
+      "unit": "steps/day",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:focus_performance",
+        "goal:glucose_control",
+        "goal:hypertension",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:mobility_pain",
+        "goal:sleep_optimization",
+        "goal:stop_smoking",
+        "goal:strength_muscle",
+        "goal:stress_reduction",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          5000,
+          7000,
+          10000
+        ],
+        "min": 5000,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "steps_sum_7d_threshold",
+      "label": "Steps threshold template",
+      "description": "Parameterized threshold template derived from metric \"steps_sum_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "steps_sum_7d",
+      "metricWindow": "7d",
+      "unit": "steps",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 4,
+        "minDaysCovered": 4,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          35000,
+          49000,
+          70000
+        ],
+        "min": 35000,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "stress_level_avg_7d_threshold",
+      "label": "Stress level threshold template",
+      "description": "Parameterized threshold template derived from metric \"stress_level_avg_7d\".",
+      "domain": "mindset",
+      "kind": "metric_threshold",
+      "metricId": "stress_level_avg_7d",
+      "metricWindow": "7d",
+      "unit": "rating",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "driver",
+        "goal:glucose_control",
+        "goal:stress_reduction",
+        "metric_threshold",
+        "mindset"
+      ],
+      "evidenceDefault": {
+        "minSamples": 3,
+        "minDaysCovered": 3,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          3,
+          2.5,
+          2
+        ],
+        "min": null,
+        "max": 3,
+        "step": 0.5,
+        "decimals": 1
+      }
+    },
+    {
+      "id": "total_cholesterol_latest_threshold",
+      "label": "Total cholesterol threshold template",
+      "description": "Parameterized threshold template derived from metric \"total_cholesterol_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "total_cholesterol_latest",
+      "metricWindow": "latest",
+      "unit": "mg/dL",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          240,
+          200,
+          180
+        ],
+        "min": null,
+        "max": 240,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "triglycerides_latest_threshold",
+      "label": "Triglycerides threshold template",
+      "description": "Parameterized threshold template derived from metric \"triglycerides_latest\".",
+      "domain": "metabolic",
+      "kind": "metric_threshold",
+      "metricId": "triglycerides_latest",
+      "metricWindow": "latest",
+      "unit": "mg/dL",
+      "comparators": [
+        "<="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "kpi",
+        "metabolic",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          200,
+          150,
+          100
+        ],
+        "min": null,
+        "max": 200,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "weighin_count_14d_threshold",
+      "label": "Weigh-ins threshold template",
+      "description": "Parameterized threshold template derived from metric \"weighin_count_14d\".",
+      "domain": "quality",
+      "kind": "metric_threshold",
+      "metricId": "weighin_count_14d",
+      "metricWindow": "14d",
+      "unit": "count",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "goal:weight_loss",
+        "metric_threshold",
+        "proof",
+        "quality"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          4,
+          6,
+          10
+        ],
+        "min": 4,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "workout_energy_burned_sum_7d_threshold",
+      "label": "Workout energy threshold template",
+      "description": "Parameterized threshold template derived from metric \"workout_energy_burned_sum_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_energy_burned_sum_7d",
+      "metricWindow": "7d",
+      "unit": "kcal",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          500,
+          1000,
+          2000
+        ],
+        "min": 500,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "workout_minutes_sum_7d_threshold",
+      "label": "Workout minutes threshold template",
+      "description": "Parameterized threshold template derived from metric \"workout_minutes_sum_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_minutes_sum_7d",
+      "metricWindow": "7d",
+      "unit": "min",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "goal:glucose_control",
+        "goal:lipid_optimization",
+        "goal:longevity",
+        "goal:metabolic_health",
+        "goal:strength_muscle",
+        "goal:weight_loss",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          90,
+          150,
+          300
+        ],
+        "min": 90,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    },
+    {
+      "id": "workout_sessions_count_7d_threshold",
+      "label": "Workout sessions threshold template",
+      "description": "Parameterized threshold template derived from metric \"workout_sessions_count_7d\".",
+      "domain": "activity",
+      "kind": "metric_threshold",
+      "metricId": "workout_sessions_count_7d",
+      "metricWindow": "7d",
+      "unit": "count",
+      "comparators": [
+        ">="
+      ],
+      "severityDefault": "secondary",
+      "tags": [
+        "activity",
+        "driver",
+        "metric_threshold"
+      ],
+      "evidenceDefault": {
+        "minSamples": 1,
+        "minDaysCovered": 1,
+        "minQuality": "ok",
+        "requiredProofMetricIds": []
+      },
+      "thresholdPolicy": {
+        "suggested": [
+          3,
+          5,
+          7
+        ],
+        "min": 3,
+        "max": null,
+        "step": 1,
+        "decimals": 0
+      }
+    }
+  ],
+  "schemaHashHex": "ac9d5f707e3621498d68314746501459e71d4938bbd840d2bf118320cb109762",
+  "schemaKeyHashHex": "57690ad212710f5a11f98dc908868c017cb60d36e503cb6db01b463b0f845fa7"
+}

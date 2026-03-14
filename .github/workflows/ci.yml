@@ -1,0 +1,97 @@
+name: Public CI
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce DCO sign-off
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            range="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          else
+            before="${{ github.event.before }}"
+            if [[ -z "${before}" || "${before}" == "0000000000000000000000000000000000000000" ]]; then
+              range="${{ github.sha }}"
+            else
+              range="${before}..${{ github.sha }}"
+            fi
+          fi
+
+          commits="$(git rev-list "${range}" || true)"
+          if [[ -z "${commits}" ]]; then
+            commits="${{ github.sha }}"
+          fi
+
+          missing=0
+          while read -r commit; do
+            [[ -z "${commit}" ]] && continue
+            if ! git log -1 --pretty=%B "${commit}" | grep -qi '^Signed-off-by:'; then
+              echo "Missing Signed-off-by trailer in commit ${commit}"
+              missing=1
+            fi
+          done <<< "${commits}"
+
+          if [[ "${missing}" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install cargo-license
+        run: cargo install cargo-license --locked
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Rust format check
+        run: npm run rust:fmt:check
+
+      - name: Rust unit tests
+        run: npm run rust:test
+
+      - name: Rust lint
+        run: npm run rust:lint
+
+      - name: Protocol contract sync
+        run: npm run protocol:contract:check
+
+      - name: Node tests
+        run: npm run test:node
+
+      - name: Frontend build
+        run: npm run frontend:build
+
+      - name: Public hygiene scan
+        run: npm run public:hygiene:check
+
+      - name: Dependency license audit
+        run: npm run license:audit

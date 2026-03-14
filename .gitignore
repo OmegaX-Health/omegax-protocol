@@ -1,0 +1,55 @@
+# Rust / Anchor
+debug
+target
+**/*.rs.bk
+*.pdb
+.anchor/
+artifacts/
+test-ledger/
+output/
+
+# cargo mutants
+**/mutants.out*/
+
+# Node / Next
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/.next-dev-*
+frontend/out
+frontend/.turbo
+frontend/tsconfig.tsbuildinfo
+dist
+coverage
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/apphosting.local.yaml
+frontend/apphosting.*.local.yaml
+
+# Local key material
+.keys/
+*.pem
+*.key
+*.crt
+*.p12
+
+# Temp / logs
+tmp/
+*.log
+strategy/
+
+# Mac / editor
+.DS_Store
+.idea
+.vscode

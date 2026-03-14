@@ -1,0 +1,17 @@
+const isDevelopment = process.env.NODE_ENV === "development";
+const devPort = process.env.PORT || process.env.npm_config_port || "3000";
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  ...(isDevelopment ? { distDir: `.next-dev-${devPort}` } : {}),
+  async redirects() {
+    return [
+      { source: "/members", destination: "/pools", permanent: false },
+      { source: "/claims", destination: "/pools", permanent: false },
+      { source: "/staking", destination: "/pools", permanent: false },
+    ];
+  },
+};
+
+export default nextConfig;
