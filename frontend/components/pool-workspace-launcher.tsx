@@ -9,13 +9,28 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { SearchableSelect } from "@/components/searchable-select";
 import { listPools, type PoolSummary } from "@/lib/protocol";
 import { formatRpcError } from "@/lib/rpc-errors";
+import type { PoolWorkspacePanel, PoolWorkspaceSection } from "@/lib/ui-capabilities";
+
+type PoolWorkspaceLauncherProps = {
+  targetSection?: PoolWorkspaceSection;
+  targetPanel?: PoolWorkspacePanel;
+  title?: string;
+  description?: string;
+  actionLabel?: string;
+};
 
 function shortAddress(value: string): string {
   if (value.length < 12) return value;
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-export function PoolWorkspaceLauncher() {
+export function PoolWorkspaceLauncher({
+  targetSection,
+  targetPanel,
+  title = "Open Existing Pool",
+  description = "Use one pool-scoped dashboard for members, claims, coverage, oracle, and settings workflows.",
+  actionLabel = "Open workspace",
+}: PoolWorkspaceLauncherProps) {
   const { connection } = useConnection();
   const [pools, setPools] = useState<PoolSummary[]>([]);
   const [selectedPoolAddress, setSelectedPoolAddress] = useState("");
@@ -54,8 +69,8 @@ export function PoolWorkspaceLauncher() {
   return (
     <section className="surface-card space-y-3">
       <div className="space-y-1">
-        <h2 className="step-title">Open Existing Pool</h2>
-        <p className="field-help">Use one pool-scoped dashboard for members, claims, coverage, oracle, and settings workflows.</p>
+        <h2 className="step-title">{title}</h2>
+        <p className="field-help">{description}</p>
       </div>
 
       {error ? <p className="field-error">{error}</p> : null}
@@ -80,12 +95,19 @@ export function PoolWorkspaceLauncher() {
           {loading ? "Refreshing..." : "Refresh pools"}
         </button>
         {selectedPoolAddress ? (
-          <Link href={`/pools/${selectedPoolAddress}`} className="action-button inline-flex">
-            Open workspace
+          <Link
+            href={`/pools/${selectedPoolAddress}${
+              targetSection
+                ? `?section=${encodeURIComponent(targetSection)}${targetPanel ? `&panel=${encodeURIComponent(targetPanel)}` : ""}`
+                : ""
+            }`}
+            className="action-button inline-flex"
+          >
+            {actionLabel}
           </Link>
         ) : (
           <button type="button" className="action-button" disabled>
-            Open workspace
+            {actionLabel}
           </button>
         )}
       </div>

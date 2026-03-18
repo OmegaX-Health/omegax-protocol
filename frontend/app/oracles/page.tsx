@@ -11,7 +11,7 @@ export default function OraclesPage() {
     <div className="space-y-5">
       <Hero
         title="Oracle Registry & Verification"
-        subtitle="Register professional oracle profiles, claim oracle signing keys, and run readiness checks across Health Plans."
+        subtitle="Register or update oracle profiles with a simple default flow, then claim signer activation and run readiness checks when needed."
         icon={Eye}
       />
 

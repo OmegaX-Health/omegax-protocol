@@ -303,7 +303,7 @@ export function OperatorVisibilityPanel({
     () =>
       snapshot
         ? [
-            { id: "configV2Initialized", label: "Protocol config initialized", value: snapshot.configV2Initialized },
+            { id: "configInitialized", label: "Protocol config initialized", value: snapshot.configInitialized },
             { id: "poolExists", label: "Pool exists", value: snapshot.poolExists },
             { id: "oracleRegistered", label: "Oracle registered", value: snapshot.oracleRegistered },
             { id: "poolOracleApproved", label: "Oracle approved for pool", value: snapshot.poolOracleApproved },
@@ -395,7 +395,7 @@ export function OperatorVisibilityPanel({
 
       {selectorError ? <p className="field-error">{selectorError}</p> : null}
       {selectorError && !overrideEnabled ? (
-        <p className="field-help">If RPC discovery is unavailable, enable advanced override to continue with raw addresses/hashes.</p>
+        <p className="field-help">If RPC discovery is incomplete, switch to manual inputs to paste exact addresses or hashes.</p>
       ) : null}
 
       {poolLocked ? (
@@ -413,7 +413,7 @@ export function OperatorVisibilityPanel({
           onSearchChange={(value) => setSearch((prev) => ({ ...prev, pools: value }))}
           loading={selectorLoading}
           disabled={overrideEnabled}
-          disabledHint="Selector is disabled while advanced override is enabled."
+          disabledHint="Selector is disabled while manual inputs are active."
           placeholder="Select pool"
         />
       )}
@@ -434,7 +434,7 @@ export function OperatorVisibilityPanel({
             onSearchChange={(value) => setSearch((prev) => ({ ...prev, oracles: value }))}
             loading={selectorLoading}
             disabled={overrideEnabled}
-            disabledHint="Selector is disabled while advanced override is enabled."
+            disabledHint="Selector is disabled while manual inputs are active."
             placeholder="Select oracle"
           />
         )}
@@ -448,7 +448,7 @@ export function OperatorVisibilityPanel({
           onSearchChange={(value) => setSearch((prev) => ({ ...prev, members: value }))}
           loading={selectorLoading}
           disabled={overrideEnabled}
-          disabledHint="Selector is disabled while advanced override is enabled."
+          disabledHint="Selector is disabled while manual inputs are active."
           placeholder="Select member"
         />
 
@@ -461,7 +461,7 @@ export function OperatorVisibilityPanel({
           onSearchChange={(value) => setSearch((prev) => ({ ...prev, schemas: value }))}
           loading={selectorLoading}
           disabled={overrideEnabled}
-          disabledHint="Selector is disabled while advanced override is enabled."
+          disabledHint="Selector is disabled while manual inputs are active."
           placeholder="Select schema"
         />
 
@@ -474,13 +474,18 @@ export function OperatorVisibilityPanel({
           onSearchChange={(value) => setSearch((prev) => ({ ...prev, rules: value }))}
           loading={selectorLoading}
           disabled={overrideEnabled}
-          disabledHint="Selector is disabled while advanced override is enabled."
+          disabledHint="Selector is disabled while manual inputs are active."
           placeholder="Select rule"
           emptyMessage="No enabled rules found for selected pool."
         />
       </div>
 
-      <AdvancedOverride enabled={overrideEnabled} onToggle={setOverrideEnabled}>
+      <AdvancedOverride
+        title="Manual visibility inputs"
+        description="Use manual inputs only when selector-driven discovery is missing the exact pool, oracle, member, schema, or rule you need to inspect."
+        enabled={overrideEnabled}
+        onToggle={setOverrideEnabled}
+      >
         <div className="grid gap-3 sm:grid-cols-2">
           {poolLocked ? null : (
             <label className="field-label">
@@ -591,7 +596,7 @@ export function OperatorVisibilityPanel({
           <details className="surface-card-soft p-3 sm:p-3.5">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">Show derived addresses</summary>
             <div className="address-stack pt-3">
-              <div className="mini-address">Protocol config: {snapshot.derived.configV2Address || "n/a"}</div>
+              <div className="mini-address">Protocol config: {snapshot.derived.configAddress || "n/a"}</div>
               <div className="mini-address">Pool: {snapshot.derived.poolAddress || "n/a"}</div>
               <div className="mini-address">Pool terms: {snapshot.derived.poolTermsAddress || "n/a"}</div>
               <div className="mini-address">Pool asset vault: {snapshot.derived.poolAssetVaultAddress || "n/a"}</div>

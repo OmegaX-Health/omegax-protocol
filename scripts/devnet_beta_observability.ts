@@ -10,6 +10,12 @@ import {
 import { Connection, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 
+import protocolModule from '../frontend/lib/protocol.ts';
+
+const {
+  getProgramId,
+} = protocolModule as unknown as typeof import('../frontend/lib/protocol.ts');
+
 type InstructionStats = {
   success: number;
   failed: number;
@@ -126,7 +132,7 @@ async function main() {
     process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
   ).trim();
   const programId = new PublicKey(
-    String(process.env.PROTOCOL_PROGRAM_ID || 'Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B').trim(),
+    String(process.env.PROTOCOL_PROGRAM_ID || getProgramId().toBase58()).trim(),
   );
   const governanceProgramIdRaw = String(process.env.GOVERNANCE_PROGRAM_ID || '').trim();
   const governanceConfigRaw = String(process.env.GOVERNANCE_CONFIG || '').trim();

@@ -1,6 +1,6 @@
 {
   "name": "omegax-protocol-frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "scripts": {
@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@solana/spl-governance": "^0.3.28",
     "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.26",
     "@solana/wallet-adapter-phantom": "^0.9.28",
@@ -16,6 +17,7 @@
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/wallet-adapter-solflare": "^0.6.32",
     "@solana/web3.js": "^1.98.4",
+    "bn.js": "^5.2.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.5.0",
     "gsap": "^3.14.2",

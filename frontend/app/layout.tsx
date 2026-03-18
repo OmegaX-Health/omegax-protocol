@@ -58,6 +58,11 @@ export const metadata: Metadata = {
   title: metadataTitle,
   description: metadataDescription,
   metadataBase: new URL("https://protocol.omegax.health"),
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
     title: metadataTitle,
     description: metadataDescription,

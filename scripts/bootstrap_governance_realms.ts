@@ -34,7 +34,7 @@ import bs58 from 'bs58';
 import protocolModule from '../frontend/lib/protocol.ts';
 
 const {
-  deriveConfigV2Pda,
+  deriveConfigPda,
   getProgramId,
 } = protocolModule as unknown as typeof import('../frontend/lib/protocol.ts');
 
@@ -153,7 +153,7 @@ async function main() {
     String(process.env.GOVERNANCE_PROGRAM_ID || DEFAULT_REALMS_GOVERNANCE_PROGRAM_ID).trim(),
   );
   const governanceProgramVersionOverride = parseU8Env('GOVERNANCE_PROGRAM_VERSION', 0);
-  const programIdRaw = String(process.env.PROTOCOL_PROGRAM_ID || 'Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B').trim();
+  const programIdRaw = String(process.env.PROTOCOL_PROGRAM_ID || getProgramId().toBase58()).trim();
   process.env.NEXT_PUBLIC_PROTOCOL_PROGRAM_ID = programIdRaw;
 
   const governanceSigner = keypairFromBase58Env('GOVERNANCE_SECRET_KEY_BASE58');
@@ -201,7 +201,7 @@ async function main() {
     );
   }
 
-  const configV2Pda = deriveConfigV2Pda(protocolProgramId);
+  const configPda = deriveConfigPda(protocolProgramId);
   const detectedGovernanceProgramVersion = await getGovernanceProgramVersion(
     connection,
     governanceProgramId,
@@ -390,18 +390,40 @@ async function main() {
 
   const existingGovernances = await getAllGovernances(connection, governanceProgramId, realmAddress);
   const existingGovernanceForConfig = existingGovernances.find((entry) =>
-    entry.account.governedAccount.equals(configV2Pda),
+    entry.account.governedAccount.equals(configPda),
   );
-  let governanceAddress = existingGovernanceForConfig?.pubkey;
+  const governanceConfigOverrideRaw = String(process.env.GOVERNANCE_CONFIG || '').trim();
+  const governanceConfigOverride = governanceConfigOverrideRaw
+    ? new PublicKey(governanceConfigOverrideRaw)
+    : null;
+  const overrideGovernance = governanceConfigOverride
+    ? existingGovernances.find((entry) => entry.pubkey.equals(governanceConfigOverride))
+    : null;
+  const realmAuthorityGovernance = realmAuthority
+    ? existingGovernances.find((entry) => entry.pubkey.equals(realmAuthority))
+    : null;
 
-  if (existingGovernanceForConfig && enforceExistingGovernanceSecurityFloor) {
+  let governanceAddress = existingGovernanceForConfig?.pubkey
+    || overrideGovernance?.pubkey
+    || realmAuthorityGovernance?.pubkey;
+
+  if (
+    governanceAddress
+    && enforceExistingGovernanceSecurityFloor
+  ) {
+    const matchedGovernance = existingGovernanceForConfig
+      || overrideGovernance
+      || realmAuthorityGovernance;
+    if (!matchedGovernance) {
+      throw new Error('Unable to resolve existing governance account for security checks.');
+    }
     const existingHoldUp = toSafeNumber(
-      existingGovernanceForConfig.account.config.minInstructionHoldUpTime,
+      matchedGovernance.account.config.minInstructionHoldUpTime,
       'existing governance minInstructionHoldUpTime',
     );
     if (existingHoldUp === 0 && !allowZeroHoldUp) {
       throw new Error(
-        `Existing governance ${existingGovernanceForConfig.pubkey.toBase58()} has zero hold-up. This is unsafe for production.`,
+        `Existing governance ${matchedGovernance.pubkey.toBase58()} has zero hold-up. This is unsafe for production.`,
       );
     }
     if (existingHoldUp < minInstructionHoldUpTime) {
@@ -409,6 +431,12 @@ async function main() {
         `Existing governance hold-up (${existingHoldUp}s) is below required floor (${minInstructionHoldUpTime}s).`,
       );
     }
+  }
+
+  if (governanceConfigOverride && !overrideGovernance) {
+    throw new Error(
+      `GOVERNANCE_CONFIG=${governanceConfigOverride.toBase58()} is not an account governance in realm ${realmAddress.toBase58()}.`,
+    );
   }
 
   if (!governanceAddress) {
@@ -447,7 +475,7 @@ async function main() {
       governanceProgramId,
       governanceProgramVersion,
       realmAddress,
-      configV2Pda,
+      configPda,
       governanceConfig,
       tokenOwnerRecordAddress,
       governanceSigner.publicKey,
@@ -523,7 +551,7 @@ async function main() {
   console.log(`[governance-bootstrap] governance_token_mint=${governanceTokenMint.toBase58()}`);
   console.log(`[governance-bootstrap] governance_token_owner_record=${tokenOwnerRecordAddress.toBase58()}`);
   console.log(`[governance-bootstrap] governance_token_owner_ata=${governanceTokenAta.address.toBase58()}`);
-  console.log(`[governance-bootstrap] protocol_config_pda=${configV2Pda.toBase58()}`);
+  console.log(`[governance-bootstrap] protocol_config_pda=${configPda.toBase58()}`);
   console.log(`[governance-bootstrap] immutable_governance_mint=${enforceImmutableGovernanceMint}`);
   console.log(`[governance-bootstrap] lock_realm_authority_to_governance=${lockRealmAuthorityToGovernance}`);
   console.log(

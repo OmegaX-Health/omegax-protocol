@@ -2,6 +2,9 @@
 
 "use client";
 
+import { FieldHint } from "@/components/field-hint";
+import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
+
 type PlanType = "rewards" | "insurance" | "hybrid";
 type PayoutAssetMode = "sol" | "spl";
 type CoveragePathway = "" | "defi_native" | "rwa_policy";
@@ -25,7 +28,6 @@ type StepTypeBasicsProps = {
   onUseDefaultPayoutMint: () => void;
   payoutTokens: string;
   onPayoutTokensChange: (value: string) => void;
-  expertMode: boolean;
   termsHashHex: string;
   onTermsHashHexChange: (value: string) => void;
   payoutPolicyHashHex: string;
@@ -51,6 +53,24 @@ type StepTypeBasicsProps = {
   predictedPoolAddress: string | null;
 };
 
+function planTypeLabel(planType: PlanType): string {
+  if (planType === "rewards") return "Rewards";
+  if (planType === "insurance") return "Insurance";
+  return "Hybrid";
+}
+
+function planTypeDescription(planType: PlanType): string {
+  if (planType === "rewards") return "Rewards plans pay incentives only.";
+  if (planType === "insurance") return "Insurance plans need a coverage path before launch.";
+  return "Hybrid plans combine rewards with a coverage path.";
+}
+
+function coveragePathLabel(pathway: CoveragePathway): string {
+  if (pathway === "defi_native") return "DeFi native";
+  if (pathway === "rwa_policy") return "RWA policy";
+  return "Choose a coverage path";
+}
+
 export function StepTypeBasics({
   planType,
   onPlanTypeChange,
@@ -68,7 +88,6 @@ export function StepTypeBasics({
   onUseDefaultPayoutMint,
   payoutTokens,
   onPayoutTokensChange,
-  expertMode,
   termsHashHex,
   onTermsHashHexChange,
   payoutPolicyHashHex,
@@ -96,57 +115,69 @@ export function StepTypeBasics({
   const requiresCoveragePathway = planType === "insurance" || planType === "hybrid";
 
   return (
-    <section className="surface-card step-card space-y-4">
-      <div className="step-head">
-        <h3 className="step-title">1. Type & Basics</h3>
+    <section className="wizard-section">
+      <div className="wizard-section-heading">
+        <div className="space-y-1">
+          <p className="wizard-section-kicker">Step 1</p>
+          <h3 className="wizard-section-title">What kind of plan are you launching?</h3>
+        </div>
+        <FieldHint
+          content="Pick the closest launch type first. You can still preview later steps before connecting a wallet."
+          side="end"
+        />
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          className={`segment-button ${planType === "rewards" ? "segment-button-active" : ""}`}
-          onClick={() => onPlanTypeChange("rewards")}
-        >
-          <span className="font-semibold">Rewards</span>
-          <span className="block text-xs font-normal text-[var(--muted-foreground)]">Rewards-only settlement.</span>
-        </button>
-        <button
-          type="button"
-          className={`segment-button ${planType === "insurance" ? "segment-button-active" : ""}`}
-          onClick={() => onPlanTypeChange("insurance")}
-        >
-          <span className="font-semibold">Insurance</span>
-          <span className="block text-xs font-normal text-[var(--muted-foreground)]">Coverage-first with pathway-gated setup.</span>
-        </button>
-        <button
-          type="button"
-          className={`segment-button ${planType === "hybrid" ? "segment-button-active" : ""}`}
-          onClick={() => onPlanTypeChange("hybrid")}
-        >
-          <span className="font-semibold">Hybrid</span>
-          <span className="block text-xs font-normal text-[var(--muted-foreground)]">Rewards plus coverage pathway setup.</span>
-        </button>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="wizard-section-label">Plan style</p>
+          <span className="status-pill status-off">{planTypeLabel(planType)}</span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            className={`segment-button ${planType === "rewards" ? "segment-button-active" : ""}`}
+            onClick={() => onPlanTypeChange("rewards")}
+          >
+            Rewards
+          </button>
+          <button
+            type="button"
+            className={`segment-button ${planType === "insurance" ? "segment-button-active" : ""}`}
+            onClick={() => onPlanTypeChange("insurance")}
+          >
+            Insurance
+          </button>
+          <button
+            type="button"
+            className={`segment-button ${planType === "hybrid" ? "segment-button-active" : ""}`}
+            onClick={() => onPlanTypeChange("hybrid")}
+          >
+            Hybrid
+          </button>
+        </div>
+        <p className="wizard-inline-copy">{planTypeDescription(planType)}</p>
       </div>
 
       {requiresCoveragePathway ? (
-        <p className="field-help">
-          Coverage products are configured after plan creation in the pool Coverage module, then issued/subscribed per member.
-        </p>
-      ) : null}
+        <div className="wizard-section-block">
+          <div className="wizard-inline-head">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="wizard-section-label">Coverage path</p>
+              <span className="status-pill status-off">{coveragePathLabel(coveragePathway)}</span>
+            </div>
+            <FieldHint
+              content="This launch step only records the public settlement path and references. Detailed coverage products are configured later in the workspace."
+              side="end"
+            />
+          </div>
 
-      {requiresCoveragePathway ? (
-        <div className="surface-card-soft space-y-3">
-          <p className="metric-label">Coverage pathway (required)</p>
           <div className={`grid gap-2 ${ENABLE_RWA_POLICY ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
             <button
               type="button"
               className={`segment-button ${coveragePathway === "defi_native" ? "segment-button-active" : ""}`}
               onClick={() => onCoveragePathwayChange("defi_native")}
             >
-              <span className="font-semibold">DeFi Native</span>
-              <span className="block text-xs font-normal text-[var(--muted-foreground)]">
-                Contract-native coverage with programmatic settlement controls.
-              </span>
+              DeFi native
             </button>
             {ENABLE_RWA_POLICY ? (
               <button
@@ -154,55 +185,58 @@ export function StepTypeBasics({
                 className={`segment-button ${coveragePathway === "rwa_policy" ? "segment-button-active" : ""}`}
                 onClick={() => onCoveragePathwayChange("rwa_policy")}
               >
-                <span className="font-semibold">RWA Policy</span>
-                <span className="block text-xs font-normal text-[var(--muted-foreground)]">
-                  Institution-backed policy configuration with legal/compliance references.
-                </span>
+                RWA policy
               </button>
             ) : null}
           </div>
-          {!ENABLE_RWA_POLICY ? (
-            <p className="field-help">Mainnet path is DeFi Native for now. RWA policy setup stays internal-only until it is production-ready.</p>
+
+          {!coveragePathway ? (
+            <p className="wizard-inline-copy">Choose a coverage path to finish the launch setup.</p>
           ) : null}
-          {!coveragePathway ? <p className="field-help">Choose one pathway to continue with insurance/hybrid setup.</p> : null}
 
           {coveragePathway === "defi_native" ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2 space-y-2">
-                <p className="metric-label">DeFi settlement mode</p>
+                <div className="wizard-inline-head">
+                  <p className="wizard-section-label">Settlement style</p>
+                  <FieldHint
+                    content="Use the style that matches how claims and coverage payouts will be operationally settled after launch."
+                    side="end"
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     className={`segment-button ${defiSettlementMode === "onchain_programmatic" ? "segment-button-active" : ""}`}
                     onClick={() => onDefiSettlementModeChange("onchain_programmatic")}
                   >
-                    On-chain Programmatic
+                    On-chain programmatic
                   </button>
                   <button
                     type="button"
                     className={`segment-button ${defiSettlementMode === "hybrid_rails" ? "segment-button-active" : ""}`}
                     onClick={() => onDefiSettlementModeChange("hybrid_rails")}
                   >
-                    Hybrid Rails
+                    Hybrid rails
                   </button>
                 </div>
               </div>
               <label className="field-label">
-                Technical terms URI
+                Technical terms URL
                 <input
                   className="field-input mt-1"
                   value={defiTechnicalTermsUri}
                   onChange={(event) => onDefiTechnicalTermsUriChange(event.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://plan.yourorg.com/technical-terms"
                 />
               </label>
               <label className="field-label">
-                Risk disclosure URI
+                Risk disclosure URL
                 <input
                   className="field-input mt-1"
                   value={defiRiskDisclosureUri}
                   onChange={(event) => onDefiRiskDisclosureUriChange(event.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://plan.yourorg.com/risk-disclosures"
                 />
               </label>
             </div>
@@ -211,7 +245,7 @@ export function StepTypeBasics({
           {ENABLE_RWA_POLICY && coveragePathway === "rwa_policy" ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="field-label">
-                Legal entity name
+                Issuer legal name
                 <input
                   className="field-input mt-1"
                   value={rwaLegalEntityName}
@@ -229,30 +263,30 @@ export function StepTypeBasics({
                 />
               </label>
               <label className="field-label sm:col-span-2">
-                Policy terms URI
+                Policy terms URL
                 <input
                   className="field-input mt-1"
                   value={rwaPolicyTermsUri}
                   onChange={(event) => onRwaPolicyTermsUriChange(event.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://issuer.yourorg.com/policy-terms"
                 />
               </label>
               <label className="field-label">
-                Regulatory/license reference
+                License reference
                 <input
                   className="field-input mt-1"
                   value={rwaRegulatoryLicenseRef}
                   onChange={(event) => onRwaRegulatoryLicenseRefChange(event.target.value)}
-                  placeholder="License/registration ID"
+                  placeholder="License or registration ID"
                 />
               </label>
               <label className="field-label">
-                Compliance contact (email or URL)
+                Compliance contact
                 <input
                   className="field-input mt-1"
                   value={rwaComplianceContact}
                   onChange={(event) => onRwaComplianceContactChange(event.target.value)}
-                  placeholder="compliance@example.com"
+                  placeholder="compliance@yourorg.com"
                 />
               </label>
             </div>
@@ -260,90 +294,153 @@ export function StepTypeBasics({
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="field-label">
-          Health Plan ID ({poolIdBytes}/32 bytes)
-          <input className="field-input" value={poolId} onChange={(event) => onPoolIdChange(event.target.value)} />
-        </label>
-        <label className="field-label">
-          Organization / Sponsor Name
-          <input className="field-input" value={organizationRef} onChange={(event) => onOrganizationRefChange(event.target.value)} />
-        </label>
-        <label className="field-label sm:col-span-2">
-          Plan metadata URI
-          <input className="field-input" value={metadataUri} onChange={(event) => onMetadataUriChange(event.target.value)} />
-        </label>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-2">
-          <p className="metric-label">Payout asset</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`segment-button ${payoutAssetMode === "sol" ? "segment-button-active" : ""}`}
-              onClick={() => onPayoutAssetModeChange("sol")}
-            >
-              SOL
-            </button>
-            <button
-              type="button"
-              className={`segment-button ${payoutAssetMode === "spl" ? "segment-button-active" : ""}`}
-              onClick={() => onPayoutAssetModeChange("spl")}
-            >
-              SPL Token
-            </button>
-          </div>
+      <div className="wizard-section-block">
+        <div className="wizard-inline-head">
+          <p className="wizard-section-label">How should people recognize this plan?</p>
+          <FieldHint
+            content="These are the public-facing identifiers and links that appear in the workspace once the plan is live."
+            side="end"
+          />
         </div>
-        {(planType === "rewards" || planType === "hybrid") ? (
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="field-label">
-            Reward payout per success (tokens)
+            Organization name
             <input
               className="field-input"
-              type="number"
-              min="0"
-              step="0.000001"
-              value={payoutTokens}
-              onChange={(event) => onPayoutTokensChange(event.target.value)}
+              value={organizationRef}
+              onChange={(event) => onOrganizationRefChange(event.target.value)}
             />
           </label>
+          <label className="field-label">
+            <span className="inline-flex items-center gap-1.5">
+              Plan ID ({poolIdBytes}/32 bytes)
+              <FieldHint
+                content="Keep this short and stable. It becomes the plan's unique on-chain seed."
+                label="About plan ID"
+              />
+            </span>
+            <input
+              className="field-input"
+              value={poolId}
+              onChange={(event) => onPoolIdChange(event.target.value)}
+            />
+          </label>
+          <label className="field-label sm:col-span-2">
+            <span className="inline-flex items-center gap-1.5">
+              Public details URL
+              <FieldHint
+                content="Share the overview, policy page, or docs people should land on from the workspace."
+                label="About public details URL"
+              />
+            </span>
+            <input
+              className="field-input"
+              value={metadataUri}
+              onChange={(event) => onMetadataUriChange(event.target.value)}
+              placeholder="https://plan.yourorg.com/overview"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="wizard-section-block">
+        <div className="wizard-inline-head">
+          <p className="wizard-section-label">How will payouts be funded?</p>
+          <FieldHint
+            content="Choose the asset the launch vault will hold. Reward payout amount only matters for rewards and hybrid plans."
+            side="end"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <p className="wizard-section-label">Payout asset</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`segment-button ${payoutAssetMode === "sol" ? "segment-button-active" : ""}`}
+                onClick={() => onPayoutAssetModeChange("sol")}
+              >
+                SOL
+              </button>
+              <button
+                type="button"
+                className={`segment-button ${payoutAssetMode === "spl" ? "segment-button-active" : ""}`}
+                onClick={() => onPayoutAssetModeChange("spl")}
+              >
+                SPL token
+              </button>
+            </div>
+          </div>
+
+          {planType === "rewards" || planType === "hybrid" ? (
+            <label className="field-label">
+              <span className="inline-flex items-center gap-1.5">
+                Reward payout amount
+                <FieldHint
+                  content="This amount is used whenever a reward rule resolves successfully."
+                  label="About reward payout amount"
+                />
+              </span>
+              <input
+                className="field-input"
+                type="number"
+                min="0"
+                step="0.000001"
+                value={payoutTokens}
+                onChange={(event) => onPayoutTokensChange(event.target.value)}
+              />
+            </label>
+          ) : null}
+        </div>
+
+        {payoutAssetMode === "spl" ? (
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <label className="field-label">
+              Payout token mint
+              <input
+                className="field-input"
+                value={payoutMint}
+                onChange={(event) => onPayoutMintChange(event.target.value)}
+              />
+            </label>
+            <button type="button" className="secondary-button" onClick={onUseDefaultPayoutMint}>
+              Use default mint
+            </button>
+          </div>
         ) : null}
       </div>
 
-      {payoutAssetMode === "spl" ? (
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <ProtocolDetailDisclosure
+        title="Protocol details"
+        summary="Raw hashes and the predicted plan address stay tucked away unless you need to inspect them."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="field-label">
-            Payout mint address
-            <input className="field-input" value={payoutMint} onChange={(event) => onPayoutMintChange(event.target.value)} />
+            Terms hash override
+            <input
+              className="field-input"
+              value={termsHashHex}
+              onChange={(event) => onTermsHashHexChange(event.target.value)}
+              placeholder="Optional 32-byte hex"
+            />
           </label>
-          <button type="button" className="secondary-button" onClick={onUseDefaultPayoutMint}>
-            Use default mint
-          </button>
+          <label className="field-label">
+            Payout policy hash override
+            <input
+              className="field-input"
+              value={payoutPolicyHashHex}
+              onChange={(event) => onPayoutPolicyHashHexChange(event.target.value)}
+              placeholder="Optional 32-byte hex"
+            />
+          </label>
         </div>
-      ) : null}
-
-      {expertMode ? (
-        <div className="surface-card-soft space-y-3">
-          <p className="metric-label">Expert settings</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="field-label">
-              Terms hash override
-              <input className="field-input" value={termsHashHex} onChange={(event) => onTermsHashHexChange(event.target.value)} />
-            </label>
-            <label className="field-label">
-              Payout policy hash override
-              <input className="field-input" value={payoutPolicyHashHex} onChange={(event) => onPayoutPolicyHashHexChange(event.target.value)} />
-            </label>
+        {predictedPoolAddress ? (
+          <div className="monitor-row">
+            <span>Predicted plan address</span>
+            <span className="break-all text-right">{predictedPoolAddress}</span>
           </div>
-          {planType === "insurance" ? (
-            <p className="field-help">
-              Reward payout remains an internal required contract field for insurance-first plans.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {predictedPoolAddress ? <p className="field-help">Predicted pool PDA: {predictedPoolAddress}</p> : null}
+        ) : null}
+      </ProtocolDetailDisclosure>
     </section>
   );
 }

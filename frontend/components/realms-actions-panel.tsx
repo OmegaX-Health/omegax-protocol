@@ -23,9 +23,9 @@ export function RealmsActionsPanel({ realmAddress, cluster }: Props) {
     if (!realmAddress) {
         return (
             <section className="surface-card space-y-3">
-                <p className="metric-label">Realms actions</p>
+                <p className="metric-label">Realms fallback</p>
                 <p className="field-help">
-                    Configure `NEXT_PUBLIC_GOVERNANCE_REALM` to enable inline Realms actions.
+                    Configure `NEXT_PUBLIC_GOVERNANCE_REALM` to enable fallback links to the hosted Realms app.
                 </p>
             </section>
         );
@@ -36,29 +36,29 @@ export function RealmsActionsPanel({ realmAddress, cluster }: Props) {
 
     const actions: RealmAction[] = [
         {
-            label: "New Proposal",
-            description: "Draft and submit a new DAO governance proposal.",
+            label: "Generic Proposal",
+            description: "Open Realms for arbitrary proposal composition beyond the structured OmegaX composers.",
             href: `${baseUrl}/proposal/new?cluster=${clusterParam}`,
             primary: true,
         },
         {
             label: "Proposals & Voting",
-            description: "View active proposals, cast votes, and enable batch voting.",
+            description: "Use the hosted Realms workflow for edge-case voting or unsupported proposal flows.",
             href: `${baseUrl}?cluster=${clusterParam}`,
         },
         {
             label: "Members",
-            description: "See all DAO members and their governance power.",
+            description: "Inspect DAO members and governance power in the canonical hosted Realms interface.",
             href: `${baseUrl}/members?cluster=${clusterParam}`,
         },
         {
             label: "Treasury",
-            description: "Inspect DAO wallets, assets, and DeFi balances.",
+            description: "Use Realms for advanced treasury views and unsupported treasury actions.",
             href: `${baseUrl}/treasury/v2?cluster=${clusterParam}`,
         },
         {
             label: "DAO Params",
-            description: "Review governance parameters, voting thresholds, and rules.",
+            description: "Open the full DAO parameter surface in Realms.",
             href: `${baseUrl}/params?cluster=${clusterParam}`,
         },
     ];
@@ -67,11 +67,11 @@ export function RealmsActionsPanel({ realmAddress, cluster }: Props) {
         <section className="surface-card space-y-4">
             <div className="flex items-center gap-2">
                 <Vote className="h-4 w-4 text-[var(--accent)]" />
-                <p className="metric-label">Realms actions</p>
+                <p className="metric-label">Realms fallback</p>
                 {connected ? (
                     <span className="status-pill status-ok ml-auto">Wallet connected</span>
                 ) : (
-                    <span className="status-pill status-off ml-auto">Connect wallet to vote</span>
+                    <span className="status-pill status-off ml-auto">Connect wallet for fallback actions</span>
                 )}
             </div>
 
@@ -99,7 +99,7 @@ export function RealmsActionsPanel({ realmAddress, cluster }: Props) {
 
             <p className="mt-4 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                 <ExternalLink className="h-4 w-4" />
-                All actions open in the Realms web app in a new tab. Connect your wallet there to cast votes.
+                These links stay available for unsupported or future Realms flows. Core OmegaX governance actions now happen natively in this console.
             </p>
         </section>
     );

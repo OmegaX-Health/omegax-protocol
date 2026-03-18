@@ -1,6 +1,6 @@
 {
   "name": "omegax-protocol",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Public OmegaX Solana protocol workspace with the on-chain program, frontend console, docs, and verification tooling.",
   "author": "OMEGAX HEALTH FZCO",
   "contributors": [
@@ -21,7 +21,7 @@
     "anchor:build": "anchor build",
     "anchor:build:checked": "node scripts/anchor_build_with_stack_gate.mjs",
     "anchor:test": "node scripts/anchor_test_with_stack_gate.mjs",
-    "anchor:idl": "anchor build && mkdir -p idl && cp target/idl/omegax_protocol.json idl/omegax_protocol.json",
+    "anchor:idl": "npm run anchor:build:checked && mkdir -p idl && cp target/idl/omegax_protocol.json idl/omegax_protocol.json",
     "rust:fmt:check": "cargo fmt --all -- --check",
     "rust:test": "cargo test -p omegax_protocol --lib",
     "rust:lint": "cargo clippy -p omegax_protocol --all-targets -- -A unexpected_cfgs -A deprecated -A clippy::too_many_arguments -D warnings",
@@ -31,8 +31,14 @@
     "mvp:consistency:check": "node scripts/check_mvp_consistency.mjs",
     "governance:bootstrap": "node --import tsx scripts/bootstrap_governance_realms.ts",
     "protocol:bootstrap": "node --import tsx scripts/bootstrap_protocol.ts",
+    "devnet:frontend:bootstrap": "node --import tsx scripts/bootstrap_devnet_frontend_parity.ts",
     "devnet:beta:observe": "node --import tsx scripts/devnet_beta_observability.ts",
     "devnet:beta:deploy": "node --import tsx scripts/deploy_devnet_beta.ts",
+    "devnet:frontend:smoke": "node --import tsx scripts/devnet_frontend_role_smoke.ts",
+    "devnet:frontend:signoff": "DEVNET_FIXTURE_STRICT=1 node --import tsx scripts/devnet_frontend_role_smoke.ts",
+    "devnet:governance:smoke:create-vote": "node --import tsx scripts/devnet_governance_smoke.ts create-vote",
+    "devnet:governance:smoke:execute": "node --import tsx scripts/devnet_governance_smoke.ts execute",
+    "devnet:governance:ui:readonly": "node --import tsx scripts/devnet_governance_ui_readonly.ts",
     "devnet:mvp:deploy": "node --import tsx scripts/deploy_devnet_mvp.ts",
     "schema:metadata-hash": "node --import tsx scripts/generate_schema_metadata_hash.ts",
     "schema:rule-hashes": "node --import tsx scripts/generate_outcome_rule_hashes.ts",
@@ -60,6 +66,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.16",
+    "playwright": "^1.41.2",
     "tsx": "^4.19.2"
   },
   "engines": {

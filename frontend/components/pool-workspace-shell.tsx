@@ -8,22 +8,35 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
+import { PoolOverviewPanel } from "@/components/pool-overview-panel";
+import { PoolWorkspaceProvider } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
 import { cn } from "@/lib/cn";
 import { buildBusinessContextHref, getBusinessEntryContext } from "@/lib/business-entry-context";
 import {
   fetchProtocolReadiness,
+  listClaimDelegateAuthorizations,
+  listCoverageClaims,
   listMemberships,
   listOracles,
   listPoolOracleApprovals,
+  listPoolControlAuthorities,
+  listPoolRedemptionRequests,
+  listProtocolConfig,
   listOutcomeAggregates,
   listPools,
   toExplorerAddressLink,
+  type ClaimDelegateAuthorizationSummary,
+  type CoverageClaimSummary,
   type MembershipSummary,
   type OracleSummary,
   type OutcomeAggregateSummary,
+  type PoolControlAuthoritySummary,
+  type PoolRedemptionRequestSummary,
   type PoolSummary,
+  type ProtocolConfigSummary,
   type ProtocolReadiness,
+  type WalletPoolPositionSummary,
 } from "@/lib/protocol";
 import {
   formatApyBps,
@@ -34,20 +47,15 @@ import {
 import { formatRpcError } from "@/lib/rpc-errors";
 import {
   buildPoolDashboardSnapshot,
+  defaultWorkspacePanel,
   deriveWalletCapabilities,
+  POOL_WORKSPACE_SECTION_META,
+  type PoolWorkspacePanel,
   parseWorkspaceSection,
-  POOL_WORKSPACE_SECTIONS,
+  PRIMARY_WORKSPACE_SECTIONS,
+  PROTOCOL_TOOL_WORKSPACE_SECTIONS,
   type PoolWorkspaceSection,
 } from "@/lib/ui-capabilities";
-
-const SECTION_LABELS: Record<PoolWorkspaceSection, string> = {
-  members: "Members",
-  claims: "Claims",
-  coverage: "Coverage",
-  liquidity: "Liquidity",
-  oracle: "Oracles",
-  settings: "Settings",
-};
 
 type PoolWorkspaceShellProps = {
   poolAddress: string;
@@ -59,12 +67,6 @@ function shortAddress(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-function queuePriorityClass(priority: "high" | "medium" | "low"): string {
-  if (priority === "high") return "status-error";
-  if (priority === "medium") return "status-off";
-  return "status-ok";
-}
-
 function resolveWorkspaceNetwork(endpoint: string): string {
   const normalized = endpoint.toLowerCase();
   if (normalized.includes("mainnet")) return "Mainnet";
@@ -74,9 +76,43 @@ function resolveWorkspaceNetwork(endpoint: string): string {
 }
 
 function parseStoredWorkspaceSection(value: string | null): PoolWorkspaceSection | null {
-  const normalized = (value ?? "").trim().toLowerCase();
-  return (POOL_WORKSPACE_SECTIONS.find((section) => section === normalized) ?? null) as PoolWorkspaceSection | null;
+  const normalized = (value ?? "").trim();
+  if (!normalized) return null;
+  return parseWorkspaceSection(normalized);
 }
+
+function formatRoleLabel(role: string): string {
+  return role.replaceAll("_", " ");
+}
+
+function resolvePoolStatus(readiness: ProtocolReadiness | null, protocolConfig: ProtocolConfigSummary | null): {
+  label: string;
+  tone: "status-ok" | "status-off" | "status-error";
+} {
+  if (protocolConfig?.emergencyPaused) {
+    return { label: "Paused", tone: "status-error" };
+  }
+  if (readiness?.poolExists && readiness.poolTermsConfigured && readiness.poolOraclePolicyConfigured) {
+    return { label: "Operational", tone: "status-ok" };
+  }
+  if (readiness?.poolExists) {
+    return { label: "Setup in progress", tone: "status-off" };
+  }
+  return { label: "Uninitialized", tone: "status-off" };
+}
+
+const SECTION_LEADS: Record<PoolWorkspaceSection, string> = {
+  overview: "Review plan health, key risks, and the next action for this wallet.",
+  members: "Manage enrollment and delegation for people participating in this plan.",
+  coverage: "Review coverage tracks, cycle state, and payout setup for this plan.",
+  claims: "Track submitted claims and the operator actions that can move them forward.",
+  liquidity: "Manage capital setup, direct liquidity flows, and queued redemptions.",
+  oracles: "Review oracle approvals, staking, attestations, settlements, and disputes.",
+  schemas: "Review schema coverage for this plan and run registry maintenance only when needed.",
+  treasury: "Monitor reserve rails, fee balances, and authorized treasury withdrawals.",
+  governance: "Review DAO activity and submit governance actions for protocol-level changes.",
+  settings: "Update plan controls, delegated authorities, readiness items, and lifecycle actions.",
+};
 
 export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShellProps) {
   const { connection } = useConnection();
@@ -91,15 +127,23 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
   const [activeSection, setActiveSection] = useState<PoolWorkspaceSection>(
     parseWorkspaceSection(searchParams.get("section")),
   );
+  const [protocolToolsExpanded, setProtocolToolsExpanded] = useState(
+    POOL_WORKSPACE_SECTION_META[parseWorkspaceSection(searchParams.get("section"))].group === "protocol-tools",
+  );
   const storedSectionKey = useMemo(() => `pool-workspace:last-section:${poolAddress}`, [poolAddress]);
 
   const [pools, setPools] = useState<PoolSummary[]>([]);
   const [poolSummary, setPoolSummary] = useState<PoolSummary | null>(null);
+  const [protocolConfig, setProtocolConfig] = useState<ProtocolConfigSummary | null>(null);
   const [oracles, setOracles] = useState<OracleSummary[]>([]);
+  const [poolControlAuthority, setPoolControlAuthority] = useState<PoolControlAuthoritySummary | null>(null);
   const [activeMemberships, setActiveMemberships] = useState<MembershipSummary[]>([]);
   const [walletMembership, setWalletMembership] = useState<MembershipSummary | null>(null);
   const [walletOracle, setWalletOracle] = useState<OracleSummary | null>(null);
+  const [walletClaimDelegate, setWalletClaimDelegate] = useState<ClaimDelegateAuthorizationSummary | null>(null);
   const [aggregates, setAggregates] = useState<OutcomeAggregateSummary[]>([]);
+  const [coverageClaims, setCoverageClaims] = useState<CoverageClaimSummary[]>([]);
+  const [redemptionRequests, setRedemptionRequests] = useState<PoolRedemptionRequestSummary[]>([]);
   const [readiness, setReadiness] = useState<ProtocolReadiness | null>(null);
   const [poolMetrics, setPoolMetrics] = useState<PoolDefiMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
@@ -118,62 +162,120 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     [businessEntry],
   );
 
+  const walletCapitalPosition = useMemo<WalletPoolPositionSummary | null>(() => {
+    if (!walletAddress) return null;
+    const walletCoverageClaims = coverageClaims.filter(
+      (row) => row.claimant === walletAddress || row.member === walletAddress,
+    );
+    const walletRewardClaims = aggregates.filter((row) => row.member === walletAddress && row.passed && !row.claimed);
+    const walletRedemptions = redemptionRequests.filter((row) => row.redeemer === walletAddress);
+    const pendingCoverageExposureRaw = walletCoverageClaims.reduce((sum, row) => sum + row.requestedAmount, 0n);
+    return {
+      owner: walletAddress,
+      pool: poolSummary?.address ?? poolAddress,
+      memberAddress: walletMembership?.member ?? null,
+      memberPositionActive: walletMembership?.status === 1,
+      capitalPositionActive: walletRedemptions.length > 0,
+      transitionalSharePath: true,
+      classMode: 0,
+      transferMode: 0,
+      restricted: false,
+      redemptionMode: 0,
+      claimMode: 0,
+      shareBalanceRaw: 0n,
+      capitalExposureRaw: 0n,
+      currentlyRedeemableRaw: 0n,
+      pendingRedemptionRequestCount: walletRedemptions.length,
+      scheduledRedemptionRequestCount: walletRedemptions.filter((row) => row.status === 2).length,
+      pendingRedemptionSharesRaw: walletRedemptions.reduce((sum, row) => sum + row.sharesRequested, 0n),
+      pendingRedemptionExpectedRaw: walletRedemptions.reduce((sum, row) => sum + row.expectedAmountOut, 0n),
+      pendingCoverageClaimCount: walletCoverageClaims.length,
+      pendingCoverageExposureRaw,
+      pendingRewardClaimCount: walletRewardClaims.length,
+      pendingRewardPayoutRaw: 0n,
+    };
+  }, [aggregates, coverageClaims, poolAddress, poolSummary?.address, redemptionRequests, walletAddress, walletMembership?.member, walletMembership?.status]);
+
   const capabilities = useMemo(
     () =>
       deriveWalletCapabilities({
         walletAddress,
         pool: poolSummary,
+        protocolConfig,
+        poolControlAuthority,
         walletMembership,
         walletOracle,
+        walletClaimDelegate,
+        walletCapitalPosition,
       }),
-    [poolSummary, walletAddress, walletMembership, walletOracle],
+    [poolControlAuthority, poolSummary, protocolConfig, walletAddress, walletCapitalPosition, walletClaimDelegate, walletMembership, walletOracle],
   );
 
   const dashboard = useMemo(
     () =>
       buildPoolDashboardSnapshot({
         readiness,
+        protocolConfig,
         activeMemberships,
         finalizedAggregates: aggregates,
+        pendingCoverageClaims: coverageClaims,
+        pendingRedemptions: redemptionRequests,
         capabilities,
       }),
-    [activeMemberships, aggregates, capabilities, readiness],
+    [activeMemberships, aggregates, capabilities, coverageClaims, protocolConfig, readiness, redemptionRequests],
   );
 
   const capabilityNote = useMemo(() => {
     if (!capabilities.isConnected) {
-      return "Connect wallet to unlock plan actions.";
+      return "Connect a wallet to unlock the participant or operator actions that apply to this plan.";
+    }
+    if (capabilities.isGovernanceAuthority || capabilities.isProtocolAdmin) {
+      return "This wallet can manage governance, emergency controls, and protocol-level treasury actions.";
     }
     if (capabilities.isPoolAuthority) {
-      return "Connected wallet controls this plan and can run admin actions.";
+      return "This wallet controls the plan and can run pool setup, treasury, and policy actions.";
     }
-    if (capabilities.isRegisteredMember && capabilities.isRegisteredOracle) {
-      return "Connected wallet is both an enrolled member and a registered verifier.";
+    if (capabilities.isPoolOperator || capabilities.isRiskManager || capabilities.isComplianceAuthority || capabilities.isGuardian) {
+      return "This wallet has delegated operator controls for the plan.";
+    }
+    if (capabilities.isRegisteredOracle && capabilities.isRegisteredMember) {
+      return "This wallet participates as both an oracle and a member in this plan.";
+    }
+    if (capabilities.isClaimDelegate) {
+      return "This wallet can act as a claim delegate for enrolled members.";
+    }
+    if (capabilities.hasCapitalPosition) {
+      return "This wallet has capital-provider context and can monitor redemption exposure.";
     }
     if (capabilities.isRegisteredMember) {
-      return "Connected wallet is enrolled in this plan and can submit claims.";
+      return "This wallet is enrolled in the plan and can use participant actions.";
     }
     if (capabilities.isRegisteredOracle) {
-      return "Connected wallet is a registered verifier.";
+      return "This wallet is a registered verifier and can use oracle operations.";
     }
-    return "Connected wallet is in observer mode for this plan. You can still join or switch context.";
+    return "This wallet is in observer mode for the plan. Shared state stays visible, while gated actions stay hidden or disabled.";
   }, [capabilities]);
 
   const sectionBlockers = useMemo(
     () => ({
-      claims: capabilities.canSubmitClaims
+      overview: null,
+      members: capabilities.isConnected ? null : "Connect a wallet to run enrollment or delegation actions.",
+      coverage: capabilities.canManageCoverage ? null : "Coverage tools are viewable, but actions require a member, delegate, or operator wallet.",
+      claims: capabilities.canSubmitClaims || capabilities.canManageClaims
         ? null
-        : "Claims actions are hidden. Use an enrolled member wallet to submit claims.",
-      settings: capabilities.isPoolAuthority
-        ? null
-        : "Settings actions are hidden. Use the plan authority wallet.",
-      oracle: null,
+        : "Claims tools are viewable, but actions require a member, delegate, or operator wallet.",
+      liquidity: capabilities.canManageLiquidity ? null : "Liquidity state is visible, but actions require a capital-provider or operator wallet.",
+      oracles: capabilities.canManageOracles ? null : "Oracle state is visible, but actions require an oracle or operator wallet.",
+      schemas: capabilities.canManageSchemas ? null : "Schema state is visible, but governance/operator wallets are required for mutations.",
+      treasury: capabilities.canManageTreasury ? null : "Treasury state is visible, but withdrawals require an authorized signer wallet.",
+      governance: capabilities.canManageGovernance ? null : "Governance is visible, but protocol mutations require the governance authority wallet.",
+      settings: capabilities.canManageSettings ? null : "Settings are visible, but pool mutations require an authority or operator wallet.",
     }),
-    [capabilities.canSubmitClaims, capabilities.isPoolAuthority],
+    [capabilities],
   );
 
   const applySection = useCallback(
-    (nextSection: PoolWorkspaceSection) => {
+    (nextSection: PoolWorkspaceSection, nextPanel?: PoolWorkspacePanel | null) => {
       setActiveSection(nextSection);
       try {
         window.localStorage.setItem(storedSectionKey, nextSection);
@@ -182,15 +284,33 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
       }
       const params = new URLSearchParams(searchParams.toString());
       params.set("section", nextSection);
+      const resolvedPanel =
+        nextPanel === undefined
+          ? nextSection === activeSection
+            ? searchParams.get("panel")
+            : defaultWorkspacePanel(nextSection)
+          : nextPanel;
+      if (resolvedPanel) {
+        params.set("panel", resolvedPanel);
+      } else {
+        params.delete("panel");
+      }
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [pathname, router, searchParams, storedSectionKey],
+    [activeSection, pathname, router, searchParams, storedSectionKey],
   );
+
+  useEffect(() => {
+    if (POOL_WORKSPACE_SECTION_META[activeSection].group === "protocol-tools") {
+      setProtocolToolsExpanded(true);
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     const querySectionValue = searchParams.get("section");
     if (querySectionValue) {
       const querySection = parseWorkspaceSection(querySectionValue);
+      const queryPanelValue = searchParams.get("panel");
       if (querySection !== activeSection) {
         setActiveSection(querySection);
       }
@@ -198,6 +318,14 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
         window.localStorage.setItem(storedSectionKey, querySection);
       } catch {
         // Ignore storage failures and continue URL-driven navigation.
+      }
+      if (!queryPanelValue) {
+        const params = new URLSearchParams(searchParams.toString());
+        const fallbackPanel = defaultWorkspacePanel(querySection);
+        if (fallbackPanel) {
+          params.set("panel", fallbackPanel);
+          router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        }
       }
       return;
     }
@@ -207,6 +335,10 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     setActiveSection(storedSection);
     const params = new URLSearchParams(searchParams.toString());
     params.set("section", storedSection);
+    const fallbackPanel = defaultWorkspacePanel(storedSection);
+    if (fallbackPanel) {
+      params.set("panel", fallbackPanel);
+    }
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [activeSection, pathname, router, searchParams, storedSectionKey]);
 
@@ -214,11 +346,26 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     setLoading(true);
     setError(null);
     try {
-      const [poolsResult, nextOracles, nextMemberships, nextAggregates] = await Promise.all([
+      const [
+        protocolConfigs,
+        poolsResult,
+        nextOracles,
+        nextMemberships,
+        nextAggregates,
+        nextControlAuthorities,
+        nextClaimDelegates,
+        nextCoverageClaims,
+        nextRedemptionRequests,
+      ] = await Promise.all([
+        listProtocolConfig({ connection }),
         listPools({ connection, search: sectionSearch || null }),
         listOracles({ connection, activeOnly: false }),
         listMemberships({ connection, poolAddress, activeOnly: true }),
         listOutcomeAggregates({ connection, poolAddress, finalizedOnly: true }),
+        listPoolControlAuthorities({ connection, poolAddress }),
+        listClaimDelegateAuthorizations({ connection, poolAddress, activeOnly: true }),
+        listCoverageClaims({ connection, poolAddress }),
+        listPoolRedemptionRequests({ connection, poolAddress }),
       ]);
 
       let nextPools = poolsResult;
@@ -235,9 +382,13 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
       }
 
       setPools(nextPools);
+      setProtocolConfig(protocolConfigs[0] ?? null);
       setOracles(nextOracles);
       setActiveMemberships(nextMemberships);
       setAggregates(nextAggregates);
+      setPoolControlAuthority(nextControlAuthorities[0] ?? null);
+      setCoverageClaims(nextCoverageClaims);
+      setRedemptionRequests(nextRedemptionRequests);
       setPoolSummary(resolvedPool);
 
       const nextWalletMembership = walletAddress
@@ -249,6 +400,11 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
 
       setWalletMembership(nextWalletMembership);
       setWalletOracle(nextWalletOracle);
+      setWalletClaimDelegate(
+        walletAddress
+          ? nextClaimDelegates.find((row) => row.delegate === walletAddress && row.active) ?? null
+          : null,
+      );
 
       const nextReadiness = await fetchProtocolReadiness({
         connection,
@@ -346,6 +502,11 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
   const selectedPoolAddress = poolSummary?.address ?? poolAddress;
   const tvlLabel = metricsLoading ? "..." : formatPoolTvl(poolMetrics?.tvl ?? null);
   const apyLabel = metricsLoading ? "..." : formatApyBps(poolMetrics?.apy ?? null);
+  const poolStatus = useMemo(() => resolvePoolStatus(readiness, protocolConfig), [protocolConfig, readiness]);
+  const walletRoleLabel = useMemo(
+    () => (capabilities.isConnected ? formatRoleLabel(capabilities.primaryRole) : "observer"),
+    [capabilities.isConnected, capabilities.primaryRole],
+  );
 
   const setTransientHeaderNotice = useCallback((message: string) => {
     setHeaderNotice(message);
@@ -379,6 +540,10 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     try {
       const params = new URLSearchParams(searchParams.toString());
       params.set("section", activeSection);
+      const activePanel = searchParams.get("panel");
+      if (activePanel) {
+        params.set("panel", activePanel);
+      }
       const shareUrl = `${window.location.origin}/pools/${encodeURIComponent(selectedPoolAddress)}?${params.toString()}`;
       await navigator.clipboard.writeText(shareUrl);
       setTransientHeaderNotice("Section link copied.");
@@ -387,240 +552,255 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     }
   }, [activeSection, searchParams, selectedPoolAddress, setTransientHeaderNotice]);
 
-  const selectedSectionNode = sections[activeSection] ?? (
+  const selectedSectionNode = activeSection === "overview" ? (
+    <PoolOverviewPanel
+      poolAddress={selectedPoolAddress}
+      readiness={readiness}
+      protocolConfig={protocolConfig}
+      poolControlAuthority={poolControlAuthority}
+      walletClaimDelegate={walletClaimDelegate}
+      walletCapitalPosition={walletCapitalPosition}
+      capabilities={capabilities}
+      dashboard={dashboard}
+      lastUpdatedAt={lastUpdatedAt}
+      onOpenSection={applySection}
+    />
+  ) : sections[activeSection] ?? (
     <section className="workspace-section-shell">
       <p className="field-help">This section is not configured yet.</p>
     </section>
   );
 
-  const activeSectionBlocker =
-    activeSection === "claims"
-      ? sectionBlockers.claims
-      : activeSection === "settings"
-        ? sectionBlockers.settings
-        : activeSection === "oracle"
-          ? sectionBlockers.oracle
-          : null;
-
-  const allowRenderSectionContent = !(
-    (activeSection === "claims" && sectionBlockers.claims)
-    || (activeSection === "settings" && sectionBlockers.settings)
-    || (activeSection === "oracle" && sectionBlockers.oracle)
-  );
+  const activeSectionBlocker = sectionBlockers[activeSection];
 
   return (
-    <div className="workspace-root space-y-5">
-      <section className="workspace-header-band">
-        <div className="workspace-header-copy">
-          <p className="workspace-eyebrow">Health Plan Workspace</p>
-          <h1 className="workspace-title">
-            {poolSummary ? poolSummary.poolId : shortAddress(poolAddress)}
-          </h1>
-          <p className="workspace-subtitle">{capabilityNote}</p>
-        </div>
+    <PoolWorkspaceProvider capabilities={capabilities}>
+      <div className="workspace-root space-y-5">
+        <section className="workspace-header-band">
+          <div className="workspace-header-copy">
+            <p className="workspace-eyebrow">Health Plan Workspace</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="workspace-title">
+                {poolSummary ? poolSummary.poolId : shortAddress(poolAddress)}
+              </h1>
+              <span className={cn("status-pill", poolStatus.tone)}>{poolStatus.label}</span>
+              <span className={cn("status-pill", capabilities.isConnected ? "status-ok" : "status-off")}>
+                {walletRoleLabel}
+              </span>
+            </div>
+            <p className="workspace-subtitle">{capabilityNote}</p>
 
-        <div className="workspace-header-meta">
-          <div className="flex flex-wrap gap-2">
-            <Link href={backToPoolsHref} className="secondary-button inline-flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to pools
-            </Link>
-            <a
-              className="secondary-button inline-flex items-center gap-2"
-              href={toExplorerAddressLink(selectedPoolAddress)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View on Explorer
-            </a>
-            <button type="button" className="secondary-button" onClick={() => void onCopyPoolAddress()}>
-              Copy address
-            </button>
-            <button type="button" className="secondary-button" onClick={() => void onCopySectionLink()}>
-              Copy section link
-            </button>
-          </div>
-          {headerNotice ? <p className="field-help">{headerNotice}</p> : null}
-          {businessOracleWarning ? <p className="field-help">{businessOracleWarning}</p> : null}
-          <SearchableSelect
-            label="Quick switch plan"
-            value={selectedPoolAddress}
-            options={pools.map((row) => ({
-              value: row.address,
-              label: `${row.poolId} (${shortAddress(row.address)})`,
-              hint: `Org ${row.organizationRef} | Authority ${shortAddress(row.authority)}`,
-            }))}
-            onChange={(value) => {
-              if (!value) return;
-              router.push(
-                buildBusinessContextHref(
-                  `/pools/${value}`,
-                  businessEntry,
-                  { section: activeSection },
-                ),
-              );
-            }}
-            searchValue={sectionSearch}
-            onSearchChange={setSectionSearch}
-            loading={loading}
-            placeholder="Select plan"
-          />
-
-          <div className="flex flex-wrap gap-2">
-            <span className={cn("status-pill", capabilities.isConnected ? "status-ok" : "status-off")}>
-              {capabilities.isConnected ? "Wallet connected" : "Wallet disconnected"}
-            </span>
-            <span className={cn("status-pill", capabilities.isPoolAuthority ? "status-ok" : "status-off")}>
-              {capabilities.isPoolAuthority ? "Authority" : "Non-authority"}
-            </span>
-            <span className={cn("status-pill", capabilities.isRegisteredMember ? "status-ok" : "status-off")}>
-              {capabilities.isRegisteredMember ? "Member" : "Not member"}
-            </span>
-            <span className={cn("status-pill", capabilities.isRegisteredOracle ? "status-ok" : "status-off")}>
-              {capabilities.isRegisteredOracle ? "Oracle" : "Not oracle"}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="status-pill status-off">Plan {shortAddress(selectedPoolAddress)}</span>
-            <span className="status-pill status-off">
-              Wallet {walletAddress ? shortAddress(walletAddress) : "not connected"}
-            </span>
-            <span className="status-pill status-off">Network {networkLabel}</span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="secondary-button" onClick={() => void refreshWorkspace()} disabled={loading}>
-              {loading ? "Refreshing..." : "Refresh workspace"}
-            </button>
-            <Link href="/pools/create" className="action-button inline-flex">
-              Create new plan
-            </Link>
-          </div>
-          {error ? <p className="field-error">{error}</p> : null}
-        </div>
-      </section>
-
-      <section className="workspace-kpi-grid">
-        <article className="workspace-kpi-card">
-          <p className="metric-label">Members active</p>
-          <p className="workspace-kpi-value">{dashboard.membersActive}</p>
-        </article>
-        <article className="workspace-kpi-card">
-          <p className="metric-label">Claims pending</p>
-          <p className="workspace-kpi-value">{dashboard.claimsPending}</p>
-        </article>
-        <article className="workspace-kpi-card">
-          <p className="metric-label">Readiness checks</p>
-          <p className="workspace-kpi-value">
-            {dashboard.readinessChecksPassing}/{dashboard.readinessChecksTotal}
-          </p>
-        </article>
-        <article className="workspace-kpi-card">
-          <p className="metric-label">TVL</p>
-          <p className="workspace-kpi-value">{tvlLabel}</p>
-        </article>
-        <article className="workspace-kpi-card">
-          <p className="metric-label">Est. APY (30d)</p>
-          <p className="workspace-kpi-value">{apyLabel}</p>
-          {poolMetrics?.apy?.methodologyUri ? (
-            <a
-              href={poolMetrics.apy.methodologyUri}
-              className="field-help underline underline-offset-2"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Methodology
-            </a>
-          ) : null}
-        </article>
-      </section>
-      {metricsError ? <p className="field-help">{metricsError}</p> : null}
-
-      <section className="workspace-top-grid">
-        <article className="workspace-queue-card">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="step-title">Action Queue</h2>
-            {lastUpdatedAt ? <p className="field-help">Updated {new Date(lastUpdatedAt).toLocaleTimeString()}</p> : null}
-          </div>
-          {dashboard.queue.length === 0 ? (
-            <p className="field-help">No pending actions.</p>
-          ) : (
-            <ul className="workspace-queue-list">
-              {dashboard.queue.map((item) => (
-                <li key={item.id} className="workspace-queue-item">
-                  <div>
-                    <p className="font-medium text-[var(--foreground)]">{item.title}</p>
-                    <p className="field-help">{item.detail}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("status-pill", queuePriorityClass(item.priority))}>{item.priority}</span>
-                    <button type="button" className="secondary-button py-1.5" onClick={() => applySection(item.section)}>
-                      Open
-                    </button>
-                  </div>
-                </li>
+            <div className="flex flex-wrap gap-2">
+              {dashboard.compactStatus.map((item) => (
+                <span
+                  key={item.id}
+                  className={cn(
+                    "status-pill",
+                    item.tone === "ok" ? "status-ok" : item.tone === "warn" ? "status-off" : "status-off",
+                  )}
+                >
+                  {item.label}: {item.value}
+                </span>
               ))}
-            </ul>
-          )}
-        </article>
+              <span className="status-pill status-off">TVL {tvlLabel}</span>
+              <span className="status-pill status-off">APY {apyLabel}</span>
+            </div>
+          </div>
 
-        <article className="workspace-risk-card">
-          <h2 className="step-title">Risk Flags</h2>
-          {dashboard.riskFlags.length === 0 ? (
-            <p className="field-help">No critical flags detected.</p>
-          ) : (
-            <ul className="space-y-2">
-              {dashboard.riskFlags.map((flag) => (
-                <li key={flag} className="field-error">
-                  {flag}
-                </li>
-              ))}
-            </ul>
-          )}
-        </article>
-      </section>
+          <div className="workspace-header-meta">
+            <article className="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface)] p-4 space-y-2">
+              <p className="metric-label">Next action</p>
+              {dashboard.nextAction ? (
+                <>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{dashboard.nextAction.title}</p>
+                  <p className="field-help">{dashboard.nextAction.detail}</p>
+                  <button
+                    type="button"
+                    className="action-button inline-flex w-fit"
+                    onClick={() => {
+                      if (!dashboard.nextAction) return;
+                      applySection(dashboard.nextAction.section, dashboard.nextAction.panel ?? undefined);
+                    }}
+                  >
+                    Open task
+                  </button>
+                </>
+              ) : (
+                <p className="field-help">No urgent follow-up is queued for this wallet right now.</p>
+              )}
+            </article>
+
+            <div className="flex flex-wrap gap-2">
+              <Link href={backToPoolsHref} className="secondary-button inline-flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to pools
+              </Link>
+              <button type="button" className="secondary-button" onClick={() => void refreshWorkspace()} disabled={loading}>
+                {loading ? "Refreshing..." : "Refresh workspace"}
+              </button>
+              <Link href="/pools/create" className="action-button inline-flex">
+                Create new plan
+              </Link>
+            </div>
+
+            <details className="surface-card-soft">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+                Plan details
+              </summary>
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    className="secondary-button inline-flex items-center gap-2"
+                    href={toExplorerAddressLink(selectedPoolAddress)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View on Explorer
+                  </a>
+                  <button type="button" className="secondary-button" onClick={() => void onCopyPoolAddress()}>
+                    Copy address
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => void onCopySectionLink()}>
+                    Copy section link
+                  </button>
+                </div>
+
+                <SearchableSelect
+                  label="Quick switch plan"
+                  value={selectedPoolAddress}
+                  options={pools.map((row) => ({
+                    value: row.address,
+                    label: `${row.poolId} (${shortAddress(row.address)})`,
+                    hint: `Org ${row.organizationRef} | Authority ${shortAddress(row.authority)}`,
+                  }))}
+                  onChange={(value) => {
+                    if (!value) return;
+                    router.push(
+                      buildBusinessContextHref(
+                        `/pools/${value}`,
+                        businessEntry,
+                        {
+                          section: activeSection,
+                          panel: searchParams.get("panel") ?? undefined,
+                        },
+                      ),
+                    );
+                  }}
+                  searchValue={sectionSearch}
+                  onSearchChange={setSectionSearch}
+                  loading={loading}
+                  placeholder="Select plan"
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <span className="status-pill status-off">Plan {shortAddress(selectedPoolAddress)}</span>
+                  <span className="status-pill status-off">
+                    Wallet {walletAddress ? shortAddress(walletAddress) : "not connected"}
+                  </span>
+                  <span className="status-pill status-off">Network {networkLabel}</span>
+                </div>
+
+                {headerNotice ? <p className="field-help">{headerNotice}</p> : null}
+                {businessOracleWarning ? <p className="field-help">{businessOracleWarning}</p> : null}
+                {metricsError ? <p className="field-help">{metricsError}</p> : null}
+              </div>
+            </details>
+
+            {error ? <p className="field-error">{error}</p> : null}
+          </div>
+        </section>
 
       <div className="workspace-shell-layout">
         <aside className="workspace-rail">
           <nav aria-label="Pool workspace sections" className="workspace-rail-nav">
-            {POOL_WORKSPACE_SECTIONS.map((section) => (
+            <div className="space-y-2">
+              {PRIMARY_WORKSPACE_SECTIONS.map((section) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => applySection(section)}
+                  className={cn("workspace-rail-link", activeSection === section && "workspace-rail-link-active")}
+                  aria-current={activeSection === section ? "page" : undefined}
+                >
+                  {POOL_WORKSPACE_SECTION_META[section].label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-2 border-t border-[var(--border)]/35 pt-2">
               <button
-                key={section}
                 type="button"
-                onClick={() => applySection(section)}
-                className={cn("workspace-rail-link", activeSection === section && "workspace-rail-link-active")}
-                aria-current={activeSection === section ? "page" : undefined}
+                className="secondary-button inline-flex w-full items-center justify-between"
+                onClick={() => setProtocolToolsExpanded((current) => !current)}
               >
-                {SECTION_LABELS[section]}
+                <span>Administration</span>
+                <span>{protocolToolsExpanded ? "Hide" : "Show"}</span>
               </button>
-            ))}
+              {protocolToolsExpanded ? (
+                <div className="space-y-2">
+                  {PROTOCOL_TOOL_WORKSPACE_SECTIONS.map((section) => (
+                    <button
+                      key={section}
+                      type="button"
+                      onClick={() => applySection(section)}
+                      className={cn("workspace-rail-link", activeSection === section && "workspace-rail-link-active")}
+                      aria-current={activeSection === section ? "page" : undefined}
+                    >
+                      {POOL_WORKSPACE_SECTION_META[section].label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </nav>
         </aside>
 
         <div className="workspace-mobile-chips">
-          {POOL_WORKSPACE_SECTIONS.map((section) => (
+          {PRIMARY_WORKSPACE_SECTIONS.map((section) => (
             <button
               key={section}
               type="button"
               onClick={() => applySection(section)}
               className={cn("segment-button", activeSection === section && "segment-button-active")}
             >
-              {SECTION_LABELS[section]}
+              {POOL_WORKSPACE_SECTION_META[section].label}
             </button>
           ))}
+          <button
+            type="button"
+            className={cn("segment-button", protocolToolsExpanded && "segment-button-active")}
+            onClick={() => setProtocolToolsExpanded((current) => !current)}
+          >
+            Administration
+          </button>
+          {protocolToolsExpanded
+            ? PROTOCOL_TOOL_WORKSPACE_SECTIONS.map((section) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => applySection(section)}
+                  className={cn("segment-button", activeSection === section && "segment-button-active")}
+                >
+                  {POOL_WORKSPACE_SECTION_META[section].label}
+                </button>
+              ))
+            : null}
         </div>
 
         <section id={activeSection} className="workspace-section-shell">
           <div className="workspace-section-head">
-            <h2 className="step-title">{SECTION_LABELS[activeSection]}</h2>
+            <div className="space-y-1">
+              <h2 className="step-title">{POOL_WORKSPACE_SECTION_META[activeSection].label}</h2>
+              <p className="text-sm text-[var(--muted-foreground)]">{SECTION_LEADS[activeSection]}</p>
+            </div>
             {activeSectionBlocker ? <span className="status-pill status-off">Limited</span> : null}
           </div>
           {activeSectionBlocker ? <p className="field-help">{activeSectionBlocker}</p> : null}
-          {allowRenderSectionContent ? selectedSectionNode : null}
+          {selectedSectionNode}
         </section>
       </div>
-    </div>
+      </div>
+    </PoolWorkspaceProvider>
   );
 }

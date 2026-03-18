@@ -2,6 +2,7 @@
 
 "use client";
 
+import { FieldHint } from "@/components/field-hint";
 import { MultiOraclePicker } from "@/components/multi-oracle-picker";
 import type { MultiOracleOption } from "@/components/multi-oracle-picker";
 
@@ -22,6 +23,8 @@ type StepVerificationProps = {
   allowDelegateClaim: boolean;
   onAllowDelegateClaimChange: (value: boolean) => void;
   onConfirmVerification: () => void;
+  confirmLabel: string;
+  confirmHelp?: string | null;
   disabledInputs?: boolean;
   confirmDisabled?: boolean;
 };
@@ -43,13 +46,22 @@ export function StepVerification({
   allowDelegateClaim,
   onAllowDelegateClaimChange,
   onConfirmVerification,
+  confirmLabel,
+  confirmHelp,
   disabledInputs,
   confirmDisabled,
 }: StepVerificationProps) {
   return (
-    <section className="surface-card step-card space-y-4">
-      <div className="step-head">
-        <h3 className="step-title">3. Verification Network</h3>
+    <section className="wizard-section">
+      <div className="wizard-section-heading">
+        <div className="space-y-1">
+          <p className="wizard-section-kicker">Verification</p>
+          <h3 className="wizard-section-title">Who should be allowed to confirm outcomes?</h3>
+        </div>
+        <FieldHint
+          content="Start with the verifier set, then set the approval threshold and policy toggles that govern claim submissions."
+          side="end"
+        />
       </div>
 
       <MultiOraclePicker
@@ -64,68 +76,93 @@ export function StepVerification({
       />
 
       {lockRequiredOracle ? (
-        <p className="field-help">
-          Business-origin policy requires the OmegaX Health oracle verifier to stay selected.
-        </p>
-      ) : null}
-      {lockRequiredOracle && requiredOracleAddress && requiredOracleDiscovered === false ? (
-        <p className="field-error">
-          Required business oracle is not discoverable on this network.
+        <p className="wizard-inline-copy">
+          Business-origin launches keep the OmegaX Health verifier selected by default.
         </p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="field-label">
-          Minimum confirmations (quorum M)
+      {lockRequiredOracle && requiredOracleAddress && requiredOracleDiscovered === false ? (
+        <p className="field-error">The required business verifier is not discoverable on this network yet.</p>
+      ) : null}
+
+      <div className="wizard-section-block">
+        <div className="wizard-inline-head">
+          <p className="wizard-section-label">How many confirmations are required?</p>
+          <FieldHint
+            content="The selected verifier count updates automatically. Only the required confirmation count needs manual input."
+            side="end"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="field-label">
+            Required confirmations
+            <input
+              className="field-input"
+              type="number"
+              min="1"
+              value={quorumM}
+              onChange={(event) => onQuorumMChange(event.target.value)}
+              disabled={disabledInputs}
+            />
+          </label>
+          <label className="field-label">
+            Selected verifier count
+            <input className="field-input" type="number" min="1" value={quorumN} disabled />
+          </label>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <label className="wizard-toggle-row">
+          <span>
+            <span className="wizard-section-label">Only use verified schemas</span>
+            <span className="wizard-inline-copy block">
+              Keep payout rules tied to governance-verified outcome schemas.
+            </span>
+          </span>
           <input
-            className="field-input"
-            type="number"
-            min="1"
-            value={quorumM}
-            onChange={(event) => onQuorumMChange(event.target.value)}
+            type="checkbox"
+            checked={requireVerifiedSchema}
+            onChange={(event) => onRequireVerifiedSchemaChange(event.target.checked)}
             disabled={disabledInputs}
           />
         </label>
-        <label className="field-label">
-          Verification network size (quorum N)
-          <input className="field-input" type="number" min="1" value={quorumN} disabled />
+
+        <label className="wizard-toggle-row">
+          <span>
+            <span className="wizard-section-label">Allow delegated reward claims</span>
+            <span className="wizard-inline-copy block">
+              Let a sponsor or service submit reward claims for members.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={allowDelegateClaim}
+            onChange={(event) => onAllowDelegateClaimChange(event.target.checked)}
+            disabled={disabledInputs}
+          />
         </label>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="field-label">
-          Require verified schema
-          <select
-            className="field-input"
-            value={requireVerifiedSchema ? "1" : "0"}
-            onChange={(event) => onRequireVerifiedSchemaChange(event.target.value === "1")}
-            disabled={disabledInputs}
-          >
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-          </select>
-        </label>
-        <label className="field-label">
-          Allow delegate claim
-          <select
-            className="field-input"
-            value={allowDelegateClaim ? "1" : "0"}
-            onChange={(event) => onAllowDelegateClaimChange(event.target.value === "1")}
-            disabled={disabledInputs}
-          >
-            <option value="0">No</option>
-            <option value="1">Yes</option>
-          </select>
-        </label>
+      <div className="wizard-action-block">
+        <div className="space-y-2">
+          <p className="wizard-section-label">Save verification</p>
+          <p className="wizard-inline-copy">Lock in the verifier set and quorum before you define payout rules.</p>
+        </div>
+        <button
+          type="button"
+          className="action-button hidden w-full sm:inline-flex sm:w-auto"
+          onClick={onConfirmVerification}
+          disabled={confirmDisabled}
+        >
+          {confirmLabel}
+        </button>
+        {confirmHelp ? (
+          <p className={confirmDisabled ? "field-error" : "wizard-inline-copy"}>
+            {confirmHelp}
+          </p>
+        ) : null}
       </div>
-
-      <p className="field-help">
-        Delegate claim primarily affects reward claim flows. Coverage claims currently allow delegated submission.
-      </p>
-
-      <button type="button" className="action-button" onClick={onConfirmVerification} disabled={confirmDisabled}>
-        Confirm verification network
-      </button>
     </section>
   );
 }

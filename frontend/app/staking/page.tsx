@@ -3,17 +3,24 @@
 import { Activity } from "lucide-react";
 
 import { Hero } from "@/components/hero";
-import { OracleStakingAccessPanel } from "@/components/oracle-staking-access-panel";
+import { PoolWorkspaceLauncher } from "@/components/pool-workspace-launcher";
 
 export default function StakingPage() {
   return (
     <div className="space-y-5">
       <Hero
-        title="Verifier Diagnostics"
-        subtitle="Read-only oracle verification diagnostics. Visible only to registered verifier (oracle) wallets."
+        title="Verifier Operations"
+        subtitle="Oracle staking and related verifier operations are now part of the shared pool workspace and governance/oracle surfaces."
         icon={Activity}
       />
-      <OracleStakingAccessPanel />
+
+      <PoolWorkspaceLauncher
+        targetSection="oracles"
+        targetPanel="staking"
+        title="Open Oracle Operations In Pool Workspace"
+        description="Pick a health plan and jump into the oracle section for approvals, network policy, and verifier operations."
+        actionLabel="Open oracle workspace"
+      />
     </div>
   );
 }

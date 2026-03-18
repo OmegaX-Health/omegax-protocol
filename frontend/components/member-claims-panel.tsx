@@ -249,7 +249,7 @@ export function MemberClaimsPanel({
         return `Payout amount must match pool payout (${selectedPool.payoutLamportsPerPass.toString()} lamports).`;
       }
       if (!effectiveOverrideEnabled && !selectedAggregate) {
-        return "Select a finalized passed aggregate (or enable advanced override).";
+        return "Select a finalized passed aggregate, or switch to manual inputs if you need an exact cycle/rule hash.";
       }
       if (!effectiveOverrideEnabled && selectedAggregate?.claimed) {
         return "Selected aggregate is already claimed.";
@@ -478,7 +478,7 @@ export function MemberClaimsPanel({
                 onSearchChange={(value) => setSearch((prev) => ({ ...prev, pools: value }))}
                 loading={selectorLoading}
                 disabled={effectiveOverrideEnabled}
-                disabledHint="Selector is disabled while advanced override is enabled."
+                disabledHint="Selector is disabled while manual inputs are active."
                 placeholder="Select pool"
               />
             )}
@@ -507,7 +507,7 @@ export function MemberClaimsPanel({
         </div>
         {!stepRecordOpen ? (
           <p className="field-help">
-            {claimType === "reward" ? "Select finalized aggregate (or advanced override)." : "Coverage does not require aggregate selection."}
+            {claimType === "reward" ? "Select a finalized aggregate, or switch to manual inputs when you need exact hashes." : "Coverage does not require aggregate selection."}
           </p>
         ) : null}
         {stepRecordOpen ? (
@@ -538,7 +538,7 @@ export function MemberClaimsPanel({
                   onSearchChange={(value) => setSearch((prev) => ({ ...prev, aggregates: value }))}
                   loading={selectorLoading}
                   disabled={effectiveOverrideEnabled}
-                  disabledHint="Selector is disabled while advanced override is enabled."
+                  disabledHint="Selector is disabled while manual inputs are active."
                   placeholder="Select finalized aggregate"
                   emptyMessage={
                     showAllRewardAggregates
@@ -552,7 +552,12 @@ export function MemberClaimsPanel({
             )}
 
             {poolLocked ? null : (
-              <AdvancedOverride enabled={effectiveOverrideEnabled} onToggle={setOverrideEnabled}>
+              <AdvancedOverride
+                title="Manual claim inputs"
+                description="Use manual inputs only when selector-driven aggregates are missing or you need to paste exact cycle and rule hashes."
+                enabled={effectiveOverrideEnabled}
+                onToggle={setOverrideEnabled}
+              >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="field-label">
                     Pool address override

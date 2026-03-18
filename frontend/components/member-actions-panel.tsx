@@ -388,7 +388,7 @@ export function MemberActionsPanel({
         </div>
         {!stepPoolOpen ? (
           <p className="field-help">
-            {poolLocked ? "Pool context is locked by workspace." : "Choose pool from chain (or use advanced override)."}
+            {poolLocked ? "Pool context is locked by workspace." : "Choose pool from chain, or switch to manual inputs if discovery is incomplete."}
           </p>
         ) : null}
         {stepPoolOpen ? (
@@ -413,11 +413,16 @@ export function MemberActionsPanel({
                   onSearchChange={(value) => setSearch((prev) => ({ ...prev, pools: value }))}
                   loading={loadingSelectors}
                   disabled={effectiveOverrideEnabled}
-                  disabledHint="Selector is disabled while advanced override is enabled."
+                  disabledHint="Selector is disabled while manual inputs are active."
                   placeholder="Select pool"
                 />
 
-                <AdvancedOverride enabled={effectiveOverrideEnabled} onToggle={setOverrideEnabled}>
+                <AdvancedOverride
+                  title="Manual pool inputs"
+                  description="Use this only when chain discovery is incomplete or you need to paste exact addresses for enrollment."
+                  enabled={effectiveOverrideEnabled}
+                  onToggle={setOverrideEnabled}
+                >
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="field-label">
                       Pool address override
@@ -497,7 +502,7 @@ export function MemberActionsPanel({
                 onSearchChange={(value) => setSearch((prev) => ({ ...prev, tokenAccounts: value }))}
                 loading={loadingSelectors}
                 disabled={effectiveOverrideEnabled}
-                disabledHint="Selector is disabled while advanced override is enabled."
+                disabledHint="Selector is disabled while manual inputs are active."
                 placeholder="Select token account"
                 emptyMessage={
                   selectedPool?.tokenGateMint
@@ -522,7 +527,7 @@ export function MemberActionsPanel({
                   onSearchChange={(value) => setSearch((prev) => ({ ...prev, issuers: value }))}
                   loading={loadingSelectors}
                   disabled={effectiveOverrideEnabled}
-                  disabledHint="Selector is disabled while advanced override is enabled."
+                  disabledHint="Selector is disabled while manual inputs are active."
                   placeholder="Select invite issuer"
                 />
 

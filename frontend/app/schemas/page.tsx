@@ -7,19 +7,6 @@ import { Hero } from "@/components/hero";
 import { SchemaRegistryInspector } from "@/components/schema-registry-inspector";
 import { StandardSchemaRegistry } from "@/components/standard-schema-registry";
 
-const REALMS_CLUSTER =
-  process.env.NEXT_PUBLIC_REALMS_CLUSTER?.trim()
-  || process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER?.trim()
-  || "devnet";
-const REALM_ID = process.env.NEXT_PUBLIC_GOVERNANCE_REALM?.trim() || "";
-
-function realmsProposalLink(): string {
-  if (REALM_ID && REALM_ID !== "11111111111111111111111111111111") {
-    return `https://app.realms.today/dao/${REALM_ID}?cluster=${encodeURIComponent(REALMS_CLUSTER)}`;
-  }
-  return `https://app.realms.today/?cluster=${encodeURIComponent(REALMS_CLUSTER)}`;
-}
-
 export default function SchemasPage() {
   return (
     <div className="space-y-6">
@@ -43,14 +30,12 @@ export default function SchemasPage() {
           <Link href="/pools" className="action-button inline-flex w-fit">
             Create Health Plan
           </Link>
-          <a
+          <Link
             className="secondary-button inline-flex w-fit items-center justify-center"
-            href={realmsProposalLink()}
-            target="_blank"
-            rel="noreferrer"
+            href="/governance"
           >
             Manage Schema Proposals
-          </a>
+          </Link>
         </div>
       </section>
 

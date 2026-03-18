@@ -220,30 +220,44 @@
   }
 
   .segment-button {
-    @apply inline-flex items-center justify-center rounded-2xl border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2;
-    border-color: color-mix(in oklab, var(--border) 88%, var(--accent) 12%);
-    background: color-mix(in oklab, var(--surface-soft) 90%, white 10%);
-    color: color-mix(in oklab, var(--foreground) 88%, white 12%);
+    @apply inline-flex min-h-[2.625rem] items-center justify-center rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2;
+    border-color: color-mix(in oklab, var(--border) 90%, var(--accent) 10%);
+    background: color-mix(in oklab, var(--surface-strong) 96%, white 4%);
+    color: color-mix(in oklab, var(--foreground) 92%, white 8%);
     --tw-ring-color: var(--focus-ring);
   }
 
   .segment-button:hover {
-    border-color: color-mix(in oklab, var(--accent) 24%, var(--border));
-    background: color-mix(in oklab, var(--accent-soft) 24%, var(--surface-strong));
+    border-color: color-mix(in oklab, var(--accent) 28%, var(--border));
+    background: color-mix(in oklab, var(--accent-soft) 16%, var(--surface-strong));
   }
 
-  .segment-button-active {
+  .segment-button:active {
+    background: color-mix(in oklab, var(--accent-soft) 20%, var(--surface-strong));
+  }
+
+  .segment-button:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+
+  .segment-button-compact {
+    @apply min-h-[2.125rem] rounded-lg px-2.5 py-1.5 text-xs;
+  }
+
+  .segment-button-active,
+  .segment-button.is-active {
     border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
-    background: color-mix(in oklab, var(--accent-soft) 54%, white 46%);
-    color: color-mix(in oklab, var(--accent-strong) 82%, black 18%);
-    box-shadow: 0 10px 18px color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent-soft) 28%, white 72%);
+    color: color-mix(in oklab, var(--accent-strong) 84%, black 16%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
   }
 
-  .dark .segment-button-active {
+  .dark .segment-button-active,
+  .dark .segment-button.is-active {
     border-color: color-mix(in oklab, var(--accent) 62%, var(--border));
-    background: color-mix(in oklab, var(--accent-soft) 54%, var(--surface-strong) 46%);
-    color: color-mix(in oklab, var(--accent-strong) 86%, var(--foreground) 14%);
-    box-shadow: 0 10px 18px color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent-soft) 24%, var(--surface-strong) 76%);
+    color: color-mix(in oklab, var(--accent-strong) 88%, var(--foreground) 12%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent);
   }
 
   .status-pill {
@@ -582,11 +596,16 @@
   }
 
   .wizard-stepper-list {
-    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-4;
+    @apply flex gap-2 overflow-x-auto pb-1 sm:grid sm:overflow-visible sm:pb-0;
+    scrollbar-width: none;
+  }
+
+  .wizard-stepper-list::-webkit-scrollbar {
+    display: none;
   }
 
   .wizard-step-chip {
-    @apply flex min-h-[3rem] items-center gap-2 rounded-2xl border px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2;
+    @apply flex min-h-[3.25rem] min-w-[11rem] items-center gap-2 rounded-2xl border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 sm:min-w-0;
     border-color: color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
     background: color-mix(in oklab, var(--surface-strong) 90%, white 10%);
     color: var(--foreground);
@@ -615,6 +634,373 @@
 
   .wizard-stepper-controls {
     @apply flex flex-wrap gap-2;
+  }
+
+  .create-flow-intro {
+    @apply space-y-3;
+  }
+
+  .create-flow-title {
+    @apply text-3xl font-semibold leading-tight sm:text-4xl;
+    color: var(--foreground);
+  }
+
+  .create-flow-copy {
+    @apply max-w-3xl text-sm sm:text-base;
+    color: var(--muted-foreground);
+  }
+
+  .wizard-stage-shell {
+    @apply space-y-5 border p-4 sm:p-6;
+    border-radius: 2rem;
+    border-color: color-mix(in oklab, var(--accent) 22%, var(--border));
+    background:
+      radial-gradient(circle at 100% 0%, color-mix(in oklab, var(--accent-soft) 38%, transparent), transparent 35%),
+      linear-gradient(180deg, color-mix(in oklab, var(--surface) 96%, white 4%) 0%, color-mix(in oklab, var(--surface-soft) 92%, white 8%) 100%);
+  }
+
+  .wizard-stage-header {
+    @apply flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between;
+  }
+
+  .wizard-stage-step-badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.09em];
+    color: color-mix(in oklab, var(--accent-strong) 66%, var(--muted-foreground));
+    background: color-mix(in oklab, var(--surface-strong) 92%, white 8%);
+  }
+
+  .wizard-stage-title {
+    @apply text-2xl font-semibold leading-tight sm:text-3xl;
+    color: var(--foreground);
+  }
+
+  .wizard-stage-copy,
+  .wizard-stage-progress-copy,
+  .wizard-inline-copy {
+    @apply text-sm;
+    color: var(--muted-foreground);
+  }
+
+  .wizard-stage-controls {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .wizard-progress-row {
+    @apply space-y-2;
+  }
+
+  .wizard-step-tabs {
+    @apply flex gap-1.5 overflow-x-auto pb-1;
+    scrollbar-width: none;
+  }
+
+  .wizard-step-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wizard-step-tab {
+    @apply flex min-h-[3.1rem] min-w-[9.25rem] items-center gap-2 rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 sm:min-w-0 sm:flex-1;
+    border-color: color-mix(in oklab, var(--border) 90%, var(--accent) 10%);
+    background: color-mix(in oklab, var(--surface-strong) 94%, white 6%);
+    color: var(--foreground);
+    --tw-ring-color: var(--focus-ring);
+  }
+
+  .wizard-step-tab:hover {
+    border-color: color-mix(in oklab, var(--accent) 28%, var(--border));
+    background: color-mix(in oklab, var(--accent-soft) 10%, var(--surface-strong));
+  }
+
+  .wizard-step-tab-active {
+    border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
+    background: color-mix(in oklab, var(--accent-soft) 18%, var(--surface-strong));
+    box-shadow: inset 0 -2px 0 color-mix(in oklab, var(--accent) 72%, transparent);
+  }
+
+  .wizard-step-tab-done {
+    border-color: color-mix(in oklab, var(--success) 28%, var(--border));
+  }
+
+  .wizard-step-tab-kicker {
+    @apply block text-[10px] font-semibold uppercase tracking-[0.09em];
+    color: var(--muted-foreground);
+  }
+
+  .wizard-stage-body {
+    @apply space-y-6;
+  }
+
+  .wizard-stage-divider {
+    @apply h-px;
+    background: color-mix(in oklab, var(--border) 80%, transparent);
+  }
+
+  .wizard-note {
+    @apply space-y-1 rounded-2xl border p-3;
+    border-color: color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
+    background: color-mix(in oklab, var(--surface-soft) 90%, white 10%);
+  }
+
+  .wizard-section {
+    @apply space-y-4;
+  }
+
+  .wizard-section-heading {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .wizard-section-kicker,
+  .wizard-summary-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.09em];
+    color: var(--muted-foreground);
+  }
+
+  .wizard-section-title {
+    @apply text-xl font-semibold leading-tight;
+    color: var(--foreground);
+  }
+
+  .wizard-section-label {
+    @apply text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .wizard-section-block {
+    @apply space-y-3;
+  }
+
+  .wizard-inline-head {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .wizard-action-block {
+    @apply space-y-3 border-t pt-4;
+    border-color: color-mix(in oklab, var(--border) 82%, transparent);
+  }
+
+  .wizard-select-row {
+    @apply w-full rounded-2xl border px-3 py-3 text-left transition-colors;
+    border-color: color-mix(in oklab, var(--border) 86%, var(--accent) 14%);
+    background: color-mix(in oklab, var(--surface-strong) 96%, white 4%);
+  }
+
+  .wizard-select-row:hover {
+    border-color: color-mix(in oklab, var(--accent) 32%, var(--border));
+  }
+
+  .wizard-select-row-active {
+    border-color: color-mix(in oklab, var(--accent) 44%, var(--border));
+    background: color-mix(in oklab, var(--accent-soft) 30%, var(--surface-strong));
+  }
+
+  .wizard-select-row-required {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--success) 38%, transparent);
+  }
+
+  .wizard-rule-row {
+    @apply space-y-3 rounded-2xl border p-4;
+    border-color: color-mix(in oklab, var(--border) 88%, transparent);
+    background: color-mix(in oklab, var(--surface-soft) 86%, transparent);
+  }
+
+  .wizard-toggle-row {
+    @apply flex items-start justify-between gap-4 rounded-2xl border px-4 py-3;
+    border-color: color-mix(in oklab, var(--border) 88%, var(--accent) 12%);
+    background: color-mix(in oklab, var(--surface-strong) 94%, white 6%);
+  }
+
+  .wizard-toggle-row input[type="checkbox"] {
+    @apply mt-0.5 h-4 w-4 shrink-0 rounded border;
+    accent-color: var(--accent);
+    border-color: color-mix(in oklab, var(--border) 72%, var(--accent) 28%);
+  }
+
+  .wizard-summary-list {
+    @apply space-y-3;
+  }
+
+  .wizard-summary-row {
+    @apply flex flex-col gap-2 rounded-2xl border px-4 py-3 sm:flex-row sm:items-start sm:justify-between;
+    border-color: color-mix(in oklab, var(--border) 88%, transparent);
+    background: color-mix(in oklab, var(--surface-strong) 94%, white 6%);
+  }
+
+  .wizard-summary-value {
+    @apply text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .wizard-funding-panel {
+    @apply space-y-3 border p-4 sm:p-5;
+    border-radius: 1.5rem;
+    border-color: color-mix(in oklab, var(--accent) 26%, var(--border));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-soft) 92%, white 8%) 0%, color-mix(in oklab, var(--accent-soft) 28%, var(--surface-soft)) 100%);
+  }
+
+  .wizard-nav-footer {
+    @apply hidden items-center justify-between gap-3 border-t pt-4 sm:flex;
+    border-color: color-mix(in oklab, var(--border) 82%, transparent);
+  }
+
+  .wizard-mobile-actions {
+    @apply px-3 py-2;
+    padding-bottom: calc(0.55rem + env(safe-area-inset-bottom));
+    border-top-left-radius: 1.25rem;
+    border-top-right-radius: 1.25rem;
+  }
+
+  .field-hint-wrap {
+    @apply relative inline-flex items-center;
+  }
+
+  .field-hint-wrap-end {
+    @apply justify-end;
+  }
+
+  .field-hint-button {
+    @apply inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors;
+    border-color: color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    background: color-mix(in oklab, var(--surface-strong) 92%, white 8%);
+    color: var(--muted-foreground);
+  }
+
+  .field-hint-button:hover {
+    color: var(--accent);
+    border-color: color-mix(in oklab, var(--accent) 34%, var(--border));
+  }
+
+  .field-hint-popover {
+    @apply absolute z-20 rounded-2xl border px-3 py-2 text-xs leading-relaxed;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    width: min(18rem, calc(100vw - 2.5rem));
+    border-color: color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
+    background: color-mix(in oklab, var(--surface) 96%, white 4%);
+    box-shadow: 0 12px 30px color-mix(in oklab, var(--accent) 12%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .field-hint-popover-end {
+    left: auto;
+    right: 0;
+  }
+
+  .manual-override-shell {
+    border-color: color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface-soft) 92%, white 8%) 0%,
+      color-mix(in oklab, var(--surface-soft) 84%, #dce8f9 16%) 100%
+    );
+  }
+
+  .toggle-card {
+    @apply flex items-start justify-between gap-3 rounded-2xl border p-3 sm:p-4;
+    border-color: color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    background: color-mix(in oklab, var(--surface-soft) 90%, white 10%);
+  }
+
+  .toggle-card-title {
+    @apply text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .toggle-card input[type="checkbox"] {
+    @apply mt-0.5 h-4 w-4 shrink-0 rounded border;
+    accent-color: var(--accent);
+    border-color: color-mix(in oklab, var(--border) 70%, var(--accent) 30%);
+  }
+
+  .review-grid {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-3;
+  }
+
+  .protocol-detail-disclosure {
+    @apply rounded-2xl border p-4;
+    border-color: color-mix(in oklab, var(--border) 86%, var(--accent) 14%);
+    background: color-mix(in oklab, var(--surface-soft) 90%, white 10%);
+  }
+
+  .protocol-detail-disclosure[open] {
+    box-shadow: 0 10px 22px color-mix(in oklab, var(--accent) 10%, transparent);
+  }
+
+  .protocol-detail-summary {
+    @apply flex cursor-pointer list-none items-start justify-between gap-3;
+  }
+
+  .protocol-detail-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .protocol-detail-title {
+    @apply text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .protocol-detail-copy {
+    @apply text-xs;
+    color: var(--muted-foreground);
+  }
+
+  .protocol-detail-toggle {
+    @apply shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em];
+    border-color: color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
+    background: color-mix(in oklab, var(--surface-strong) 92%, white 8%);
+    color: var(--muted-foreground);
+  }
+
+  .operator-task-card {
+    @apply rounded-2xl border p-4 space-y-3;
+    border-color: color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
+    background: color-mix(in oklab, var(--surface) 94%, white 6%);
+  }
+
+  .operator-task-card-soft {
+    @apply rounded-2xl border p-4 space-y-3;
+    border-color: color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    background: color-mix(in oklab, var(--surface-soft) 90%, white 10%);
+  }
+
+  .operator-task-head {
+    @apply space-y-1;
+  }
+
+  .operator-task-title {
+    @apply text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .operator-task-copy {
+    @apply text-xs;
+    color: var(--muted-foreground);
+  }
+
+  .operator-summary-grid {
+    @apply grid gap-3 md:grid-cols-2;
+  }
+
+  .operator-summary-card {
+    @apply rounded-2xl border p-3 space-y-2;
+    border-color: color-mix(in oklab, var(--border) 86%, var(--accent) 14%);
+    background: color-mix(in oklab, var(--surface-soft) 92%, white 8%);
+  }
+
+  .operator-summary-list {
+    @apply space-y-2 text-sm;
+    color: var(--muted-foreground);
+  }
+
+  .operator-summary-row {
+    @apply flex items-start justify-between gap-3 rounded-xl border px-3 py-2;
+    border-color: color-mix(in oklab, var(--border) 90%, transparent);
+    background: color-mix(in oklab, var(--surface-strong) 90%, transparent);
+  }
+
+  .operator-summary-row strong {
+    @apply font-semibold;
+    color: var(--foreground);
   }
 
   .workflow-index {
@@ -1361,7 +1747,6 @@
   }
 
   .secondary-button,
-  .segment-button,
   .topbar-control,
   .topbar-mobile-link,
   .topbar-mobile-network-option,
@@ -1378,7 +1763,6 @@
   }
 
   .secondary-button:hover,
-  .segment-button:hover,
   .topbar-control:hover,
   .topbar-mobile-link:hover,
   .topbar-mobile-network-option:hover:not(:disabled),
@@ -1389,7 +1773,6 @@
   }
 
   .secondary-button:active,
-  .segment-button:active,
   .topbar-control:active,
   .topbar-mobile-link:active,
   .topbar-mobile-network-option:active,
@@ -1399,7 +1782,6 @@
   }
 
   .secondary-button:focus-visible,
-  .segment-button:focus-visible,
   .action-button:focus-visible,
   .topbar-control:focus-visible,
   .topbar-mobile-link:focus-visible,
@@ -1409,7 +1791,6 @@
     outline-offset: 2px;
   }
 
-  .segment-button-active,
   .topbar-network-option-active,
   .topbar-mobile-link-active,
   .topbar-mobile-network-option-active,
@@ -1420,7 +1801,6 @@
     box-shadow: var(--shadow-inset-small);
   }
 
-  .dark .segment-button-active,
   .dark .topbar-network-option-active,
   .dark .topbar-mobile-link-active,
   .dark .topbar-mobile-network-option-active,
@@ -1459,6 +1839,26 @@
     background: var(--sticky-surface);
     box-shadow: 0 -10px 28px var(--sticky-shadow);
     backdrop-filter: blur(6px);
+  }
+
+  .wizard-mobile-actions {
+    background: color-mix(in oklab, var(--surface) 78%, transparent);
+    box-shadow: 0 -6px 18px color-mix(in oklab, var(--accent) 8%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  .wizard-mobile-actions .action-button,
+  .wizard-mobile-actions .secondary-button {
+    min-height: 2.55rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .wizard-mobile-actions .wizard-inline-copy,
+  .wizard-mobile-actions .field-error {
+    font-size: 11px;
+    line-height: 1.35;
   }
 
   .topbar-shell {
@@ -1755,6 +2155,9 @@
   .log-item,
   .progress-shell,
   .wizard-stepper-shell,
+  .manual-override-shell,
+  .toggle-card,
+  .protocol-detail-disclosure,
   .metric-card,
   .workspace-kpi-card,
   .workspace-queue-card,

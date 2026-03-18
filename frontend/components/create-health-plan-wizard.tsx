@@ -5,15 +5,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { cn } from "@/lib/cn";
-import { buildBusinessContextHref, getBusinessEntryContext } from "@/lib/business-entry-context";
+import {
+  buildBusinessContextHref,
+  getBusinessEntryContext,
+} from "@/lib/business-entry-context";
 import {
   POOL_TYPE_COVERAGE,
   POOL_TYPE_REWARD,
-  buildCreatePoolV2Tx,
+  buildCreatePoolTx,
   buildCreatePolicySeriesTx,
   buildFundPoolSolTx,
   buildFundPoolSplTx,
@@ -24,7 +33,6 @@ import {
   defaultInsurancePayoutMintFromEnv,
   defaultRewardPayoutMintFromEnv,
   defaultTokenGateMintFromEnv,
-  derivePoolAssetVaultPda,
   derivePoolOraclePda,
   derivePoolOraclePolicyPda,
   derivePoolPda,
@@ -45,21 +53,33 @@ import {
   type OracleSummary,
   type SchemaSummary,
 } from "@/lib/protocol";
-import { fetchSchemaMetadata, parseSchemaOutcomes, type SchemaOutcomeOption } from "@/lib/schema-metadata";
-import { getAssociatedTokenAddress, getMintDecimals, parseUiAmountToBaseUnits } from "@/lib/spl";
+import {
+  fetchSchemaMetadata,
+  parseSchemaOutcomes,
+  type SchemaOutcomeOption,
+} from "@/lib/schema-metadata";
+import {
+  getAssociatedTokenAddress,
+  getMintDecimals,
+  parseUiAmountToBaseUnits,
+} from "@/lib/spl";
 import { StepEligibility } from "@/components/plan-wizard/step-eligibility";
 import { StepFundingReview } from "@/components/plan-wizard/step-funding-review";
 import { StepOutcomesRules } from "@/components/plan-wizard/step-outcomes-rules";
 import type { OutcomeRuleRow } from "@/components/plan-wizard/step-outcomes-rules";
 import { StepTypeBasics } from "@/components/plan-wizard/step-type-basics";
 import { StepVerification } from "@/components/plan-wizard/step-verification";
+import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 
 type PlanType = "rewards" | "insurance" | "hybrid";
 type MembershipMode = "open" | "token_gate" | "invite_only";
 type PayoutAssetMode = "sol" | "spl";
 type CoveragePathway = "" | "defi_native" | "rwa_policy";
 type DefiSettlementMode = "" | "onchain_programmatic" | "hybrid_rails";
-type StepId = "type-basics" | "eligibility" | "verification" | "outcomes-rules" | "funding-review";
+type StepId =
+  | "basics"
+  | "verification-rules"
+  | "funding-review";
 const ENABLE_RWA_POLICY = process.env.NEXT_PUBLIC_ENABLE_RWA_POLICY === "true";
 
 type DefiSettings = {
@@ -99,7 +119,9 @@ const ZERO_PUBKEY = "11111111111111111111111111111111";
 const OMEGAX_REWARD_MINT = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
 const ORACLE_CHUNK_SIZE = 4;
 const RULE_CHUNK_SIZE = 4;
-const STANDARD_SCHEMA_KEY = process.env.NEXT_PUBLIC_STANDARD_SCHEMA_KEY?.trim() || "omegax.standard.health_outcomes";
+const STANDARD_SCHEMA_KEY =
+  process.env.NEXT_PUBLIC_STANDARD_SCHEMA_KEY?.trim() ||
+  "omegax.standard.health_outcomes";
 const LOCAL_STANDARD_SCHEMA_URL = "/schemas/health_outcomes.json";
 
 function normalize(value: string): string {
@@ -221,7 +243,11 @@ function toBytes32(hex32: string): Uint8Array {
   return out;
 }
 
-async function resolveHex32(rawHex: string, fallbackSeed: string, label: string): Promise<string> {
+async function resolveHex32(
+  rawHex: string,
+  fallbackSeed: string,
+  label: string,
+): Promise<string> {
   const normalized = normalizeHex32(rawHex);
   if (normalized) {
     if (!isHex32(normalized)) {
@@ -236,18 +262,14 @@ async function resolveHex32(rawHex: string, fallbackSeed: string, label: string)
 }
 
 function nextStepId(stepId: StepId): StepId | null {
-  if (stepId === "type-basics") return "eligibility";
-  if (stepId === "eligibility") return "verification";
-  if (stepId === "verification") return "outcomes-rules";
-  if (stepId === "outcomes-rules") return "funding-review";
+  if (stepId === "basics") return "verification-rules";
+  if (stepId === "verification-rules") return "funding-review";
   return null;
 }
 
 function previousStepId(stepId: StepId): StepId | null {
-  if (stepId === "eligibility") return "type-basics";
-  if (stepId === "verification") return "eligibility";
-  if (stepId === "outcomes-rules") return "verification";
-  if (stepId === "funding-review") return "outcomes-rules";
+  if (stepId === "verification-rules") return "basics";
+  if (stepId === "funding-review") return "verification-rules";
   return null;
 }
 
@@ -290,20 +312,27 @@ export function CreateHealthPlanWizard() {
   const { connection } = useConnection();
   const { connected, publicKey, sendTransaction } = useWallet();
   const searchParams = useSearchParams();
-  const businessEntry = useMemo(() => getBusinessEntryContext(searchParams), [searchParams]);
+  const businessEntry = useMemo(
+    () => getBusinessEntryContext(searchParams),
+    [searchParams],
+  );
   const requiredBusinessOracle = businessEntry.requiredOracleResolved;
 
-  const [expertMode, setExpertMode] = useState(false);
-  const [openStep, setOpenStep] = useState<StepId>("type-basics");
+  const [openStep, setOpenStep] = useState<StepId>("basics");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [actionLog, setActionLog] = useState<ActionLog[]>([]);
 
   const [planType, setPlanType] = useState<PlanType>("hybrid");
   const [poolId, setPoolId] = useState("omegax-wellness-pool");
   const [organizationRef, setOrganizationRef] = useState("Corporate-HR-XYZ");
-  const [metadataUri, setMetadataUri] = useState("https://protocol.omegax.health/pools/holder");
-  const [payoutAssetMode, setPayoutAssetMode] = useState<PayoutAssetMode>("spl");
-  const [payoutMint, setPayoutMint] = useState(defaultPayoutMintForPlanType("hybrid"));
+  const [metadataUri, setMetadataUri] = useState(
+    "https://protocol.omegax.health/pools/holder",
+  );
+  const [payoutAssetMode, setPayoutAssetMode] =
+    useState<PayoutAssetMode>("spl");
+  const [payoutMint, setPayoutMint] = useState(
+    defaultPayoutMintForPlanType("hybrid"),
+  );
   const [payoutTokens, setPayoutTokens] = useState("1");
   const [termsHashHex, setTermsHashHex] = useState("");
   const [payoutPolicyHashHex, setPayoutPolicyHashHex] = useState("");
@@ -322,7 +351,9 @@ export function CreateHealthPlanWizard() {
   });
 
   const [membershipMode, setMembershipMode] = useState<MembershipMode>("open");
-  const [tokenGateMint, setTokenGateMint] = useState(defaultTokenGateMintFromEnv() ?? "");
+  const [tokenGateMint, setTokenGateMint] = useState(
+    defaultTokenGateMintFromEnv() ?? "",
+  );
   const [tokenGateMinBalance, setTokenGateMinBalance] = useState("1");
   const [inviteIssuer, setInviteIssuer] = useState("");
   const [recentCreatedPoolAddress, setRecentCreatedPoolAddress] = useState("");
@@ -340,12 +371,16 @@ export function CreateHealthPlanWizard() {
   const [allowDelegateClaim, setAllowDelegateClaim] = useState(false);
 
   const [selectedSchemaAddress, setSelectedSchemaAddress] = useState("");
-  const [schemaOutcomes, setSchemaOutcomes] = useState<SchemaOutcomeOption[]>([]);
+  const [schemaOutcomes, setSchemaOutcomes] = useState<SchemaOutcomeOption[]>(
+    [],
+  );
   const [schemaWarnings, setSchemaWarnings] = useState<string[]>([]);
   const [schemaMetadataLoading, setSchemaMetadataLoading] = useState(false);
   const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<string[]>([]);
   const [ruleEdits, setRuleEdits] = useState<Record<string, RuleEdit>>({});
-  const [rulePreviewMap, setRulePreviewMap] = useState<Record<string, RulePreview>>({});
+  const [rulePreviewMap, setRulePreviewMap] = useState<
+    Record<string, RulePreview>
+  >({});
 
   const [fundSol, setFundSol] = useState("1");
   const [fundSpl, setFundSpl] = useState("100");
@@ -362,28 +397,43 @@ export function CreateHealthPlanWizard() {
   const normalizedPoolId = normalize(poolId);
   const poolIdBytes = poolIdByteLength(normalizedPoolId);
   const hasBusyAction = Boolean(busyAction);
-  const requiresCoveragePathway = planType === "insurance" || planType === "hybrid";
+  const requiresCoveragePathway =
+    planType === "insurance" || planType === "hybrid";
   const selectedSchema = useMemo(
-    () => schemas.find((entry) => entry.address === selectedSchemaAddress) ?? null,
+    () =>
+      schemas.find((entry) => entry.address === selectedSchemaAddress) ?? null,
     [schemas, selectedSchemaAddress],
   );
   const coveragePathwayCommitment = useMemo(
-    () => buildCoveragePathwayCommitment(planType, coveragePathway, defiSettings, rwaSettings),
+    () =>
+      buildCoveragePathwayCommitment(
+        planType,
+        coveragePathway,
+        defiSettings,
+        rwaSettings,
+      ),
     [coveragePathway, defiSettings, planType, rwaSettings],
   );
   const walletAddress = publicKey?.toBase58() ?? "";
   const predictedPoolAddress = useMemo(() => {
-    if (!publicKey || !normalizedPoolId || !isPoolIdSeedSafe(normalizedPoolId)) return null;
+    if (!publicKey || !normalizedPoolId || !isPoolIdSeedSafe(normalizedPoolId))
+      return null;
     return derivePoolPda({
       programId: getProgramId(),
       authority: publicKey,
       poolId: normalizedPoolId,
     }).toBase58();
   }, [normalizedPoolId, publicKey]);
-  const activePoolAddress = normalize(recentCreatedPoolAddress || predictedPoolAddress || "");
+  const activePoolAddress = normalize(
+    recentCreatedPoolAddress || predictedPoolAddress || "",
+  );
   const buildPoolHref = useCallback(
     (poolAddress: string, section?: string) =>
-      buildBusinessContextHref(`/pools/${poolAddress}`, businessEntry, section ? { section } : undefined),
+      buildBusinessContextHref(
+        `/pools/${poolAddress}`,
+        businessEntry,
+        section ? { section } : undefined,
+      ),
     [businessEntry],
   );
 
@@ -404,7 +454,9 @@ export function CreateHealthPlanWizard() {
     () =>
       selectedOutcomeIds
         .map((outcomeId) => {
-          const outcome = schemaOutcomes.find((entry) => entry.id === outcomeId);
+          const outcome = schemaOutcomes.find(
+            (entry) => entry.id === outcomeId,
+          );
           if (!outcome) return null;
           const edit = ruleEdits[outcomeId];
           const preview = rulePreviewMap[outcomeId];
@@ -424,7 +476,9 @@ export function CreateHealthPlanWizard() {
 
   const payoutMintPublicKey = useMemo(() => {
     try {
-      return isPublicKey(payoutMint) ? new PublicKey(normalize(payoutMint)) : null;
+      return isPublicKey(payoutMint)
+        ? new PublicKey(normalize(payoutMint))
+        : null;
     } catch {
       return null;
     }
@@ -458,75 +512,149 @@ export function CreateHealthPlanWizard() {
 
   const step1BlockingReason = firstBlockingReason([
     normalizedPoolId ? null : "Health Plan ID is required.",
-    isPoolIdSeedSafe(normalizedPoolId) ? null : `Pool ID exceeds 32 bytes (${poolIdBytes}/32).`,
-    normalize(organizationRef) ? null : "Organization / sponsor name is required.",
-    !requiresCoveragePathway ? null : (coveragePathway ? null : "Coverage pathway is required for insurance/hybrid plans."),
+    isPoolIdSeedSafe(normalizedPoolId)
+      ? null
+      : `Pool ID exceeds 32 bytes (${poolIdBytes}/32).`,
+    normalize(organizationRef)
+      ? null
+      : "Organization / sponsor name is required.",
+    !requiresCoveragePathway
+      ? null
+      : coveragePathway
+        ? null
+        : "Coverage pathway is required for insurance/hybrid plans.",
     !requiresCoveragePathway || coveragePathway !== "defi_native"
       ? null
-      : (defiSettings.settlementMode ? null : "DeFi pathway requires a settlement mode."),
+      : defiSettings.settlementMode
+        ? null
+        : "DeFi pathway requires a settlement mode.",
     !requiresCoveragePathway || coveragePathway !== "defi_native"
       ? null
-      : (isHttpOrIpfsUri(defiSettings.technicalTermsUri) ? null : "DeFi technical terms URI must use http(s) or ipfs://."),
+      : isHttpOrIpfsUri(defiSettings.technicalTermsUri)
+        ? null
+        : "DeFi technical terms URI must use http(s) or ipfs://.",
     !requiresCoveragePathway || coveragePathway !== "defi_native"
       ? null
-      : (isHttpOrIpfsUri(defiSettings.riskDisclosureUri) ? null : "DeFi risk disclosure URI must use http(s) or ipfs://."),
-    !ENABLE_RWA_POLICY || !requiresCoveragePathway || coveragePathway !== "rwa_policy"
+      : isHttpOrIpfsUri(defiSettings.riskDisclosureUri)
+        ? null
+        : "DeFi risk disclosure URI must use http(s) or ipfs://.",
+    !ENABLE_RWA_POLICY ||
+    !requiresCoveragePathway ||
+    coveragePathway !== "rwa_policy"
       ? null
-      : (normalize(rwaSettings.legalEntityName) ? null : "RWA pathway requires legal entity name."),
-    !ENABLE_RWA_POLICY || !requiresCoveragePathway || coveragePathway !== "rwa_policy"
+      : normalize(rwaSettings.legalEntityName)
+        ? null
+        : "RWA pathway requires legal entity name.",
+    !ENABLE_RWA_POLICY ||
+    !requiresCoveragePathway ||
+    coveragePathway !== "rwa_policy"
       ? null
-      : (normalize(rwaSettings.jurisdiction) ? null : "RWA pathway requires jurisdiction."),
-    !ENABLE_RWA_POLICY || !requiresCoveragePathway || coveragePathway !== "rwa_policy"
+      : normalize(rwaSettings.jurisdiction)
+        ? null
+        : "RWA pathway requires jurisdiction.",
+    !ENABLE_RWA_POLICY ||
+    !requiresCoveragePathway ||
+    coveragePathway !== "rwa_policy"
       ? null
-      : (isHttpOrIpfsUri(rwaSettings.policyTermsUri) ? null : "RWA policy terms URI must use http(s) or ipfs://."),
-    !ENABLE_RWA_POLICY || !requiresCoveragePathway || coveragePathway !== "rwa_policy"
+      : isHttpOrIpfsUri(rwaSettings.policyTermsUri)
+        ? null
+        : "RWA policy terms URI must use http(s) or ipfs://.",
+    !ENABLE_RWA_POLICY ||
+    !requiresCoveragePathway ||
+    coveragePathway !== "rwa_policy"
       ? null
-      : (normalize(rwaSettings.regulatoryLicenseRef) ? null : "RWA pathway requires regulatory/license reference."),
-    !ENABLE_RWA_POLICY || !requiresCoveragePathway || coveragePathway !== "rwa_policy"
+      : normalize(rwaSettings.regulatoryLicenseRef)
+        ? null
+        : "RWA pathway requires regulatory/license reference.",
+    !ENABLE_RWA_POLICY ||
+    !requiresCoveragePathway ||
+    coveragePathway !== "rwa_policy"
       ? null
-      : (isComplianceContact(rwaSettings.complianceContact) ? null : "RWA compliance contact must be an email or http(s)/ipfs URL."),
-    payoutAssetMode === "sol" ? null : (isPublicKey(payoutMint) ? null : "Payout mint must be a valid public key for SPL mode."),
-    planType === "insurance" ? null : (asFloat(payoutTokens, 0) > 0 ? null : "Reward payout must be greater than zero."),
+      : isComplianceContact(rwaSettings.complianceContact)
+        ? null
+        : "RWA compliance contact must be an email or http(s)/ipfs URL.",
+    payoutAssetMode === "sol"
+      ? null
+      : isPublicKey(payoutMint)
+        ? null
+        : "Payout mint must be a valid public key for SPL mode.",
+    planType === "insurance"
+      ? null
+      : asFloat(payoutTokens, 0) > 0
+        ? null
+        : "Reward payout must be greater than zero.",
   ]);
 
   const createPlanBlockingReason = firstBlockingReason([
     connected ? null : "Connect wallet to create plan.",
     publicKey ? null : "Wallet signer unavailable.",
     step1BlockingReason,
-    membershipMode === "token_gate" ? (isPublicKey(tokenGateMint) ? null : "Token gate mint must be a valid public key.") : null,
-    membershipMode === "token_gate" ? (asBigInt(tokenGateMinBalance, 0n) > 0n ? null : "Token gate minimum balance must be greater than zero.") : null,
-    membershipMode === "invite_only" ? (isPublicKey(inviteIssuer) ? null : "Invite issuer must be a valid public key.") : null,
+    membershipMode === "token_gate"
+      ? isPublicKey(tokenGateMint)
+        ? null
+        : "Token gate mint must be a valid public key."
+      : null,
+    membershipMode === "token_gate"
+      ? asBigInt(tokenGateMinBalance, 0n) > 0n
+        ? null
+        : "Token gate minimum balance must be greater than zero."
+      : null,
+    membershipMode === "invite_only"
+      ? isPublicKey(inviteIssuer)
+        ? null
+        : "Invite issuer must be a valid public key."
+      : null,
+  ]);
+  const registerInviteIssuerBlockingReason = firstBlockingReason([
+    connected ? null : "Connect wallet to register the invite issuer.",
+    publicKey ? null : "Wallet signer unavailable.",
+    isPublicKey(inviteIssuer)
+      ? null
+      : "Invite issuer must be a valid public key.",
+    publicKey && normalize(inviteIssuer) === publicKey.toBase58()
+      ? null
+      : "Connected wallet must match the invite issuer address.",
   ]);
 
   const verifyBlockingReason = firstBlockingReason([
     connected ? null : "Connect wallet to configure verification.",
     publicKey ? null : "Wallet signer unavailable.",
-    isPublicKey(activePoolAddress) ? null : "Create the plan before configuring verification.",
+    isPublicKey(activePoolAddress)
+      ? null
+      : "Create the plan before configuring verification.",
     businessEntry.isBusinessOrigin
-      ? (requiredBusinessOracle
+      ? requiredBusinessOracle
         ? null
-        : "Business-origin policy requires a configured required oracle address.")
+        : "Business-origin policy requires a configured required oracle address."
       : null,
     businessEntry.isBusinessOrigin && requiredBusinessOracle
-      ? (requiredBusinessOracleDiscovered ? null : "Required business oracle is not registered on this network.")
+      ? requiredBusinessOracleDiscovered
+        ? null
+        : "Required business oracle is not registered on this network."
       : null,
     businessEntry.isBusinessOrigin && requiredBusinessOracle
-      ? (selectedOracles.includes(requiredBusinessOracle)
+      ? selectedOracles.includes(requiredBusinessOracle)
         ? null
-        : "Business-origin policy requires the OmegaX Health oracle verifier to remain selected.")
+        : "Business-origin policy requires the OmegaX Health oracle verifier to remain selected."
       : null,
     selectedOracles.length > 0 ? null : "Select at least one oracle.",
     asInt(quorumM, 0) > 0 ? null : "Quorum M must be greater than zero.",
-    asInt(quorumN, 0) >= asInt(quorumM, 1) ? null : "Quorum N must be greater than or equal to quorum M.",
+    asInt(quorumN, 0) >= asInt(quorumM, 1)
+      ? null
+      : "Quorum N must be greater than or equal to quorum M.",
   ]);
 
   const rulesBlockingReason = firstBlockingReason([
     connected ? null : "Connect wallet to configure rules.",
     publicKey ? null : "Wallet signer unavailable.",
-    isPublicKey(activePoolAddress) ? null : "Create the plan before configuring rules.",
+    isPublicKey(activePoolAddress)
+      ? null
+      : "Create the plan before configuring rules.",
     selectedSchema ? null : "Select a schema.",
     selectedOutcomeIds.length > 0 ? null : "Select at least one outcome.",
-    duplicateRuleIds.length === 0 ? null : `Duplicate rule IDs: ${duplicateRuleIds.join(", ")}`,
+    duplicateRuleIds.length === 0
+      ? null
+      : `Duplicate rule IDs: ${duplicateRuleIds.join(", ")}`,
   ]);
 
   const fundBlockingReason = firstBlockingReason([
@@ -534,35 +662,36 @@ export function CreateHealthPlanWizard() {
     publicKey ? null : "Wallet signer unavailable.",
     isPublicKey(activePoolAddress) ? null : "Create the plan before funding.",
     payoutAssetMode === "sol"
-      ? (asFloat(fundSol, 0) > 0 ? null : "SOL amount must be greater than zero.")
-      : (asFloat(fundSpl, 0) > 0 ? null : "SPL amount must be greater than zero."),
-    payoutAssetMode === "spl" ? (isPublicKey(payoutMint) ? null : "Payout mint must be a valid SPL mint.") : null,
+      ? asFloat(fundSol, 0) > 0
+        ? null
+        : "SOL amount must be greater than zero."
+      : asFloat(fundSpl, 0) > 0
+        ? null
+        : "SPL amount must be greater than zero.",
+    payoutAssetMode === "spl"
+      ? isPublicKey(payoutMint)
+        ? null
+        : "Payout mint must be a valid SPL mint."
+      : null,
   ]);
 
   const workflowSteps = useMemo(
     () => [
-      { id: "type-basics" as StepId, label: "Type & Basics", done: !step1BlockingReason, blockingReason: step1BlockingReason },
       {
-        id: "eligibility" as StepId,
-        label: "Eligibility & Create",
+        id: "basics" as StepId,
+        label: "Plan setup",
         done: stepReady.pool,
         blockingReason: createPlanBlockingReason,
       },
       {
-        id: "verification" as StepId,
-        label: "Verification Network",
-        done: stepReady.verification,
-        blockingReason: verifyBlockingReason,
-      },
-      {
-        id: "outcomes-rules" as StepId,
-        label: "Outcomes & Rules",
-        done: stepReady.rules,
-        blockingReason: rulesBlockingReason,
+        id: "verification-rules" as StepId,
+        label: "Verification & rules",
+        done: stepReady.verification && stepReady.rules,
+        blockingReason: firstBlockingReason([verifyBlockingReason, rulesBlockingReason]),
       },
       {
         id: "funding-review" as StepId,
-        label: "Funding & Review",
+        label: "Review & funding",
         done: stepReady.funding,
         blockingReason: fundBlockingReason,
       },
@@ -571,7 +700,6 @@ export function CreateHealthPlanWizard() {
       createPlanBlockingReason,
       fundBlockingReason,
       rulesBlockingReason,
-      step1BlockingReason,
       stepReady.funding,
       stepReady.pool,
       stepReady.rules,
@@ -581,41 +709,85 @@ export function CreateHealthPlanWizard() {
   );
 
   const completedSteps = workflowSteps.filter((step) => step.done).length;
-  const progressPercent = Math.round((completedSteps / workflowSteps.length) * 100);
-  const activeStep = workflowSteps.find((step) => step.id === openStep) ?? workflowSteps[0]!;
-  const nextOpenStep = workflowSteps.find((step) => !step.done);
-  const nextStepBlocker = nextOpenStep?.blockingReason ?? null;
-  const activeStepSummary = useMemo(() => {
-    if (openStep === "type-basics") return "Choose plan type, identity, payout asset, and base metadata.";
-    if (openStep === "eligibility") return "Set enrollment mode and create the health plan account.";
-    if (openStep === "verification") return "Select verifiers, define quorum, and configure oracle policy.";
-    if (openStep === "outcomes-rules") return "Select one schema and configure multiple outcome rules.";
-    return "Review plan settings, then fund SOL or SPL vault before launch.";
+  const progressPercent = Math.round(
+    (completedSteps / workflowSteps.length) * 100,
+  );
+  const activeStepIndex = workflowSteps.findIndex((step) => step.id === openStep);
+  const activeStepHeading = useMemo(() => {
+    if (openStep === "basics") {
+      return "Set the launch terms.";
+    }
+    if (openStep === "verification-rules") {
+      return "Choose verifiers and outcomes.";
+    }
+    return "Review and fund the launch.";
   }, [openStep]);
+  const activeStepSummary = useMemo(() => {
+    if (openStep === "basics") {
+      return "Decide what this plan is, how people find it, and who can join.";
+    }
+    if (openStep === "verification-rules") {
+      return "Pick the verifier network, then map the outcomes that should pay out.";
+    }
+    return "Check the human-readable summary, then seed the launch vault when ready.";
+  }, [openStep]);
+  const createPlanHelp =
+    createPlanBlockingReason
+    ?? "Creates the plan account and its primary policy series on-chain.";
+  const registerInviteIssuerHelp =
+    membershipMode !== "invite_only"
+      ? null
+      : stepReady.inviteIssuer
+        ? "This invite issuer is already registered and ready for invite-only enrollment."
+        : registerInviteIssuerBlockingReason
+          ?? "Register the invite issuer now so invite-only enrollment is enforced after launch.";
+  const verificationHelp =
+    verifyBlockingReason
+    ?? "Save the verifier list and quorum once you are happy with the network.";
+  const rulesHelp =
+    rulesBlockingReason
+    ?? "Save the outcome rule IDs after you have selected the outcomes this plan should use.";
+  const fundingHelp =
+    fundBlockingReason
+    ?? "Add the starting vault balance now, or come back after launch when the treasury is ready to seed.";
 
   const appendLog = useCallback((log: Omit<ActionLog, "id" | "at">) => {
-    setActionLog((prev) => [{ id: randomId(), at: Date.now(), ...log }, ...prev].slice(0, 60));
+    setActionLog((prev) =>
+      [{ id: randomId(), at: Date.now(), ...log }, ...prev].slice(0, 60),
+    );
   }, []);
 
   const refreshSelectors = useCallback(async () => {
     setSelectorError(null);
     try {
       const [nextOracles, verifiedSchemas] = await Promise.all([
-        listOracles({ connection, activeOnly: false, search: oracleSearch || null }),
+        listOracles({
+          connection,
+          activeOnly: false,
+          search: oracleSearch || null,
+        }),
         listSchemas({ connection, verifiedOnly: true }),
       ]);
-      const nextSchemas = verifiedSchemas.length > 0
-        ? verifiedSchemas
-        : await listSchemas({ connection, verifiedOnly: false });
+      const nextSchemas =
+        verifiedSchemas.length > 0
+          ? verifiedSchemas
+          : await listSchemas({ connection, verifiedOnly: false });
       setOracles(nextOracles);
       setSchemas(nextSchemas);
-      const schemaStillAvailable = nextSchemas.some((row) => row.address === selectedSchemaAddress);
+      const schemaStillAvailable = nextSchemas.some(
+        (row) => row.address === selectedSchemaAddress,
+      );
       if (!schemaStillAvailable) {
-        const preferred = nextSchemas.find((row) => row.verified) ?? nextSchemas[0];
+        const preferred =
+          nextSchemas.find((row) => row.verified) ?? nextSchemas[0];
         setSelectedSchemaAddress(preferred?.address || "");
       }
     } catch (cause) {
-      setSelectorError(cause instanceof Error ? cause.message : "Failed to load chain selectors.");
+      setSelectorError(
+        cause instanceof Error
+          ? cause.message
+          : "Failed to load chain selectors.",
+      );
     }
   }, [connection, oracleSearch, selectedSchemaAddress]);
 
@@ -649,8 +821,12 @@ export function CreateHealthPlanWizard() {
         connection,
         poolAddress: activePoolAddress,
         oracleAddress: selectedOracles[0] || null,
-        inviteIssuerAddress: membershipMode === "invite_only" ? inviteIssuer || null : null,
-        payoutMintAddress: payoutAssetMode === "spl" && isPublicKey(payoutMint) ? payoutMint : null,
+        inviteIssuerAddress:
+          membershipMode === "invite_only" ? inviteIssuer || null : null,
+        payoutMintAddress:
+          payoutAssetMode === "spl" && isPublicKey(payoutMint)
+            ? payoutMint
+            : null,
         schemaKeyHashHex: selectedSchema?.schemaKeyHashHex || null,
         ruleHashHex: ruleRows[0]?.derivedRuleHashHex || null,
       });
@@ -658,11 +834,22 @@ export function CreateHealthPlanWizard() {
       const programId = getProgramId();
       const poolKey = new PublicKey(activePoolAddress);
       const seriesRefHash = toBytes32(
-        await hashStringTo32Hex(defaultPolicySeriesSeed(normalizedPoolId || activePoolAddress, planType)),
+        await hashStringTo32Hex(
+          defaultPolicySeriesSeed(
+            normalizedPoolId || activePoolAddress,
+            planType,
+          ),
+        ),
       );
 
-      const policyAddress = derivePoolOraclePolicyPda({ programId, poolAddress: poolKey });
-      const policyAccount = await connection.getAccountInfo(policyAddress, "confirmed");
+      const policyAddress = derivePoolOraclePolicyPda({
+        programId,
+        poolAddress: poolKey,
+      });
+      const policyAccount = await connection.getAccountInfo(
+        policyAddress,
+        "confirmed",
+      );
 
       let allOraclesApproved = selectedOracles.length > 0;
       if (selectedOracles.length > 0) {
@@ -673,12 +860,19 @@ export function CreateHealthPlanWizard() {
             oracle: new PublicKey(oracle),
           }),
         );
-        const approvals = await connection.getMultipleAccountsInfo(oracleApprovalAddresses, "confirmed");
+        const approvals = await connection.getMultipleAccountsInfo(
+          oracleApprovalAddresses,
+          "confirmed",
+        );
         allOraclesApproved = approvals.every((entry) => entry != null);
       }
 
-      const selectedRuleHashes = ruleRows.map((row) => row.derivedRuleHashHex).filter(isHex32);
-      let allRulesPresent = selectedOutcomeIds.length > 0 && selectedRuleHashes.length === selectedOutcomeIds.length;
+      const selectedRuleHashes = ruleRows
+        .map((row) => row.derivedRuleHashHex)
+        .filter(isHex32);
+      let allRulesPresent =
+        selectedOutcomeIds.length > 0 &&
+        selectedRuleHashes.length === selectedOutcomeIds.length;
       if (allRulesPresent) {
         const ruleAddresses = selectedRuleHashes.map((ruleHashHex) =>
           derivePoolRulePda({
@@ -688,19 +882,34 @@ export function CreateHealthPlanWizard() {
             ruleHash: toBytes32(ruleHashHex),
           }),
         );
-        const rules = await connection.getMultipleAccountsInfo(ruleAddresses, "confirmed");
+        const rules = await connection.getMultipleAccountsInfo(
+          ruleAddresses,
+          "confirmed",
+        );
         allRulesPresent = rules.every((entry) => entry != null);
       }
 
-      const fundedByAction = actionLog.some((entry) => entry.action === "Fund plan vault" && Boolean(entry.signature));
-      const fundingReady = payoutAssetMode === "spl" ? (snapshot.poolAssetVaultConfigured || fundedByAction) : fundedByAction;
+      const fundedByAction = actionLog.some(
+        (entry) =>
+          entry.action === "Fund plan vault" && Boolean(entry.signature),
+      );
+      const fundingReady =
+        payoutAssetMode === "spl"
+          ? snapshot.poolAssetVaultConfigured || fundedByAction
+          : fundedByAction;
 
       setStepReady({
         pool: snapshot.poolExists,
-        verification: Boolean(policyAccount) && allOraclesApproved && snapshot.poolOraclePolicyConfigured,
+        verification:
+          Boolean(policyAccount) &&
+          allOraclesApproved &&
+          snapshot.poolOraclePolicyConfigured,
         rules: allRulesPresent,
         funding: fundingReady,
-        inviteIssuer: membershipMode === "invite_only" ? snapshot.inviteIssuerRegistered : true,
+        inviteIssuer:
+          membershipMode === "invite_only"
+            ? snapshot.inviteIssuerRegistered
+            : true,
       });
     } catch {
       // readiness is supportive UI state; temporary read failures should not interrupt the wizard.
@@ -744,9 +953,11 @@ export function CreateHealthPlanWizard() {
 
   useEffect(() => {
     if (!businessEntry.isBusinessOrigin || !requiredBusinessOracle) return;
-    setSelectedOracles((prev) => (
-      prev.includes(requiredBusinessOracle) ? prev : [requiredBusinessOracle, ...prev]
-    ));
+    setSelectedOracles((prev) =>
+      prev.includes(requiredBusinessOracle)
+        ? prev
+        : [requiredBusinessOracle, ...prev],
+    );
   }, [businessEntry.isBusinessOrigin, requiredBusinessOracle]);
 
   useEffect(() => {
@@ -772,14 +983,19 @@ export function CreateHealthPlanWizard() {
       setRulePreviewMap({});
 
       const localFallbackAllowed =
-        !selectedSchema
-        || normalize(selectedSchema.schemaKey).toLowerCase() === normalize(STANDARD_SCHEMA_KEY).toLowerCase();
+        !selectedSchema ||
+        normalize(selectedSchema.schemaKey).toLowerCase() ===
+          normalize(STANDARD_SCHEMA_KEY).toLowerCase();
 
       const loadLocalFallback = async (reason: string): Promise<boolean> => {
         try {
-          const response = await fetch(LOCAL_STANDARD_SCHEMA_URL, { cache: "no-store" });
+          const response = await fetch(LOCAL_STANDARD_SCHEMA_URL, {
+            cache: "no-store",
+          });
           if (!response.ok) {
-            throw new Error(`Local schema file responded with HTTP ${response.status}.`);
+            throw new Error(
+              `Local schema file responded with HTTP ${response.status}.`,
+            );
           }
           const metadata = (await response.json()) as unknown;
           const parsed = parseSchemaOutcomes(metadata);
@@ -787,7 +1003,10 @@ export function CreateHealthPlanWizard() {
           setSchemaWarnings([reason, ...parsed.warnings].filter(Boolean));
           return parsed.outcomes.length > 0;
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Failed to load local fallback schema.";
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to load local fallback schema.";
           setSchemaWarnings([reason, message]);
           return false;
         }
@@ -797,7 +1016,9 @@ export function CreateHealthPlanWizard() {
       try {
         if (!selectedSchema) {
           if (localFallbackAllowed) {
-            await loadLocalFallback("No on-chain schema selected. Showing local standard schema outcomes.");
+            await loadLocalFallback(
+              "No on-chain schema selected. Showing the default standard schema outcomes.",
+            );
           }
           return;
         }
@@ -805,22 +1026,26 @@ export function CreateHealthPlanWizard() {
         if (!selectedSchema.metadataUri) {
           if (localFallbackAllowed) {
             const loaded = await loadLocalFallback(
-              "Selected schema has no metadata URI. Showing local standard schema outcomes.",
+              "Selected schema has no metadata URI. Showing the default standard schema outcomes.",
             );
             if (loaded) return;
           }
-          setSchemaWarnings(["Selected schema has no metadata URI; outcome options are unavailable in this step."]);
+          setSchemaWarnings([
+            "Selected schema has no metadata URI; outcome options are unavailable in this step.",
+          ]);
           return;
         }
 
         const fetched = await fetchSchemaMetadata(selectedSchema.metadataUri);
         const parsed = parseSchemaOutcomes(fetched.metadata);
-        const warnings = fetched.error ? [fetched.error.message, ...parsed.warnings] : parsed.warnings;
+        const warnings = fetched.error
+          ? [fetched.error.message, ...parsed.warnings]
+          : parsed.warnings;
 
         if (fetched.error) {
           if (localFallbackAllowed) {
             const loaded = await loadLocalFallback(
-              `Metadata fetch failed (${fetched.error.code}). Showing local standard schema outcomes.`,
+              `Metadata fetch failed (${fetched.error.code}). Showing the default standard schema outcomes.`,
             );
             if (loaded) return;
           }
@@ -832,7 +1057,7 @@ export function CreateHealthPlanWizard() {
         if (parsed.outcomes.length === 0) {
           if (localFallbackAllowed) {
             const loaded = await loadLocalFallback(
-              "Metadata returned no valid outcomes. Showing local standard schema outcomes.",
+              "Metadata returned no valid outcomes. Showing the default standard schema outcomes.",
             );
             if (loaded) return;
           }
@@ -861,12 +1086,16 @@ export function CreateHealthPlanWizard() {
         selectedOutcomeIds.map(async (outcomeId) => {
           const edit = ruleEdits[outcomeId];
           const ruleId = normalize(edit?.ruleId || outcomeId) || outcomeId;
-          const ruleHashHex = edit?.ruleHashOverride && isHex32(edit.ruleHashOverride)
-            ? normalizeHex32(edit.ruleHashOverride)
-            : await hashStringTo32Hex(ruleId);
-          const payoutHashHex = edit?.payoutHashOverride && isHex32(edit.payoutHashOverride)
-            ? normalizeHex32(edit.payoutHashOverride)
-            : await hashStringTo32Hex(`${selectedSchema.schemaKey}:${outcomeId}:payout`);
+          const ruleHashHex =
+            edit?.ruleHashOverride && isHex32(edit.ruleHashOverride)
+              ? normalizeHex32(edit.ruleHashOverride)
+              : await hashStringTo32Hex(ruleId);
+          const payoutHashHex =
+            edit?.payoutHashOverride && isHex32(edit.payoutHashOverride)
+              ? normalizeHex32(edit.payoutHashOverride)
+              : await hashStringTo32Hex(
+                  `${selectedSchema.schemaKey}:${outcomeId}:payout`,
+                );
           return [outcomeId, { ruleHashHex, payoutHashHex }] as const;
         }),
       );
@@ -899,8 +1128,16 @@ export function CreateHealthPlanWizard() {
     void refreshReadiness();
   }, [refreshReadiness]);
 
-  async function signAndConfirm(action: string, tx: Transaction, signers?: Keypair[]) {
-    const signature = await sendTransaction(tx, connection, signers ? { signers } : undefined);
+  async function signAndConfirm(
+    action: string,
+    tx: Transaction,
+    signers?: Keypair[],
+  ) {
+    const signature = await sendTransaction(
+      tx,
+      connection,
+      signers ? { signers } : undefined,
+    );
     await connection.confirmTransaction(signature, "confirmed");
     appendLog({
       action,
@@ -925,45 +1162,60 @@ export function CreateHealthPlanWizard() {
     }
   }
 
-  const onPlanTypeChange = useCallback((nextPlanType: PlanType) => {
-    setPlanType(nextPlanType);
-    if (payoutAssetMode === "spl") {
-      setPayoutMint(defaultPayoutMintForPlanType(nextPlanType));
-    }
-  }, [payoutAssetMode]);
+  const onPlanTypeChange = useCallback(
+    (nextPlanType: PlanType) => {
+      setPlanType(nextPlanType);
+      if (payoutAssetMode === "spl") {
+        setPayoutMint(defaultPayoutMintForPlanType(nextPlanType));
+      }
+    },
+    [payoutAssetMode],
+  );
 
   const onUseDefaultPayoutMint = useCallback(() => {
     setPayoutMint(defaultPayoutMintForPlanType(planType));
   }, [planType]);
 
-  const onToggleOracle = useCallback((oracle: string) => {
-    setSelectedOracles((prev) => {
-      if (prev.includes(oracle)) {
-        if (businessEntry.isBusinessOrigin && requiredBusinessOracle && oracle === requiredBusinessOracle) {
-          return prev;
+  const onToggleOracle = useCallback(
+    (oracle: string) => {
+      setSelectedOracles((prev) => {
+        if (prev.includes(oracle)) {
+          if (
+            businessEntry.isBusinessOrigin &&
+            requiredBusinessOracle &&
+            oracle === requiredBusinessOracle
+          ) {
+            return prev;
+          }
+          return prev.filter((entry) => entry !== oracle);
         }
-        return prev.filter((entry) => entry !== oracle);
-      }
-      const next = [...prev, oracle];
-      if (
-        businessEntry.isBusinessOrigin
-        && requiredBusinessOracle
-        && !next.includes(requiredBusinessOracle)
-      ) {
-        return [requiredBusinessOracle, ...next];
-      }
-      return next;
-    });
-  }, [businessEntry.isBusinessOrigin, requiredBusinessOracle]);
+        const next = [...prev, oracle];
+        if (
+          businessEntry.isBusinessOrigin &&
+          requiredBusinessOracle &&
+          !next.includes(requiredBusinessOracle)
+        ) {
+          return [requiredBusinessOracle, ...next];
+        }
+        return next;
+      });
+    },
+    [businessEntry.isBusinessOrigin, requiredBusinessOracle],
+  );
 
   const onToggleOutcome = useCallback((outcomeId: string) => {
     setSelectedOutcomeIds((prev) => {
-      if (prev.includes(outcomeId)) return prev.filter((entry) => entry !== outcomeId);
+      if (prev.includes(outcomeId))
+        return prev.filter((entry) => entry !== outcomeId);
       return [...prev, outcomeId];
     });
     setRuleEdits((prev) => ({
       ...prev,
-      [outcomeId]: prev[outcomeId] ?? { ruleId: outcomeId, ruleHashOverride: "", payoutHashOverride: "" },
+      [outcomeId]: prev[outcomeId] ?? {
+        ruleId: outcomeId,
+        ruleHashOverride: "",
+        payoutHashOverride: "",
+      },
     }));
   }, []);
 
@@ -978,34 +1230,43 @@ export function CreateHealthPlanWizard() {
     }));
   }, []);
 
-  const onRuleHashOverrideChange = useCallback((outcomeId: string, value: string) => {
-    setRuleEdits((prev) => ({
-      ...prev,
-      [outcomeId]: {
-        ruleId: prev[outcomeId]?.ruleId || outcomeId,
-        ruleHashOverride: value,
-        payoutHashOverride: prev[outcomeId]?.payoutHashOverride || "",
-      },
-    }));
-  }, []);
+  const onRuleHashOverrideChange = useCallback(
+    (outcomeId: string, value: string) => {
+      setRuleEdits((prev) => ({
+        ...prev,
+        [outcomeId]: {
+          ruleId: prev[outcomeId]?.ruleId || outcomeId,
+          ruleHashOverride: value,
+          payoutHashOverride: prev[outcomeId]?.payoutHashOverride || "",
+        },
+      }));
+    },
+    [],
+  );
 
-  const onPayoutHashOverrideChange = useCallback((outcomeId: string, value: string) => {
-    setRuleEdits((prev) => ({
-      ...prev,
-      [outcomeId]: {
-        ruleId: prev[outcomeId]?.ruleId || outcomeId,
-        ruleHashOverride: prev[outcomeId]?.ruleHashOverride || "",
-        payoutHashOverride: value,
-      },
-    }));
-  }, []);
+  const onPayoutHashOverrideChange = useCallback(
+    (outcomeId: string, value: string) => {
+      setRuleEdits((prev) => ({
+        ...prev,
+        [outcomeId]: {
+          ruleId: prev[outcomeId]?.ruleId || outcomeId,
+          ruleHashOverride: prev[outcomeId]?.ruleHashOverride || "",
+          payoutHashOverride: value,
+        },
+      }));
+    },
+    [],
+  );
 
   const onRegisterInviteIssuer = useCallback(async () => {
     await runAction("Register invite issuer", async () => {
       if (!connected || !publicKey) throw new Error("Connect wallet first.");
-      if (!isPublicKey(inviteIssuer)) throw new Error("Invite issuer address is invalid.");
+      if (!isPublicKey(inviteIssuer))
+        throw new Error("Invite issuer address is invalid.");
       if (normalize(inviteIssuer) !== publicKey.toBase58()) {
-        throw new Error("Invite issuer registration requires the connected wallet to match issuer address.");
+        throw new Error(
+          "Invite issuer registration requires the connected wallet to match issuer address.",
+        );
       }
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = buildRegisterInviteIssuerTx({
@@ -1017,7 +1278,14 @@ export function CreateHealthPlanWizard() {
       });
       await signAndConfirm("Register invite issuer", tx);
     });
-  }, [connected, connection, inviteIssuer, metadataUri, organizationRef, publicKey]);
+  }, [
+    connected,
+    connection,
+    inviteIssuer,
+    metadataUri,
+    organizationRef,
+    publicKey,
+  ]);
 
   const onCreatePlan = useCallback(async () => {
     await runAction("Create plan", async () => {
@@ -1029,20 +1297,34 @@ export function CreateHealthPlanWizard() {
       const policyFallbackSeed = requiresCoveragePathway
         ? `${normalizedPoolId}:payout-policy:${coveragePathwayCommitment}`
         : `${normalizedPoolId}:payout-policy`;
-      const resolvedTermsHash = await resolveHex32(termsHashHex, termsFallbackSeed, "Terms hash");
+      const resolvedTermsHash = await resolveHex32(
+        termsHashHex,
+        termsFallbackSeed,
+        "Terms hash",
+      );
       const resolvedPolicyHash = await resolveHex32(
         payoutPolicyHashHex,
         policyFallbackSeed,
         "Payout policy hash",
       );
-      const payoutLamportsPerPass = BigInt(Math.max(1, Math.floor(asFloat(payoutTokens, 0) * LAMPORTS_PER_SOL)));
+      const payoutLamportsPerPass = BigInt(
+        Math.max(1, Math.floor(asFloat(payoutTokens, 0) * LAMPORTS_PER_SOL)),
+      );
       const membershipModeValue = toMembershipModeValue(membershipMode);
-      const tokenGateMintForTx = membershipMode === "token_gate" ? normalize(tokenGateMint) : ZERO_PUBKEY;
-      const tokenGateMinBalanceForTx = membershipMode === "token_gate" ? asBigInt(tokenGateMinBalance, 1n) : 0n;
-      const inviteIssuerForTx = membershipMode === "invite_only" ? normalize(inviteIssuer) : undefined;
-      const payoutAssetMint = payoutAssetMode === "spl" ? normalize(payoutMint) : undefined;
+      const tokenGateMintForTx =
+        membershipMode === "token_gate"
+          ? normalize(tokenGateMint)
+          : ZERO_PUBKEY;
+      const tokenGateMinBalanceForTx =
+        membershipMode === "token_gate"
+          ? asBigInt(tokenGateMinBalance, 1n)
+          : 0n;
+      const inviteIssuerForTx =
+        membershipMode === "invite_only" ? normalize(inviteIssuer) : undefined;
+      const payoutAssetMint =
+        payoutAssetMode === "spl" ? normalize(payoutMint) : undefined;
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const { tx, poolAddress } = buildCreatePoolV2Tx({
+      const { tx, poolAddress } = buildCreatePoolTx({
         authority: publicKey,
         recentBlockhash: blockhash,
         poolId: normalizedPoolId,
@@ -1059,7 +1341,9 @@ export function CreateHealthPlanWizard() {
         payoutAssetMint,
       });
       await signAndConfirm("Create plan", tx);
-      const primarySeriesRefHashHex = await hashStringTo32Hex(defaultPolicySeriesSeed(normalizedPoolId, planType));
+      const primarySeriesRefHashHex = await hashStringTo32Hex(
+        defaultPolicySeriesSeed(normalizedPoolId, planType),
+      );
       const primarySeriesTx = buildCreatePolicySeriesTx({
         authority: publicKey,
         poolAddress,
@@ -1076,13 +1360,14 @@ export function CreateHealthPlanWizard() {
         premiumAmount: 1n,
         termsVersion: 1,
         mappingVersion: 0,
-        recentBlockhash: (await connection.getLatestBlockhash("confirmed")).blockhash,
+        recentBlockhash: (await connection.getLatestBlockhash("confirmed"))
+          .blockhash,
       });
       await signAndConfirm("Create primary series", primarySeriesTx);
       setRecentCreatedPoolAddress(poolAddress.toBase58());
       setTermsHashHex(resolvedTermsHash);
       setPayoutPolicyHashHex(resolvedPolicyHash);
-      setOpenStep("verification");
+      setOpenStep("verification-rules");
     });
   }, [
     connection,
@@ -1109,7 +1394,10 @@ export function CreateHealthPlanWizard() {
     async (action: string, instructions: TransactionInstruction[]) => {
       if (!publicKey) throw new Error("Wallet signer unavailable.");
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = new Transaction({ feePayer: publicKey, recentBlockhash: blockhash });
+      const tx = new Transaction({
+        feePayer: publicKey,
+        recentBlockhash: blockhash,
+      });
       for (const instruction of instructions) tx.add(instruction);
       await signAndConfirm(action, tx);
     },
@@ -1122,14 +1410,15 @@ export function CreateHealthPlanWizard() {
       if (!publicKey) throw new Error("Wallet signer unavailable.");
       const poolAddress = new PublicKey(activePoolAddress);
       const blockhashInfo = await connection.getLatestBlockhash("confirmed");
-      const oracleInstructions = selectedOracles.map((oracle) =>
-        buildSetPoolOracleTx({
-          authority: publicKey,
-          poolAddress,
-          oracle: new PublicKey(oracle),
-          recentBlockhash: blockhashInfo.blockhash,
-          active: true,
-        }).instructions[0]!,
+      const oracleInstructions = selectedOracles.map(
+        (oracle) =>
+          buildSetPoolOracleTx({
+            authority: publicKey,
+            poolAddress,
+            oracle: new PublicKey(oracle),
+            recentBlockhash: blockhashInfo.blockhash,
+            active: true,
+          }).instructions[0]!,
       );
       const policyInstruction = buildSetPoolOraclePolicyTx({
         authority: publicKey,
@@ -1143,16 +1432,19 @@ export function CreateHealthPlanWizard() {
 
       const oracleBatches = chunk(oracleInstructions, ORACLE_CHUNK_SIZE);
       if (oracleBatches.length === 0) {
-        await sendInstructionBatch("Configure verification", [policyInstruction]);
+        await sendInstructionBatch("Configure verification", [
+          policyInstruction,
+        ]);
       } else {
         for (let i = 0; i < oracleBatches.length; i += 1) {
-          const ixs = i === oracleBatches.length - 1
-            ? [...oracleBatches[i]!, policyInstruction]
-            : oracleBatches[i]!;
+          const ixs =
+            i === oracleBatches.length - 1
+              ? [...oracleBatches[i]!, policyInstruction]
+              : oracleBatches[i]!;
           await sendInstructionBatch("Configure verification", ixs);
         }
       }
-      setOpenStep("outcomes-rules");
+      setOpenStep("verification-rules");
     });
   }, [
     activePoolAddress,
@@ -1170,11 +1462,15 @@ export function CreateHealthPlanWizard() {
   const onCreateOrUpdateRules = useCallback(async () => {
     await runAction("Create rules", async () => {
       if (rulesBlockingReason) throw new Error(rulesBlockingReason);
-      if (!publicKey || !selectedSchema) throw new Error("Missing signer or schema.");
+      if (!publicKey || !selectedSchema)
+        throw new Error("Missing signer or schema.");
       const poolAddress = new PublicKey(activePoolAddress);
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const seriesRefHashHex = await hashStringTo32Hex(
-        defaultPolicySeriesSeed(normalizedPoolId || activePoolAddress, planType),
+        defaultPolicySeriesSeed(
+          normalizedPoolId || activePoolAddress,
+          planType,
+        ),
       );
       const seriesAddress = derivePolicySeriesPda({
         programId: getProgramId(),
@@ -1191,8 +1487,14 @@ export function CreateHealthPlanWizard() {
           planMode: toPolicySeriesPlanMode(planType),
           sponsorMode: SPONSOR_MODE_DIRECT,
           displayName: `${normalize(organizationRef) || normalize(poolId) || "OmegaX"} Primary Series`,
-          metadataUri: normalize(metadataUri) || "https://protocol.omegax.health/policy-series/default",
-          termsHashHex: await resolveHex32(termsHashHex, `${normalizedPoolId || activePoolAddress}:terms`, "Terms hash"),
+          metadataUri:
+            normalize(metadataUri) ||
+            "https://protocol.omegax.health/policy-series/default",
+          termsHashHex: await resolveHex32(
+            termsHashHex,
+            `${normalizedPoolId || activePoolAddress}:terms`,
+            "Terms hash",
+          ),
           durationSecs: 365n * 86_400n,
           premiumDueEverySecs: 30n * 86_400n,
           premiumGraceSecs: 7n * 86_400n,
@@ -1257,7 +1559,9 @@ export function CreateHealthPlanWizard() {
       const poolAddress = new PublicKey(activePoolAddress);
 
       if (payoutAssetMode === "sol") {
-        const lamports = BigInt(Math.floor(asFloat(fundSol, 0) * LAMPORTS_PER_SOL));
+        const lamports = BigInt(
+          Math.floor(asFloat(fundSol, 0) * LAMPORTS_PER_SOL),
+        );
         const { blockhash } = await connection.getLatestBlockhash("confirmed");
         const tx = buildFundPoolSolTx({
           funder: publicKey,
@@ -1273,36 +1577,31 @@ export function CreateHealthPlanWizard() {
       const decimals = await getMintDecimals(connection, payoutMintPublicKey);
       setSplDecimals(decimals);
       const amount = parseUiAmountToBaseUnits(fundSpl, decimals);
-      if (amount <= 0n) throw new Error("Funding amount must be greater than zero.");
+      if (amount <= 0n)
+        throw new Error("Funding amount must be greater than zero.");
 
-      const funderTokenAccount = getAssociatedTokenAddress(payoutMintPublicKey, publicKey);
-      const funderTokenAccountInfo = await connection.getAccountInfo(funderTokenAccount, "confirmed");
+      const funderTokenAccount = getAssociatedTokenAddress(
+        payoutMintPublicKey,
+        publicKey,
+      );
+      const funderTokenAccountInfo = await connection.getAccountInfo(
+        funderTokenAccount,
+        "confirmed",
+      );
       if (!funderTokenAccountInfo) {
-        throw new Error(`Associated token account not found: ${funderTokenAccount.toBase58()}`);
+        throw new Error(
+          `Associated token account not found: ${funderTokenAccount.toBase58()}`,
+        );
       }
-      const tokenBalance = await connection.getTokenAccountBalance(funderTokenAccount, "confirmed");
+      const tokenBalance = await connection.getTokenAccountBalance(
+        funderTokenAccount,
+        "confirmed",
+      );
       const available = BigInt(tokenBalance.value.amount || "0");
       if (available < amount) {
-        throw new Error(`Insufficient token balance: have ${available.toString()}, need ${amount.toString()} base units.`);
-      }
-
-      const programId = getProgramId();
-      const poolAssetVault = derivePoolAssetVaultPda({
-        programId,
-        poolAddress,
-        payoutMint: payoutMintPublicKey,
-      });
-      const poolAssetVaultInfo = await connection.getAccountInfo(poolAssetVault, "confirmed");
-
-      let poolVaultTokenAccount: PublicKey;
-      let extraSigners: Keypair[] | undefined;
-
-      if (poolAssetVaultInfo && poolAssetVaultInfo.data.length >= 104) {
-        poolVaultTokenAccount = new PublicKey(poolAssetVaultInfo.data.slice(72, 104));
-      } else {
-        const vaultTokenAccount = Keypair.generate();
-        poolVaultTokenAccount = vaultTokenAccount.publicKey;
-        extraSigners = [vaultTokenAccount];
+        throw new Error(
+          `Insufficient token balance: have ${available.toString()}, need ${amount.toString()} base units.`,
+        );
       }
 
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
@@ -1310,13 +1609,11 @@ export function CreateHealthPlanWizard() {
         funder: publicKey,
         poolAddress,
         payoutMint: payoutMintPublicKey,
-        poolVaultTokenAccount,
-        poolVaultTokenAccountSigner: !poolAssetVaultInfo,
         funderTokenAccount,
         recentBlockhash: blockhash,
         amount,
       });
-      await signAndConfirm("Fund plan vault", tx, extraSigners);
+      await signAndConfirm("Fund plan vault", tx);
     });
   }, [
     activePoolAddress,
@@ -1329,290 +1626,363 @@ export function CreateHealthPlanWizard() {
     publicKey,
   ]);
 
-  const activeStepIndex = workflowSteps.findIndex((step) => step.id === openStep);
   const prevStep = previousStepId(openStep);
   const nextStep = nextStepId(openStep);
 
   return (
-    <div className="flex flex-col items-start gap-6 lg:flex-row lg:gap-8">
-      <div className="w-full lg:w-[320px] lg:shrink-0 space-y-4">
-        <div className="surface-card-soft space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="metric-label">Create Health Plan Wizard</p>
+    <div className="pb-24 sm:pb-0">
+      <section className="wizard-stage-shell">
+        <div className="wizard-stage-header">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="wizard-stage-step-badge">
+                Step {activeStepIndex + 1} of {workflowSteps.length}
+              </span>
+              <span className="wizard-stage-progress-copy">{completedSteps} saved</span>
+            </div>
+            <div className="space-y-1">
+              <h2 className="wizard-stage-title">{activeStepHeading}</h2>
+              <p className="wizard-stage-copy">{activeStepSummary}</p>
+            </div>
+          </div>
+          <div className="wizard-stage-controls">
             <button
               className="secondary-button py-1.5 px-3 text-xs"
-              onClick={() => setExpertMode((prev) => !prev)}
+              onClick={() => void refreshSelectors()}
               disabled={hasBusyAction}
             >
-              {expertMode ? "Simple mode" : "Expert mode"}
+              Refresh on-chain choices
             </button>
           </div>
-          <div className="h-2 w-full rounded-full bg-[var(--muted)]/60">
-            <div className="h-2 rounded-full bg-[var(--primary)] transition-all" style={{ width: `${progressPercent}%` }} />
-          </div>
-          <p className="field-help">{progressPercent}% complete</p>
-          <p className="field-help">{activeStepSummary}</p>
-          {nextStepBlocker ? <p className="field-error">Next blocker: {nextStepBlocker}</p> : null}
         </div>
 
-        <div className="surface-card-soft rounded-2xl p-4">
+        <div className="wizard-progress-row">
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+          </div>
+          <p className="wizard-stage-progress-copy">
+            Preview every step first. Only the action buttons wait for wallet connection or prior on-chain setup.
+          </p>
+        </div>
+
+        <div className="wizard-step-tabs" role="tablist" aria-label="Create plan steps">
           {workflowSteps.map((step, index) => {
             const isActive = openStep === step.id;
             const isDone = step.done;
-            const isLast = index === workflowSteps.length - 1;
             return (
-              <div key={step.id}>
-                <button
-                  type="button"
-                  onClick={() => setOpenStep(step.id)}
-                  className={cn(
-                    "flex w-full items-start gap-3 py-1 text-left transition-opacity",
-                    !isActive && !isDone && "opacity-85 hover:opacity-100",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold",
-                      isActive
-                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
-                        : isDone
-                          ? "border-emerald-500 text-emerald-500"
-                          : "border-[var(--border)]/70 text-[var(--muted-foreground)]",
-                    )}
-                  >
-                    {isDone ? <Check className="h-4 w-4" /> : index + 1}
-                  </div>
-                  <div className="pt-0.5">
-                    <p className="text-[11px] uppercase tracking-wider text-[var(--muted-foreground)]">Step {index + 1}</p>
-                    <p className={cn("text-sm font-semibold", isActive ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]")}>{step.label}</p>
-                  </div>
-                </button>
-                {!isLast ? <div className="ml-[15px] h-6 w-[2px] bg-[var(--border)]" /> : null}
-              </div>
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => setOpenStep(step.id)}
+                role="tab"
+                id={`create-step-tab-${step.id}`}
+                aria-selected={isActive}
+                aria-controls={`create-step-panel-${step.id}`}
+                className={cn(
+                  "wizard-step-tab",
+                  isActive && "wizard-step-tab-active",
+                  isDone && "wizard-step-tab-done",
+                )}
+              >
+                <span className={cn("workflow-index", isDone && "workflow-index-done")}>
+                  {isDone ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="wizard-step-tab-kicker">Step {index + 1}</span>
+                  <span className="wizard-step-chip-label">{step.label}</span>
+                </span>
+              </button>
             );
           })}
         </div>
 
-        <div className="surface-card-soft space-y-2">
-          <p className="metric-label">Execution Context</p>
-          <p className="field-help">Wallet: {walletAddress ? shortAddress(walletAddress) : "not connected"}</p>
-          <p className="field-help">Pool: {activePoolAddress ? shortAddress(activePoolAddress) : "not created"}</p>
-          <p className="field-help">Selected verifiers: {selectedOracles.length}</p>
-        </div>
+        {selectorError ? (
+          <div className="wizard-note">
+            <p className="wizard-section-label">Refresh note</p>
+            <p className="wizard-inline-copy">
+              We couldn&apos;t refresh some on-chain choices. Existing values stay editable and you can retry at any time.
+            </p>
+            <p className="field-error">{selectorError}</p>
+          </div>
+        ) : null}
 
-        {actionLog.length > 0 ? (
-          <details className="surface-card-soft">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">Audit trail</summary>
-            <div className="mt-3 max-h-[260px] space-y-2 overflow-y-auto">
-              {actionLog.map((log) => (
-                <div key={log.id} className="border-l-2 border-[var(--border)] pl-3">
-                  <p className="text-xs font-semibold text-[var(--foreground)]">{log.action}</p>
-                  <p className="text-[11px] text-[var(--muted-foreground)]">
-                    {new Date(log.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                  {log.signature ? (
-                    <a
-                      href={toExplorerLink(log.signature)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] text-[var(--primary)] hover:underline"
-                    >
-                      Tx: {shortAddress(log.signature)}
-                    </a>
-                  ) : (
-                    <p className="text-[11px] text-[var(--muted-foreground)]">{log.message}</p>
-                  )}
-                </div>
-              ))}
+        <div
+          className="wizard-stage-body"
+          role="tabpanel"
+          id={`create-step-panel-${openStep}`}
+          aria-labelledby={`create-step-tab-${openStep}`}
+        >
+          {openStep === "basics" ? (
+            <div className="space-y-8">
+              <StepTypeBasics
+                planType={planType}
+                onPlanTypeChange={onPlanTypeChange}
+                poolId={poolId}
+                onPoolIdChange={setPoolId}
+                poolIdBytes={poolIdBytes}
+                organizationRef={organizationRef}
+                onOrganizationRefChange={setOrganizationRef}
+                metadataUri={metadataUri}
+                onMetadataUriChange={setMetadataUri}
+                payoutAssetMode={payoutAssetMode}
+                onPayoutAssetModeChange={setPayoutAssetMode}
+                payoutMint={payoutMint}
+                onPayoutMintChange={setPayoutMint}
+                onUseDefaultPayoutMint={onUseDefaultPayoutMint}
+                payoutTokens={payoutTokens}
+                onPayoutTokensChange={setPayoutTokens}
+                termsHashHex={termsHashHex}
+                onTermsHashHexChange={setTermsHashHex}
+                payoutPolicyHashHex={payoutPolicyHashHex}
+                onPayoutPolicyHashHexChange={setPayoutPolicyHashHex}
+                coveragePathway={coveragePathway}
+                onCoveragePathwayChange={setCoveragePathway}
+                defiSettlementMode={defiSettings.settlementMode}
+                onDefiSettlementModeChange={(value) =>
+                  setDefiSettings((prev) => ({ ...prev, settlementMode: value }))
+                }
+                defiTechnicalTermsUri={defiSettings.technicalTermsUri}
+                onDefiTechnicalTermsUriChange={(value) =>
+                  setDefiSettings((prev) => ({ ...prev, technicalTermsUri: value }))
+                }
+                defiRiskDisclosureUri={defiSettings.riskDisclosureUri}
+                onDefiRiskDisclosureUriChange={(value) =>
+                  setDefiSettings((prev) => ({ ...prev, riskDisclosureUri: value }))
+                }
+                rwaLegalEntityName={rwaSettings.legalEntityName}
+                onRwaLegalEntityNameChange={(value) =>
+                  setRwaSettings((prev) => ({ ...prev, legalEntityName: value }))
+                }
+                rwaJurisdiction={rwaSettings.jurisdiction}
+                onRwaJurisdictionChange={(value) =>
+                  setRwaSettings((prev) => ({ ...prev, jurisdiction: value }))
+                }
+                rwaPolicyTermsUri={rwaSettings.policyTermsUri}
+                onRwaPolicyTermsUriChange={(value) =>
+                  setRwaSettings((prev) => ({ ...prev, policyTermsUri: value }))
+                }
+                rwaRegulatoryLicenseRef={rwaSettings.regulatoryLicenseRef}
+                onRwaRegulatoryLicenseRefChange={(value) =>
+                  setRwaSettings((prev) => ({
+                    ...prev,
+                    regulatoryLicenseRef: value,
+                  }))
+                }
+                rwaComplianceContact={rwaSettings.complianceContact}
+                onRwaComplianceContactChange={(value) =>
+                  setRwaSettings((prev) => ({ ...prev, complianceContact: value }))
+                }
+                predictedPoolAddress={predictedPoolAddress}
+              />
+
+              <div className="wizard-stage-divider" />
+
+              <StepEligibility
+                membershipMode={membershipMode}
+                onMembershipModeChange={setMembershipMode}
+                tokenGateMint={tokenGateMint}
+                onTokenGateMintChange={setTokenGateMint}
+                tokenGateMinBalance={tokenGateMinBalance}
+                onTokenGateMinBalanceChange={setTokenGateMinBalance}
+                inviteIssuer={inviteIssuer}
+                onInviteIssuerChange={setInviteIssuer}
+                onRegisterInviteIssuer={() => void onRegisterInviteIssuer()}
+                inviteIssuerReady={stepReady.inviteIssuer}
+                registerInviteIssuerDisabled={
+                  hasBusyAction
+                  || membershipMode !== "invite_only"
+                  || Boolean(registerInviteIssuerBlockingReason)
+                }
+                registerInviteIssuerLabel={
+                  busyAction === "Register invite issuer"
+                    ? "Registering issuer..."
+                    : "Register invite issuer"
+                }
+                registerInviteIssuerHelp={registerInviteIssuerHelp}
+                onCreatePlan={() => void onCreatePlan()}
+                createPlanDisabled={
+                  hasBusyAction || Boolean(createPlanBlockingReason)
+                }
+                createPlanLabel={
+                  busyAction === "Create plan" ? "Creating plan..." : "Create plan on-chain"
+                }
+                createPlanHelp={createPlanHelp}
+              />
             </div>
-          </details>
-        ) : null}
-      </div>
+          ) : null}
 
-      <div className="min-w-0 flex-1 space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight text-[var(--foreground)] sm:text-2xl">
-            {workflowSteps[activeStepIndex]?.label}
-          </h2>
-          <button className="secondary-button py-1.5 px-3 text-sm" onClick={() => void refreshSelectors()} disabled={hasBusyAction}>
-            Refresh chain selectors
-          </button>
+          {openStep === "verification-rules" ? (
+            <div className="space-y-8">
+              <StepVerification
+                oracles={oraclePickerOptions}
+                oracleSearch={oracleSearch}
+                onOracleSearchChange={setOracleSearch}
+                selectedOracles={selectedOracles}
+                onToggleOracle={onToggleOracle}
+                requiredOracleAddress={requiredBusinessOracle}
+                requiredOracleDiscovered={requiredBusinessOracleDiscovered}
+                lockRequiredOracle={businessEntry.isBusinessOrigin}
+                quorumM={quorumM}
+                onQuorumMChange={(value) => {
+                  setQuorumManual(true);
+                  setQuorumM(value);
+                }}
+                quorumN={quorumN}
+                requireVerifiedSchema={requireVerifiedSchema}
+                onRequireVerifiedSchemaChange={setRequireVerifiedSchema}
+                allowDelegateClaim={allowDelegateClaim}
+                onAllowDelegateClaimChange={setAllowDelegateClaim}
+                onConfirmVerification={() => void onConfigureVerification()}
+                confirmLabel={
+                  busyAction === "Configure verification"
+                    ? "Saving verification..."
+                    : "Save verification network"
+                }
+                confirmHelp={verificationHelp}
+                disabledInputs={hasBusyAction}
+                confirmDisabled={hasBusyAction || Boolean(verifyBlockingReason)}
+              />
+
+              <div className="wizard-stage-divider" />
+
+              <StepOutcomesRules
+                schemas={schemas}
+                selectedSchemaAddress={selectedSchemaAddress}
+                onSelectedSchemaAddressChange={setSelectedSchemaAddress}
+                schemaOutcomes={schemaOutcomes}
+                selectedOutcomeIds={selectedOutcomeIds}
+                onToggleOutcome={onToggleOutcome}
+                ruleRows={ruleRows}
+                onRuleIdChange={onRuleIdChange}
+                onRuleHashOverrideChange={onRuleHashOverrideChange}
+                onPayoutHashOverrideChange={onPayoutHashOverrideChange}
+                schemaWarnings={schemaWarnings}
+                schemaMetadataLoading={schemaMetadataLoading}
+                onCreateOrUpdateRules={() => void onCreateOrUpdateRules()}
+                actionLabel={
+                  busyAction === "Create rules" ? "Saving outcome rules..." : "Save outcome rules"
+                }
+                actionHelp={rulesHelp}
+                disabledInputs={hasBusyAction}
+                actionDisabled={hasBusyAction || Boolean(rulesBlockingReason)}
+              />
+            </div>
+          ) : null}
+
+          {openStep === "funding-review" ? (
+            <div className="space-y-5">
+              <StepFundingReview
+                planType={planType}
+                coveragePathway={coveragePathway}
+                defiSettlementMode={defiSettings.settlementMode}
+                defiTechnicalTermsUri={defiSettings.technicalTermsUri}
+                defiRiskDisclosureUri={defiSettings.riskDisclosureUri}
+                rwaLegalEntityName={rwaSettings.legalEntityName}
+                rwaJurisdiction={rwaSettings.jurisdiction}
+                rwaPolicyTermsUri={rwaSettings.policyTermsUri}
+                rwaRegulatoryLicenseRef={rwaSettings.regulatoryLicenseRef}
+                rwaComplianceContact={rwaSettings.complianceContact}
+                poolTypeLabel={
+                  toPoolTypeValue(planType) === POOL_TYPE_COVERAGE
+                    ? "coverage"
+                    : "reward"
+                }
+                payoutAssetMode={payoutAssetMode}
+                payoutMint={payoutMint}
+                payoutTokens={payoutTokens}
+                membershipMode={membershipMode}
+                tokenGateMint={tokenGateMint}
+                tokenGateMinBalance={tokenGateMinBalance}
+                inviteIssuer={inviteIssuer}
+                selectedOraclesCount={selectedOracles.length}
+                quorumM={quorumM}
+                quorumN={quorumN}
+                selectedSchemaLabel={
+                  selectedSchema
+                    ? `${selectedSchema.schemaKey} v${selectedSchema.version}`
+                    : ""
+                }
+                selectedOutcomesCount={selectedOutcomeIds.length}
+                activePoolAddress={recentCreatedPoolAddress}
+                buildPoolHref={buildPoolHref}
+                fundSol={fundSol}
+                onFundSolChange={setFundSol}
+                fundSpl={fundSpl}
+                onFundSplChange={setFundSpl}
+                onFundPlan={() => void onFundPlan()}
+                fundDisabled={hasBusyAction || Boolean(fundBlockingReason)}
+                fundLabel={
+                  busyAction === "Fund plan vault" ? "Funding vault..." : "Fund launch vault"
+                }
+                fundHelp={fundingHelp}
+                splDecimals={splDecimals}
+                splAmountPreview={splAmountPreview}
+              />
+
+              <ProtocolDetailDisclosure
+                title="Submission context"
+                summary="Wallet, plan address, and current verifier count stay here for quick reference."
+              >
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="monitor-row">
+                    <span>Wallet</span>
+                    <span>{walletAddress ? shortAddress(walletAddress) : "not connected"}</span>
+                  </div>
+                  <div className="monitor-row">
+                    <span>Plan</span>
+                    <span>{recentCreatedPoolAddress ? shortAddress(recentCreatedPoolAddress) : "not created"}</span>
+                  </div>
+                  <div className="monitor-row">
+                    <span>Selected verifiers</span>
+                    <span>{selectedOracles.length}</span>
+                  </div>
+                </div>
+              </ProtocolDetailDisclosure>
+
+              {actionLog.length > 0 ? (
+                <ProtocolDetailDisclosure
+                  title="Recent transactions"
+                  summary="Recent create, configure, and funding transactions stay tucked away here."
+                >
+                  <div className="max-h-[260px] space-y-2 overflow-y-auto">
+                    {actionLog.map((log) => (
+                      <div
+                        key={log.id}
+                        className="border-l-2 border-[var(--border)] pl-3"
+                      >
+                        <p className="text-xs font-semibold text-[var(--foreground)]">
+                          {log.action}
+                        </p>
+                        <p className="text-[11px] text-[var(--muted-foreground)]">
+                          {new Date(log.at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        {log.signature ? (
+                          <a
+                            href={toExplorerLink(log.signature)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] text-[var(--primary)] hover:underline"
+                          >
+                            Tx: {shortAddress(log.signature)}
+                          </a>
+                        ) : (
+                          <p className="text-[11px] text-[var(--muted-foreground)]">
+                            {log.message}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ProtocolDetailDisclosure>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-        {selectorError ? <p className="field-error">{selectorError}</p> : null}
-        {schemaWarnings.map((warning) => (
-          <p key={warning} className="field-help">
-            {warning}
-          </p>
-        ))}
-        {schemaMetadataLoading ? <p className="field-help">Loading schema outcomes...</p> : null}
 
-        {openStep === "type-basics" ? (
-          <StepTypeBasics
-            planType={planType}
-            onPlanTypeChange={onPlanTypeChange}
-            poolId={poolId}
-            onPoolIdChange={setPoolId}
-            poolIdBytes={poolIdBytes}
-            organizationRef={organizationRef}
-            onOrganizationRefChange={setOrganizationRef}
-            metadataUri={metadataUri}
-            onMetadataUriChange={setMetadataUri}
-            payoutAssetMode={payoutAssetMode}
-            onPayoutAssetModeChange={setPayoutAssetMode}
-            payoutMint={payoutMint}
-            onPayoutMintChange={setPayoutMint}
-            onUseDefaultPayoutMint={onUseDefaultPayoutMint}
-            payoutTokens={payoutTokens}
-            onPayoutTokensChange={setPayoutTokens}
-            expertMode={expertMode}
-            termsHashHex={termsHashHex}
-            onTermsHashHexChange={setTermsHashHex}
-            payoutPolicyHashHex={payoutPolicyHashHex}
-            onPayoutPolicyHashHexChange={setPayoutPolicyHashHex}
-            coveragePathway={coveragePathway}
-            onCoveragePathwayChange={setCoveragePathway}
-            defiSettlementMode={defiSettings.settlementMode}
-            onDefiSettlementModeChange={(value) =>
-              setDefiSettings((prev) => ({ ...prev, settlementMode: value }))
-            }
-            defiTechnicalTermsUri={defiSettings.technicalTermsUri}
-            onDefiTechnicalTermsUriChange={(value) =>
-              setDefiSettings((prev) => ({ ...prev, technicalTermsUri: value }))
-            }
-            defiRiskDisclosureUri={defiSettings.riskDisclosureUri}
-            onDefiRiskDisclosureUriChange={(value) =>
-              setDefiSettings((prev) => ({ ...prev, riskDisclosureUri: value }))
-            }
-            rwaLegalEntityName={rwaSettings.legalEntityName}
-            onRwaLegalEntityNameChange={(value) =>
-              setRwaSettings((prev) => ({ ...prev, legalEntityName: value }))
-            }
-            rwaJurisdiction={rwaSettings.jurisdiction}
-            onRwaJurisdictionChange={(value) =>
-              setRwaSettings((prev) => ({ ...prev, jurisdiction: value }))
-            }
-            rwaPolicyTermsUri={rwaSettings.policyTermsUri}
-            onRwaPolicyTermsUriChange={(value) =>
-              setRwaSettings((prev) => ({ ...prev, policyTermsUri: value }))
-            }
-            rwaRegulatoryLicenseRef={rwaSettings.regulatoryLicenseRef}
-            onRwaRegulatoryLicenseRefChange={(value) =>
-              setRwaSettings((prev) => ({ ...prev, regulatoryLicenseRef: value }))
-            }
-            rwaComplianceContact={rwaSettings.complianceContact}
-            onRwaComplianceContactChange={(value) =>
-              setRwaSettings((prev) => ({ ...prev, complianceContact: value }))
-            }
-            predictedPoolAddress={predictedPoolAddress}
-          />
-        ) : null}
-
-        {openStep === "eligibility" ? (
-          <StepEligibility
-            membershipMode={membershipMode}
-            onMembershipModeChange={setMembershipMode}
-            tokenGateMint={tokenGateMint}
-            onTokenGateMintChange={setTokenGateMint}
-            tokenGateMinBalance={tokenGateMinBalance}
-            onTokenGateMinBalanceChange={setTokenGateMinBalance}
-            inviteIssuer={inviteIssuer}
-            onInviteIssuerChange={setInviteIssuer}
-            onRegisterInviteIssuer={() => void onRegisterInviteIssuer()}
-            inviteIssuerReady={stepReady.inviteIssuer}
-            registerInviteIssuerDisabled={hasBusyAction || membershipMode !== "invite_only"}
-            onCreatePlan={() => void onCreatePlan()}
-            createPlanDisabled={hasBusyAction || Boolean(createPlanBlockingReason)}
-          />
-        ) : null}
-
-        {openStep === "verification" ? (
-          <StepVerification
-            oracles={oraclePickerOptions}
-            oracleSearch={oracleSearch}
-            onOracleSearchChange={setOracleSearch}
-            selectedOracles={selectedOracles}
-            onToggleOracle={onToggleOracle}
-            requiredOracleAddress={requiredBusinessOracle}
-            requiredOracleDiscovered={requiredBusinessOracleDiscovered}
-            lockRequiredOracle={businessEntry.isBusinessOrigin}
-            quorumM={quorumM}
-            onQuorumMChange={(value) => {
-              setQuorumManual(true);
-              setQuorumM(value);
-            }}
-            quorumN={quorumN}
-            requireVerifiedSchema={requireVerifiedSchema}
-            onRequireVerifiedSchemaChange={setRequireVerifiedSchema}
-            allowDelegateClaim={allowDelegateClaim}
-            onAllowDelegateClaimChange={setAllowDelegateClaim}
-            onConfirmVerification={() => void onConfigureVerification()}
-            disabledInputs={hasBusyAction}
-            confirmDisabled={hasBusyAction || Boolean(verifyBlockingReason)}
-          />
-        ) : null}
-
-        {openStep === "outcomes-rules" ? (
-          <StepOutcomesRules
-            schemas={schemas}
-            selectedSchemaAddress={selectedSchemaAddress}
-            onSelectedSchemaAddressChange={setSelectedSchemaAddress}
-            schemaOutcomes={schemaOutcomes}
-            selectedOutcomeIds={selectedOutcomeIds}
-            onToggleOutcome={onToggleOutcome}
-            ruleRows={ruleRows}
-            onRuleIdChange={onRuleIdChange}
-            onRuleHashOverrideChange={onRuleHashOverrideChange}
-            onPayoutHashOverrideChange={onPayoutHashOverrideChange}
-            expertMode={expertMode}
-            onCreateOrUpdateRules={() => void onCreateOrUpdateRules()}
-            disabledInputs={hasBusyAction}
-            actionDisabled={hasBusyAction || Boolean(rulesBlockingReason)}
-          />
-        ) : null}
-
-        {openStep === "funding-review" ? (
-          <StepFundingReview
-            planType={planType}
-            coveragePathway={coveragePathway}
-            defiSettlementMode={defiSettings.settlementMode}
-            defiTechnicalTermsUri={defiSettings.technicalTermsUri}
-            defiRiskDisclosureUri={defiSettings.riskDisclosureUri}
-            rwaLegalEntityName={rwaSettings.legalEntityName}
-            rwaJurisdiction={rwaSettings.jurisdiction}
-            rwaPolicyTermsUri={rwaSettings.policyTermsUri}
-            rwaRegulatoryLicenseRef={rwaSettings.regulatoryLicenseRef}
-            rwaComplianceContact={rwaSettings.complianceContact}
-            poolTypeLabel={toPoolTypeValue(planType) === POOL_TYPE_COVERAGE ? "On-chain pool type: coverage" : "On-chain pool type: reward"}
-            payoutAssetMode={payoutAssetMode}
-            payoutMint={payoutMint}
-            payoutTokens={payoutTokens}
-            membershipMode={membershipMode}
-            tokenGateMint={tokenGateMint}
-            tokenGateMinBalance={tokenGateMinBalance}
-            inviteIssuer={inviteIssuer}
-            selectedOraclesCount={selectedOracles.length}
-            quorumM={quorumM}
-            quorumN={quorumN}
-            selectedSchemaLabel={selectedSchema ? `${selectedSchema.schemaKey} v${selectedSchema.version}` : ""}
-            selectedOutcomesCount={selectedOutcomeIds.length}
-            activePoolAddress={recentCreatedPoolAddress}
-            buildPoolHref={buildPoolHref}
-            fundSol={fundSol}
-            onFundSolChange={setFundSol}
-            fundSpl={fundSpl}
-            onFundSplChange={setFundSpl}
-            onFundPlan={() => void onFundPlan()}
-            fundDisabled={hasBusyAction || Boolean(fundBlockingReason)}
-            splDecimals={splDecimals}
-            splAmountPreview={splAmountPreview}
-          />
-        ) : null}
-
-        {workflowSteps.some((step) => step.blockingReason && step.id === openStep) ? (
-          <p className="field-error">{workflowSteps.find((step) => step.id === openStep)?.blockingReason}</p>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--border)]/40 pt-3">
+        <div className="wizard-nav-footer">
           {prevStep ? (
             <button
               type="button"
@@ -1630,10 +2000,70 @@ export function CreateHealthPlanWizard() {
               className="secondary-button py-1.5 px-4 text-sm inline-flex items-center gap-1.5"
               onClick={() => setOpenStep(nextStep)}
             >
-              Next <ChevronRight className="h-3.5 w-3.5" />
+              Next step <ChevronRight className="h-3.5 w-3.5" />
             </button>
           ) : null}
         </div>
+      </section>
+
+      <div className="sticky-action-bar wizard-mobile-actions sm:hidden">
+        {openStep === "basics" ? (
+          <div className="space-y-2">
+            <button
+              type="button"
+              className="action-button w-full"
+              onClick={() => void onCreatePlan()}
+              disabled={hasBusyAction || Boolean(createPlanBlockingReason)}
+            >
+              {busyAction === "Create plan" ? "Creating plan..." : "Create plan on-chain"}
+            </button>
+            <p className={createPlanBlockingReason ? "field-error" : "wizard-inline-copy"}>
+              {createPlanHelp}
+            </p>
+          </div>
+        ) : null}
+
+        {openStep === "verification-rules" ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className="secondary-button w-full py-2.5"
+                onClick={() => void onConfigureVerification()}
+                disabled={hasBusyAction || Boolean(verifyBlockingReason)}
+              >
+                {busyAction === "Configure verification" ? "Saving..." : "Save verification"}
+              </button>
+              <button
+                type="button"
+                className="action-button w-full"
+                onClick={() => void onCreateOrUpdateRules()}
+                disabled={hasBusyAction || Boolean(rulesBlockingReason)}
+              >
+                {busyAction === "Create rules" ? "Saving..." : "Save rules"}
+              </button>
+            </div>
+            <p className={verifyBlockingReason || rulesBlockingReason ? "field-error" : "wizard-inline-copy"}>
+              {verifyBlockingReason || rulesBlockingReason || "Save verification and payout rules when you are ready."}
+            </p>
+          </div>
+        ) : null}
+
+        {openStep === "funding-review" ? (
+          <div className="space-y-2">
+            <button
+              type="button"
+              className="action-button w-full"
+              onClick={() => void onFundPlan()}
+              disabled={hasBusyAction || Boolean(fundBlockingReason)}
+            >
+              {busyAction === "Fund plan vault" ? "Funding vault..." : "Fund launch vault"}
+            </button>
+            <p className={fundBlockingReason ? "field-error" : "wizard-inline-copy"}>
+              {fundingHelp}
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

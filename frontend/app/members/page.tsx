@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { Users } from "lucide-react";
-import Link from "next/link";
 
 import { Hero } from "@/components/hero";
-import { MemberActionsPanel } from "@/components/member-actions-panel";
+import { PoolWorkspaceLauncher } from "@/components/pool-workspace-launcher";
 
 export default function MembersPage() {
   return (
     <div className="space-y-5">
       <Hero
         title="Participant Enrollment"
-        subtitle="Enroll patients, employees, or members into health plans and configure claim delegation."
+        subtitle="Enrollment, membership context, and delegation now open inside the shared pool workspace instead of a standalone silo."
         icon={Users}
       />
 
-      <MemberActionsPanel />
+      <PoolWorkspaceLauncher
+        targetSection="members"
+        targetPanel="enrollment"
+        title="Open Members In Pool Workspace"
+        description="Pick a health plan and jump straight into membership enrollment and delegation flows."
+        actionLabel="Open members workspace"
+      />
     </div>
   );
 }

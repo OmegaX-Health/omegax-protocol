@@ -4,6 +4,7 @@
 
 import { useMemo } from "react";
 
+import { FieldHint } from "@/components/field-hint";
 import { cn } from "@/lib/cn";
 
 export type MultiOracleOption = {
@@ -54,11 +55,17 @@ export function MultiOraclePicker({
   }, [options, search]);
 
   return (
-    <div className="surface-card-soft space-y-3">
-      <p className="metric-label">Verification Network (multi-select)</p>
+    <div className="space-y-3">
+      <div className="wizard-inline-head">
+        <p className="wizard-section-label">Which verifiers can confirm outcomes?</p>
+        <FieldHint
+          content="Choose the oracle wallets that should be able to confirm outcomes for this plan. You can revise the verifier set later in the pool workspace."
+          side="end"
+        />
+      </div>
       <input
         className="field-input"
-        placeholder="Filter oracle addresses or metadata"
+        placeholder="Filter verifiers by address or metadata"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         disabled={disabled}
@@ -74,9 +81,9 @@ export function MultiOraclePicker({
               key={entry.oracle}
               type="button"
               className={cn(
-                "w-full rounded-2xl border p-3 text-left transition-colors",
-                isSelected ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)]/60 bg-transparent",
-                isRequired && "border-emerald-400/60",
+                "wizard-select-row",
+                isSelected && "wizard-select-row-active",
+                isRequired && "wizard-select-row-required",
                 toggleDisabled && "cursor-not-allowed opacity-90",
               )}
               onClick={() => onToggle(entry.oracle)}
@@ -89,7 +96,9 @@ export function MultiOraclePicker({
                   <span className={`status-pill ${entry.active ? "status-ok" : "status-off"}`}>{entry.active ? "Active" : "Inactive"}</span>
                 </div>
               </div>
-              <p className="field-help mt-1 break-all">{entry.metadataUri || "No metadata URI"}</p>
+              <p className="wizard-inline-copy mt-1 break-all">
+                {entry.metadataUri || "No metadata URI"}
+              </p>
             </button>
           );
         })}
@@ -106,9 +115,7 @@ export function MultiOraclePicker({
       ) : (
         <p className="field-help">No verifiers selected yet.</p>
       )}
-      {lockRequiredOracle && requiredOracle ? (
-        <p className="field-help">The required verifier is locked for Business-origin plans.</p>
-      ) : null}
+      {lockRequiredOracle && requiredOracle ? <p className="wizard-inline-copy">The required verifier stays locked for this launch path.</p> : null}
     </div>
   );
 }

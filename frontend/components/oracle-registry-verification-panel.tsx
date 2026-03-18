@@ -23,9 +23,9 @@ import {
   ORACLE_TYPE_LAB,
   ORACLE_TYPE_OTHER,
   ORACLE_TYPE_WEARABLE_DATA_PROVIDER,
-  buildClaimOracleV2Tx,
-  buildRegisterOracleV2Tx,
-  buildUpdateOracleProfileV2Tx,
+  buildClaimOracleTx,
+  buildRegisterOracleTx,
+  buildUpdateOracleProfileTx,
   fetchProtocolReadiness,
   listOraclesWithProfiles,
   listPoolOracleApprovals,
@@ -42,7 +42,7 @@ import { formatRpcError } from "@/lib/rpc-errors";
 import { fetchSchemaMetadata, parseSchemaOutcomes } from "@/lib/schema-metadata";
 
 type WizardMode = "register" | "update";
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+type WizardStep = 1 | 2;
 
 type PoolRef = {
   address: string;
@@ -405,14 +405,14 @@ export function OracleRegistryVerificationPanel() {
   }, [loadSchemaPreview, previewHashes, schemaPreviewByHash]);
 
   useEffect(() => {
-    if (wizardStep !== 3) return;
+    if (wizardMode !== "register" || wizardStep !== 1) return;
     for (const schema of filteredSchemas.slice(0, 8)) {
       const hash = normalizeHex32(schema.schemaKeyHashHex);
       if (!schemaPreviewByHash[hash]) {
         void loadSchemaPreview(hash);
       }
     }
-  }, [filteredSchemas, loadSchemaPreview, schemaPreviewByHash, wizardStep]);
+  }, [filteredSchemas, loadSchemaPreview, schemaPreviewByHash, wizardMode, wizardStep]);
 
   const selectedSchemaCoverage = useMemo(() => {
     return selectedSchemaHashes.reduce((sum, hash) => {
@@ -511,11 +511,7 @@ export function OracleRegistryVerificationPanel() {
     if (step >= 1) {
       if (!normalize(oracleAddressInput)) return "Oracle signing pubkey is required.";
       if (!isPublicKey(oracleAddressInput)) return "Oracle signing pubkey is invalid.";
-    }
-    if (step >= 2) {
       if (!normalize(displayName)) return "Display name is required.";
-    }
-    if (step >= 3) {
       if (selectedSchemaHashes.length > 16) return "Maximum supported schemas is 16.";
     }
     return null;
@@ -528,12 +524,12 @@ export function OracleRegistryVerificationPanel() {
       return;
     }
     setWizardError(null);
-    setWizardStep((current) => (current === 5 ? current : ((current + 1) as WizardStep)));
+    setWizardStep((current) => (current === 2 ? current : 2));
   }, [validateStep, wizardStep]);
 
   const goBack = useCallback(() => {
     setWizardError(null);
-    setWizardStep((current) => (current === 1 ? current : ((current - 1) as WizardStep)));
+    setWizardStep((current) => (current === 1 ? current : 1));
   }, []);
 
   const registerOracle = useCallback(async () => {
@@ -541,7 +537,7 @@ export function OracleRegistryVerificationPanel() {
       setWizardError("Connect a wallet before sending transactions.");
       return;
     }
-    const validationError = validateStep(5);
+    const validationError = validateStep(2);
     if (validationError) {
       setWizardError(validationError);
       return;
@@ -556,7 +552,7 @@ export function OracleRegistryVerificationPanel() {
 
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = buildRegisterOracleV2Tx({
+      const tx = buildRegisterOracleTx({
         admin: publicKey,
         oracle: oraclePubkey,
         recentBlockhash: blockhash,
@@ -608,7 +604,7 @@ export function OracleRegistryVerificationPanel() {
       setWizardError("Connect a wallet before sending transactions.");
       return;
     }
-    const validationError = validateStep(5);
+    const validationError = validateStep(2);
     if (validationError) {
       setWizardError(validationError);
       return;
@@ -623,7 +619,7 @@ export function OracleRegistryVerificationPanel() {
 
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = buildUpdateOracleProfileV2Tx({
+      const tx = buildUpdateOracleProfileTx({
         authority: publicKey,
         oracle: oraclePubkey,
         recentBlockhash: blockhash,
@@ -691,7 +687,7 @@ export function OracleRegistryVerificationPanel() {
 
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = buildClaimOracleV2Tx({
+      const tx = buildClaimOracleTx({
         oracle: publicKey,
         recentBlockhash: blockhash,
       });
@@ -763,7 +759,7 @@ export function OracleRegistryVerificationPanel() {
     resetWizardMessages();
   }, [resetWizardMessages, selectedOracle]);
 
-  const wizardActionLabel = wizardMode === "register" ? "Register (admin tx)" : "Update profile";
+  const wizardActionLabel = wizardMode === "register" ? "Register oracle" : "Update profile";
 
   const readinessRows = snapshot
     ? [
@@ -856,7 +852,7 @@ export function OracleRegistryVerificationPanel() {
                       <p className="text-xs text-[var(--muted-foreground)]">{profile?.displayName || "Unlabeled oracle"}</p>
                       <p className="font-semibold truncate">{shortAddress(row.oracle)}</p>
                       <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
-                        {profile ? oracleTypeLabel(profile.oracleType) : "Legacy oracle entry"}
+                        {profile ? oracleTypeLabel(profile.oracleType) : "Profile pending"}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -896,7 +892,7 @@ export function OracleRegistryVerificationPanel() {
                   className="secondary-button text-sm"
                   onClick={loadSelectedProfileToWizard}
                 >
-                  Update in wizard
+                  Edit profile
                 </button>
               ) : null}
               <button
@@ -975,7 +971,7 @@ export function OracleRegistryVerificationPanel() {
               </div>
             </details>
           ) : (
-            <p className="field-help">Legacy oracle entry detected. Register a v2 profile to add organization data and capabilities.</p>
+            <p className="field-help">This oracle has not published a structured profile yet. Use the onboarding flow below to register one and unlock managed capabilities.</p>
           )}
         </section>
       ) : null}
@@ -983,19 +979,20 @@ export function OracleRegistryVerificationPanel() {
       <section className="surface-card space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="metric-label">Register Oracle Wizard</p>
+            <p className="metric-label">Oracle onboarding</p>
             <p className="field-help">
               {wizardMode === "register"
-                ? "Admin wallet registers a profile; oracle key claims activation after registration."
-                : "Update mode rewrites profile fields on-chain (admin or oracle key only)."}
+                ? "Registration stays guided, while normal profile edits stay on a single screen."
+                : "Edit the profile inline, then save changes without stepping through a wizard."}
             </p>
           </div>
-          <div className="inline-flex rounded-full border border-[var(--border)]/55 p-1 bg-[color-mix(in oklab,var(--surface-soft)_78%,transparent)]">
+          <div className="inline-flex gap-1 rounded-xl border border-[var(--border)]/60 p-1 bg-[color-mix(in oklab,var(--surface-strong)_82%,transparent)]">
             <button
               type="button"
-              className={`segment-button px-3 py-1 text-sm ${wizardMode === "register" ? "is-active" : ""}`}
+              className={`segment-button segment-button-compact ${wizardMode === "register" ? "segment-button-active" : ""}`}
               onClick={() => {
                 setWizardMode("register");
+                setWizardStep(1);
                 resetWizardMessages();
               }}
             >
@@ -1003,9 +1000,10 @@ export function OracleRegistryVerificationPanel() {
             </button>
             <button
               type="button"
-              className={`segment-button px-3 py-1 text-sm ${wizardMode === "update" ? "is-active" : ""}`}
+              className={`segment-button segment-button-compact ${wizardMode === "update" ? "segment-button-active" : ""}`}
               onClick={() => {
                 setWizardMode("update");
+                setWizardStep(1);
                 resetWizardMessages();
               }}
             >
@@ -1014,185 +1012,223 @@ export function OracleRegistryVerificationPanel() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs">
-          {[1, 2, 3, 4, 5].map((step) => (
-            <button
-              key={step}
-              type="button"
-              className={`segment-button px-2.5 py-1 ${wizardStep === step ? "is-active" : ""}`}
-              onClick={() => {
-                setWizardStep(step as WizardStep);
-                resetWizardMessages();
-              }}
-            >
-              Step {step}
-            </button>
-          ))}
-        </div>
-
-        {wizardStep === 1 ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Admin wallet (signer)</span>
-              <input className="field-input w-full" value={walletAddress || "Not connected"} readOnly />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Oracle signing pubkey</span>
-              <input
-                className="field-input w-full"
-                value={oracleAddressInput}
-                onChange={(event) => {
-                  setOracleAddressInput(event.target.value);
-                  resetWizardMessages();
-                }}
-                placeholder="Oracle signer pubkey"
-              />
-            </label>
-            <p className="field-help sm:col-span-2">
-              Registration signer can differ from oracle signer. Oracle signer must run claim to become active.
-            </p>
+        {wizardMode === "register" ? (
+          <div className="wizard-stepper-shell">
+            <div className="wizard-stepper-head">
+              <div>
+                <p className="metric-label">Register oracle</p>
+                <p className="field-help">Start with the profile, then confirm the on-chain registration and claim handoff.</p>
+              </div>
+            </div>
+            <div className="wizard-stepper-list sm:grid-cols-2 xl:grid-cols-2">
+              {[1, 2].map((step) => (
+                <button
+                  key={step}
+                  type="button"
+                  className={`wizard-step-chip ${wizardStep === step ? "wizard-step-chip-active" : ""}`}
+                  onClick={() => {
+                    setWizardStep(step as WizardStep);
+                    resetWizardMessages();
+                  }}
+                >
+                  <span className="workflow-index">{step}</span>
+                  <span className="wizard-step-chip-label">
+                    {step === 1 ? "Profile & Capability" : "Review & Activate"}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
 
-        {wizardStep === 2 ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Display name *</span>
-              <input className="field-input w-full" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Example: Northwell Diagnostics" />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Oracle type</span>
-              <select className="field-input w-full" value={String(oracleType)} onChange={(event) => setOracleType(Number.parseInt(event.target.value, 10))}>
-                {ORACLE_TYPES.map((row) => (
-                  <option key={row.value} value={row.value}>{row.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Legal name</span>
-              <input className="field-input w-full" value={legalName} onChange={(event) => setLegalName(event.target.value)} placeholder="Optional" />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Website URL</span>
-              <input className="field-input w-full" value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} placeholder="https://example.org" />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="field-help">App URL</span>
-              <input className="field-input w-full" value={appUrl} onChange={(event) => setAppUrl(event.target.value)} placeholder="Optional" />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Logo URI</span>
-              <input className="field-input w-full" value={logoUri} onChange={(event) => setLogoUri(event.target.value)} placeholder="ipfs://... or https://..." />
-            </label>
-          </div>
-        ) : null}
-
-        {wizardStep === 3 ? (
-          <div className="space-y-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                className="field-input w-full sm:max-w-sm"
-                value={schemasSearch}
-                onChange={(event) => setSchemasSearch(event.target.value)}
-                placeholder="Search schemas"
-              />
-              <label className="inline-flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        {(wizardMode === "update" || wizardStep === 1) ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Admin wallet</span>
+                <input className="field-input w-full" value={walletAddress || "Not connected"} readOnly />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Oracle signing pubkey</span>
                 <input
-                  type="checkbox"
-                  checked={verifiedOnlySchemas}
-                  onChange={(event) => setVerifiedOnlySchemas(event.target.checked)}
+                  className="field-input w-full"
+                  value={oracleAddressInput}
+                  onChange={(event) => {
+                    setOracleAddressInput(event.target.value);
+                    resetWizardMessages();
+                  }}
+                  placeholder="Oracle signer public key"
                 />
-                Show verified schemas only
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Display name *</span>
+                <input className="field-input w-full" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Regional Care Diagnostics" />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Oracle type</span>
+                <select className="field-input w-full" value={String(oracleType)} onChange={(event) => setOracleType(Number.parseInt(event.target.value, 10))}>
+                  {ORACLE_TYPES.map((row) => (
+                    <option key={row.value} value={row.value}>{row.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Legal name</span>
+                <input className="field-input w-full" value={legalName} onChange={(event) => setLegalName(event.target.value)} placeholder="Optional legal entity name" />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Website URL</span>
+                <input className="field-input w-full" value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} placeholder="https://oracle.yourorg.com" />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">App URL</span>
+                <input className="field-input w-full" value={appUrl} onChange={(event) => setAppUrl(event.target.value)} placeholder="Optional operator dashboard URL" />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="field-help">Logo URI</span>
+                <input className="field-input w-full" value={logoUri} onChange={(event) => setLogoUri(event.target.value)} placeholder="ipfs://... or a public HTTPS logo URL" />
               </label>
             </div>
 
-            <div className="max-h-56 overflow-y-auto rounded-xl border border-[var(--border)]/50 divide-y divide-[var(--border)]/40">
-              {filteredSchemas.map((schema) => {
-                const normalizedHash = normalizeHex32(schema.schemaKeyHashHex);
-                const selected = selectedSchemaSet.has(normalizedHash);
-                const preview = schemaPreviewByHash[normalizedHash];
-                return (
-                  <label key={schema.address} className="flex items-start gap-2 p-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={() => toggleSchemaHash(schema.schemaKeyHashHex)}
-                    />
-                    <span className="min-w-0">
-                      <span className="block font-medium truncate">{schema.schemaKey} v{schema.version}</span>
-                      <span className="block text-[11px] text-[var(--muted-foreground)] font-mono truncate">
-                        {shortAddress(schema.schemaKeyHashHex)}
-                      </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className={`status-pill ${preview?.status === "ready" ? "status-ok" : "status-off"}`}>
-                          {preview ? previewStatusLabel(preview.status) : "Preview pending"}
-                        </span>
-                        {preview ? (
-                          <span className="text-[var(--muted-foreground)]">
-                            {preview.outcomeCount} outcomes • {preview.templateCount} templates
-                          </span>
-                        ) : null}
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-              {!filteredSchemas.length ? <p className="p-3 text-sm text-[var(--muted-foreground)]">No schemas found.</p> : null}
-            </div>
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  className="field-input w-full sm:max-w-sm"
+                  value={schemasSearch}
+                  onChange={(event) => setSchemasSearch(event.target.value)}
+                  placeholder="Filter supported schemas"
+                />
+                <label className="inline-flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                  <input
+                    type="checkbox"
+                    checked={verifiedOnlySchemas}
+                    onChange={(event) => setVerifiedOnlySchemas(event.target.checked)}
+                  />
+                  Show verified schemas only
+                </label>
+              </div>
 
-            <div className="flex gap-2">
-              <input
-                className="field-input w-full"
-                value={manualSchemaHash}
-                onChange={(event) => setManualSchemaHash(event.target.value)}
-                placeholder="Manual schema hash (32-byte hex)"
-              />
-              <button type="button" className="secondary-button text-sm" onClick={addManualSchemaHash}>Add</button>
-            </div>
-
-            <p className="field-help">
-              Selected supported schema hashes: {selectedSchemaHashes.length} / 16 • Previewed outcomes: {selectedSchemaCoverage}
-            </p>
-            {selectedSchemaHashes.length > 0 ? (
-              <div className="space-y-1 rounded-xl border border-[var(--border)]/45 p-2.5 text-xs">
-                {selectedSchemaHashes.map((hash) => {
-                  const normalizedHash = normalizeHex32(hash);
+              <div className="max-h-56 overflow-y-auto rounded-xl border border-[var(--border)]/50 divide-y divide-[var(--border)]/40">
+                {filteredSchemas.map((schema) => {
+                  const normalizedHash = normalizeHex32(schema.schemaKeyHashHex);
+                  const selected = selectedSchemaSet.has(normalizedHash);
                   const preview = schemaPreviewByHash[normalizedHash];
-                  const schema = schemaByHash.get(normalizedHash);
                   return (
-                    <p key={normalizedHash} className="break-all">
-                      <span className="font-medium">{schema ? `${schema.schemaKey} v${schema.version}` : shortAddress(normalizedHash)}</span>
-                      {" • "}
-                      <span className="text-[var(--muted-foreground)]">
-                        {preview ? `${preview.outcomeCount} outcomes, ${preview.templateCount} templates` : "preview pending"}
+                    <label key={schema.address} className="flex items-start gap-2 p-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleSchemaHash(schema.schemaKeyHashHex)}
+                      />
+                      <span className="min-w-0">
+                        <span className="block font-medium truncate">{schema.schemaKey} v{schema.version}</span>
+                        <span className="block text-[11px] text-[var(--muted-foreground)] font-mono truncate">
+                          {shortAddress(schema.schemaKeyHashHex)}
+                        </span>
+                        <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                          <span className={`status-pill ${preview?.status === "ready" ? "status-ok" : "status-off"}`}>
+                            {preview ? previewStatusLabel(preview.status) : "Preview pending"}
+                          </span>
+                          {preview ? (
+                            <span className="text-[var(--muted-foreground)]">
+                              {preview.outcomeCount} outcomes • {preview.templateCount} templates
+                            </span>
+                          ) : null}
+                        </span>
                       </span>
-                    </p>
+                    </label>
                   );
                 })}
+                {!filteredSchemas.length ? <p className="p-3 text-sm text-[var(--muted-foreground)]">No schemas found.</p> : null}
               </div>
-            ) : null}
+
+              <p className="field-help">
+                Selected supported schema hashes: {selectedSchemaHashes.length} / 16 • Previewed outcomes: {selectedSchemaCoverage}
+              </p>
+
+              {selectedSchemaHashes.length > 0 ? (
+                <div className="space-y-1 rounded-xl border border-[var(--border)]/45 p-2.5 text-xs">
+                  {selectedSchemaHashes.map((hash) => {
+                    const normalizedHash = normalizeHex32(hash);
+                    const preview = schemaPreviewByHash[normalizedHash];
+                    const schema = schemaByHash.get(normalizedHash);
+                    return (
+                      <p key={normalizedHash} className="break-all">
+                        <span className="font-medium">{schema ? `${schema.schemaKey} v${schema.version}` : shortAddress(normalizedHash)}</span>
+                        {" • "}
+                        <span className="text-[var(--muted-foreground)]">
+                          {preview ? `${preview.outcomeCount} outcomes, ${preview.templateCount} templates` : "preview pending"}
+                        </span>
+                      </p>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+
+            <details className="rounded-xl border border-[var(--border)]/45 p-3">
+              <summary className="cursor-pointer text-sm font-semibold">Advanced fields</summary>
+              <div className="mt-3 space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    className="field-input w-full"
+                    value={manualSchemaHash}
+                    onChange={(event) => setManualSchemaHash(event.target.value)}
+                    placeholder="Manual schema hash (32-byte hex)"
+                  />
+                  <button type="button" className="secondary-button text-sm" onClick={addManualSchemaHash}>Add</button>
+                </div>
+
+                <label className="space-y-1 text-sm">
+                  <span className="field-help">Webhook URL</span>
+                  <input
+                    className="field-input w-full"
+                    value={webhookUrl}
+                    onChange={(event) => setWebhookUrl(event.target.value)}
+                    placeholder="https://oracle.company.com/attest"
+                  />
+                </label>
+                <p className="field-help">Webhook URL is public on-chain metadata. Do not include secrets or auth tokens.</p>
+              </div>
+            </details>
+
+            {wizardMode === "register" ? (
+              <div className="flex items-center justify-between gap-2">
+                <span />
+                <button type="button" className="secondary-button text-sm" onClick={goNext}>
+                  Next
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="action-button inline-flex items-center gap-1.5 text-sm"
+                  onClick={() => void updateOracleProfile()}
+                  disabled={Boolean(wizardBusy)}
+                >
+                  <ShieldCheck className={`h-3.5 w-3.5 ${wizardBusy ? "animate-pulse" : ""}`} />
+                  {wizardBusy ? "Submitting..." : wizardActionLabel}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button text-sm"
+                  onClick={() => {
+                    if (!oracleAddressInput) return;
+                    void claimOracle(oracleAddressInput);
+                  }}
+                  disabled={Boolean(wizardBusy) || !oracleAddressInput}
+                >
+                  Claim now
+                </button>
+              </div>
+            )}
           </div>
         ) : null}
 
-        {wizardStep === 4 ? (
-          <div className="space-y-2">
-            <label className="space-y-1 text-sm">
-              <span className="field-help">Webhook URL</span>
-              <input
-                className="field-input w-full"
-                value={webhookUrl}
-                onChange={(event) => setWebhookUrl(event.target.value)}
-                placeholder="https://oracle.company.com/attest"
-              />
-            </label>
-            <p className="field-help">Webhook URL is public on-chain metadata. Do not include secrets or auth tokens.</p>
-          </div>
-        ) : null}
-
-        {wizardStep === 5 ? (
+        {wizardMode === "register" && wizardStep === 2 ? (
           <div className="space-y-3">
             <div className="rounded-xl border border-[var(--border)]/55 p-3 text-sm space-y-1">
-              <p><span className="text-[var(--muted-foreground)]">Mode:</span> {wizardMode}</p>
               <p><span className="text-[var(--muted-foreground)]">Admin wallet:</span> {shortAddress(walletAddress || "—")}</p>
               <p><span className="text-[var(--muted-foreground)]">Oracle signer:</span> {shortAddress(oracleAddressInput || "—")}</p>
               <p><span className="text-[var(--muted-foreground)]">Display name:</span> {displayName || "—"}</p>
@@ -1207,11 +1243,14 @@ export function OracleRegistryVerificationPanel() {
               <button
                 type="button"
                 className="action-button inline-flex items-center gap-1.5 text-sm"
-                onClick={() => void (wizardMode === "register" ? registerOracle() : updateOracleProfile())}
+                onClick={() => void registerOracle()}
                 disabled={Boolean(wizardBusy)}
               >
                 <ShieldCheck className={`h-3.5 w-3.5 ${wizardBusy ? "animate-pulse" : ""}`} />
                 {wizardBusy ? "Submitting..." : wizardActionLabel}
+              </button>
+              <button type="button" className="secondary-button text-sm" onClick={goBack} disabled={Boolean(wizardBusy)}>
+                Back
               </button>
               <button
                 type="button"
@@ -1222,11 +1261,11 @@ export function OracleRegistryVerificationPanel() {
                 }}
                 disabled={Boolean(wizardBusy) || !oracleAddressInput}
               >
-                Claim now (if oracle wallet connected)
+                Claim now
               </button>
             </div>
 
-            {wizardMode === "register" && normalize(oracleAddressInput) && walletAddress !== normalize(oracleAddressInput) ? (
+            {normalize(oracleAddressInput) && walletAddress !== normalize(oracleAddressInput) ? (
               <p className="field-help">
                 After registration, have the oracle signer open {" "}
                 <Link href={`/oracles?claim=${encodeURIComponent(normalize(oracleAddressInput))}`} className="text-[var(--primary)] underline">
@@ -1238,24 +1277,20 @@ export function OracleRegistryVerificationPanel() {
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between gap-2">
-          <button type="button" className="secondary-button text-sm" onClick={goBack} disabled={wizardStep === 1}>Back</button>
-          <button type="button" className="secondary-button text-sm" onClick={goNext} disabled={wizardStep === 5}>Next</button>
-        </div>
-
         {wizardError ? <p className="field-error">{wizardError}</p> : null}
         {wizardSuccess ? <p className="text-sm text-[var(--success)]">{wizardSuccess}</p> : null}
         {claimError ? <p className="field-error">{claimError}</p> : null}
         {claimSuccess ? <p className="text-sm text-[var(--success)]">{claimSuccess}</p> : null}
       </section>
 
-      <section className="surface-card space-y-4">
-        <div className="space-y-1">
-          <p className="metric-label">Verification Tools</p>
-          <p className="field-help">Run oracle/pool readiness checks with human labels and direct fix links.</p>
-        </div>
+      <details className="surface-card">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+          Verification tools
+        </summary>
+        <div className="mt-4 space-y-4">
+          <p className="field-help">Run oracle and pool readiness checks with human labels and direct fix links.</p>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1 text-sm">
             <span className="field-help">Oracle</span>
             <select
@@ -1289,69 +1324,70 @@ export function OracleRegistryVerificationPanel() {
           </label>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="secondary-button inline-flex items-center gap-1.5 text-sm"
-            onClick={() => void runVerification()}
-            disabled={!verificationOracleAddress || !verificationPoolAddress || verificationBusy}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${verificationBusy ? "animate-spin" : ""}`} />
-            {verificationBusy ? "Running..." : "Run readiness check"}
-          </button>
-          {verificationPoolAddress ? (
-            <Link href={`/pools/${verificationPoolAddress}?section=oracle`} className="secondary-button inline-flex items-center gap-1.5 text-sm">
-              Open pool workspace <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="secondary-button inline-flex items-center gap-1.5 text-sm"
+              onClick={() => void runVerification()}
+              disabled={!verificationOracleAddress || !verificationPoolAddress || verificationBusy}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${verificationBusy ? "animate-spin" : ""}`} />
+              {verificationBusy ? "Running..." : "Run readiness check"}
+            </button>
+            {verificationPoolAddress ? (
+              <Link href={`/pools/${verificationPoolAddress}?section=oracles&panel=policy`} className="secondary-button inline-flex items-center gap-1.5 text-sm">
+                Open pool workspace <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            ) : null}
+          </div>
+
+          {verificationError ? <p className="field-error">{verificationError}</p> : null}
+
+          {snapshot ? (
+            <div className="space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {readinessRows.map((row) => (
+                  <div key={row.label} className={`rounded-xl border p-2 ${readyBadge(row.value)}`}>
+                    <p className="text-[11px] uppercase tracking-[0.08em]">{row.label}</p>
+                    <p className="text-sm font-semibold mt-1 inline-flex items-center gap-1">
+                      {row.value ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                      {row.value ? "Ready" : "Missing"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {!snapshot.poolOracleApproved || !snapshot.poolOraclePolicyConfigured ? (
+                <p className="field-help">
+                  Missing pool oracle configuration detected. Open the pool workspace and configure oracle approvals and quorum policy.
+                </p>
+              ) : null}
+
+              {snapshotAt ? (
+                <p className="text-[11px] text-[var(--muted-foreground)]">Snapshot: {new Date(snapshotAt).toLocaleString()}</p>
+              ) : null}
+
+              <details className="rounded-xl border border-[var(--border)]/45 p-3">
+                <summary className="cursor-pointer text-sm font-semibold">Derived addresses</summary>
+                <div className="mt-2 font-mono text-xs break-all space-y-1 text-[var(--muted-foreground)]">
+                  <p>Oracle entry: {snapshot.derived.oracleEntryAddress || "—"}</p>
+                  <p>Oracle profile: {snapshot.derived.oracleProfileAddress || "—"}</p>
+                  <p>Pool oracle approval: {snapshot.derived.poolOracleAddress || "—"}</p>
+                  <p>Pool oracle policy: {snapshot.derived.poolOraclePolicyAddress || "—"}</p>
+                </div>
+              </details>
+            </div>
+          ) : (
+            <p className="field-help">No readiness snapshot yet. Select an oracle and pool, then run check.</p>
+          )}
+
+          {!verificationApprovals.length && selectedVerificationOracle ? (
+            <p className="field-help">
+              Selected oracle has no pool approvals yet. Configure pool approval first.
+            </p>
           ) : null}
         </div>
-
-        {verificationError ? <p className="field-error">{verificationError}</p> : null}
-
-        {snapshot ? (
-          <div className="space-y-2">
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {readinessRows.map((row) => (
-                <div key={row.label} className={`rounded-xl border p-2 ${readyBadge(row.value)}`}>
-                  <p className="text-[11px] uppercase tracking-[0.08em]">{row.label}</p>
-                  <p className="text-sm font-semibold mt-1 inline-flex items-center gap-1">
-                    {row.value ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                    {row.value ? "Ready" : "Missing"}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {!snapshot.poolOracleApproved || !snapshot.poolOraclePolicyConfigured ? (
-              <p className="field-help">
-                Missing pool oracle configuration detected. Open the pool workspace and configure oracle approvals and quorum policy.
-              </p>
-            ) : null}
-
-            {snapshotAt ? (
-              <p className="text-[11px] text-[var(--muted-foreground)]">Snapshot: {new Date(snapshotAt).toLocaleString()}</p>
-            ) : null}
-
-            <details className="rounded-xl border border-[var(--border)]/45 p-3">
-              <summary className="cursor-pointer text-sm font-semibold">Derived addresses</summary>
-              <div className="mt-2 font-mono text-xs break-all space-y-1 text-[var(--muted-foreground)]">
-                <p>Oracle entry: {snapshot.derived.oracleEntryAddress || "—"}</p>
-                <p>Oracle profile: {snapshot.derived.oracleProfileAddress || "—"}</p>
-                <p>Pool oracle approval: {snapshot.derived.poolOracleAddress || "—"}</p>
-                <p>Pool oracle policy: {snapshot.derived.poolOraclePolicyAddress || "—"}</p>
-              </div>
-            </details>
-          </div>
-        ) : (
-          <p className="field-help">No readiness snapshot yet. Select an oracle and pool, then run check.</p>
-        )}
-
-        {!verificationApprovals.length && selectedVerificationOracle ? (
-          <p className="field-help">
-            Selected oracle has no pool approvals yet. Configure pool approval first.
-          </p>
-        ) : null}
-      </section>
+      </details>
     </div>
   );
 }

@@ -1,39 +1,321 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type {
+  ClaimDelegateAuthorizationSummary,
+  CoverageClaimSummary,
   MembershipSummary,
   OracleSummary,
   OutcomeAggregateSummary,
+  PoolControlAuthoritySummary,
+  PoolRedemptionRequestSummary,
   PoolSummary,
+  ProtocolConfigSummary,
   ProtocolReadiness,
+  WalletPoolPositionSummary,
 } from "@/lib/protocol";
 
 export type PoolWorkspaceSection =
+  | "overview"
   | "members"
-  | "claims"
   | "coverage"
+  | "claims"
   | "liquidity"
-  | "oracle"
+  | "oracles"
+  | "schemas"
+  | "treasury"
+  | "governance"
   | "settings";
 
 export const POOL_WORKSPACE_SECTIONS: ReadonlyArray<PoolWorkspaceSection> = [
+  "overview",
   "members",
-  "claims",
   "coverage",
+  "claims",
   "liquidity",
-  "oracle",
+  "oracles",
+  "schemas",
+  "treasury",
+  "governance",
   "settings",
 ];
 
+export type WorkspaceSectionGroup = "primary" | "protocol-tools";
+
+export type PoolWorkspacePanel =
+  | "summary"
+  | "enrollment"
+  | "delegation"
+  | "series"
+  | "positions"
+  | "payments"
+  | "activation"
+  | "member"
+  | "operator"
+  | "capital"
+  | "direct"
+  | "queue"
+  | "policy"
+  | "staking"
+  | "attestations"
+  | "settlements"
+  | "disputes"
+  | "registry"
+  | "vaults"
+  | "protocol"
+  | "readiness"
+  | "controls"
+  | "lifecycle";
+
+export type WorkspacePanelPresentation = "wizard" | "list-detail" | "form" | "details-only";
+
+export const WORKSPACE_SECTION_PANELS: Readonly<Record<PoolWorkspaceSection, ReadonlyArray<PoolWorkspacePanel>>> = {
+  overview: ["summary"],
+  members: ["enrollment", "delegation"],
+  coverage: ["series", "positions", "payments", "activation"],
+  claims: ["member", "operator"],
+  liquidity: ["capital", "direct", "queue"],
+  oracles: ["policy", "staking", "attestations", "settlements", "disputes"],
+  schemas: ["registry"],
+  treasury: ["vaults"],
+  governance: ["protocol"],
+  settings: ["readiness", "controls", "lifecycle"],
+};
+
+export type WalletRole =
+  | "observer"
+  | "governance_authority"
+  | "protocol_admin"
+  | "pool_authority"
+  | "pool_operator"
+  | "risk_manager"
+  | "compliance_authority"
+  | "guardian"
+  | "oracle"
+  | "member"
+  | "claim_delegate"
+  | "capital_provider";
+
+export type WorkspaceSectionMeta = {
+  label: string;
+  group: WorkspaceSectionGroup;
+  defaultPanel: PoolWorkspacePanel | null;
+  allowedRoles: WalletRole[];
+  showInNav: boolean;
+};
+
+export const POOL_WORKSPACE_SECTION_META: Readonly<Record<PoolWorkspaceSection, WorkspaceSectionMeta>> = {
+  overview: {
+    label: "Overview",
+    group: "primary",
+    defaultPanel: "summary",
+    allowedRoles: ["observer"],
+    showInNav: true,
+  },
+  members: {
+    label: "Members",
+    group: "protocol-tools",
+    defaultPanel: "enrollment",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "risk_manager",
+      "compliance_authority",
+      "guardian",
+      "member",
+      "claim_delegate",
+    ],
+    showInNav: true,
+  },
+  coverage: {
+    label: "Coverage",
+    group: "primary",
+    defaultPanel: "series",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "member",
+      "claim_delegate",
+    ],
+    showInNav: true,
+  },
+  claims: {
+    label: "Claims",
+    group: "primary",
+    defaultPanel: "member",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "risk_manager",
+      "compliance_authority",
+      "guardian",
+      "member",
+      "claim_delegate",
+    ],
+    showInNav: true,
+  },
+  liquidity: {
+    label: "Liquidity",
+    group: "primary",
+    defaultPanel: "direct",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "risk_manager",
+      "capital_provider",
+    ],
+    showInNav: true,
+  },
+  oracles: {
+    label: "Oracles",
+    group: "protocol-tools",
+    defaultPanel: "policy",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "oracle",
+    ],
+    showInNav: true,
+  },
+  schemas: {
+    label: "Schemas",
+    group: "protocol-tools",
+    defaultPanel: "registry",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+    ],
+    showInNav: true,
+  },
+  treasury: {
+    label: "Treasury",
+    group: "protocol-tools",
+    defaultPanel: "vaults",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "risk_manager",
+      "oracle",
+    ],
+    showInNav: true,
+  },
+  governance: {
+    label: "Governance",
+    group: "protocol-tools",
+    defaultPanel: "protocol",
+    allowedRoles: ["governance_authority", "protocol_admin"],
+    showInNav: true,
+  },
+  settings: {
+    label: "Settings",
+    group: "protocol-tools",
+    defaultPanel: "readiness",
+    allowedRoles: [
+      "governance_authority",
+      "protocol_admin",
+      "pool_authority",
+      "pool_operator",
+      "risk_manager",
+    ],
+    showInNav: true,
+  },
+};
+
+export const PRIMARY_WORKSPACE_SECTIONS: ReadonlyArray<PoolWorkspaceSection> = POOL_WORKSPACE_SECTIONS.filter(
+  (section) => POOL_WORKSPACE_SECTION_META[section].group === "primary" && POOL_WORKSPACE_SECTION_META[section].showInNav,
+);
+
+export const PROTOCOL_TOOL_WORKSPACE_SECTIONS: ReadonlyArray<PoolWorkspaceSection> = POOL_WORKSPACE_SECTIONS.filter(
+  (section) => POOL_WORKSPACE_SECTION_META[section].group === "protocol-tools" && POOL_WORKSPACE_SECTION_META[section].showInNav,
+);
+
+export const WORKSPACE_PANEL_META: Readonly<Record<PoolWorkspacePanel, { presentation: WorkspacePanelPresentation }>> = {
+  summary: { presentation: "details-only" },
+  enrollment: { presentation: "form" },
+  delegation: { presentation: "form" },
+  series: { presentation: "list-detail" },
+  positions: { presentation: "list-detail" },
+  payments: { presentation: "form" },
+  activation: { presentation: "form" },
+  member: { presentation: "list-detail" },
+  operator: { presentation: "list-detail" },
+  capital: { presentation: "form" },
+  direct: { presentation: "form" },
+  queue: { presentation: "list-detail" },
+  policy: { presentation: "list-detail" },
+  staking: { presentation: "form" },
+  attestations: { presentation: "form" },
+  settlements: { presentation: "list-detail" },
+  disputes: { presentation: "list-detail" },
+  registry: { presentation: "list-detail" },
+  vaults: { presentation: "details-only" },
+  protocol: { presentation: "details-only" },
+  readiness: { presentation: "details-only" },
+  controls: { presentation: "form" },
+  lifecycle: { presentation: "form" },
+};
+
 export type WalletCapabilities = {
   isConnected: boolean;
+  roles: WalletRole[];
+  primaryRole: WalletRole;
+  isGovernanceAuthority: boolean;
+  isProtocolAdmin: boolean;
   isPoolAuthority: boolean;
+  isPoolOperator: boolean;
+  isRiskManager: boolean;
+  isComplianceAuthority: boolean;
+  isGuardian: boolean;
   isRegisteredMember: boolean;
   isRegisteredOracle: boolean;
+  isClaimDelegate: boolean;
+  hasCapitalPosition: boolean;
   canCreatePool: boolean;
   canSubmitClaims: boolean;
   canSettleCoverage: boolean;
   canManageOracleStaking: boolean;
+  canManageGovernance: boolean;
+  canManageSettings: boolean;
+  canManageTreasury: boolean;
+  canManageSchemas: boolean;
+  canManageOracles: boolean;
+  canManageLiquidity: boolean;
+  canManageClaims: boolean;
+  canManageCoverage: boolean;
+  canManagePolicySeries: boolean;
+  canManagePaymentOptions: boolean;
+  canActivateCycles: boolean;
+  canReviewCoverageClaims: boolean;
+  canAdjudicateCoverageClaims: boolean;
+  canRunRedemptionQueue: boolean;
+  canManageCapitalClasses: boolean;
+  canManageOracleStake: boolean;
+  canRegisterOracle: boolean;
+  canManageOracleProfile: boolean;
+  canSlashOracle: boolean;
+  canSubmitOracleVotes: boolean;
+  canSettleCycles: boolean;
+  canOpenDisputes: boolean;
+  canResolveDisputes: boolean;
+  canWithdrawPoolTreasury: boolean;
+  canWithdrawProtocolFees: boolean;
+  canWithdrawOracleFees: boolean;
+  canOperateOwnedRedemptionQueue: boolean;
+  canOperateQueueAsOperator: boolean;
+  canUseExpertTools: boolean;
 };
 
 export type PoolActionQueueItem = {
@@ -41,7 +323,17 @@ export type PoolActionQueueItem = {
   title: string;
   detail: string;
   section: PoolWorkspaceSection;
+  panel?: PoolWorkspacePanel | null;
   priority: "high" | "medium" | "low";
+};
+
+export type NextActionSummary = PoolActionQueueItem;
+
+export type CompactStatusSummary = {
+  id: string;
+  label: string;
+  value: string;
+  tone: "ok" | "warn" | "neutral";
 };
 
 export type PoolDashboardSnapshot = {
@@ -51,57 +343,259 @@ export type PoolDashboardSnapshot = {
   readinessChecksTotal: number;
   riskFlags: string[];
   queue: PoolActionQueueItem[];
+  nextAction: NextActionSummary | null;
+  compactStatus: CompactStatusSummary[];
+  recentActivity: PoolActionQueueItem[];
 };
-
-export function parseWorkspaceSection(value: string | null | undefined): PoolWorkspaceSection {
-  const normalized = (value || "").trim().toLowerCase();
-  return (POOL_WORKSPACE_SECTIONS.find((section) => section === normalized) ?? "members") as PoolWorkspaceSection;
-}
 
 type WalletCapabilityInput = {
   walletAddress: string | null;
   pool: PoolSummary | null;
+  protocolConfig?: ProtocolConfigSummary | null;
+  poolControlAuthority?: PoolControlAuthoritySummary | null;
   walletMembership: MembershipSummary | null;
   walletOracle: OracleSummary | null;
+  walletClaimDelegate?: ClaimDelegateAuthorizationSummary | null;
+  walletCapitalPosition?: WalletPoolPositionSummary | null;
 };
-
-export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCapabilities {
-  const isConnected = Boolean(input.walletAddress);
-  const normalizedWallet = input.walletAddress?.trim() ?? "";
-
-  const isPoolAuthority = Boolean(
-    normalizedWallet
-      && input.pool
-      && normalizedWallet === input.pool.authority,
-  );
-  const isRegisteredMember = Boolean(input.walletMembership);
-  const isRegisteredOracle = Boolean(input.walletOracle);
-
-  return {
-    isConnected,
-    isPoolAuthority,
-    isRegisteredMember,
-    isRegisteredOracle,
-    canCreatePool: isConnected,
-    canSubmitClaims: isConnected && isRegisteredMember,
-    canSettleCoverage: isPoolAuthority,
-    canManageOracleStaking: isConnected && isRegisteredOracle,
-  };
-}
 
 type DashboardSnapshotInput = {
   readiness: ProtocolReadiness | null;
+  protocolConfig?: ProtocolConfigSummary | null;
   activeMemberships: MembershipSummary[];
   finalizedAggregates: OutcomeAggregateSummary[];
+  pendingCoverageClaims?: CoverageClaimSummary[];
+  pendingRedemptions?: PoolRedemptionRequestSummary[];
   capabilities: WalletCapabilities;
 };
 
+function normalize(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
+function sameAddress(left: string | null | undefined, right: string | null | undefined): boolean {
+  const normalizedLeft = normalize(left);
+  const normalizedRight = normalize(right);
+  return Boolean(normalizedLeft) && Boolean(normalizedRight) && normalizedLeft === normalizedRight;
+}
+
+export function parseWorkspaceSection(value: string | null | undefined): PoolWorkspaceSection {
+  const normalized = (value || "").trim().toLowerCase();
+  if (normalized === "oracle") {
+    return "oracles";
+  }
+  return (POOL_WORKSPACE_SECTIONS.find((section) => section === normalized) ?? "overview") as PoolWorkspaceSection;
+}
+
+export function defaultWorkspacePanel(section: PoolWorkspaceSection): PoolWorkspacePanel | null {
+  return POOL_WORKSPACE_SECTION_META[section].defaultPanel ?? WORKSPACE_SECTION_PANELS[section][0] ?? null;
+}
+
+export function parseWorkspacePanel(
+  section: PoolWorkspaceSection,
+  value: string | null | undefined,
+): PoolWorkspacePanel | null {
+  const normalized = (value || "").trim().toLowerCase();
+  if (!normalized) {
+    return defaultWorkspacePanel(section);
+  }
+  if (section === "coverage") {
+    if (normalized === "products") return "series";
+    if (normalized === "premium") return "payments";
+    if (normalized === "subscribe" || normalized === "issue") return "positions";
+  }
+  if (section === "claims" && normalized === "casework") {
+    return "operator";
+  }
+  const validPanels = WORKSPACE_SECTION_PANELS[section];
+  return (validPanels.find((panel) => panel === normalized) ?? defaultWorkspacePanel(section)) as PoolWorkspacePanel | null;
+}
+
+export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCapabilities {
+  const walletAddress = normalize(input.walletAddress);
+  const isConnected = Boolean(walletAddress);
+  const isGovernanceAuthority = sameAddress(walletAddress, input.protocolConfig?.governanceAuthority);
+  const isProtocolAdmin = sameAddress(walletAddress, input.protocolConfig?.admin);
+  const isPoolAuthority = sameAddress(walletAddress, input.pool?.authority);
+  const isPoolOperator = sameAddress(walletAddress, input.poolControlAuthority?.operatorAuthority);
+  const isRiskManager = sameAddress(walletAddress, input.poolControlAuthority?.riskManagerAuthority);
+  const isComplianceAuthority = sameAddress(walletAddress, input.poolControlAuthority?.complianceAuthority);
+  const isGuardian = sameAddress(walletAddress, input.poolControlAuthority?.guardianAuthority);
+  const isRegisteredMember = Boolean(input.walletMembership);
+  const isRegisteredOracle = Boolean(input.walletOracle);
+  const isClaimDelegate =
+    Boolean(input.walletClaimDelegate?.active)
+    && sameAddress(walletAddress, input.walletClaimDelegate?.delegate);
+  const walletCapitalPosition = input.walletCapitalPosition;
+  const hasCapitalPosition = walletCapitalPosition
+    ? (
+      walletCapitalPosition.capitalPositionActive
+      || walletCapitalPosition.pendingRedemptionRequestCount > 0
+      || walletCapitalPosition.pendingCoverageClaimCount > 0
+    )
+    : false;
+
+  const roles: WalletRole[] = [];
+  if (!isConnected) {
+    roles.push("observer");
+  } else {
+    if (isGovernanceAuthority) roles.push("governance_authority");
+    if (isProtocolAdmin) roles.push("protocol_admin");
+    if (isPoolAuthority) roles.push("pool_authority");
+    if (isPoolOperator) roles.push("pool_operator");
+    if (isRiskManager) roles.push("risk_manager");
+    if (isComplianceAuthority) roles.push("compliance_authority");
+    if (isGuardian) roles.push("guardian");
+    if (isRegisteredOracle) roles.push("oracle");
+    if (isRegisteredMember) roles.push("member");
+    if (isClaimDelegate) roles.push("claim_delegate");
+    if (hasCapitalPosition) roles.push("capital_provider");
+    if (roles.length === 0) roles.push("observer");
+  }
+
+  const canManageProtocolConfig = isGovernanceAuthority || isProtocolAdmin;
+  const canManagePoolControls = isPoolAuthority || isPoolOperator;
+  const canReviewCoverageClaims =
+    isPoolAuthority || isPoolOperator || isRiskManager || isComplianceAuthority || isGuardian;
+  const canAdjudicateCoverageClaims = canReviewCoverageClaims;
+  const canOperateQueueAsOperator = isPoolAuthority || isPoolOperator || isRiskManager;
+  const canOperateOwnedRedemptionQueue = isConnected && (hasCapitalPosition || isPoolAuthority || isPoolOperator);
+  const canManageOracleStake = isConnected && (isRegisteredOracle || canManageProtocolConfig);
+  const canManageOracleProfile = isRegisteredOracle || canManageProtocolConfig;
+  const canOpenDisputes =
+    isPoolAuthority || isPoolOperator || isRiskManager || isGuardian || canManageProtocolConfig;
+
+  return {
+    isConnected,
+    roles,
+    primaryRole: roles[0] ?? "observer",
+    isGovernanceAuthority,
+    isProtocolAdmin,
+    isPoolAuthority,
+    isPoolOperator,
+    isRiskManager,
+    isComplianceAuthority,
+    isGuardian,
+    isRegisteredMember,
+    isRegisteredOracle,
+    isClaimDelegate,
+    hasCapitalPosition,
+    canCreatePool: isConnected,
+    canSubmitClaims: isConnected && (isRegisteredMember || isClaimDelegate),
+    canSettleCoverage: isPoolAuthority || isPoolOperator || isRiskManager,
+    canManageOracleStaking: canManageOracleStake,
+    canManageGovernance: canManageProtocolConfig,
+    canManageSettings: canManagePoolControls,
+    canManageTreasury: isPoolAuthority || isPoolOperator || isRiskManager || canManageProtocolConfig,
+    canManageSchemas: isPoolAuthority || isPoolOperator || canManageProtocolConfig,
+    canManageOracles: isPoolAuthority || isPoolOperator || isGovernanceAuthority || isRegisteredOracle,
+    canManageLiquidity: isPoolAuthority || isPoolOperator || isRiskManager || hasCapitalPosition,
+    canManageClaims: canReviewCoverageClaims,
+    canManageCoverage: isPoolAuthority || isPoolOperator || isRegisteredMember || isClaimDelegate,
+    canManagePolicySeries: isPoolAuthority || isPoolOperator || isGovernanceAuthority,
+    canManagePaymentOptions: isPoolAuthority || isPoolOperator || isGovernanceAuthority,
+    canActivateCycles: isPoolAuthority || isPoolOperator || isRegisteredMember || isClaimDelegate,
+    canReviewCoverageClaims,
+    canAdjudicateCoverageClaims,
+    canRunRedemptionQueue: canOperateQueueAsOperator,
+    canManageCapitalClasses: isPoolAuthority || isPoolOperator || isRiskManager,
+    canManageOracleStake,
+    canRegisterOracle: canManageProtocolConfig,
+    canManageOracleProfile,
+    canSlashOracle: canManageProtocolConfig,
+    canSubmitOracleVotes: isRegisteredOracle,
+    canSettleCycles: isRegisteredOracle,
+    canOpenDisputes,
+    canResolveDisputes: canManageProtocolConfig,
+    canWithdrawPoolTreasury: isRegisteredOracle,
+    canWithdrawProtocolFees: canManageProtocolConfig,
+    canWithdrawOracleFees: isRegisteredOracle,
+    canOperateOwnedRedemptionQueue,
+    canOperateQueueAsOperator,
+    canUseExpertTools:
+      isGovernanceAuthority
+      || isProtocolAdmin
+      || isPoolAuthority
+      || isPoolOperator
+      || isRiskManager
+      || isComplianceAuthority
+      || isGuardian
+      || isRegisteredOracle,
+  };
+}
+
+export function visibleWorkspacePanels(
+  section: PoolWorkspaceSection,
+  capabilities: WalletCapabilities,
+): ReadonlyArray<PoolWorkspacePanel> {
+  switch (section) {
+    case "coverage":
+      if (capabilities.canManagePolicySeries || capabilities.canManagePaymentOptions) {
+        return ["series", "positions", "payments", "activation"];
+      }
+      if (capabilities.isRegisteredMember || capabilities.isClaimDelegate || capabilities.canActivateCycles) {
+        return ["positions", "activation", "payments", "series"];
+      }
+      return ["series", "positions", "payments", "activation"];
+    case "claims":
+      return capabilities.canReviewCoverageClaims || capabilities.canAdjudicateCoverageClaims
+        ? ["operator", "member"]
+        : ["member"];
+    case "liquidity": {
+      const panels: PoolWorkspacePanel[] = [];
+      if (capabilities.canManageCapitalClasses) {
+        panels.push("capital");
+      }
+      if (capabilities.canManageLiquidity || capabilities.hasCapitalPosition || capabilities.isConnected) {
+        panels.push("direct");
+      }
+      if (capabilities.canRunRedemptionQueue || capabilities.canOperateOwnedRedemptionQueue) {
+        panels.push("queue");
+      }
+      return panels.length > 0 ? panels : ["direct"];
+    }
+    case "oracles": {
+      const panels: PoolWorkspacePanel[] = ["policy"];
+      if (capabilities.canManageOracleStake || capabilities.canManageOracleProfile || capabilities.canSlashOracle) {
+        panels.push("staking");
+      }
+      if (capabilities.canSubmitOracleVotes) {
+        panels.push("attestations");
+      }
+      if (capabilities.canSettleCycles) {
+        panels.push("settlements");
+      }
+      if (capabilities.canOpenDisputes || capabilities.canResolveDisputes) {
+        panels.push("disputes");
+      }
+      return panels;
+    }
+    case "settings":
+      return capabilities.canManageSettings ? ["readiness", "controls", "lifecycle"] : ["readiness"];
+    default:
+      return WORKSPACE_SECTION_PANELS[section];
+  }
+}
+
+export function hasWorkspacePanelAccess(
+  section: PoolWorkspaceSection,
+  panel: PoolWorkspacePanel | null,
+  capabilities: WalletCapabilities,
+): boolean {
+  if (!panel) return true;
+  return visibleWorkspacePanels(section, capabilities).includes(panel);
+}
+
 export function buildPoolDashboardSnapshot(input: DashboardSnapshotInput): PoolDashboardSnapshot {
+  const pendingCoverageClaims = input.pendingCoverageClaims ?? [];
+  const pendingRedemptions = input.pendingRedemptions ?? [];
   const membersActive = input.activeMemberships.length;
-  const claimsPending = input.finalizedAggregates.filter((row) => row.passed && !row.claimed).length;
+  const rewardClaimsPending = input.finalizedAggregates.filter((row) => row.passed && !row.claimed).length;
+  const claimsPending = rewardClaimsPending + pendingCoverageClaims.length;
 
   const readinessRows = input.readiness
     ? [
+        input.readiness.configInitialized,
         input.readiness.poolExists,
         input.readiness.poolTermsConfigured,
         input.readiness.poolOraclePolicyConfigured,
@@ -114,14 +608,20 @@ export function buildPoolDashboardSnapshot(input: DashboardSnapshotInput): PoolD
   const readinessChecksTotal = readinessRows.length;
 
   const riskFlags: string[] = [];
+  if (input.protocolConfig?.emergencyPaused) {
+    riskFlags.push("Protocol is emergency paused.");
+  }
   if (!input.readiness?.poolOraclePolicyConfigured) {
     riskFlags.push("Oracle policy is not configured.");
   }
   if (!input.readiness?.poolTermsConfigured) {
     riskFlags.push("Plan terms are not configured.");
   }
-  if (claimsPending > 0 && !input.capabilities.canSubmitClaims) {
-    riskFlags.push("Claims are pending but connected wallet cannot submit claims.");
+  if (pendingCoverageClaims.length > 0 && !input.capabilities.canManageClaims) {
+    riskFlags.push("Coverage claims are waiting, but this wallet cannot adjudicate them.");
+  }
+  if (pendingRedemptions.length > 0 && !input.capabilities.canManageLiquidity) {
+    riskFlags.push("Queued redemptions exist, but this wallet cannot operate liquidity controls.");
   }
   if (!input.capabilities.isConnected) {
     riskFlags.push("Connect wallet for operational actions.");
@@ -129,23 +629,58 @@ export function buildPoolDashboardSnapshot(input: DashboardSnapshotInput): PoolD
 
   const queue: PoolActionQueueItem[] = [];
 
-  if (!input.readiness?.poolOraclePolicyConfigured) {
+  if (input.protocolConfig?.emergencyPaused) {
     queue.push({
-      id: "configure-policy",
-      title: "Configure oracle policy",
-      detail: "Plan policy/rule setup is incomplete.",
-      section: "settings",
+      id: "governance-pause",
+      title: "Review emergency pause",
+      detail: "Protocol-wide pause is active and may block participant actions.",
+      section: "governance",
+      panel: "protocol",
       priority: "high",
     });
   }
 
-  if (claimsPending > 0) {
+  if (!input.readiness?.poolOraclePolicyConfigured) {
     queue.push({
-      id: "pending-claims",
-      title: "Process pending claims",
-      detail: `${claimsPending} passed aggregates are unclaimed.`,
-      section: "claims",
+      id: "configure-policy",
+      title: "Configure oracle policy",
+      detail: "Plan oracle policy and permissions still need to be finalized.",
+      section: "settings",
+      panel: "controls",
       priority: "high",
+    });
+  }
+
+  if (pendingCoverageClaims.length > 0) {
+    queue.push({
+      id: "coverage-claims",
+      title: "Process coverage claims",
+      detail: `${pendingCoverageClaims.length} coverage claim records need review or payout actions.`,
+      section: "claims",
+      panel: input.capabilities.canAdjudicateCoverageClaims ? "operator" : "member",
+      priority: "high",
+    });
+  }
+
+  if (rewardClaimsPending > 0) {
+    queue.push({
+      id: "reward-claims",
+      title: "Finalize reward claims",
+      detail: `${rewardClaimsPending} finalized outcome aggregates are still unclaimed.`,
+      section: "claims",
+      panel: "member",
+      priority: "high",
+    });
+  }
+
+  if (pendingRedemptions.length > 0) {
+    queue.push({
+      id: "liquidity-redemptions",
+      title: "Review queued redemptions",
+      detail: `${pendingRedemptions.length} liquidity redemption requests are pending action.`,
+      section: "liquidity",
+      panel: "queue",
+      priority: "medium",
     });
   }
 
@@ -153,11 +688,73 @@ export function buildPoolDashboardSnapshot(input: DashboardSnapshotInput): PoolD
     queue.push({
       id: "no-members",
       title: "Enroll first member",
-      detail: "No active memberships were found for this pool.",
+      detail: "No active memberships were found for this pool yet.",
       section: "members",
+      panel: "enrollment",
       priority: "medium",
     });
   }
+
+  const nextAction: NextActionSummary | null = queue[0] ?? (
+    input.capabilities.isConnected
+      ? input.capabilities.canManageCoverage
+        ? {
+            id: "coverage-review",
+            title: "Review coverage setup",
+            detail: "Check products, positions, and premium rails before opening more participant actions.",
+            section: "coverage",
+            panel: input.capabilities.canManagePolicySeries ? "series" : "positions",
+            priority: "low",
+          }
+        : {
+            id: "overview-review",
+            title: "Review plan workspace",
+            detail: "Use the shared workspace to check current status and available actions for this wallet.",
+            section: "overview",
+            panel: "summary",
+            priority: "low",
+          }
+      : {
+          id: "connect-wallet",
+          title: "Connect a wallet",
+          detail: "Connecting a wallet reveals the participant or operator actions that are valid for this plan.",
+          section: "overview",
+          panel: "summary",
+          priority: "low",
+        }
+  );
+
+  const compactStatus: CompactStatusSummary[] = [
+    {
+      id: "members",
+      label: "Members",
+      value: membersActive > 0 ? `${membersActive} active` : "No active members",
+      tone: membersActive > 0 ? "ok" : "neutral",
+    },
+    {
+      id: "claims",
+      label: "Claims",
+      value: claimsPending > 0 ? `${claimsPending} pending` : "No pending claims",
+      tone: claimsPending > 0 ? "warn" : "ok",
+    },
+    {
+      id: "readiness",
+      label: "Readiness",
+      value: readinessChecksTotal > 0 ? `${readinessChecksPassing}/${readinessChecksTotal} checks` : "No checks yet",
+      tone:
+        readinessChecksTotal === 0
+          ? "neutral"
+          : readinessChecksPassing === readinessChecksTotal
+            ? "ok"
+            : "warn",
+    },
+    {
+      id: "liquidity",
+      label: "Liquidity",
+      value: pendingRedemptions.length > 0 ? `${pendingRedemptions.length} queued` : "Queue clear",
+      tone: pendingRedemptions.length > 0 ? "warn" : "ok",
+    },
+  ];
 
   return {
     membersActive,
@@ -166,5 +763,8 @@ export function buildPoolDashboardSnapshot(input: DashboardSnapshotInput): PoolD
     readinessChecksTotal,
     riskFlags,
     queue,
+    nextAction,
+    compactStatus,
+    recentActivity: queue.slice(0, 4),
   };
 }

@@ -4,12 +4,15 @@ import Link from "next/link";
 import { PublicKey } from "@solana/web3.js";
 
 import { MemberActionsPanel } from "@/components/member-actions-panel";
-import { MemberClaimsPanel } from "@/components/member-claims-panel";
-import { PoolLiquidityPanel } from "@/components/pool-liquidity-panel";
-import { PoolOraclesPanel } from "@/components/pool-oracles-panel";
+import { PoolClaimsPanel } from "@/components/pool-claims-panel";
+import { PoolCoveragePanel } from "@/components/pool-coverage-panel";
+import { PoolGovernancePanel } from "@/components/pool-governance-panel";
+import { PoolLiquidityConsole } from "@/components/pool-liquidity-console";
+import { PoolOraclesConsole } from "@/components/pool-oracles-console";
+import { PoolSchemasPanel } from "@/components/pool-schemas-panel";
 import { PoolSettingsPanel } from "@/components/pool-settings-panel";
+import { PoolTreasuryPanel } from "@/components/pool-treasury-panel";
 import { PoolWorkspaceShell } from "@/components/pool-workspace-shell";
-import { CoverageMint } from "./coverage-mint";
 
 function normalize(value: string): string {
   return decodeURIComponent(value).trim();
@@ -55,20 +58,25 @@ export default function PoolWorkspacePage({ params }: PoolWorkspacePageProps) {
           />
         ),
         claims: (
-          <MemberClaimsPanel
-            initialPoolAddress={poolAddress}
-            lockPoolSelection
-            sectionMode="embedded"
-          />
+          <PoolClaimsPanel poolAddress={poolAddress} />
         ),
         coverage: (
-          <CoverageMint poolAddress={poolAddress} />
+          <PoolCoveragePanel poolAddress={poolAddress} />
         ),
         liquidity: (
-          <PoolLiquidityPanel poolAddress={poolAddress} sectionMode="embedded" />
+          <PoolLiquidityConsole poolAddress={poolAddress} />
         ),
-        oracle: (
-          <PoolOraclesPanel poolAddress={poolAddress} sectionMode="embedded" />
+        oracles: (
+          <PoolOraclesConsole poolAddress={poolAddress} />
+        ),
+        schemas: (
+          <PoolSchemasPanel poolAddress={poolAddress} />
+        ),
+        treasury: (
+          <PoolTreasuryPanel poolAddress={poolAddress} />
+        ),
+        governance: (
+          <PoolGovernancePanel />
         ),
         settings: (
           <PoolSettingsPanel poolAddress={poolAddress} sectionMode="embedded" />
