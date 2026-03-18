@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Root account types shared across the legacy registry instructions and the v2 protocol surface.
+//! Root account types shared across the registry approval instructions and the current protocol surface.
 
 use anchor_lang::prelude::*;
 
@@ -10,24 +10,7 @@ use crate::{
     MAX_ORACLE_WEBHOOK_URL_LEN, SEED_ORACLE, SEED_POOL_ORACLE,
 };
 
-/// Creates the legacy oracle registry entry keyed by the oracle signer.
-#[derive(Accounts)]
-#[instruction(metadata_uri: String)]
-pub struct RegisterOracle<'info> {
-    #[account(mut)]
-    pub oracle: Signer<'info>,
-    #[account(
-        init,
-        payer = oracle,
-        space = OracleRegistryEntry::space(&metadata_uri),
-        seeds = [SEED_ORACLE, oracle.key().as_ref()],
-        bump,
-    )]
-    pub oracle_entry: Account<'info, OracleRegistryEntry>,
-    pub system_program: Program<'info, System>,
-}
-
-/// Associates an oracle registry entry with a pool for the legacy approval flow.
+/// Associates an oracle registry entry with a pool for the approval flow.
 #[derive(Accounts)]
 pub struct SetPoolOracle<'info> {
     #[account(mut)]
@@ -93,7 +76,7 @@ impl OracleRegistryEntry {
     }
 }
 
-/// Rich oracle profile used by the v2 oracle onboarding and staking flows.
+/// Rich oracle profile used by the oracle onboarding and staking flows.
 #[account]
 pub struct OracleProfile {
     pub oracle: Pubkey,

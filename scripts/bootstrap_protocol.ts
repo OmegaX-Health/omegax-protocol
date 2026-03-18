@@ -6,23 +6,26 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
+import { createMint } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 
 import protocolModule from '../frontend/lib/protocol.ts';
 
 const {
-  buildCreatePoolV2Tx,
+  buildCreatePoolTx,
   buildCreatePolicySeriesTx,
+  buildClaimOracleTx,
   buildEnrollMemberInvitePermitTx,
   buildEnrollMemberOpenTx,
   buildEnrollMemberTokenGateTx,
   buildFundPoolSolTx,
-  buildInitializeProtocolV2Tx,
+  buildInitializeProtocolTx,
   buildRegisterOracleTx,
   buildRegisterInviteIssuerTx,
   buildRegisterOutcomeSchemaTx,
   buildRotateGovernanceAuthorityTx,
+  buildSetProtocolParamsTx,
   buildSetPoolOraclePolicyTx,
   buildSetPoolOracleTx,
   buildSetPolicySeriesOutcomeRuleTx,
@@ -30,10 +33,11 @@ const {
   MEMBERSHIP_MODE_INVITE_ONLY,
   MEMBERSHIP_MODE_OPEN,
   MEMBERSHIP_MODE_TOKEN_GATE,
+  ORACLE_TYPE_OTHER,
   PLAN_MODE_REWARD,
   POLICY_SERIES_STATUS_ACTIVE,
   SPONSOR_MODE_DIRECT,
-  deriveConfigV2Pda,
+  deriveConfigPda,
   deriveInviteIssuerPda,
   deriveMembershipPda,
   deriveOraclePda,
@@ -77,6 +81,27 @@ function readConfigGovernanceAuthority(data: Buffer): PublicKey | null {
   // Anchor account layout: 8 discriminator + 32 admin + 32 governance_authority + ...
   if (data.length < 72) return null;
   return new PublicKey(data.subarray(40, 72));
+}
+
+function readProtocolConfigBootstrapState(data: Buffer): {
+  admin: PublicKey;
+  governanceAuthority: PublicKey;
+  defaultStakeMint: PublicKey;
+  protocolFeeBps: number;
+  minOracleStake: bigint;
+  emergencyPaused: boolean;
+  allowedPayoutMintsHashHex: string;
+} | null {
+  if (data.length < 212) return null;
+  return {
+    admin: new PublicKey(data.subarray(8, 40)),
+    governanceAuthority: new PublicKey(data.subarray(40, 72)),
+    defaultStakeMint: new PublicKey(data.subarray(136, 168)),
+    protocolFeeBps: data.readUInt16LE(168),
+    minOracleStake: data.readBigUInt64LE(170),
+    emergencyPaused: data.readUInt8(178) === 1,
+    allowedPayoutMintsHashHex: Buffer.from(data.subarray(179, 211)).toString('hex'),
+  };
 }
 
 function parseU16(name: string, fallback: number): number {
@@ -198,7 +223,7 @@ async function sendAndConfirm(
     { skipPreflight: false, maxRetries: 3 },
   );
   await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-  console.log(`[bootstrap-v2] ${label}: ${signature}`);
+  console.log(`[bootstrap] ${label}: ${signature}`);
   return signature;
 }
 
@@ -376,10 +401,10 @@ async function main() {
   const rpcUrl = String(
     process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
   ).trim();
-  const programIdRaw = String(process.env.PROTOCOL_PROGRAM_ID || 'Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B').trim();
+  const programIdRaw = String(process.env.PROTOCOL_PROGRAM_ID || getProgramId().toBase58()).trim();
   process.env.NEXT_PUBLIC_PROTOCOL_PROGRAM_ID = programIdRaw;
 
-  const poolId = String(process.env.POOL_ID || 'omegax-holder-pool').trim();
+  const poolId = String(process.env.POOL_ID || 'omegax-devnet-parity').trim();
   const organizationRef = String(process.env.ORG_REF || 'omegax').trim();
   const membershipMode = parseMembershipMode(String(process.env.MEMBERSHIP_MODE || 'token_gate'));
   const protocolFeeBps = parseU16('PROTOCOL_FEE_BPS', 0);
@@ -419,6 +444,10 @@ async function main() {
 
   const governanceRealm = String(process.env.GOVERNANCE_REALM || '11111111111111111111111111111111').trim();
   const governanceConfig = String(process.env.GOVERNANCE_CONFIG || '11111111111111111111111111111111').trim();
+  const defaultStakeMint = String(
+    process.env.DEFAULT_STAKE_MINT || process.env.NEXT_PUBLIC_DEVNET_STAKE_MINT || '',
+  ).trim();
+  const defaultStakeMintDecimals = parseU8('DEFAULT_STAKE_MINT_DECIMALS', 6);
   const governanceTokenMint = String(process.env.GOVERNANCE_TOKEN_MINT || '').trim();
   const governanceAuthorityOverride = String(process.env.ROTATE_GOVERNANCE_TO || '').trim();
   const autoRotateToGovernanceConfig = asBool(process.env.AUTO_ROTATE_TO_GOVERNANCE_CONFIG, true);
@@ -436,8 +465,9 @@ async function main() {
   const shouldSetRule = asBool(process.env.SET_RULE, true);
   const shouldEnrollMember = asBool(process.env.ENROLL_MEMBER, true);
   const shouldFundPool = asBool(process.env.FUND_POOL, true);
-  const oracleMinLamports = parseU64('ORACLE_MIN_LAMPORTS', 5_000_000n);
-  const memberMinLamports = parseU64('MEMBER_MIN_LAMPORTS', 5_000_000n);
+  const minOracleStake = parseU64('MIN_ORACLE_STAKE', 1_000_000n);
+  const oracleMinLamports = parseU64('ORACLE_MIN_LAMPORTS', 20_000_000n);
+  const memberMinLamports = parseU64('MEMBER_MIN_LAMPORTS', 20_000_000n);
 
   const governance = keypairFromBase58Env('GOVERNANCE_SECRET_KEY_BASE58');
   const oracle = keypairFromBase58Env('ORACLE_SECRET_KEY_BASE58');
@@ -445,12 +475,30 @@ async function main() {
 
   const connection = new Connection(rpcUrl, 'confirmed');
   const programId = getProgramId();
+  let resolvedDefaultStakeMint = defaultStakeMint
+    ? parseNonZeroPubkey(defaultStakeMint, 'DEFAULT_STAKE_MINT')
+    : null;
+
+  async function ensureDefaultStakeMint(): Promise<PublicKey> {
+    if (resolvedDefaultStakeMint) {
+      return resolvedDefaultStakeMint;
+    }
+    resolvedDefaultStakeMint = await createMint(
+      connection,
+      governance,
+      governance.publicKey,
+      null,
+      defaultStakeMintDecimals,
+    );
+    console.log(`[bootstrap] create_default_stake_mint: ${resolvedDefaultStakeMint.toBase58()}`);
+    return resolvedDefaultStakeMint;
+  }
 
   if (programId.toBase58() !== programIdRaw) {
     throw new Error(`Program id mismatch between env and frontend contract: ${programIdRaw} vs ${programId.toBase58()}`);
   }
 
-  const configV2Pda = deriveConfigV2Pda(programId);
+  const configPda = deriveConfigPda(programId);
   const poolPda = derivePoolPda({
     programId,
     authority: governance.publicKey,
@@ -581,20 +629,51 @@ async function main() {
     }
 
     if (shouldInitialize) {
-      const existingConfig = await connection.getAccountInfo(configV2Pda, 'confirmed');
+      const existingConfig = await connection.getAccountInfo(configPda, 'confirmed');
       if (!existingConfig) {
-        const tx = buildInitializeProtocolV2Tx({
+        const bootstrapStakeMint = await ensureDefaultStakeMint();
+        const tx = buildInitializeProtocolTx({
           admin: governance.publicKey,
           recentBlockhash: (await connection.getLatestBlockhash('confirmed')).blockhash,
           protocolFeeBps,
           governanceRealm,
           governanceConfig,
-          defaultStakeMint: ZERO_PUBKEY,
-          minOracleStake: 0n,
+          defaultStakeMint: bootstrapStakeMint.toBase58(),
+          minOracleStake,
         });
-        await sendAndConfirm(connection, tx, [governance], 'initialize_protocol_v2');
+        await sendAndConfirm(connection, tx, [governance], 'initialize_protocol');
       } else {
-        console.log('[bootstrap-v2] initialize_protocol_v2: already initialized');
+        const configState = readProtocolConfigBootstrapState(existingConfig.data);
+        if (!configState) {
+          throw new Error('Protocol config account exists but could not be decoded for bootstrap validation.');
+        }
+        if (configState.defaultStakeMint.equals(PublicKey.default) || configState.minOracleStake === 0n) {
+          const signerCanRepair = governance.publicKey.equals(configState.governanceAuthority)
+            || governance.publicKey.equals(configState.admin);
+          if (!signerCanRepair) {
+            throw new Error(
+              'Protocol config is already allocated but still carries a zero default stake mint or zero minimum oracle stake, '
+              + `and bootstrap signer ${governance.publicKey.toBase58()} is neither the config governance authority `
+              + `(${configState.governanceAuthority.toBase58()}) nor admin (${configState.admin.toBase58()}).`,
+            );
+          }
+          const repairedStakeMint = configState.defaultStakeMint.equals(PublicKey.default)
+            ? await ensureDefaultStakeMint()
+            : configState.defaultStakeMint;
+          const tx = buildSetProtocolParamsTx({
+            governanceAuthority: governance.publicKey,
+            recentBlockhash: (await connection.getLatestBlockhash('confirmed')).blockhash,
+            protocolFeeBps: configState.protocolFeeBps,
+            allowedPayoutMintsHashHex: configState.allowedPayoutMintsHashHex,
+            defaultStakeMint: repairedStakeMint.toBase58(),
+            minOracleStake: configState.minOracleStake === 0n ? minOracleStake : configState.minOracleStake,
+            emergencyPaused: configState.emergencyPaused,
+          });
+          await sendAndConfirm(connection, tx, [governance], 'repair_protocol_stake_config');
+        } else {
+          resolvedDefaultStakeMint = configState.defaultStakeMint;
+          console.log('[bootstrap] initialize_protocol: already initialized');
+        }
       }
     }
 
@@ -602,14 +681,34 @@ async function main() {
       const existingOracle = await connection.getAccountInfo(oracleEntryPda, 'confirmed');
       if (!existingOracle) {
         const tx = buildRegisterOracleTx({
+          admin: oracle.publicKey,
           oracle: oracle.publicKey,
           recentBlockhash: (await connection.getLatestBlockhash('confirmed')).blockhash,
-          metadataUri: oracleMetadataUri,
+          oracleType: ORACLE_TYPE_OTHER,
+          displayName: 'Bootstrap Oracle',
+          legalName: 'Bootstrap Oracle LLC',
+          websiteUrl: oracleMetadataUri,
+          appUrl: oracleMetadataUri,
+          logoUri: '',
+          webhookUrl: '',
+          supportedSchemaKeyHashesHex: [],
         });
         await sendAndConfirm(connection, tx, [oracle], 'register_oracle');
       } else {
-        console.log('[bootstrap-v2] register_oracle: already exists');
+        console.log('[bootstrap] register_oracle: already exists');
       }
+    }
+
+    if (shouldRegisterOracle || shouldApproveOracle) {
+      const oracleEntryInfo = await connection.getAccountInfo(oracleEntryPda, 'confirmed');
+      if (!oracleEntryInfo) {
+        throw new Error('Oracle entry is missing after registration step; cannot claim oracle.');
+      }
+      const tx = buildClaimOracleTx({
+        oracle: oracle.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash('confirmed')).blockhash,
+      });
+      await sendAndConfirm(connection, tx, [oracle], 'claim_oracle');
     }
 
     if (shouldRegisterInviteIssuer && membershipMode === MEMBERSHIP_MODE_INVITE_ONLY) {
@@ -624,14 +723,14 @@ async function main() {
         });
         await sendAndConfirm(connection, tx, [governance], 'register_invite_issuer');
       } else {
-        console.log('[bootstrap-v2] register_invite_issuer: already exists');
+        console.log('[bootstrap] register_invite_issuer: already exists');
       }
     }
 
     if (shouldCreatePool) {
       const existingPool = await connection.getAccountInfo(poolPda, 'confirmed');
       if (!existingPool) {
-        const built = buildCreatePoolV2Tx({
+        const built = buildCreatePoolTx({
           authority: governance.publicKey,
           recentBlockhash: (await connection.getLatestBlockhash('confirmed')).blockhash,
           poolId,
@@ -645,9 +744,9 @@ async function main() {
           termsHashHex: String(process.env.TERMS_HASH_HEX || '').trim() || await hashStringTo32Hex(`${poolId}:terms`),
           payoutPolicyHashHex: String(process.env.PAYOUT_POLICY_HASH_HEX || '').trim() || await hashStringTo32Hex(`${poolId}:payout-policy`),
         });
-        await sendAndConfirm(connection, built.tx, [governance], 'create_pool_v2');
+        await sendAndConfirm(connection, built.tx, [governance], 'create_pool');
       } else {
-        console.log('[bootstrap-v2] create_pool_v2: pool already exists');
+        console.log('[bootstrap] create_pool: pool already exists');
       }
     }
 
@@ -663,7 +762,7 @@ async function main() {
         });
         await sendAndConfirm(connection, tx, [governance], 'set_pool_oracle(active=true)');
       } else {
-        console.log('[bootstrap-v2] set_pool_oracle: already approved');
+        console.log('[bootstrap] set_pool_oracle: already approved');
       }
     }
 
@@ -694,7 +793,7 @@ async function main() {
         });
         await sendAndConfirm(connection, tx, [governance], 'register_outcome_schema');
       } else {
-        console.log('[bootstrap-v2] register_outcome_schema: already exists');
+        console.log('[bootstrap] register_outcome_schema: already exists');
       }
     }
 
@@ -710,7 +809,7 @@ async function main() {
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : String(cause);
         if (message.includes('GovernanceUnauthorized')) {
-          console.log('[bootstrap-v2] verify_outcome_schema: skipped (governance authority is no longer deploy signer)');
+          console.log('[bootstrap] verify_outcome_schema: skipped (governance authority is no longer deploy signer)');
         } else {
           throw cause;
         }
@@ -742,7 +841,7 @@ async function main() {
         });
         await sendAndConfirm(connection, tx, [governance], 'create_policy_series');
       } else {
-        console.log('[bootstrap-v2] create_policy_series: already exists');
+        console.log('[bootstrap] create_policy_series: already exists');
       }
     }
 
@@ -776,7 +875,7 @@ async function main() {
             `set_policy_series_outcome_rule_${ruleDefinition.ruleId}`,
           );
         } else {
-          console.log(`[bootstrap-v2] set_policy_series_outcome_rule_${ruleDefinition.ruleId}: already exists`);
+          console.log(`[bootstrap] set_policy_series_outcome_rule_${ruleDefinition.ruleId}: already exists`);
         }
       }
     }
@@ -824,7 +923,7 @@ async function main() {
           await sendAndConfirm(connection, tx, [member, governance], 'enroll_member_invite_permit');
         }
       } else {
-        console.log('[bootstrap-v2] member_enrollment: already enrolled');
+        console.log('[bootstrap] member_enrollment: already enrolled');
       }
     }
 
@@ -839,7 +938,7 @@ async function main() {
     }
 
     if (governanceAuthorityTarget) {
-      const configInfo = await connection.getAccountInfo(configV2Pda, 'confirmed');
+      const configInfo = await connection.getAccountInfo(configPda, 'confirmed');
       const currentAuthority = configInfo?.data ? readConfigGovernanceAuthority(configInfo.data) : null;
       if (!currentAuthority) {
         throw new Error('Unable to read governance authority from config account.');
@@ -852,39 +951,48 @@ async function main() {
         });
         await sendAndConfirm(connection, tx, [governance], 'rotate_governance_authority');
       } else {
-        console.log('[bootstrap-v2] rotate_governance_authority: already configured');
+        console.log('[bootstrap] rotate_governance_authority: already configured');
       }
     }
 
+    const finalConfigInfo = await connection.getAccountInfo(configPda, 'confirmed');
+    const finalConfigState = finalConfigInfo?.data
+      ? readProtocolConfigBootstrapState(finalConfigInfo.data)
+      : null;
+
     console.log('');
-    console.log('[bootstrap-v2] Complete');
-    console.log(`[bootstrap-v2] rpc_url=${rpcUrl}`);
-    console.log(`[bootstrap-v2] program_id=${programId.toBase58()}`);
-    console.log(`[bootstrap-v2] governance=${governance.publicKey.toBase58()}`);
-    console.log(`[bootstrap-v2] governance_realm=${governanceRealm}`);
-    console.log(`[bootstrap-v2] governance_config=${governanceConfig}`);
-    console.log(`[bootstrap-v2] require_governance_handoff=${requireGovernanceHandoff}`);
-    console.log(`[bootstrap-v2] auto_rotate_to_governance_config=${autoRotateToGovernanceConfig}`);
-    console.log(`[bootstrap-v2] oracle=${oracle.publicKey.toBase58()}`);
-    console.log(`[bootstrap-v2] member=${member.publicKey.toBase58()}`);
-    console.log(`[bootstrap-v2] config_v2_pda=${configV2Pda.toBase58()}`);
-    console.log(`[bootstrap-v2] pool_pda=${poolPda.toBase58()}`);
-    console.log(`[bootstrap-v2] oracle_entry_pda=${oracleEntryPda.toBase58()}`);
-    console.log(`[bootstrap-v2] pool_oracle_pda=${poolOraclePda.toBase58()}`);
-    console.log(`[bootstrap-v2] oracle_policy_pda=${oraclePolicyPda.toBase58()}`);
-    console.log(`[bootstrap-v2] schema_pda=${schemaPda.toBase58()}`);
-    console.log(`[bootstrap-v2] rule_pda=${rulePda.toBase58()}`);
-    console.log(`[bootstrap-v2] invite_issuer_pda=${inviteIssuerPda.toBase58()}`);
-    console.log(`[bootstrap-v2] membership_mode=${membershipMode}`);
-    console.log(`[bootstrap-v2] token_gate_mint=${tokenGateMint}`);
-    console.log(`[bootstrap-v2] governance_token_mint=${governanceTokenMint || tokenGateMint}`);
-    console.log(`[bootstrap-v2] member_token_account=${memberTokenAccount}`);
-    console.log(`[bootstrap-v2] governance_token_account=${governanceTokenAccount}`);
-    console.log(`[bootstrap-v2] schema_key_hash_hex=${schemaKeyHashHex}`);
-    console.log(`[bootstrap-v2] rule_hash_hex=${ruleHashHex}`);
-    console.log(`[bootstrap-v2] canonical_rule_ids=${canonicalRuleIds.join(',')}`);
+    console.log('[bootstrap] Complete');
+    console.log(`[bootstrap] rpc_url=${rpcUrl}`);
+    console.log(`[bootstrap] program_id=${programId.toBase58()}`);
+    console.log(`[bootstrap] governance=${governance.publicKey.toBase58()}`);
+    console.log(`[bootstrap] governance_realm=${governanceRealm}`);
+    console.log(`[bootstrap] governance_config=${governanceConfig}`);
+    console.log(`[bootstrap] require_governance_handoff=${requireGovernanceHandoff}`);
+    console.log(`[bootstrap] auto_rotate_to_governance_config=${autoRotateToGovernanceConfig}`);
+    console.log(`[bootstrap] oracle=${oracle.publicKey.toBase58()}`);
+    console.log(`[bootstrap] member=${member.publicKey.toBase58()}`);
+    console.log(`[bootstrap] config_pda=${configPda.toBase58()}`);
+    if (finalConfigState) {
+      console.log(`[bootstrap] default_stake_mint=${finalConfigState.defaultStakeMint.toBase58()}`);
+      console.log(`[bootstrap] min_oracle_stake=${finalConfigState.minOracleStake.toString()}`);
+    }
+    console.log(`[bootstrap] pool_pda=${poolPda.toBase58()}`);
+    console.log(`[bootstrap] oracle_entry_pda=${oracleEntryPda.toBase58()}`);
+    console.log(`[bootstrap] pool_oracle_pda=${poolOraclePda.toBase58()}`);
+    console.log(`[bootstrap] oracle_policy_pda=${oraclePolicyPda.toBase58()}`);
+    console.log(`[bootstrap] schema_pda=${schemaPda.toBase58()}`);
+    console.log(`[bootstrap] rule_pda=${rulePda.toBase58()}`);
+    console.log(`[bootstrap] invite_issuer_pda=${inviteIssuerPda.toBase58()}`);
+    console.log(`[bootstrap] membership_mode=${membershipMode}`);
+    console.log(`[bootstrap] token_gate_mint=${tokenGateMint}`);
+    console.log(`[bootstrap] governance_token_mint=${governanceTokenMint || tokenGateMint}`);
+    console.log(`[bootstrap] member_token_account=${memberTokenAccount}`);
+    console.log(`[bootstrap] governance_token_account=${governanceTokenAccount}`);
+    console.log(`[bootstrap] schema_key_hash_hex=${schemaKeyHashHex}`);
+    console.log(`[bootstrap] rule_hash_hex=${ruleHashHex}`);
+    console.log(`[bootstrap] canonical_rule_ids=${canonicalRuleIds.join(',')}`);
     if (governanceAuthorityTarget) {
-      console.log(`[bootstrap-v2] governance_authority_rotated_to=${governanceAuthorityTarget.toBase58()}`);
+      console.log(`[bootstrap] governance_authority_rotated_to=${governanceAuthorityTarget.toBase58()}`);
     }
   } finally {
     for (const file of tempFiles) {
@@ -904,6 +1012,6 @@ async function main() {
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`[bootstrap-v2] failed: ${message}`);
+  console.error(`[bootstrap] failed: ${message}`);
   process.exit(1);
 });

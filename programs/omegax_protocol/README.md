@@ -4,10 +4,10 @@ This crate contains the on-chain OmegaX Protocol program.
 
 ## Key files
 
-- `src/lib.rs` contains the main Anchor entrypoints and delegates into the v2 domain modules
-- `src/core_accounts.rs` contains root account types and the legacy oracle/pool approval contexts shared by the v2 surface
-- `src/v2.rs` is the top-level module for the v2 protocol surface
-- `src/v2/` contains the v2 implementation split by concern:
+- `src/lib.rs` contains the main Anchor entrypoints and delegates into the current domain modules
+- `src/core_accounts.rs` contains root account types and shared oracle/pool approval contexts used by the current protocol surface
+- `src/surface.rs` is the top-level module for the current protocol surface
+- `src/surface/` contains the current implementation split by concern:
   - `admin.rs` for governance and oracle-admin handlers
   - `pools.rs` for pool, enrollment, and liquidity handlers
   - `rewards.rs` for attestation and reward-claim handlers
@@ -17,7 +17,7 @@ This crate contains the on-chain OmegaX Protocol program.
   - `contexts.rs` as the module index for Anchor account contexts
   - `contexts/` for context definitions grouped by protocol area
   - `cycles/` for cycle activation vs settlement flows
-  - `state.rs` and `errors.rs` for core v2 account/state types
+  - `state.rs` and `errors.rs` for core account/state types
   - `shared.rs` as the module index for internal helper logic
   - `shared/` for helper logic grouped by guards, coverage, liquidity, treasury, and membership concerns
 - `Cargo.toml` defines crate metadata and dependencies

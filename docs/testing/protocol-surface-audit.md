@@ -23,7 +23,6 @@ Audit date: 2026-03-14
 - `npm run protocol:contract`
 - `npm run protocol:contract:check`
 - `npm run test:node`
-- `OMEGAX_E2E_SCENARIO=legacy-registry-compatibility npm run test:e2e:localnet`
 - `OMEGAX_E2E_SCENARIO=reward-attestation-dispute-lifecycle npm run test:e2e:localnet`
 - `OMEGAX_E2E_KEEP_ARTIFACTS=1 OMEGAX_E2E_SKIP_BUILD=1 npm run test:e2e:localnet`
 
@@ -66,7 +65,6 @@ Audit date: 2026-03-14
 ## Scenario Matrix
 
 - `protocol-governance-oracle-lifecycle`
-- `legacy-registry-compatibility`
 - `pool-schema-member-lifecycle`
 - `direct-liquidity-lifecycle`
 - `queued-liquidity-lifecycle`

@@ -9,11 +9,7 @@ import {
   getAccount,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import {
-  ComputeBudgetProgram,
-  Keypair,
-  PublicKey,
-} from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, PublicKey } from "@solana/web3.js";
 
 import protocolModule from "../frontend/lib/protocol.ts";
 import {
@@ -122,13 +118,19 @@ function bytesHex(bytes: Buffer) {
   return bytes.toString("hex");
 }
 
-async function mustReadAccount(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function mustReadAccount(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await connection.getAccountInfo(address, "confirmed");
   assert.ok(info, `expected account ${address.toBase58()} to exist`);
   return info;
 }
 
-async function decodeProtocolConfig(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeProtocolConfig(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -146,7 +148,10 @@ async function decodeProtocolConfig(connection: LocalnetHarness["connection"], a
   };
 }
 
-async function decodePool(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePool(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -164,7 +169,10 @@ async function decodePool(connection: LocalnetHarness["connection"], address: Pu
   };
 }
 
-async function decodeSchema(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeSchema(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -178,7 +186,10 @@ async function decodeSchema(connection: LocalnetHarness["connection"], address: 
   };
 }
 
-async function decodeSchemaDependency(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeSchemaDependency(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -189,7 +200,10 @@ async function decodeSchemaDependency(connection: LocalnetHarness["connection"],
   };
 }
 
-async function decodePoolTerms(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePoolTerms(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -205,7 +219,10 @@ async function decodePoolTerms(connection: LocalnetHarness["connection"], addres
   };
 }
 
-async function decodePoolOraclePolicy(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePoolOraclePolicy(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -236,7 +253,10 @@ async function decodePoolOraclePermissions(
   };
 }
 
-async function decodePoolRiskConfig(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePoolRiskConfig(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -251,7 +271,10 @@ async function decodePoolRiskConfig(connection: LocalnetHarness["connection"], a
   };
 }
 
-async function decodePolicySeries(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePolicySeries(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -367,7 +390,10 @@ async function decodePoolTreasuryReserve(
   };
 }
 
-async function decodePoolAssetVault(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePoolAssetVault(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -397,7 +423,10 @@ async function decodePolicySeriesPaymentOption(
   };
 }
 
-async function decodePolicyPosition(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePolicyPosition(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -417,7 +446,10 @@ async function decodePolicyPosition(connection: LocalnetHarness["connection"], a
   };
 }
 
-async function decodePolicyPositionNft(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePolicyPositionNft(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -431,7 +463,10 @@ async function decodePolicyPositionNft(connection: LocalnetHarness["connection"]
   };
 }
 
-async function decodePremiumLedger(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePremiumLedger(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -447,7 +482,10 @@ async function decodePremiumLedger(connection: LocalnetHarness["connection"], ad
   };
 }
 
-async function decodeOutcomeAggregate(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeOutcomeAggregate(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -484,7 +522,10 @@ async function decodeOutcomeAggregate(connection: LocalnetHarness["connection"],
   };
 }
 
-async function decodeClaimRecordV2(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeClaimRecord(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -504,7 +545,10 @@ async function decodeClaimRecordV2(connection: LocalnetHarness["connection"], ad
   };
 }
 
-async function decodeMemberCycle(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeMemberCycle(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -563,7 +607,10 @@ async function decodeCohortSettlementRoot(
   };
 }
 
-async function decodeCoverageClaim(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeCoverageClaim(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -601,7 +648,10 @@ async function decodeCoverageClaim(connection: LocalnetHarness["connection"], ad
   };
 }
 
-async function decodeRule(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeRule(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -622,7 +672,10 @@ async function decodeRule(connection: LocalnetHarness["connection"], address: Pu
   };
 }
 
-async function decodeMembership(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeMembership(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -637,7 +690,10 @@ async function decodeMembership(connection: LocalnetHarness["connection"], addre
   };
 }
 
-async function decodeInviteIssuer(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeInviteIssuer(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -666,7 +722,10 @@ async function decodePoolLiquidityConfig(
   };
 }
 
-async function decodePoolCapitalClass(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodePoolCapitalClass(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -721,7 +780,10 @@ async function decodeRedemptionRequest(
   };
 }
 
-async function decodeOracleStakePosition(connection: LocalnetHarness["connection"], address: PublicKey) {
+async function decodeOracleStakePosition(
+  connection: LocalnetHarness["connection"],
+  address: PublicKey,
+) {
   const info = await mustReadAccount(connection, address);
   const d = new AccountDecoder(Buffer.from(info.data));
   d.readBytes(8);
@@ -761,10 +823,14 @@ function computeCycleFeeBreakdown(params: {
   protocolFeeBps: number;
   oracleFeeBps: number;
 }) {
-  const protocolFeeRaw = (params.premiumAmountRaw * BigInt(params.protocolFeeBps)) / 10_000n;
-  const oracleFeeRaw = (params.premiumAmountRaw * BigInt(params.oracleFeeBps)) / 10_000n;
-  const netPoolPremiumRaw = params.premiumAmountRaw - protocolFeeRaw - oracleFeeRaw;
-  const totalAmountRaw = params.premiumAmountRaw + params.bondAmountRaw + params.shieldFeeRaw;
+  const protocolFeeRaw =
+    (params.premiumAmountRaw * BigInt(params.protocolFeeBps)) / 10_000n;
+  const oracleFeeRaw =
+    (params.premiumAmountRaw * BigInt(params.oracleFeeBps)) / 10_000n;
+  const netPoolPremiumRaw =
+    params.premiumAmountRaw - protocolFeeRaw - oracleFeeRaw;
+  const totalAmountRaw =
+    params.premiumAmountRaw + params.bondAmountRaw + params.shieldFeeRaw;
   return {
     protocolFeeRaw,
     oracleFeeRaw,
@@ -773,19 +839,26 @@ function computeCycleFeeBreakdown(params: {
   };
 }
 
-function lookupAddressesForTransaction(tx: import("@solana/web3.js").Transaction) {
+function lookupAddressesForTransaction(
+  tx: import("@solana/web3.js").Transaction,
+) {
   return tx.instructions.flatMap((instruction) => [
     instruction.programId,
     ...instruction.keys.map((key) => key.pubkey),
   ]);
 }
 
-function addComputeBudget(tx: import("@solana/web3.js").Transaction, units = 400_000) {
+function addComputeBudget(
+  tx: import("@solana/web3.js").Transaction,
+  units = 400_000,
+) {
   tx.instructions.unshift(ComputeBudgetProgram.setComputeUnitLimit({ units }));
   return tx;
 }
 
-async function createGlobalState(harness: LocalnetHarness): Promise<GlobalState> {
+async function createGlobalState(
+  harness: LocalnetHarness,
+): Promise<GlobalState> {
   const [
     originalGovernance,
     governanceAuthority,
@@ -838,7 +911,7 @@ async function createGlobalState(harness: LocalnetHarness): Promise<GlobalState>
     mint: stakeMint,
     destination: oracleStakeTokenAccount,
     authority: originalGovernance,
-    amount: 1_000n,
+    amount: 2_100_000n,
   });
 
   return {
@@ -874,37 +947,50 @@ async function ensureProtocolBootstrapped(
     return;
   }
 
-  const configAddress = protocol.deriveConfigV2Pda(harness.programId);
+  const configAddress = protocol.deriveConfigPda(harness.programId);
   const beforeConfig = await harness.snapshotAccount(configAddress);
-  const initializeTx = protocol.buildInitializeProtocolV2Tx({
+  const initializeTx = protocol.buildInitializeProtocolTx({
     admin: state.originalGovernance.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
     protocolFeeBps: 300,
     governanceRealm: Keypair.generate().publicKey.toBase58(),
     governanceConfig: state.governanceAuthority.publicKey.toBase58(),
     defaultStakeMint: state.stakeMint.toBase58(),
-    minOracleStake: 0n,
+    minOracleStake: 1_000_000n,
   });
   const initializeResult = await harness.send(
-    "initialize_protocol_v2",
+    "initialize_protocol",
     initializeTx,
     [state.originalGovernance],
   );
   recorder?.recordSuccess(initializeResult);
-  assertChanged(beforeConfig, await harness.snapshotAccount(configAddress), "initialize_protocol_v2");
+  assertChanged(
+    beforeConfig,
+    await harness.snapshotAccount(configAddress),
+    "initialize_protocol",
+  );
 
   const paramsBefore = await harness.snapshotAccount(configAddress);
   const setParamsTx = protocol.buildSetProtocolParamsTx({
     governanceAuthority: state.originalGovernance.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
     protocolFeeBps: 300,
-    allowedPayoutMintsHashHex: createHash("sha256").update("allowed-payout-mints").digest("hex"),
-    minOracleStake: 0n,
+    allowedPayoutMintsHashHex: createHash("sha256")
+      .update("allowed-payout-mints")
+      .digest("hex"),
+    defaultStakeMint: state.stakeMint.toBase58(),
+    minOracleStake: 1_000_000n,
     emergencyPaused: false,
   });
-  const paramsResult = await harness.send("set_protocol_params", setParamsTx, [state.originalGovernance]);
+  const paramsResult = await harness.send("set_protocol_params", setParamsTx, [
+    state.originalGovernance,
+  ]);
   recorder?.recordSuccess(paramsResult);
-  assertChanged(paramsBefore, await harness.snapshotAccount(configAddress), "set_protocol_params");
+  assertChanged(
+    paramsBefore,
+    await harness.snapshotAccount(configAddress),
+    "set_protocol_params",
+  );
 
   const rotateBefore = await harness.snapshotAccount(configAddress);
   const rotateTx = protocol.buildRotateGovernanceAuthorityTx({
@@ -918,28 +1004,43 @@ async function ensureProtocolBootstrapped(
     [state.originalGovernance],
   );
   recorder?.recordSuccess(rotateResult);
-  assertChanged(rotateBefore, await harness.snapshotAccount(configAddress), "rotate_governance_authority");
+  assertChanged(
+    rotateBefore,
+    await harness.snapshotAccount(configAddress),
+    "rotate_governance_authority",
+  );
 
   const unauthorizedTx = protocol.buildSetProtocolParamsTx({
     governanceAuthority: state.originalGovernance.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
     protocolFeeBps: 200,
-    allowedPayoutMintsHashHex: createHash("sha256").update("unauthorized").digest("hex"),
-    minOracleStake: 0n,
+    allowedPayoutMintsHashHex: createHash("sha256")
+      .update("unauthorized")
+      .digest("hex"),
+    defaultStakeMint: state.stakeMint.toBase58(),
+    minOracleStake: 1_000_000n,
     emergencyPaused: false,
   });
   await harness.expectCustomError({
-    caseId: COVERED_ERROR_CASES.GovernanceUnauthorized ?? "governance-unauthorized-update",
+    caseId:
+      COVERED_ERROR_CASES.GovernanceUnauthorized ??
+      "governance-unauthorized-update",
     expectedErrorName: "GovernanceUnauthorized",
     tx: unauthorizedTx,
     signers: [state.originalGovernance],
     unchangedAddresses: [configAddress],
   });
-  recorder?.recordFailure(COVERED_ERROR_CASES.GovernanceUnauthorized ?? "governance-unauthorized-update");
+  recorder?.recordFailure(
+    COVERED_ERROR_CASES.GovernanceUnauthorized ??
+      "governance-unauthorized-update",
+  );
 
   const config = await decodeProtocolConfig(harness.connection, configAddress);
   assert.equal(config.defaultStakeMint, state.stakeMint.toBase58());
-  assert.equal(config.governanceAuthority, state.governanceAuthority.publicKey.toBase58());
+  assert.equal(
+    config.governanceAuthority,
+    state.governanceAuthority.publicKey.toBase58(),
+  );
   state.protocolBootstrapped = true;
 }
 
@@ -970,7 +1071,7 @@ async function ensureMainOracleReady(
   state.stakeVault = stakeVault;
 
   const registerBefore = await harness.snapshotAccount(oracleProfile);
-  const registerTx = protocol.buildRegisterOracleV2Tx({
+  const registerTx = protocol.buildRegisterOracleTx({
     admin: state.governanceAuthority.publicKey,
     oracle: state.oracle.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
@@ -981,27 +1082,37 @@ async function ensureMainOracleReady(
     appUrl: "https://app.oracle.local",
     logoUri: "https://oracle.local/logo.png",
     webhookUrl: "https://oracle.local/hook",
-    supportedSchemaKeyHashesHex: [createHash("sha256").update("schema-local").digest("hex")],
+    supportedSchemaKeyHashesHex: [
+      createHash("sha256").update("schema-local").digest("hex"),
+    ],
   });
-  const registerResult = await harness.send(
-    "register_oracle_v2",
-    registerTx,
-    [state.governanceAuthority],
-  );
+  const registerResult = await harness.send("register_oracle", registerTx, [
+    state.governanceAuthority,
+  ]);
   recorder?.recordSuccess(registerResult);
-  assertChanged(registerBefore, await harness.snapshotAccount(oracleProfile), "register_oracle_v2");
+  assertChanged(
+    registerBefore,
+    await harness.snapshotAccount(oracleProfile),
+    "register_oracle",
+  );
 
   const claimBefore = await harness.snapshotAccount(oracleProfile);
-  const claimTx = protocol.buildClaimOracleV2Tx({
+  const claimTx = protocol.buildClaimOracleTx({
     oracle: state.oracle.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
   });
-  const claimResult = await harness.send("claim_oracle_v2", claimTx, [state.oracle]);
+  const claimResult = await harness.send("claim_oracle", claimTx, [
+    state.oracle,
+  ]);
   recorder?.recordSuccess(claimResult);
-  assertChanged(claimBefore, await harness.snapshotAccount(oracleProfile), "claim_oracle_v2");
+  assertChanged(
+    claimBefore,
+    await harness.snapshotAccount(oracleProfile),
+    "claim_oracle",
+  );
 
   const updateProfileBefore = await harness.snapshotAccount(oracleProfile);
-  const updateProfileTx = protocol.buildUpdateOracleProfileV2Tx({
+  const updateProfileTx = protocol.buildUpdateOracleProfileTx({
     authority: state.oracle.publicKey,
     oracle: state.oracle.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
@@ -1012,10 +1123,12 @@ async function ensureMainOracleReady(
     appUrl: "https://app.updated.local",
     logoUri: "https://oracle.updated.local/logo.png",
     webhookUrl: "https://oracle.updated.local/hook",
-    supportedSchemaKeyHashesHex: [createHash("sha256").update("schema-updated").digest("hex")],
+    supportedSchemaKeyHashesHex: [
+      createHash("sha256").update("schema-updated").digest("hex"),
+    ],
   });
   const updateProfileResult = await harness.send(
-    "update_oracle_profile_v2",
+    "update_oracle_profile",
     updateProfileTx,
     [state.oracle],
   );
@@ -1023,7 +1136,7 @@ async function ensureMainOracleReady(
   assertChanged(
     updateProfileBefore,
     await harness.snapshotAccount(oracleProfile),
-    "update_oracle_profile_v2",
+    "update_oracle_profile",
   );
 
   const metadataBefore = await harness.snapshotAccount(oracleEntry);
@@ -1033,9 +1146,17 @@ async function ensureMainOracleReady(
     metadataUri: "https://oracle.updated.local/metadata",
     active: true,
   });
-  const metadataResult = await harness.send("update_oracle_metadata", updateMetadataTx, [state.oracle]);
+  const metadataResult = await harness.send(
+    "update_oracle_metadata",
+    updateMetadataTx,
+    [state.oracle],
+  );
   recorder?.recordSuccess(metadataResult);
-  assertChanged(metadataBefore, await harness.snapshotAccount(oracleEntry), "update_oracle_metadata");
+  assertChanged(
+    metadataBefore,
+    await harness.snapshotAccount(oracleEntry),
+    "update_oracle_metadata",
+  );
 
   const stakeBefore = await harness.snapshotAccount(stakePosition);
   const stakeTx = protocol.buildStakeOracleTx({
@@ -1045,11 +1166,18 @@ async function ensureMainOracleReady(
     stakeVault: stakeVault.publicKey,
     stakerTokenAccount: state.oracleStakeTokenAccount,
     recentBlockhash: await harness.latestBlockhash(),
-    amount: 1_000n,
+    amount: 1_000_000n,
   });
-  const stakeResult = await harness.send("stake_oracle", stakeTx, [state.oracle, stakeVault]);
+  const stakeResult = await harness.send("stake_oracle", stakeTx, [
+    state.oracle,
+    stakeVault,
+  ]);
   recorder?.recordSuccess(stakeResult);
-  assertChanged(stakeBefore, await harness.snapshotAccount(stakePosition), "stake_oracle");
+  assertChanged(
+    stakeBefore,
+    await harness.snapshotAccount(stakePosition),
+    "stake_oracle",
+  );
 
   const slashBefore = await harness.snapshotAccount(stakePosition);
   const slashTx = protocol.buildSlashOracleTx({
@@ -1060,21 +1188,33 @@ async function ensureMainOracleReady(
     recentBlockhash: await harness.latestBlockhash(),
     amount: 200n,
   });
-  const slashResult = await harness.send("slash_oracle", slashTx, [state.governanceAuthority]);
+  const slashResult = await harness.send("slash_oracle", slashTx, [
+    state.governanceAuthority,
+  ]);
   recorder?.recordSuccess(slashResult);
-  assertChanged(slashBefore, await harness.snapshotAccount(stakePosition), "slash_oracle");
+  assertChanged(
+    slashBefore,
+    await harness.snapshotAccount(stakePosition),
+    "slash_oracle",
+  );
 
   const requestBefore = await harness.snapshotAccount(stakePosition);
   const requestTx = protocol.buildRequestUnstakeTx({
     staker: state.oracle.publicKey,
     oracle: state.oracle.publicKey,
     recentBlockhash: await harness.latestBlockhash(),
-    amount: 800n,
+    amount: 999_800n,
     cooldownSeconds: 0n,
   });
-  const requestResult = await harness.send("request_unstake", requestTx, [state.oracle]);
+  const requestResult = await harness.send("request_unstake", requestTx, [
+    state.oracle,
+  ]);
   recorder?.recordSuccess(requestResult);
-  assertChanged(requestBefore, await harness.snapshotAccount(stakePosition), "request_unstake");
+  assertChanged(
+    requestBefore,
+    await harness.snapshotAccount(stakePosition),
+    "request_unstake",
+  );
 
   const finalizeBefore = await harness.snapshotAccount(stakePosition);
   const finalizeTx = protocol.buildFinalizeUnstakeTx({
@@ -1084,12 +1224,42 @@ async function ensureMainOracleReady(
     destinationTokenAccount: state.oracleStakeTokenAccount,
     recentBlockhash: await harness.latestBlockhash(),
   });
-  const finalizeResult = await harness.send("finalize_unstake", finalizeTx, [state.oracle]);
+  const finalizeResult = await harness.send("finalize_unstake", finalizeTx, [
+    state.oracle,
+  ]);
   recorder?.recordSuccess(finalizeResult);
-  assertChanged(finalizeBefore, await harness.snapshotAccount(stakePosition), "finalize_unstake");
+  assertChanged(
+    finalizeBefore,
+    await harness.snapshotAccount(stakePosition),
+    "finalize_unstake",
+  );
 
-  const decodedStake = await decodeOracleStakePosition(harness.connection, stakePosition);
+  const decodedStake = await decodeOracleStakePosition(
+    harness.connection,
+    stakePosition,
+  );
   assert.equal(decodedStake.stakedAmount, 0n);
+
+  const restakeBefore = await harness.snapshotAccount(stakePosition);
+  const restakeTx = protocol.buildStakeOracleTx({
+    staker: state.oracle.publicKey,
+    oracle: state.oracle.publicKey,
+    stakeMint: state.stakeMint,
+    stakeVault: stakeVault.publicKey,
+    stakerTokenAccount: state.oracleStakeTokenAccount,
+    recentBlockhash: await harness.latestBlockhash(),
+    amount: 1_000_000n,
+  });
+  const restakeResult = await harness.send("stake_oracle", restakeTx, [
+    state.oracle,
+    stakeVault,
+  ]);
+  recorder?.recordSuccess(restakeResult);
+  assertChanged(
+    restakeBefore,
+    await harness.snapshotAccount(stakePosition),
+    "stake_oracle_restake",
+  );
   state.mainOracleReady = true;
 }
 
@@ -1107,7 +1277,7 @@ async function createPool(params: {
   poolType?: number;
 }) {
   const poolId = uniqueLabel(params.poolIdPrefix);
-  const createTx = protocol.buildCreatePoolV2Tx({
+  const createTx = protocol.buildCreatePoolTx({
     authority: params.authority.publicKey,
     recentBlockhash: await params.harness.latestBlockhash(),
     poolId,
@@ -1119,18 +1289,26 @@ async function createPool(params: {
     inviteIssuer: (params.inviteIssuer ?? ZERO_PUBKEY).toBase58(),
     metadataUri: `https://pool.local/${poolId}`,
     termsHashHex: createHash("sha256").update(`${poolId}:terms`).digest("hex"),
-    payoutPolicyHashHex: createHash("sha256").update(`${poolId}:policy`).digest("hex"),
+    payoutPolicyHashHex: createHash("sha256")
+      .update(`${poolId}:policy`)
+      .digest("hex"),
     payoutAssetMint: (params.payoutAssetMint ?? ZERO_PUBKEY).toBase58(),
     poolType: params.poolType,
   });
-  const createResult = await params.harness.send("create_pool_v2", createTx.tx, [params.authority]);
+  const createResult = await params.harness.send("create_pool", createTx.tx, [
+    params.authority,
+  ]);
   const setStatusTx = protocol.buildSetPoolStatusTx({
     authority: params.authority.publicKey,
     poolAddress: createTx.poolAddress,
     recentBlockhash: await params.harness.latestBlockhash(),
     status: protocol.POOL_STATUS_ACTIVE,
   });
-  const statusResult = await params.harness.send("set_pool_status", setStatusTx, [params.authority]);
+  const statusResult = await params.harness.send(
+    "set_pool_status",
+    setStatusTx,
+    [params.authority],
+  );
   return {
     poolAddress: createTx.poolAddress,
     poolId,
@@ -1153,7 +1331,7 @@ async function createPoolOnly(params: {
   poolType?: number;
 }) {
   const poolId = uniqueLabel(params.poolIdPrefix);
-  const createTx = protocol.buildCreatePoolV2Tx({
+  const createTx = protocol.buildCreatePoolTx({
     authority: params.authority.publicKey,
     recentBlockhash: await params.harness.latestBlockhash(),
     poolId,
@@ -1165,11 +1343,15 @@ async function createPoolOnly(params: {
     inviteIssuer: (params.inviteIssuer ?? ZERO_PUBKEY).toBase58(),
     metadataUri: `https://pool.local/${poolId}`,
     termsHashHex: createHash("sha256").update(`${poolId}:terms`).digest("hex"),
-    payoutPolicyHashHex: createHash("sha256").update(`${poolId}:policy`).digest("hex"),
+    payoutPolicyHashHex: createHash("sha256")
+      .update(`${poolId}:policy`)
+      .digest("hex"),
     payoutAssetMint: (params.payoutAssetMint ?? ZERO_PUBKEY).toBase58(),
     poolType: params.poolType,
   });
-  const createResult = await params.harness.send("create_pool_v2", createTx.tx, [params.authority]);
+  const createResult = await params.harness.send("create_pool", createTx.tx, [
+    params.authority,
+  ]);
   return {
     poolAddress: createTx.poolAddress,
     poolId,
@@ -1277,11 +1459,18 @@ async function upsertPolicySeriesPaymentOptionForScenario(params: {
     active: params.active ?? true,
     recentBlockhash: await params.harness.latestBlockhash(),
   });
-  return params.harness.send("upsert_policy_series_payment_option", tx, [params.authority]);
+  return params.harness.send("upsert_policy_series_payment_option", tx, [
+    params.authority,
+  ]);
 }
 
-async function scenarioProtocolGovernanceOracleLifecycle(harness: LocalnetHarness, state: GlobalState) {
-  const scenario = harness.beginScenario("protocol-governance-oracle-lifecycle");
+async function scenarioProtocolGovernanceOracleLifecycle(
+  harness: LocalnetHarness,
+  state: GlobalState,
+) {
+  const scenario = harness.beginScenario(
+    "protocol-governance-oracle-lifecycle",
+  );
   try {
     await ensureMainOracleReady(harness, state, scenario);
   } finally {
@@ -1289,124 +1478,10 @@ async function scenarioProtocolGovernanceOracleLifecycle(harness: LocalnetHarnes
   }
 }
 
-async function scenarioLegacyRegistryCompatibility(harness: LocalnetHarness, state: GlobalState) {
-  const scenario = harness.beginScenario("legacy-registry-compatibility");
-  try {
-    await ensureProtocolBootstrapped(harness, state);
-    const legacyPool = await createPool({
-      harness,
-      authority: state.governanceAuthority,
-      poolIdPrefix: "legacy",
-      organizationRef: "legacy-org",
-      payoutLamportsPerPass: 1_000_000n,
-      membershipMode: protocol.MEMBERSHIP_MODE_OPEN,
-    });
-    scenario.recordSuccess(legacyPool.createResult);
-    scenario.recordSuccess(legacyPool.statusResult);
-
-    const legacyOracleEntry = protocol.deriveOraclePda({
-      programId: harness.programId,
-      oracle: state.legacyOracle.publicKey,
-    });
-    const legacyOracleBefore = await harness.snapshotAccount(legacyOracleEntry);
-    const registerLegacyTx = protocol.buildRegisterOracleTx({
-      oracle: state.legacyOracle.publicKey,
-      recentBlockhash: await harness.latestBlockhash(),
-      metadataUri: "https://legacy.oracle.local/metadata",
-    });
-    const legacyRegisterResult = await harness.send(
-      "register_oracle",
-      registerLegacyTx,
-      [state.legacyOracle],
-    );
-    scenario.recordSuccess(legacyRegisterResult);
-    assertChanged(legacyOracleBefore, await harness.snapshotAccount(legacyOracleEntry), "register_oracle");
-
-    const poolOracleApproval = protocol.derivePoolOraclePda({
-      programId: harness.programId,
-      poolAddress: legacyPool.poolAddress,
-      oracle: state.legacyOracle.publicKey,
-    });
-    const approvalBefore = await harness.snapshotAccount(poolOracleApproval);
-    const setLegacyPoolOracleTx = protocol.buildSetPoolOracleTx({
-      authority: state.governanceAuthority.publicKey,
-      poolAddress: legacyPool.poolAddress,
-      oracle: state.legacyOracle.publicKey,
-      recentBlockhash: await harness.latestBlockhash(),
-      active: true,
-    });
-    const approvalResult = await harness.send(
-      "set_pool_oracle",
-      setLegacyPoolOracleTx,
-      [state.governanceAuthority],
-    );
-    scenario.recordSuccess(approvalResult);
-    assertChanged(approvalBefore, await harness.snapshotAccount(poolOracleApproval), "set_pool_oracle");
-
-    const legacySchemaKeyHashHex = String(process.env.OMEGAX_E2E_LEGACY_SCHEMA_KEY_HASH_HEX ?? "").trim().toLowerCase();
-    const legacySchemaAddressRaw = String(process.env.OMEGAX_E2E_LEGACY_SCHEMA_ADDRESS ?? "").trim();
-    assert.ok(legacySchemaKeyHashHex, "OMEGAX_E2E_LEGACY_SCHEMA_KEY_HASH_HEX must be set by the localnet runner");
-    assert.ok(legacySchemaAddressRaw, "OMEGAX_E2E_LEGACY_SCHEMA_ADDRESS must be set by the localnet runner");
-    const legacySchemaAddress = new PublicKey(legacySchemaAddressRaw);
-    const legacySchemaDependencyAddress = protocol.deriveSchemaDependencyPda({
-      programId: harness.programId,
-      schemaKeyHash: Buffer.from(legacySchemaKeyHashHex, "hex"),
-    });
-
-    const legacySchemaState = await decodeSchema(harness.connection, legacySchemaAddress);
-    assert.equal(legacySchemaState.schemaKeyHashHex, legacySchemaKeyHashHex);
-    assert.equal(legacySchemaState.verified, false);
-    assert.equal((await harness.snapshotAccount(legacySchemaDependencyAddress)).exists, false);
-
-    const dependencyBefore = await harness.snapshotAccount(legacySchemaDependencyAddress);
-    const backfillTx = protocol.buildBackfillSchemaDependencyLedgerTx({
-      governanceAuthority: state.governanceAuthority.publicKey,
-      recentBlockhash: await harness.latestBlockhash(),
-      schemaKeyHashHex: legacySchemaKeyHashHex,
-    });
-    const backfillResult = await harness.send(
-      "backfill_schema_dependency_ledger",
-      backfillTx,
-      [state.governanceAuthority],
-    );
-    scenario.recordSuccess(backfillResult);
-    assertChanged(
-      dependencyBefore,
-      await harness.snapshotAccount(legacySchemaDependencyAddress),
-      "backfill_schema_dependency_ledger",
-    );
-    const dependencyState = await decodeSchemaDependency(harness.connection, legacySchemaDependencyAddress);
-    assert.equal(dependencyState.schemaKeyHashHex, legacySchemaKeyHashHex);
-    assert.equal(dependencyState.activeRuleRefcount, 0);
-
-    const closeSchemaBefore = await harness.snapshotAccount(legacySchemaAddress);
-    const closeDependencyBefore = await harness.snapshotAccount(legacySchemaDependencyAddress);
-    const closeLegacySchemaTx = protocol.buildCloseOutcomeSchemaTx({
-      governanceAuthority: state.governanceAuthority.publicKey,
-      recipientSystemAccount: state.governanceAuthority.publicKey,
-      recentBlockhash: await harness.latestBlockhash(),
-      schemaKeyHashHex: legacySchemaKeyHashHex,
-    });
-    const closeLegacySchemaResult = await harness.send(
-      "close_outcome_schema",
-      closeLegacySchemaTx,
-      [state.governanceAuthority],
-    );
-    scenario.recordSuccess(closeLegacySchemaResult);
-    assertChanged(closeSchemaBefore, await harness.snapshotAccount(legacySchemaAddress), "close_outcome_schema legacy");
-    assertChanged(
-      closeDependencyBefore,
-      await harness.snapshotAccount(legacySchemaDependencyAddress),
-      "close_outcome_schema legacy dependency",
-    );
-    assert.equal((await harness.snapshotAccount(legacySchemaAddress)).exists, false);
-    assert.equal((await harness.snapshotAccount(legacySchemaDependencyAddress)).exists, false);
-  } finally {
-    scenario.finish();
-  }
-}
-
-async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state: GlobalState) {
+async function scenarioPoolSchemaMemberLifecycle(
+  harness: LocalnetHarness,
+  state: GlobalState,
+) {
   const scenario = harness.beginScenario("pool-schema-member-lifecycle");
   try {
     await ensureMainOracleReady(harness, state);
@@ -1427,7 +1502,10 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       amount: 9_000_000n,
     });
 
-    const tokenGateMint = await harness.createMint(state.governanceAuthority, 0);
+    const tokenGateMint = await harness.createMint(
+      state.governanceAuthority,
+      0,
+    );
     const tokenGateAccount = (
       await harness.getOrCreateAta({
         payer: state.governanceAuthority,
@@ -1455,8 +1533,14 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
     });
     scenario.recordSuccess(mainPool.createResult);
 
-    const mainPoolState = await decodePool(harness.connection, mainPool.poolAddress);
-    assert.equal(mainPoolState.authority, state.governanceAuthority.publicKey.toBase58());
+    const mainPoolState = await decodePool(
+      harness.connection,
+      mainPool.poolAddress,
+    );
+    assert.equal(
+      mainPoolState.authority,
+      state.governanceAuthority.publicKey.toBase58(),
+    );
     assert.equal(mainPoolState.membershipMode, protocol.MEMBERSHIP_MODE_OPEN);
 
     const poolBeforeDraft = await harness.snapshotAccount(mainPool.poolAddress);
@@ -1467,13 +1551,19 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       status: protocol.POOL_STATUS_DRAFT,
     });
     scenario.recordSuccess(draftResult);
-    assertChanged(poolBeforeDraft, await harness.snapshotAccount(mainPool.poolAddress), "set_pool_status draft");
+    assertChanged(
+      poolBeforeDraft,
+      await harness.snapshotAccount(mainPool.poolAddress),
+      "set_pool_status draft",
+    );
     assert.equal(
       (await decodePool(harness.connection, mainPool.poolAddress)).status,
       protocol.POOL_STATUS_DRAFT,
     );
 
-    const poolBeforeActive = await harness.snapshotAccount(mainPool.poolAddress);
+    const poolBeforeActive = await harness.snapshotAccount(
+      mainPool.poolAddress,
+    );
     const activeResult = await setPoolStatusForScenario({
       harness,
       authority: state.governanceAuthority,
@@ -1481,7 +1571,11 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       status: protocol.POOL_STATUS_ACTIVE,
     });
     scenario.recordSuccess(activeResult);
-    assertChanged(poolBeforeActive, await harness.snapshotAccount(mainPool.poolAddress), "set_pool_status active");
+    assertChanged(
+      poolBeforeActive,
+      await harness.snapshotAccount(mainPool.poolAddress),
+      "set_pool_status active",
+    );
     assert.equal(
       (await decodePool(harness.connection, mainPool.poolAddress)).status,
       protocol.POOL_STATUS_ACTIVE,
@@ -1491,7 +1585,9 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
     });
-    const controlBefore = await harness.snapshotAccount(controlAuthorityAddress);
+    const controlBefore = await harness.snapshotAccount(
+      controlAuthorityAddress,
+    );
     const controlTx = protocol.buildSetPoolControlAuthoritiesTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1512,17 +1608,33 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       await harness.snapshotAccount(controlAuthorityAddress),
       "set_pool_control_authorities",
     );
-    const controlState = await decodePoolControlAuthority(harness.connection, controlAuthorityAddress);
-    assert.equal(controlState.operatorAuthority, state.operator.publicKey.toBase58());
-    assert.equal(controlState.riskManagerAuthority, state.riskManager.publicKey.toBase58());
-    assert.equal(controlState.complianceAuthority, state.complianceAuthority.publicKey.toBase58());
-    assert.equal(controlState.guardianAuthority, state.guardianAuthority.publicKey.toBase58());
+    const controlState = await decodePoolControlAuthority(
+      harness.connection,
+      controlAuthorityAddress,
+    );
+    assert.equal(
+      controlState.operatorAuthority,
+      state.operator.publicKey.toBase58(),
+    );
+    assert.equal(
+      controlState.riskManagerAuthority,
+      state.riskManager.publicKey.toBase58(),
+    );
+    assert.equal(
+      controlState.complianceAuthority,
+      state.complianceAuthority.publicKey.toBase58(),
+    );
+    assert.equal(
+      controlState.guardianAuthority,
+      state.guardianAuthority.publicKey.toBase58(),
+    );
 
     const oraclePolicyAddress = protocol.derivePoolOraclePolicyPda({
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
     });
-    const oraclePolicyBefore = await harness.snapshotAccount(oraclePolicyAddress);
+    const oraclePolicyBefore =
+      await harness.snapshotAccount(oraclePolicyAddress);
     const oraclePolicyTx = protocol.buildSetPoolOraclePolicyTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1545,7 +1657,10 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       await harness.snapshotAccount(oraclePolicyAddress),
       "set_pool_oracle_policy",
     );
-    const oraclePolicyState = await decodePoolOraclePolicy(harness.connection, oraclePolicyAddress);
+    const oraclePolicyState = await decodePoolOraclePolicy(
+      harness.connection,
+      oraclePolicyAddress,
+    );
     assert.equal(oraclePolicyState.oracleFeeBps, 12);
     assert.equal(oraclePolicyState.challengeWindowSecs, 120n);
 
@@ -1557,12 +1672,15 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
     });
     scenario.recordSuccess(poolApprovalResult);
 
-    const poolOraclePermissionsAddress = protocol.derivePoolOraclePermissionsPda({
-      programId: harness.programId,
-      poolAddress: mainPool.poolAddress,
-      oracle: state.oracle.publicKey,
-    });
-    const oraclePermissionsBefore = await harness.snapshotAccount(poolOraclePermissionsAddress);
+    const poolOraclePermissionsAddress =
+      protocol.derivePoolOraclePermissionsPda({
+        programId: harness.programId,
+        poolAddress: mainPool.poolAddress,
+        oracle: state.oracle.publicKey,
+      });
+    const oraclePermissionsBefore = await harness.snapshotAccount(
+      poolOraclePermissionsAddress,
+    );
     const oraclePermissionsTx = protocol.buildSetPoolOraclePermissionsTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1582,7 +1700,12 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "set_pool_oracle_permissions",
     );
     assert.equal(
-      (await decodePoolOraclePermissions(harness.connection, poolOraclePermissionsAddress)).permissions,
+      (
+        await decodePoolOraclePermissions(
+          harness.connection,
+          poolOraclePermissionsAddress,
+        )
+      ).permissions,
       ORACLE_PERMISSION_ALL,
     );
 
@@ -1611,7 +1734,8 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "set_pool_coverage_reserve_floor",
     );
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, poolReserveAddress)).manualCoverageReserveAmount,
+      (await decodePoolTreasuryReserve(harness.connection, poolReserveAddress))
+        .manualCoverageReserveAmount,
       1_250n,
     );
 
@@ -1630,21 +1754,33 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       impaired: true,
       impairmentAmount: 250n,
     });
-    const riskResult = await harness.send("set_pool_risk_controls", riskTx, [state.governanceAuthority]);
+    const riskResult = await harness.send("set_pool_risk_controls", riskTx, [
+      state.governanceAuthority,
+    ]);
     scenario.recordSuccess(riskResult);
-    assertChanged(riskBefore, await harness.snapshotAccount(poolRiskAddress), "set_pool_risk_controls");
-    const riskState = await decodePoolRiskConfig(harness.connection, poolRiskAddress);
+    assertChanged(
+      riskBefore,
+      await harness.snapshotAccount(poolRiskAddress),
+      "set_pool_risk_controls",
+    );
+    const riskState = await decodePoolRiskConfig(
+      harness.connection,
+      poolRiskAddress,
+    );
     assert.equal(riskState.redemptionMode, protocol.POOL_REDEMPTION_MODE_OPEN);
     assert.equal(riskState.claimMode, protocol.POOL_CLAIM_MODE_OPEN);
     assert.equal(riskState.impaired, true);
 
-    const seriesRefHashHex = createHash("sha256").update(`${mainPool.poolId}:series`).digest("hex");
+    const seriesRefHashHex = createHash("sha256")
+      .update(`${mainPool.poolId}:series`)
+      .digest("hex");
     const policySeriesAddress = protocol.derivePolicySeriesPda({
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
       seriesRefHash: Buffer.from(seriesRefHashHex, "hex"),
     });
-    const policySeriesBefore = await harness.snapshotAccount(policySeriesAddress);
+    const policySeriesBefore =
+      await harness.snapshotAccount(policySeriesAddress);
     const createPolicySeriesTx = protocol.buildCreatePolicySeriesTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1654,16 +1790,28 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       sponsorMode: protocol.SPONSOR_MODE_DIRECT,
       displayName: "Surface Reward Series",
       metadataUri: "https://surface.local/policy-series",
-      termsHashHex: createHash("sha256").update("surface-series-terms").digest("hex"),
+      termsHashHex: createHash("sha256")
+        .update("surface-series-terms")
+        .digest("hex"),
       durationSecs: 7_200n,
       premiumDueEverySecs: 600n,
       premiumGraceSecs: 300n,
       premiumAmount: 1_500n,
-      interopProfileHashHex: createHash("sha256").update("interop-profile").digest("hex"),
-      oracleProfileHashHex: createHash("sha256").update("oracle-profile").digest("hex"),
-      riskFamilyHashHex: createHash("sha256").update("risk-family").digest("hex"),
-      issuanceTemplateHashHex: createHash("sha256").update("issuance-template").digest("hex"),
-      comparabilityHashHex: createHash("sha256").update("comparability").digest("hex"),
+      interopProfileHashHex: createHash("sha256")
+        .update("interop-profile")
+        .digest("hex"),
+      oracleProfileHashHex: createHash("sha256")
+        .update("oracle-profile")
+        .digest("hex"),
+      riskFamilyHashHex: createHash("sha256")
+        .update("risk-family")
+        .digest("hex"),
+      issuanceTemplateHashHex: createHash("sha256")
+        .update("issuance-template")
+        .digest("hex"),
+      comparabilityHashHex: createHash("sha256")
+        .update("comparability")
+        .digest("hex"),
       renewalOfHashHex: createHash("sha256").update("renewal-of").digest("hex"),
       termsVersion: 2,
       mappingVersion: 1,
@@ -1680,7 +1828,10 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       await harness.snapshotAccount(policySeriesAddress),
       "create_policy_series",
     );
-    const policySeriesState = await decodePolicySeries(harness.connection, policySeriesAddress);
+    const policySeriesState = await decodePolicySeries(
+      harness.connection,
+      policySeriesAddress,
+    );
     assert.equal(policySeriesState.seriesRefHashHex, seriesRefHashHex);
     assert.equal(policySeriesState.planMode, protocol.PLAN_MODE_REWARD);
 
@@ -1688,20 +1839,28 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
     });
-    const complianceBefore = await harness.snapshotAccount(compliancePolicyAddress);
+    const complianceBefore = await harness.snapshotAccount(
+      compliancePolicyAddress,
+    );
     const complianceTx = protocol.buildSetPoolCompliancePolicyTx({
       authority: state.complianceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
-      providerRefHashHex: createHash("sha256").update("provider-ref").digest("hex"),
-      credentialTypeHashHex: createHash("sha256").update("credential-type").digest("hex"),
-      revocationListHashHex: createHash("sha256").update("revocations").digest("hex"),
+      providerRefHashHex: createHash("sha256")
+        .update("provider-ref")
+        .digest("hex"),
+      credentialTypeHashHex: createHash("sha256")
+        .update("credential-type")
+        .digest("hex"),
+      revocationListHashHex: createHash("sha256")
+        .update("revocations")
+        .digest("hex"),
       actionsMask:
-        protocol.COMPLIANCE_ACTION_ENROLL
-        | protocol.COMPLIANCE_ACTION_DEPOSIT
-        | protocol.COMPLIANCE_ACTION_REDEEM
-        | protocol.COMPLIANCE_ACTION_CLAIM
-        | protocol.COMPLIANCE_ACTION_PAYOUT,
+        protocol.COMPLIANCE_ACTION_ENROLL |
+        protocol.COMPLIANCE_ACTION_DEPOSIT |
+        protocol.COMPLIANCE_ACTION_REDEEM |
+        protocol.COMPLIANCE_ACTION_CLAIM |
+        protocol.COMPLIANCE_ACTION_PAYOUT,
       bindingMode: protocol.COMPLIANCE_BINDING_MODE_NONE,
       providerMode: protocol.COMPLIANCE_PROVIDER_MODE_NATIVE,
       capitalRailMode: protocol.RAIL_MODE_ANY,
@@ -1720,15 +1879,23 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       await harness.snapshotAccount(compliancePolicyAddress),
       "set_pool_compliance_policy",
     );
-    const complianceState = await decodePoolCompliancePolicy(harness.connection, compliancePolicyAddress);
-    assert.equal(complianceState.bindingMode, protocol.COMPLIANCE_BINDING_MODE_NONE);
+    const complianceState = await decodePoolCompliancePolicy(
+      harness.connection,
+      compliancePolicyAddress,
+    );
+    assert.equal(
+      complianceState.bindingMode,
+      protocol.COMPLIANCE_BINDING_MODE_NONE,
+    );
     assert.equal(complianceState.active, true);
 
     const automationPolicyAddress = protocol.derivePoolAutomationPolicyPda({
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
     });
-    const automationBefore = await harness.snapshotAccount(automationPolicyAddress);
+    const automationBefore = await harness.snapshotAccount(
+      automationPolicyAddress,
+    );
     const automationTx = protocol.buildSetPoolAutomationPolicyTx({
       authority: state.complianceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1737,7 +1904,9 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       claimAutomationMode: protocol.AUTOMATION_MODE_BOUNDED_AUTONOMOUS,
       allowedAiRolesMask: protocol.AI_ROLE_ALL_MASK,
       maxAutoClaimAmount: 50_000n,
-      requiredAttestationProviderRefHashHex: createHash("sha256").update("attestation-provider").digest("hex"),
+      requiredAttestationProviderRefHashHex: createHash("sha256")
+        .update("attestation-provider")
+        .digest("hex"),
       includePoolControlAuthority: true,
     });
     const automationResult = await harness.send(
@@ -1752,7 +1921,12 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "set_pool_automation_policy",
     );
     assert.equal(
-      (await decodePoolAutomationPolicy(harness.connection, automationPolicyAddress)).claimAutomationMode,
+      (
+        await decodePoolAutomationPolicy(
+          harness.connection,
+          automationPolicyAddress,
+        )
+      ).claimAutomationMode,
       protocol.AUTOMATION_MODE_BOUNDED_AUTONOMOUS,
     );
 
@@ -1761,8 +1935,12 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       poolAddress: mainPool.poolAddress,
     });
     const poolTermsBefore = await harness.snapshotAccount(poolTermsAddress);
-    const termsHashHex = createHash("sha256").update("updated-terms").digest("hex");
-    const payoutPolicyHashHex = createHash("sha256").update("updated-payout-policy").digest("hex");
+    const termsHashHex = createHash("sha256")
+      .update("updated-terms")
+      .digest("hex");
+    const payoutPolicyHashHex = createHash("sha256")
+      .update("updated-payout-policy")
+      .digest("hex");
     const termsTx = protocol.buildSetPoolTermsHashTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1772,15 +1950,26 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       cycleMode: 1,
       metadataUri: "https://pool.local/updated-terms",
     });
-    const termsResult = await harness.send("set_pool_terms_hash", termsTx, [state.governanceAuthority]);
+    const termsResult = await harness.send("set_pool_terms_hash", termsTx, [
+      state.governanceAuthority,
+    ]);
     scenario.recordSuccess(termsResult);
-    assertChanged(poolTermsBefore, await harness.snapshotAccount(poolTermsAddress), "set_pool_terms_hash");
-    const poolTermsState = await decodePoolTerms(harness.connection, poolTermsAddress);
+    assertChanged(
+      poolTermsBefore,
+      await harness.snapshotAccount(poolTermsAddress),
+      "set_pool_terms_hash",
+    );
+    const poolTermsState = await decodePoolTerms(
+      harness.connection,
+      poolTermsAddress,
+    );
     assert.equal(poolTermsState.termsHashHex, termsHashHex);
     assert.equal(poolTermsState.payoutPolicyHashHex, payoutPolicyHashHex);
     assert.equal(poolTermsState.payoutAssetMint, payoutMint.toBase58());
 
-    const schemaKeyHashHex = createHash("sha256").update("surface-schema-key").digest("hex");
+    const schemaKeyHashHex = createHash("sha256")
+      .update("surface-schema-key")
+      .digest("hex");
     const schemaAddress = protocol.deriveSchemaPda({
       programId: harness.programId,
       schemaKeyHash: Buffer.from(schemaKeyHashHex, "hex"),
@@ -1792,11 +1981,17 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       schemaKeyHashHex,
       schemaKey: "s",
       version: 1,
-      schemaHashHex: createHash("sha256").update("surface-schema-hash").digest("hex"),
+      schemaHashHex: createHash("sha256")
+        .update("surface-schema-hash")
+        .digest("hex"),
       schemaFamily: protocol.SCHEMA_FAMILY_KERNEL,
       visibility: protocol.SCHEMA_VISIBILITY_PUBLIC,
-      interopProfileHashHex: createHash("sha256").update("schema-interop").digest("hex"),
-      codeSystemFamilyHashHex: createHash("sha256").update("schema-codes").digest("hex"),
+      interopProfileHashHex: createHash("sha256")
+        .update("schema-interop")
+        .digest("hex"),
+      codeSystemFamilyHashHex: createHash("sha256")
+        .update("schema-codes")
+        .digest("hex"),
       mappingVersion: 2,
       metadataUri: "s",
     });
@@ -1825,10 +2020,19 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       [state.governanceAuthority],
     );
     scenario.recordSuccess(verifySchemaResult);
-    assertChanged(verifySchemaBefore, await harness.snapshotAccount(schemaAddress), "verify_outcome_schema true");
-    assert.equal((await decodeSchema(harness.connection, schemaAddress)).verified, true);
+    assertChanged(
+      verifySchemaBefore,
+      await harness.snapshotAccount(schemaAddress),
+      "verify_outcome_schema true",
+    );
+    assert.equal(
+      (await decodeSchema(harness.connection, schemaAddress)).verified,
+      true,
+    );
 
-    const ruleHashHex = createHash("sha256").update("surface-rule").digest("hex");
+    const ruleHashHex = createHash("sha256")
+      .update("surface-rule")
+      .digest("hex");
     const poolRuleAddress = protocol.derivePoolRulePda({
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
@@ -1836,7 +2040,9 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       ruleHash: Buffer.from(ruleHashHex, "hex"),
     });
     const ruleBefore = await harness.snapshotAccount(poolRuleAddress);
-    const payoutHashHex = createHash("sha256").update("surface-payout").digest("hex");
+    const payoutHashHex = createHash("sha256")
+      .update("surface-payout")
+      .digest("hex");
     const ruleTx = protocol.buildSetPolicySeriesOutcomeRuleTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -1847,8 +2053,12 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       ruleId: "surface.rule",
       schemaKey: "s",
       schemaVersion: 1,
-      interopProfileHashHex: createHash("sha256").update("schema-interop").digest("hex"),
-      codeSystemFamilyHashHex: createHash("sha256").update("schema-codes").digest("hex"),
+      interopProfileHashHex: createHash("sha256")
+        .update("schema-interop")
+        .digest("hex"),
+      codeSystemFamilyHashHex: createHash("sha256")
+        .update("schema-codes")
+        .digest("hex"),
       mappingVersion: 2,
       payoutHashHex,
       enabled: true,
@@ -1882,8 +2092,15 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       [state.governanceAuthority],
     );
     scenario.recordSuccess(unverifySchemaResult);
-    assertChanged(unverifyBefore, await harness.snapshotAccount(schemaAddress), "verify_outcome_schema false");
-    assert.equal((await decodeSchema(harness.connection, schemaAddress)).verified, false);
+    assertChanged(
+      unverifyBefore,
+      await harness.snapshotAccount(schemaAddress),
+      "verify_outcome_schema false",
+    );
+    assert.equal(
+      (await decodeSchema(harness.connection, schemaAddress)).verified,
+      false,
+    );
     const schemaDependencyAddress = protocol.deriveSchemaDependencyPda({
       programId: harness.programId,
       schemaKeyHash: Buffer.from(schemaKeyHashHex, "hex"),
@@ -1896,14 +2113,17 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       schemaKeyHashHex,
     });
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.SchemaRuleReferencesOutstanding ?? "schema-close-active-rule-reference",
+      caseId:
+        COVERED_ERROR_CASES.SchemaRuleReferencesOutstanding ??
+        "schema-close-active-rule-reference",
       expectedErrorName: "SchemaRuleReferencesOutstanding",
       tx: closeSchemaTx,
       signers: [state.governanceAuthority],
       unchangedAddresses: [schemaAddress, schemaDependencyAddress],
     });
     scenario.recordFailure(
-      COVERED_ERROR_CASES.SchemaRuleReferencesOutstanding ?? "schema-close-active-rule-reference",
+      COVERED_ERROR_CASES.SchemaRuleReferencesOutstanding ??
+        "schema-close-active-rule-reference",
     );
 
     const disableRuleTx = protocol.buildSetPolicySeriesOutcomeRuleTx({
@@ -1916,8 +2136,12 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       ruleId: "surface.rule",
       schemaKey: "s",
       schemaVersion: 1,
-      interopProfileHashHex: createHash("sha256").update("schema-interop").digest("hex"),
-      codeSystemFamilyHashHex: createHash("sha256").update("schema-codes").digest("hex"),
+      interopProfileHashHex: createHash("sha256")
+        .update("schema-interop")
+        .digest("hex"),
+      codeSystemFamilyHashHex: createHash("sha256")
+        .update("schema-codes")
+        .digest("hex"),
       mappingVersion: 2,
       payoutHashHex,
       enabled: false,
@@ -1928,10 +2152,15 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       [state.governanceAuthority],
     );
     scenario.recordSuccess(disableRuleResult);
-    assert.equal((await decodeRule(harness.connection, poolRuleAddress)).enabled, false);
+    assert.equal(
+      (await decodeRule(harness.connection, poolRuleAddress)).enabled,
+      false,
+    );
 
     const closeSchemaBefore = await harness.snapshotAccount(schemaAddress);
-    const closeDependencyBefore = await harness.snapshotAccount(schemaDependencyAddress);
+    const closeDependencyBefore = await harness.snapshotAccount(
+      schemaDependencyAddress,
+    );
     const closeSchemaSuccessTx = protocol.buildCloseOutcomeSchemaTx({
       governanceAuthority: state.governanceAuthority.publicKey,
       recipientSystemAccount: state.governanceAuthority.publicKey,
@@ -1944,20 +2173,126 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       [state.governanceAuthority],
     );
     scenario.recordSuccess(closeSchemaResult);
-    assertChanged(closeSchemaBefore, await harness.snapshotAccount(schemaAddress), "close_outcome_schema schema");
+    assertChanged(
+      closeSchemaBefore,
+      await harness.snapshotAccount(schemaAddress),
+      "close_outcome_schema schema",
+    );
     assertChanged(
       closeDependencyBefore,
       await harness.snapshotAccount(schemaDependencyAddress),
       "close_outcome_schema dependency",
     );
     assert.equal((await harness.snapshotAccount(schemaAddress)).exists, false);
-    assert.equal((await harness.snapshotAccount(schemaDependencyAddress)).exists, false);
+    assert.equal(
+      (await harness.snapshotAccount(schemaDependencyAddress)).exists,
+      false,
+    );
+
+    const legacySchemaKeyHashHex = String(
+      process.env.OMEGAX_E2E_LEGACY_SCHEMA_KEY_HASH_HEX ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    const legacySchemaAddressRaw = String(
+      process.env.OMEGAX_E2E_LEGACY_SCHEMA_ADDRESS ?? "",
+    ).trim();
+    assert.ok(
+      legacySchemaKeyHashHex,
+      "OMEGAX_E2E_LEGACY_SCHEMA_KEY_HASH_HEX must be set by the localnet runner",
+    );
+    assert.ok(
+      legacySchemaAddressRaw,
+      "OMEGAX_E2E_LEGACY_SCHEMA_ADDRESS must be set by the localnet runner",
+    );
+    const legacySchemaAddress = new PublicKey(legacySchemaAddressRaw);
+    const legacySchemaDependencyAddress = protocol.deriveSchemaDependencyPda({
+      programId: harness.programId,
+      schemaKeyHash: Buffer.from(legacySchemaKeyHashHex, "hex"),
+    });
+    const legacySchemaState = await decodeSchema(
+      harness.connection,
+      legacySchemaAddress,
+    );
+    assert.equal(legacySchemaState.schemaKeyHashHex, legacySchemaKeyHashHex);
+    assert.equal(legacySchemaState.verified, false);
+    assert.equal(
+      (await harness.snapshotAccount(legacySchemaDependencyAddress)).exists,
+      false,
+    );
+
+    const legacyDependencyBefore = await harness.snapshotAccount(
+      legacySchemaDependencyAddress,
+    );
+    const backfillLegacySchemaTx =
+      protocol.buildBackfillSchemaDependencyLedgerTx({
+        governanceAuthority: state.governanceAuthority.publicKey,
+        recentBlockhash: await harness.latestBlockhash(),
+        schemaKeyHashHex: legacySchemaKeyHashHex,
+      });
+    const backfillLegacySchemaResult = await harness.send(
+      "backfill_schema_dependency_ledger",
+      backfillLegacySchemaTx,
+      [state.governanceAuthority],
+    );
+    scenario.recordSuccess(backfillLegacySchemaResult);
+    assertChanged(
+      legacyDependencyBefore,
+      await harness.snapshotAccount(legacySchemaDependencyAddress),
+      "backfill_schema_dependency_ledger",
+    );
+    const legacyDependencyState = await decodeSchemaDependency(
+      harness.connection,
+      legacySchemaDependencyAddress,
+    );
+    assert.equal(
+      legacyDependencyState.schemaKeyHashHex,
+      legacySchemaKeyHashHex,
+    );
+    assert.equal(legacyDependencyState.activeRuleRefcount, 0);
+
+    const closeLegacySchemaBefore =
+      await harness.snapshotAccount(legacySchemaAddress);
+    const closeLegacyDependencyBefore = await harness.snapshotAccount(
+      legacySchemaDependencyAddress,
+    );
+    const closeLegacySchemaTx = protocol.buildCloseOutcomeSchemaTx({
+      governanceAuthority: state.governanceAuthority.publicKey,
+      recipientSystemAccount: state.governanceAuthority.publicKey,
+      recentBlockhash: await harness.latestBlockhash(),
+      schemaKeyHashHex: legacySchemaKeyHashHex,
+    });
+    const closeLegacySchemaResult = await harness.send(
+      "close_outcome_schema",
+      closeLegacySchemaTx,
+      [state.governanceAuthority],
+    );
+    scenario.recordSuccess(closeLegacySchemaResult);
+    assertChanged(
+      closeLegacySchemaBefore,
+      await harness.snapshotAccount(legacySchemaAddress),
+      "close_outcome_schema legacy",
+    );
+    assertChanged(
+      closeLegacyDependencyBefore,
+      await harness.snapshotAccount(legacySchemaDependencyAddress),
+      "close_outcome_schema legacy dependency",
+    );
+    assert.equal(
+      (await harness.snapshotAccount(legacySchemaAddress)).exists,
+      false,
+    );
+    assert.equal(
+      (await harness.snapshotAccount(legacySchemaDependencyAddress)).exists,
+      false,
+    );
 
     const inviteIssuerAddress = protocol.deriveInviteIssuerPda({
       programId: harness.programId,
       issuer: state.guardianAuthority.publicKey,
     });
-    const inviteIssuerBefore = await harness.snapshotAccount(inviteIssuerAddress);
+    const inviteIssuerBefore =
+      await harness.snapshotAccount(inviteIssuerAddress);
     const registerInviteIssuerTx = protocol.buildRegisterInviteIssuerTx({
       issuer: state.guardianAuthority.publicKey,
       recentBlockhash: await harness.latestBlockhash(),
@@ -1977,7 +2312,8 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "register_invite_issuer",
     );
     assert.equal(
-      (await decodeInviteIssuer(harness.connection, inviteIssuerAddress)).issuer,
+      (await decodeInviteIssuer(harness.connection, inviteIssuerAddress))
+        .issuer,
       state.guardianAuthority.publicKey.toBase58(),
     );
 
@@ -1986,14 +2322,20 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       poolAddress: mainPool.poolAddress,
       member: state.openMember.publicKey,
     });
-    const openMembershipBefore = await harness.snapshotAccount(openMembershipAddress);
+    const openMembershipBefore = await harness.snapshotAccount(
+      openMembershipAddress,
+    );
     const enrollOpenTx = protocol.buildEnrollMemberOpenTx({
       member: state.openMember.publicKey,
       poolAddress: mainPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
       includePoolCompliancePolicy: true,
     });
-    const openEnrollResult = await harness.send("enroll_member_open", enrollOpenTx, [state.openMember]);
+    const openEnrollResult = await harness.send(
+      "enroll_member_open",
+      enrollOpenTx,
+      [state.openMember],
+    );
     scenario.recordSuccess(openEnrollResult);
     assertChanged(
       openMembershipBefore,
@@ -2001,7 +2343,8 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "enroll_member_open",
     );
     assert.equal(
-      (await decodeMembership(harness.connection, openMembershipAddress)).status,
+      (await decodeMembership(harness.connection, openMembershipAddress))
+        .status,
       protocol.MEMBERSHIP_STATUS_ACTIVE,
     );
 
@@ -2010,7 +2353,8 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       poolAddress: mainPool.poolAddress,
       member: state.openMember.publicKey,
     });
-    const claimDelegateBefore = await harness.snapshotAccount(claimDelegateAddress);
+    const claimDelegateBefore =
+      await harness.snapshotAccount(claimDelegateAddress);
     const claimDelegateTx = protocol.buildSetClaimDelegateTx({
       member: state.openMember.publicKey,
       poolAddress: mainPool.poolAddress,
@@ -2018,7 +2362,11 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       delegate: state.delegate.publicKey,
       active: true,
     });
-    const claimDelegateResult = await harness.send("set_claim_delegate", claimDelegateTx, [state.openMember]);
+    const claimDelegateResult = await harness.send(
+      "set_claim_delegate",
+      claimDelegateTx,
+      [state.openMember],
+    );
     scenario.recordSuccess(claimDelegateResult);
     assertChanged(
       claimDelegateBefore,
@@ -2042,7 +2390,9 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       poolAddress: tokenGatePool.poolAddress,
       member: state.tokenMember.publicKey,
     });
-    const tokenMembershipBefore = await harness.snapshotAccount(tokenMembershipAddress);
+    const tokenMembershipBefore = await harness.snapshotAccount(
+      tokenMembershipAddress,
+    );
     const enrollTokenGateTx = protocol.buildEnrollMemberTokenGateTx({
       member: state.tokenMember.publicKey,
       poolAddress: tokenGatePool.poolAddress,
@@ -2061,7 +2411,8 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "enroll_member_token_gate",
     );
     assert.equal(
-      (await decodeMembership(harness.connection, tokenMembershipAddress)).member,
+      (await decodeMembership(harness.connection, tokenMembershipAddress))
+        .member,
       state.tokenMember.publicKey.toBase58(),
     );
 
@@ -2080,7 +2431,9 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       poolAddress: invitePool.poolAddress,
       member: state.inviteMember.publicKey,
     });
-    const inviteMembershipBefore = await harness.snapshotAccount(inviteMembershipAddress);
+    const inviteMembershipBefore = await harness.snapshotAccount(
+      inviteMembershipAddress,
+    );
     const enrollInviteTx = protocol.buildEnrollMemberInvitePermitTx({
       member: state.inviteMember.publicKey,
       poolAddress: invitePool.poolAddress,
@@ -2102,7 +2455,8 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       "enroll_member_invite_permit",
     );
     assert.equal(
-      (await decodeMembership(harness.connection, inviteMembershipAddress)).member,
+      (await decodeMembership(harness.connection, inviteMembershipAddress))
+        .member,
       state.inviteMember.publicKey.toBase58(),
     );
 
@@ -2113,36 +2467,49 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
       recentBlockhash: await harness.latestBlockhash(),
       lamports: 400_000n,
     });
-    const fundSolResult = await harness.send("fund_pool_sol", fundSolTx, [state.governanceAuthority]);
+    const fundSolResult = await harness.send("fund_pool_sol", fundSolTx, [
+      state.governanceAuthority,
+    ]);
     scenario.recordSuccess(fundSolResult);
-    assertChanged(fundSolBefore, await harness.snapshotAccount(mainPool.poolAddress), "fund_pool_sol");
+    assertChanged(
+      fundSolBefore,
+      await harness.snapshotAccount(mainPool.poolAddress),
+      "fund_pool_sol",
+    );
 
     const poolAssetVault = protocol.derivePoolAssetVaultPda({
       programId: harness.programId,
       poolAddress: mainPool.poolAddress,
       payoutMint,
     });
-    const poolVaultTokenAccount = Keypair.generate();
-    const fundSplBefore = await harness.snapshotTokenAccount(poolVaultTokenAccount.publicKey);
+    const poolVaultTokenAccount = getAssociatedTokenAddressSync(
+      payoutMint,
+      poolAssetVault,
+      true,
+    );
+    await harness.getOrCreateAta({
+      payer: state.governanceAuthority,
+      mint: payoutMint,
+      owner: poolAssetVault,
+    });
+    const fundSplBefore = await harness.snapshotTokenAccount(
+      poolVaultTokenAccount,
+    );
     const fundSplTx = protocol.buildFundPoolSplTx({
       funder: state.governanceAuthority.publicKey,
       poolAddress: mainPool.poolAddress,
       payoutMint,
-      poolVaultTokenAccount: poolVaultTokenAccount.publicKey,
-      poolVaultTokenAccountSigner: true,
       funderTokenAccount: payoutAuthorityTokenAccount,
       recentBlockhash: await harness.latestBlockhash(),
       amount: 2_000_000n,
     });
-    const fundSplResult = await harness.send(
-      "fund_pool_spl",
-      fundSplTx,
-      [state.governanceAuthority, poolVaultTokenAccount],
-    );
+    const fundSplResult = await harness.send("fund_pool_spl", fundSplTx, [
+      state.governanceAuthority,
+    ]);
     scenario.recordSuccess(fundSplResult);
     assertTokenChanged(
       fundSplBefore,
-      await harness.snapshotTokenAccount(poolVaultTokenAccount.publicKey),
+      await harness.snapshotTokenAccount(poolVaultTokenAccount),
       "fund_pool_spl",
     );
   } finally {
@@ -2150,7 +2517,10 @@ async function scenarioPoolSchemaMemberLifecycle(harness: LocalnetHarness, state
   }
 }
 
-async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state: GlobalState) {
+async function scenarioDirectLiquidityLifecycle(
+  harness: LocalnetHarness,
+  state: GlobalState,
+) {
   const scenario = harness.beginScenario("direct-liquidity-lifecycle");
   try {
     await ensureProtocolBootstrapped(harness, state);
@@ -2178,7 +2548,9 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       solShareMint,
       state.governanceAuthority.publicKey,
     );
-    const solInitBefore = await harness.snapshotAccount(solLiquidityConfigAddress);
+    const solInitBefore = await harness.snapshotAccount(
+      solLiquidityConfigAddress,
+    );
     const initializeSolTx = protocol.buildInitializePoolLiquiditySolTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: solPool.poolAddress,
@@ -2196,7 +2568,10 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       await harness.snapshotAccount(solLiquidityConfigAddress),
       "initialize_pool_liquidity_sol",
     );
-    const solLiquidityConfig = await decodePoolLiquidityConfig(harness.connection, solLiquidityConfigAddress);
+    const solLiquidityConfig = await decodePoolLiquidityConfig(
+      harness.connection,
+      solLiquidityConfigAddress,
+    );
     assert.equal(solLiquidityConfig.depositsEnabled, true);
     assert.equal(solLiquidityConfig.shareMint, solShareMint.toBase58());
 
@@ -2213,7 +2588,12 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(disableLiquidityResult);
     assert.equal(
-      (await decodePoolLiquidityConfig(harness.connection, solLiquidityConfigAddress)).depositsEnabled,
+      (
+        await decodePoolLiquidityConfig(
+          harness.connection,
+          solLiquidityConfigAddress,
+        )
+      ).depositsEnabled,
       false,
     );
 
@@ -2230,7 +2610,12 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(enableLiquidityResult);
     assert.equal(
-      (await decodePoolLiquidityConfig(harness.connection, solLiquidityConfigAddress)).depositsEnabled,
+      (
+        await decodePoolLiquidityConfig(
+          harness.connection,
+          solLiquidityConfigAddress,
+        )
+      ).depositsEnabled,
       true,
     );
 
@@ -2239,12 +2624,16 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       poolAddress: solPool.poolAddress,
       shareMint: solShareMint,
     });
-    const solCapitalClassBefore = await harness.snapshotAccount(solCapitalClassAddress);
+    const solCapitalClassBefore = await harness.snapshotAccount(
+      solCapitalClassAddress,
+    );
     const solCapitalClassTx = protocol.buildRegisterPoolCapitalClassTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: solPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
-      classIdHashHex: createHash("sha256").update("sol-capital-class").digest("hex"),
+      classIdHashHex: createHash("sha256")
+        .update("sol-capital-class")
+        .digest("hex"),
       classMode: protocol.CAPITAL_CLASS_MODE_NAV,
       classPriority: 1,
       transferMode: protocol.CAPITAL_TRANSFER_MODE_PERMISSIONLESS,
@@ -2267,7 +2656,8 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       "register_pool_capital_class sol",
     );
     assert.equal(
-      (await decodePoolCapitalClass(harness.connection, solCapitalClassAddress)).redemptionQueueEnabled,
+      (await decodePoolCapitalClass(harness.connection, solCapitalClassAddress))
+        .redemptionQueueEnabled,
       false,
     );
 
@@ -2275,7 +2665,9 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       solShareMint,
       state.openMember.publicKey,
     );
-    const solDepositBefore = await harness.snapshotTokenAccount(solDepositorShareTokenAccount);
+    const solDepositBefore = await harness.snapshotTokenAccount(
+      solDepositorShareTokenAccount,
+    );
     const depositSolTx = protocol.buildDepositPoolLiquiditySolTx({
       depositor: state.openMember.publicKey,
       poolAddress: solPool.poolAddress,
@@ -2306,7 +2698,9 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       impaired: false,
       impairmentAmount: 0n,
     });
-    await harness.send("set_pool_risk_controls", pauseRedemptionsTx, [state.governanceAuthority]);
+    await harness.send("set_pool_risk_controls", pauseRedemptionsTx, [
+      state.governanceAuthority,
+    ]);
     const pausedRedeemTx = protocol.buildRedeemPoolLiquiditySolTx({
       redeemer: state.openMember.publicKey,
       poolAddress: solPool.poolAddress,
@@ -2316,13 +2710,16 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       includePoolCapitalClass: true,
     });
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.PoolRedemptionsPaused ?? "paused-direct-redemption",
+      caseId:
+        COVERED_ERROR_CASES.PoolRedemptionsPaused ?? "paused-direct-redemption",
       expectedErrorName: "PoolRedemptionsPaused",
       tx: pausedRedeemTx,
       signers: [state.openMember],
       unchangedAddresses: [solPool.poolAddress, solDepositorShareTokenAccount],
     });
-    scenario.recordFailure(COVERED_ERROR_CASES.PoolRedemptionsPaused ?? "paused-direct-redemption");
+    scenario.recordFailure(
+      COVERED_ERROR_CASES.PoolRedemptionsPaused ?? "paused-direct-redemption",
+    );
     const reopenRedemptionsTx = protocol.buildSetPoolRiskControlsTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: solPool.poolAddress,
@@ -2333,10 +2730,16 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       impaired: false,
       impairmentAmount: 0n,
     });
-    await harness.send("set_pool_risk_controls", reopenRedemptionsTx, [state.governanceAuthority]);
+    await harness.send("set_pool_risk_controls", reopenRedemptionsTx, [
+      state.governanceAuthority,
+    ]);
 
-    const redeemSolShareBefore = await harness.snapshotTokenAccount(solDepositorShareTokenAccount);
-    const redeemSolPoolBefore = await harness.snapshotAccount(solPool.poolAddress);
+    const redeemSolShareBefore = await harness.snapshotTokenAccount(
+      solDepositorShareTokenAccount,
+    );
+    const redeemSolPoolBefore = await harness.snapshotAccount(
+      solPool.poolAddress,
+    );
     const redeemSolTx = protocol.buildRedeemPoolLiquiditySolTx({
       redeemer: state.openMember.publicKey,
       poolAddress: solPool.poolAddress,
@@ -2412,7 +2815,9 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       programId: harness.programId,
       poolAddress: splPool.poolAddress,
     });
-    const initializeSplBefore = await harness.snapshotAccount(splLiquidityConfigAddress);
+    const initializeSplBefore = await harness.snapshotAccount(
+      splLiquidityConfigAddress,
+    );
     const initializeSplTx = protocol.buildInitializePoolLiquiditySplTx({
       authority: state.governanceAuthority.publicKey,
       poolAddress: splPool.poolAddress,
@@ -2433,7 +2838,12 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       "initialize_pool_liquidity_spl",
     );
     assert.equal(
-      (await decodePoolLiquidityConfig(harness.connection, splLiquidityConfigAddress)).shareMint,
+      (
+        await decodePoolLiquidityConfig(
+          harness.connection,
+          splLiquidityConfigAddress,
+        )
+      ).shareMint,
       splShareMint.toBase58(),
     );
 
@@ -2441,8 +2851,12 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       splShareMint,
       state.alternateMember.publicKey,
     );
-    const depositSplBefore = await harness.snapshotTokenAccount(splDepositorShareTokenAccount);
-    const depositSplPayoutBefore = await harness.snapshotTokenAccount(splDepositorPayoutTokenAccount);
+    const depositSplBefore = await harness.snapshotTokenAccount(
+      splDepositorShareTokenAccount,
+    );
+    const depositSplPayoutBefore = await harness.snapshotTokenAccount(
+      splDepositorPayoutTokenAccount,
+    );
     const depositSplTx = protocol.buildDepositPoolLiquiditySplTx({
       depositor: state.alternateMember.publicKey,
       poolAddress: splPool.poolAddress,
@@ -2469,8 +2883,12 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
       "deposit_pool_liquidity_spl payout",
     );
 
-    const redeemSplShareBefore = await harness.snapshotTokenAccount(splDepositorShareTokenAccount);
-    const redeemSplPayoutBefore = await harness.snapshotTokenAccount(splDepositorPayoutTokenAccount);
+    const redeemSplShareBefore = await harness.snapshotTokenAccount(
+      splDepositorShareTokenAccount,
+    );
+    const redeemSplPayoutBefore = await harness.snapshotTokenAccount(
+      splDepositorPayoutTokenAccount,
+    );
     const redeemSplTx = protocol.buildRedeemPoolLiquiditySplTx({
       redeemer: state.alternateMember.publicKey,
       poolAddress: splPool.poolAddress,
@@ -2501,7 +2919,10 @@ async function scenarioDirectLiquidityLifecycle(harness: LocalnetHarness, state:
   }
 }
 
-async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state: GlobalState) {
+async function scenarioQueuedLiquidityLifecycle(
+  harness: LocalnetHarness,
+  state: GlobalState,
+) {
   const scenario = harness.beginScenario("queued-liquidity-lifecycle");
   try {
     await ensureProtocolBootstrapped(harness, state);
@@ -2526,7 +2947,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       complianceAuthority: state.complianceAuthority.publicKey,
       guardianAuthority: state.guardianAuthority.publicKey,
     });
-    await harness.send("set_pool_control_authorities", solControlTx, [state.governanceAuthority]);
+    await harness.send("set_pool_control_authorities", solControlTx, [
+      state.governanceAuthority,
+    ]);
 
     const initializeSolQueueTx = protocol.buildInitializePoolLiquiditySolTx({
       authority: state.governanceAuthority.publicKey,
@@ -2534,7 +2957,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       recentBlockhash: await harness.latestBlockhash(),
       initialLamports: 2_500_000n,
     });
-    await harness.send("initialize_pool_liquidity_sol", initializeSolQueueTx, [state.governanceAuthority]);
+    await harness.send("initialize_pool_liquidity_sol", initializeSolQueueTx, [
+      state.governanceAuthority,
+    ]);
 
     const solQueueShareMint = protocol.derivePoolShareMintPda({
       programId: harness.programId,
@@ -2544,7 +2969,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       authority: state.governanceAuthority.publicKey,
       poolAddress: solQueuePool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
-      classIdHashHex: createHash("sha256").update("queue-sol-class").digest("hex"),
+      classIdHashHex: createHash("sha256")
+        .update("queue-sol-class")
+        .digest("hex"),
       classMode: protocol.CAPITAL_CLASS_MODE_NAV,
       classPriority: 1,
       transferMode: protocol.CAPITAL_TRANSFER_MODE_PERMISSIONLESS,
@@ -2555,7 +2982,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       redemptionNoticeSecs: 0n,
       vintageIndex: 0,
     });
-    await harness.send("register_pool_capital_class", solQueueCapitalClassTx, [state.governanceAuthority]);
+    await harness.send("register_pool_capital_class", solQueueCapitalClassTx, [
+      state.governanceAuthority,
+    ]);
 
     const solQueueMemberShareTokenAccount = getAssociatedTokenAddressSync(
       solQueueShareMint,
@@ -2569,9 +2998,13 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       minSharesOut: 1n,
       includePoolCapitalClass: true,
     });
-    await harness.send("deposit_pool_liquidity_sol", depositSolQueueTx, [state.openMember]);
+    await harness.send("deposit_pool_liquidity_sol", depositSolQueueTx, [
+      state.openMember,
+    ]);
 
-    const cancelRequestHashHex = createHash("sha256").update("queue-cancel").digest("hex");
+    const cancelRequestHashHex = createHash("sha256")
+      .update("queue-cancel")
+      .digest("hex");
     const cancelRequestAddress = protocol.deriveRedemptionRequestPda({
       programId: harness.programId,
       poolAddress: solQueuePool.poolAddress,
@@ -2594,7 +3027,8 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(requestCancelResult);
     assert.equal(
-      (await decodeRedemptionRequest(harness.connection, cancelRequestAddress)).status,
+      (await decodeRedemptionRequest(harness.connection, cancelRequestAddress))
+        .status,
       protocol.REDEMPTION_REQUEST_STATUS_PENDING,
     );
 
@@ -2612,7 +3046,8 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(scheduleCancelResult);
     assert.equal(
-      (await decodeRedemptionRequest(harness.connection, cancelRequestAddress)).status,
+      (await decodeRedemptionRequest(harness.connection, cancelRequestAddress))
+        .status,
       protocol.REDEMPTION_REQUEST_STATUS_SCHEDULED,
     );
 
@@ -2624,17 +3059,22 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       includePoolControlAuthority: true,
     });
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.InvalidRedemptionRequestState ?? "redemption-invalid-state-double-schedule",
+      caseId:
+        COVERED_ERROR_CASES.InvalidRedemptionRequestState ??
+        "redemption-invalid-state-double-schedule",
       expectedErrorName: "InvalidRedemptionRequestState",
       tx: doubleScheduleTx,
       signers: [state.riskManager],
       unchangedAddresses: [cancelRequestAddress],
     });
     scenario.recordFailure(
-      COVERED_ERROR_CASES.InvalidRedemptionRequestState ?? "redemption-invalid-state-double-schedule",
+      COVERED_ERROR_CASES.InvalidRedemptionRequestState ??
+        "redemption-invalid-state-double-schedule",
     );
 
-    const cancelShareBefore = await harness.snapshotTokenAccount(solQueueMemberShareTokenAccount);
+    const cancelShareBefore = await harness.snapshotTokenAccount(
+      solQueueMemberShareTokenAccount,
+    );
     const cancelTx = protocol.buildCancelPoolLiquidityRedemptionTx({
       redeemer: state.openMember.publicKey,
       poolAddress: solQueuePool.poolAddress,
@@ -2648,7 +3088,8 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(cancelResult);
     assert.equal(
-      (await decodeRedemptionRequest(harness.connection, cancelRequestAddress)).status,
+      (await decodeRedemptionRequest(harness.connection, cancelRequestAddress))
+        .status,
       protocol.REDEMPTION_REQUEST_STATUS_CANCELLED,
     );
     assertTokenChanged(
@@ -2657,7 +3098,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       "cancel_pool_liquidity_redemption",
     );
 
-    const failRequestHashHex = createHash("sha256").update("queue-fail").digest("hex");
+    const failRequestHashHex = createHash("sha256")
+      .update("queue-fail")
+      .digest("hex");
     const failRequestAddress = protocol.deriveRedemptionRequestPda({
       programId: harness.programId,
       poolAddress: solQueuePool.poolAddress,
@@ -2673,7 +3116,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       minAmountOut: 1n,
       includePoolCapitalClass: true,
     });
-    await harness.send("request_pool_liquidity_redemption", requestFailTx, [state.openMember]);
+    await harness.send("request_pool_liquidity_redemption", requestFailTx, [
+      state.openMember,
+    ]);
     const scheduleFailTx = protocol.buildSchedulePoolLiquidityRedemptionTx({
       authority: state.riskManager.publicKey,
       poolAddress: solQueuePool.poolAddress,
@@ -2681,7 +3126,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       recentBlockhash: await harness.latestBlockhash(),
       includePoolControlAuthority: true,
     });
-    await harness.send("schedule_pool_liquidity_redemption", scheduleFailTx, [state.riskManager]);
+    await harness.send("schedule_pool_liquidity_redemption", scheduleFailTx, [
+      state.riskManager,
+    ]);
     const failTx = protocol.buildFailPoolLiquidityRedemptionTx({
       authority: state.riskManager.publicKey,
       poolAddress: solQueuePool.poolAddress,
@@ -2691,13 +3138,25 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       failureCode: 77,
       includePoolControlAuthority: true,
     });
-    const failResult = await harness.send("fail_pool_liquidity_redemption", failTx, [state.riskManager]);
+    const failResult = await harness.send(
+      "fail_pool_liquidity_redemption",
+      failTx,
+      [state.riskManager],
+    );
     scenario.recordSuccess(failResult);
-    const failedRequest = await decodeRedemptionRequest(harness.connection, failRequestAddress);
-    assert.equal(failedRequest.status, protocol.REDEMPTION_REQUEST_STATUS_FAILED);
+    const failedRequest = await decodeRedemptionRequest(
+      harness.connection,
+      failRequestAddress,
+    );
+    assert.equal(
+      failedRequest.status,
+      protocol.REDEMPTION_REQUEST_STATUS_FAILED,
+    );
     assert.equal(failedRequest.failureCode, 77);
 
-    const fulfillRequestHashHex = createHash("sha256").update("queue-fulfill-sol").digest("hex");
+    const fulfillRequestHashHex = createHash("sha256")
+      .update("queue-fulfill-sol")
+      .digest("hex");
     const fulfillRequestAddress = protocol.deriveRedemptionRequestPda({
       programId: harness.programId,
       poolAddress: solQueuePool.poolAddress,
@@ -2713,13 +3172,16 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       minAmountOut: 1n,
       includePoolCapitalClass: true,
     });
-    await harness.send("request_pool_liquidity_redemption", requestFulfillTx, [state.openMember]);
+    await harness.send("request_pool_liquidity_redemption", requestFulfillTx, [
+      state.openMember,
+    ]);
     const fulfillShareEscrow = getAssociatedTokenAddressSync(
       solQueueShareMint,
       fulfillRequestAddress,
       true,
     );
-    const fulfillShareBefore = await harness.snapshotTokenAccount(fulfillShareEscrow);
+    const fulfillShareBefore =
+      await harness.snapshotTokenAccount(fulfillShareEscrow);
     const fulfillSolTx = protocol.buildFulfillPoolLiquidityRedemptionSolTx({
       authority: state.riskManager.publicKey,
       poolAddress: solQueuePool.poolAddress,
@@ -2735,7 +3197,8 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(fulfillSolResult);
     assert.equal(
-      (await decodeRedemptionRequest(harness.connection, fulfillRequestAddress)).status,
+      (await decodeRedemptionRequest(harness.connection, fulfillRequestAddress))
+        .status,
       protocol.REDEMPTION_REQUEST_STATUS_FULFILLED,
     );
     assertTokenChanged(
@@ -2795,7 +3258,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       complianceAuthority: state.complianceAuthority.publicKey,
       guardianAuthority: state.guardianAuthority.publicKey,
     });
-    await harness.send("set_pool_control_authorities", splControlTx, [state.governanceAuthority]);
+    await harness.send("set_pool_control_authorities", splControlTx, [
+      state.governanceAuthority,
+    ]);
 
     const initializeSplQueueTx = protocol.buildInitializePoolLiquiditySplTx({
       authority: state.governanceAuthority.publicKey,
@@ -2805,7 +3270,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       recentBlockhash: await harness.latestBlockhash(),
       initialAmount: 2_000_000n,
     });
-    await harness.send("initialize_pool_liquidity_spl", initializeSplQueueTx, [state.governanceAuthority]);
+    await harness.send("initialize_pool_liquidity_spl", initializeSplQueueTx, [
+      state.governanceAuthority,
+    ]);
 
     const splQueueShareMint = protocol.derivePoolShareMintPda({
       programId: harness.programId,
@@ -2815,7 +3282,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       authority: state.governanceAuthority.publicKey,
       poolAddress: splQueuePool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
-      classIdHashHex: createHash("sha256").update("queue-spl-class").digest("hex"),
+      classIdHashHex: createHash("sha256")
+        .update("queue-spl-class")
+        .digest("hex"),
       classMode: protocol.CAPITAL_CLASS_MODE_NAV,
       classPriority: 1,
       transferMode: protocol.CAPITAL_TRANSFER_MODE_PERMISSIONLESS,
@@ -2826,7 +3295,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       redemptionNoticeSecs: 0n,
       vintageIndex: 0,
     });
-    await harness.send("register_pool_capital_class", splQueueCapitalClassTx, [state.governanceAuthority]);
+    await harness.send("register_pool_capital_class", splQueueCapitalClassTx, [
+      state.governanceAuthority,
+    ]);
 
     const splQueueMemberShareTokenAccount = getAssociatedTokenAddressSync(
       splQueueShareMint,
@@ -2842,9 +3313,13 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       minSharesOut: 1n,
       includePoolCapitalClass: true,
     });
-    await harness.send("deposit_pool_liquidity_spl", depositSplQueueTx, [state.alternateMember]);
+    await harness.send("deposit_pool_liquidity_spl", depositSplQueueTx, [
+      state.alternateMember,
+    ]);
 
-    const splRequestHashHex = createHash("sha256").update("queue-fulfill-spl").digest("hex");
+    const splRequestHashHex = createHash("sha256")
+      .update("queue-fulfill-spl")
+      .digest("hex");
     const splRequestAddress = protocol.deriveRedemptionRequestPda({
       programId: harness.programId,
       poolAddress: splQueuePool.poolAddress,
@@ -2861,7 +3336,9 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       minAmountOut: 1n,
       includePoolCapitalClass: true,
     });
-    await harness.send("request_pool_liquidity_redemption", requestSplTx, [state.alternateMember]);
+    await harness.send("request_pool_liquidity_redemption", requestSplTx, [
+      state.alternateMember,
+    ]);
     const scheduleSplTx = protocol.buildSchedulePoolLiquidityRedemptionTx({
       authority: state.riskManager.publicKey,
       poolAddress: splQueuePool.poolAddress,
@@ -2869,8 +3346,12 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
       recentBlockhash: await harness.latestBlockhash(),
       includePoolControlAuthority: true,
     });
-    await harness.send("schedule_pool_liquidity_redemption", scheduleSplTx, [state.riskManager]);
-    const fulfillSplPayoutBefore = await harness.snapshotTokenAccount(splQueueMemberPayoutTokenAccount);
+    await harness.send("schedule_pool_liquidity_redemption", scheduleSplTx, [
+      state.riskManager,
+    ]);
+    const fulfillSplPayoutBefore = await harness.snapshotTokenAccount(
+      splQueueMemberPayoutTokenAccount,
+    );
     const fulfillSplTx = protocol.buildFulfillPoolLiquidityRedemptionSplTx({
       authority: state.riskManager.publicKey,
       poolAddress: splQueuePool.poolAddress,
@@ -2887,7 +3368,8 @@ async function scenarioQueuedLiquidityLifecycle(harness: LocalnetHarness, state:
     );
     scenario.recordSuccess(fulfillSplResult);
     assert.equal(
-      (await decodeRedemptionRequest(harness.connection, splRequestAddress)).status,
+      (await decodeRedemptionRequest(harness.connection, splRequestAddress))
+        .status,
       protocol.REDEMPTION_REQUEST_STATUS_FULFILLED,
     );
     assertTokenChanged(
@@ -2904,17 +3386,62 @@ async function scenarioRewardAttestationDisputeLifecycle(
   harness: LocalnetHarness,
   state: GlobalState,
 ) {
-  const scenario = harness.beginScenario("reward-attestation-dispute-lifecycle");
+  const scenario = harness.beginScenario(
+    "reward-attestation-dispute-lifecycle",
+  );
   try {
     await ensureMainOracleReady(harness, state);
 
     const secondOracle = await fundedSigner(harness);
     const secondOracleRegisterTx = protocol.buildRegisterOracleTx({
+      admin: secondOracle.publicKey,
       oracle: secondOracle.publicKey,
       recentBlockhash: await harness.latestBlockhash(),
-      metadataUri: "https://oracle.local/reward-secondary",
+      oracleType: protocol.ORACLE_TYPE_OTHER,
+      displayName: "Reward Secondary Oracle",
+      legalName: "Reward Secondary Oracle LLC",
+      websiteUrl: "https://oracle.local/reward-secondary",
+      appUrl: "https://app.oracle.local/reward-secondary",
+      logoUri: "https://oracle.local/reward-secondary/logo.png",
+      webhookUrl: "https://oracle.local/reward-secondary/hook",
+      supportedSchemaKeyHashesHex: [],
     });
-    await harness.send("register_oracle", secondOracleRegisterTx, [secondOracle]);
+    await harness.send("register_oracle", secondOracleRegisterTx, [
+      secondOracle,
+    ]);
+    const secondOracleClaimTx = protocol.buildClaimOracleTx({
+      oracle: secondOracle.publicKey,
+      recentBlockhash: await harness.latestBlockhash(),
+    });
+    await harness.send("claim_oracle", secondOracleClaimTx, [secondOracle]);
+    const secondOracleStakeTokenAccount = (
+      await harness.getOrCreateAta({
+        payer: state.originalGovernance,
+        mint: state.stakeMint,
+        owner: secondOracle.publicKey,
+      })
+    ).address;
+    await harness.mintTo({
+      payer: state.originalGovernance,
+      mint: state.stakeMint,
+      destination: secondOracleStakeTokenAccount,
+      authority: state.originalGovernance,
+      amount: 1_100_000n,
+    });
+    const secondOracleStakeVault = Keypair.generate();
+    await harness.send(
+      "stake_oracle_secondary",
+      protocol.buildStakeOracleTx({
+        staker: secondOracle.publicKey,
+        oracle: secondOracle.publicKey,
+        stakeMint: state.stakeMint,
+        stakeVault: secondOracleStakeVault.publicKey,
+        stakerTokenAccount: secondOracleStakeTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+        amount: 1_000_000n,
+      }),
+      [secondOracle, secondOracleStakeVault],
+    );
 
     const payoutMint = await harness.createMint(state.governanceAuthority, 6);
     const governancePayoutTokenAccount = (
@@ -2972,8 +3499,12 @@ async function scenarioRewardAttestationDisputeLifecycle(
         poolAddress: rewardPool.poolAddress,
         recentBlockhash: await harness.latestBlockhash(),
         providerRefHashHex: harness.sha256Hex("reward-compliance-provider"),
-        credentialTypeHashHex: harness.sha256Hex("reward-compliance-credential"),
-        revocationListHashHex: harness.sha256Hex("reward-compliance-revocations"),
+        credentialTypeHashHex: harness.sha256Hex(
+          "reward-compliance-credential",
+        ),
+        revocationListHashHex: harness.sha256Hex(
+          "reward-compliance-revocations",
+        ),
         actionsMask: protocol.COMPLIANCE_ACTION_PAYOUT,
         bindingMode: protocol.COMPLIANCE_BINDING_MODE_NONE,
         providerMode: protocol.COMPLIANCE_PROVIDER_MODE_NATIVE,
@@ -3028,7 +3559,9 @@ async function scenarioRewardAttestationDisputeLifecycle(
     });
     scenario.recordSuccess(secondApproval);
 
-    const rewardSeriesRefHashHex = harness.sha256Hex("reward-attestation-series");
+    const rewardSeriesRefHashHex = harness.sha256Hex(
+      "reward-attestation-series",
+    );
     const createRewardSeriesResult = await createPolicySeriesForScenario({
       harness,
       authority: state.governanceAuthority,
@@ -3066,7 +3599,9 @@ async function scenarioRewardAttestationDisputeLifecycle(
       mappingVersion: 1,
       metadataUri: "https://schema.local/reward-attestation",
     });
-    await harness.send("register_outcome_schema", registerSchemaTx, [state.governanceAuthority]);
+    await harness.send("register_outcome_schema", registerSchemaTx, [
+      state.governanceAuthority,
+    ]);
 
     const ruleHashHex = harness.sha256Hex("reward-attestation-rule");
     const setRuleTx = protocol.buildSetPolicySeriesOutcomeRuleTx({
@@ -3085,7 +3620,9 @@ async function scenarioRewardAttestationDisputeLifecycle(
       payoutHashHex: harness.sha256Hex("reward-attestation-payout"),
       enabled: true,
     });
-    await harness.send("set_policy_series_outcome_rule", setRuleTx, [state.governanceAuthority]);
+    await harness.send("set_policy_series_outcome_rule", setRuleTx, [
+      state.governanceAuthority,
+    ]);
 
     const membershipAddress = protocol.deriveMembershipPda({
       programId: harness.programId,
@@ -3097,7 +3634,11 @@ async function scenarioRewardAttestationDisputeLifecycle(
       poolAddress: rewardPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const enrollResult = await harness.send("enroll_member_open", enrollOpenTx, [state.openMember]);
+    const enrollResult = await harness.send(
+      "enroll_member_open",
+      enrollOpenTx,
+      [state.openMember],
+    );
     scenario.recordSuccess(enrollResult);
     assert.equal(
       (await decodeMembership(harness.connection, membershipAddress)).status,
@@ -3120,13 +3661,25 @@ async function scenarioRewardAttestationDisputeLifecycle(
       [state.openMember],
     );
 
-    const poolVaultTokenAccount = Keypair.generate();
+    const rewardPoolAssetVault = protocol.derivePoolAssetVaultPda({
+      programId: harness.programId,
+      poolAddress: rewardPool.poolAddress,
+      payoutMint,
+    });
+    const poolVaultTokenAccount = getAssociatedTokenAddressSync(
+      payoutMint,
+      rewardPoolAssetVault,
+      true,
+    );
+    await harness.getOrCreateAta({
+      payer: state.governanceAuthority,
+      mint: payoutMint,
+      owner: rewardPoolAssetVault,
+    });
     const fundPoolSplTx = protocol.buildFundPoolSplTx({
       funder: state.governanceAuthority.publicKey,
       poolAddress: rewardPool.poolAddress,
       payoutMint,
-      poolVaultTokenAccount: poolVaultTokenAccount.publicKey,
-      poolVaultTokenAccountSigner: true,
       funderTokenAccount: governancePayoutTokenAccount,
       recentBlockhash: await harness.latestBlockhash(),
       amount: 3_000_000n,
@@ -3134,11 +3687,13 @@ async function scenarioRewardAttestationDisputeLifecycle(
     const fundPoolSplResult = await harness.send(
       "fund_pool_spl",
       fundPoolSplTx,
-      [state.governanceAuthority, poolVaultTokenAccount],
+      [state.governanceAuthority],
     );
     scenario.recordSuccess(fundPoolSplResult);
 
-    const deniedCycleHashHex = harness.sha256Hex("reward-attestation-denied-cycle");
+    const deniedCycleHashHex = harness.sha256Hex(
+      "reward-attestation-denied-cycle",
+    );
     const deniedAggregateAddress = protocol.deriveOutcomeAggregatePda({
       programId: harness.programId,
       poolAddress: rewardPool.poolAddress,
@@ -3163,7 +3718,9 @@ async function scenarioRewardAttestationDisputeLifecycle(
       permissions: 0,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    await harness.send("set_pool_oracle_permissions", zeroPermissionsTx, [state.governanceAuthority]);
+    await harness.send("set_pool_oracle_permissions", zeroPermissionsTx, [
+      state.governanceAuthority,
+    ]);
     const deniedVoteTx = protocol.buildSubmitOutcomeAttestationVoteTx({
       oracle: state.oracle.publicKey,
       poolAddress: rewardPool.poolAddress,
@@ -3173,23 +3730,32 @@ async function scenarioRewardAttestationDisputeLifecycle(
       cycleHashHex: deniedCycleHashHex,
       ruleHashHex,
       schemaKeyHashHex,
-      attestationDigestHex: harness.sha256Hex("reward-attestation-denied-digest"),
-      observedValueHashHex: harness.sha256Hex("reward-attestation-denied-observed"),
+      attestationDigestHex: harness.sha256Hex(
+        "reward-attestation-denied-digest",
+      ),
+      observedValueHashHex: harness.sha256Hex(
+        "reward-attestation-denied-observed",
+      ),
       evidenceHashHex: harness.sha256Hex("reward-attestation-denied-evidence"),
-      externalAttestationRefHashHex: harness.sha256Hex("reward-attestation-denied-external"),
+      externalAttestationRefHashHex: harness.sha256Hex(
+        "reward-attestation-denied-external",
+      ),
       asOfTs: nowTs(),
       passed: true,
       recentBlockhash: await harness.latestBlockhash(),
     });
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.OraclePermissionDenied ?? "oracle-permission-denied-attestation",
+      caseId:
+        COVERED_ERROR_CASES.OraclePermissionDenied ??
+        "oracle-permission-denied-attestation",
       expectedErrorName: "OraclePermissionDenied",
       tx: deniedVoteTx,
       signers: [state.oracle],
       unchangedAddresses: [deniedAggregateAddress, deniedVoteAddress],
     });
     scenario.recordFailure(
-      COVERED_ERROR_CASES.OraclePermissionDenied ?? "oracle-permission-denied-attestation",
+      COVERED_ERROR_CASES.OraclePermissionDenied ??
+        "oracle-permission-denied-attestation",
     );
     const mainPermissionsTx = protocol.buildSetPoolOraclePermissionsTx({
       authority: state.governanceAuthority.publicKey,
@@ -3205,8 +3771,12 @@ async function scenarioRewardAttestationDisputeLifecycle(
       permissions: ORACLE_PERMISSION_DATA_ATTEST,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    await harness.send("set_pool_oracle_permissions", mainPermissionsTx, [state.governanceAuthority]);
-    await harness.send("set_pool_oracle_permissions", secondPermissionsTx, [state.governanceAuthority]);
+    await harness.send("set_pool_oracle_permissions", mainPermissionsTx, [
+      state.governanceAuthority,
+    ]);
+    await harness.send("set_pool_oracle_permissions", secondPermissionsTx, [
+      state.governanceAuthority,
+    ]);
 
     const cycleHashHex = harness.sha256Hex("reward-attestation-cycle");
     const aggregateAddress = protocol.deriveOutcomeAggregatePda({
@@ -3234,7 +3804,9 @@ async function scenarioRewardAttestationDisputeLifecycle(
       attestationDigestHex: harness.sha256Hex("reward-attestation-digest-main"),
       observedValueHashHex: harness.sha256Hex("reward-attestation-observed"),
       evidenceHashHex: harness.sha256Hex("reward-attestation-evidence"),
-      externalAttestationRefHashHex: harness.sha256Hex("reward-attestation-external"),
+      externalAttestationRefHashHex: harness.sha256Hex(
+        "reward-attestation-external",
+      ),
       asOfTs: nowTs(),
       passed: true,
       recentBlockhash: await harness.latestBlockhash(),
@@ -3249,11 +3821,15 @@ async function scenarioRewardAttestationDisputeLifecycle(
       firstVoteResult.events.includes("OutcomeAttestationSubmittedEvent"),
       "submit_outcome_attestation_vote must emit OutcomeAttestationSubmittedEvent",
     );
-    let aggregateState = await decodeOutcomeAggregate(harness.connection, aggregateAddress);
+    let aggregateState = await decodeOutcomeAggregate(
+      harness.connection,
+      aggregateAddress,
+    );
     assert.equal(aggregateState.passVotes, 1);
     assert.equal(aggregateState.finalized, false);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, reserveAddress)).reservedRewardAmount,
+      (await decodePoolTreasuryReserve(harness.connection, reserveAddress))
+        .reservedRewardAmount,
       0n,
     );
 
@@ -3266,10 +3842,14 @@ async function scenarioRewardAttestationDisputeLifecycle(
       cycleHashHex,
       ruleHashHex,
       schemaKeyHashHex,
-      attestationDigestHex: harness.sha256Hex("reward-attestation-digest-secondary"),
+      attestationDigestHex: harness.sha256Hex(
+        "reward-attestation-digest-secondary",
+      ),
       observedValueHashHex: harness.sha256Hex("reward-attestation-observed"),
       evidenceHashHex: harness.sha256Hex("reward-attestation-evidence"),
-      externalAttestationRefHashHex: harness.sha256Hex("reward-attestation-external"),
+      externalAttestationRefHashHex: harness.sha256Hex(
+        "reward-attestation-external",
+      ),
       asOfTs: nowTs(),
       passed: true,
       recentBlockhash: await harness.latestBlockhash(),
@@ -3280,13 +3860,20 @@ async function scenarioRewardAttestationDisputeLifecycle(
       [secondOracle],
     );
     scenario.recordSuccess(secondVoteResult);
-    aggregateState = await decodeOutcomeAggregate(harness.connection, aggregateAddress);
+    aggregateState = await decodeOutcomeAggregate(
+      harness.connection,
+      aggregateAddress,
+    );
     assert.equal(aggregateState.finalized, true);
     assert.equal(aggregateState.passed, true);
-    assert.equal(aggregateState.reviewStatus, protocol.OUTCOME_REVIEW_STATUS_PENDING_CHALLENGE);
+    assert.equal(
+      aggregateState.reviewStatus,
+      protocol.OUTCOME_REVIEW_STATUS_PENDING_CHALLENGE,
+    );
     assert.equal(aggregateState.rewardLiabilityReserved, true);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, reserveAddress)).reservedRewardAmount,
+      (await decodePoolTreasuryReserve(harness.connection, reserveAddress))
+        .reservedRewardAmount,
       400_000n,
     );
 
@@ -3306,7 +3893,10 @@ async function scenarioRewardAttestationDisputeLifecycle(
       [state.governanceAuthority],
     );
     scenario.recordSuccess(finalizeResult);
-    aggregateState = await decodeOutcomeAggregate(harness.connection, aggregateAddress);
+    aggregateState = await decodeOutcomeAggregate(
+      harness.connection,
+      aggregateAddress,
+    );
     assert.equal(aggregateState.finalized, true);
     assert.equal(aggregateState.passVotes, 2);
 
@@ -3319,13 +3909,18 @@ async function scenarioRewardAttestationDisputeLifecycle(
       recentBlockhash: await harness.latestBlockhash(),
     });
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.OutcomeDisputeNotOpen ?? "resolve-outcome-without-dispute",
+      caseId:
+        COVERED_ERROR_CASES.OutcomeDisputeNotOpen ??
+        "resolve-outcome-without-dispute",
       expectedErrorName: "OutcomeDisputeNotOpen",
       tx: resolveWithoutDisputeTx,
       signers: [state.governanceAuthority],
       unchangedAddresses: [aggregateAddress, reserveAddress],
     });
-    scenario.recordFailure(COVERED_ERROR_CASES.OutcomeDisputeNotOpen ?? "resolve-outcome-without-dispute");
+    scenario.recordFailure(
+      COVERED_ERROR_CASES.OutcomeDisputeNotOpen ??
+        "resolve-outcome-without-dispute",
+    );
 
     const earlyRewardClaimTx = protocol.buildSubmitRewardClaimTx({
       claimant: state.openMember.publicKey,
@@ -3345,23 +3940,23 @@ async function scenarioRewardAttestationDisputeLifecycle(
         poolAddress: rewardPool.poolAddress,
         payoutMint,
       }),
-      poolVaultTokenAccount: poolVaultTokenAccount.publicKey,
+      poolVaultTokenAccount,
       recipientTokenAccount: memberPayoutTokenAccount,
       includePoolCompliancePolicy: true,
       recentBlockhash: await harness.latestBlockhash(),
     });
     await harness.expectCustomError({
       caseId:
-        COVERED_ERROR_CASES.OutcomeChallengeWindowActive
-        ?? "reward-claim-before-challenge-window-clears",
+        COVERED_ERROR_CASES.OutcomeChallengeWindowActive ??
+        "reward-claim-before-challenge-window-clears",
       expectedErrorName: "OutcomeChallengeWindowActive",
       tx: earlyRewardClaimTx,
       signers: [state.openMember],
       unchangedAddresses: [aggregateAddress, reserveAddress],
     });
     scenario.recordFailure(
-      COVERED_ERROR_CASES.OutcomeChallengeWindowActive
-      ?? "reward-claim-before-challenge-window-clears",
+      COVERED_ERROR_CASES.OutcomeChallengeWindowActive ??
+        "reward-claim-before-challenge-window-clears",
     );
 
     const openDisputeTx = protocol.buildOpenCycleOutcomeDisputeTx({
@@ -3377,8 +3972,14 @@ async function scenarioRewardAttestationDisputeLifecycle(
       [state.governanceAuthority],
     );
     scenario.recordSuccess(openDisputeResult);
-    aggregateState = await decodeOutcomeAggregate(harness.connection, aggregateAddress);
-    assert.equal(aggregateState.reviewStatus, protocol.OUTCOME_REVIEW_STATUS_CHALLENGED);
+    aggregateState = await decodeOutcomeAggregate(
+      harness.connection,
+      aggregateAddress,
+    );
+    assert.equal(
+      aggregateState.reviewStatus,
+      protocol.OUTCOME_REVIEW_STATUS_CHALLENGED,
+    );
 
     const resolveDisputeTx = protocol.buildResolveCycleOutcomeDisputeTx({
       governanceAuthority: state.governanceAuthority.publicKey,
@@ -3394,11 +3995,20 @@ async function scenarioRewardAttestationDisputeLifecycle(
       [state.governanceAuthority],
     );
     scenario.recordSuccess(resolveResult);
-    aggregateState = await decodeOutcomeAggregate(harness.connection, aggregateAddress);
-    assert.equal(aggregateState.reviewStatus, protocol.OUTCOME_REVIEW_STATUS_CLEAR);
-    assert.equal(aggregateState.resolvedBy, state.governanceAuthority.publicKey.toBase58());
+    aggregateState = await decodeOutcomeAggregate(
+      harness.connection,
+      aggregateAddress,
+    );
+    assert.equal(
+      aggregateState.reviewStatus,
+      protocol.OUTCOME_REVIEW_STATUS_CLEAR,
+    );
+    assert.equal(
+      aggregateState.resolvedBy,
+      state.governanceAuthority.publicKey.toBase58(),
+    );
 
-    const claimRecordAddress = protocol.deriveClaimV2Pda({
+    const claimRecordAddress = protocol.deriveClaimPda({
       programId: harness.programId,
       poolAddress: rewardPool.poolAddress,
       seriesRefHash: Buffer.from(rewardSeriesRefHashHex, "hex"),
@@ -3424,13 +4034,19 @@ async function scenarioRewardAttestationDisputeLifecycle(
         poolAddress: rewardPool.poolAddress,
         payoutMint,
       }),
-      poolVaultTokenAccount: poolVaultTokenAccount.publicKey,
+      poolVaultTokenAccount,
       recipientTokenAccount: memberPayoutTokenAccount,
       includePoolCompliancePolicy: true,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const rewardPayoutBefore = await harness.snapshotTokenAccount(memberPayoutTokenAccount);
-    const rewardClaimResult = await harness.send("submit_reward_claim", rewardClaimTx, [state.openMember]);
+    const rewardPayoutBefore = await harness.snapshotTokenAccount(
+      memberPayoutTokenAccount,
+    );
+    const rewardClaimResult = await harness.send(
+      "submit_reward_claim",
+      rewardClaimTx,
+      [state.openMember],
+    );
     scenario.recordSuccess(rewardClaimResult);
     assert.ok(
       rewardClaimResult.events.includes("RewardClaimSubmittedEvent"),
@@ -3441,14 +4057,24 @@ async function scenarioRewardAttestationDisputeLifecycle(
       await harness.snapshotTokenAccount(memberPayoutTokenAccount),
       "submit_reward_claim payout",
     );
-    aggregateState = await decodeOutcomeAggregate(harness.connection, aggregateAddress);
+    aggregateState = await decodeOutcomeAggregate(
+      harness.connection,
+      aggregateAddress,
+    );
     assert.equal(aggregateState.claimed, true);
     assert.equal(aggregateState.rewardLiabilityReserved, false);
-    const claimRecordState = await decodeClaimRecordV2(harness.connection, claimRecordAddress);
+    const claimRecordState = await decodeClaimRecord(
+      harness.connection,
+      claimRecordAddress,
+    );
     assert.equal(claimRecordState.payoutAmount, 400_000n);
-    assert.equal(claimRecordState.claimant, state.openMember.publicKey.toBase58());
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, reserveAddress)).reservedRewardAmount,
+      claimRecordState.claimant,
+      state.openMember.publicKey.toBase58(),
+    );
+    assert.equal(
+      (await decodePoolTreasuryReserve(harness.connection, reserveAddress))
+        .reservedRewardAmount,
       0n,
     );
   } finally {
@@ -3460,7 +4086,9 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
   harness: LocalnetHarness,
   state: GlobalState,
 ) {
-  const scenario = harness.beginScenario("coverage-product-policy-premium-lifecycle");
+  const scenario = harness.beginScenario(
+    "coverage-product-policy-premium-lifecycle",
+  );
   try {
     await ensureProtocolBootstrapped(harness, state);
 
@@ -3498,7 +4126,9 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       poolAddress: directPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    await harness.send("enroll_member_open", enrollCoverageMemberDirectTx, [state.coverageMember]);
+    await harness.send("enroll_member_open", enrollCoverageMemberDirectTx, [
+      state.coverageMember,
+    ]);
 
     const directSeriesRefHashHex = harness.sha256Hex("direct-policy-series");
     const directTermsHashHex = harness.sha256Hex("direct-policy-series-terms");
@@ -3508,7 +4138,8 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       seriesRefHash: Buffer.from(directSeriesRefHashHex, "hex"),
       member: state.coverageMember.publicKey,
     });
-    const directPolicyBefore = await harness.snapshotAccount(directPolicyAddress);
+    const directPolicyBefore =
+      await harness.snapshotAccount(directPolicyAddress);
     const directStartsAt = nowTs() - 120n;
     const createDirectSeriesResult = await createPolicySeriesForScenario({
       harness,
@@ -3533,16 +4164,26 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       startsAtTs: directStartsAt,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const directPolicyResult = await harness.send("issue_policy_position", directPolicyTx, [state.governanceAuthority]);
+    const directPolicyResult = await harness.send(
+      "issue_policy_position",
+      directPolicyTx,
+      [state.governanceAuthority],
+    );
     scenario.recordSuccess(directPolicyResult);
     assertChanged(
       directPolicyBefore,
       await harness.snapshotAccount(directPolicyAddress),
       "issue_policy_position",
     );
-    const directPolicyState = await decodePolicyPosition(harness.connection, directPolicyAddress);
+    const directPolicyState = await decodePolicyPosition(
+      harness.connection,
+      directPolicyAddress,
+    );
     assert.equal(directPolicyState.termsHashHex, directTermsHashHex);
-    assert.equal(directPolicyState.member, state.coverageMember.publicKey.toBase58());
+    assert.equal(
+      directPolicyState.member,
+      state.coverageMember.publicKey.toBase58(),
+    );
     assert.equal(directPolicyState.seriesRefHashHex, directSeriesRefHashHex);
 
     const directPolicyNftAddress = protocol.derivePolicyPositionNftPda({
@@ -3560,12 +4201,23 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       metadataUri: "https://policy.local/direct-nft",
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const mintPolicyResult = await harness.send("mint_policy_nft", mintPolicyTx, [state.governanceAuthority]);
+    const mintPolicyResult = await harness.send(
+      "mint_policy_nft",
+      mintPolicyTx,
+      [state.governanceAuthority],
+    );
     scenario.recordSuccess(mintPolicyResult);
-    const directPolicyNftState = await decodePolicyPositionNft(harness.connection, directPolicyNftAddress);
-    assert.equal(directPolicyNftState.metadataUri, "https://policy.local/direct-nft");
+    const directPolicyNftState = await decodePolicyPositionNft(
+      harness.connection,
+      directPolicyNftAddress,
+    );
     assert.equal(
-      (await decodePolicyPosition(harness.connection, directPolicyAddress)).nftMint,
+      directPolicyNftState.metadataUri,
+      "https://policy.local/direct-nft",
+    );
+    assert.equal(
+      (await decodePolicyPosition(harness.connection, directPolicyAddress))
+        .nftMint,
       directPolicyNftState.nftMint,
     );
 
@@ -3592,10 +4244,16 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       poolAddress: productPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    await harness.send("enroll_member_open", enrollOpenMemberTx, [state.openMember]);
-    await harness.send("enroll_member_open", enrollAlternateMemberTx, [state.alternateMember]);
+    await harness.send("enroll_member_open", enrollOpenMemberTx, [
+      state.openMember,
+    ]);
+    await harness.send("enroll_member_open", enrollAlternateMemberTx, [
+      state.alternateMember,
+    ]);
 
-    const coverageSeriesRefHashHex = harness.sha256Hex("coverage-product-series");
+    const coverageSeriesRefHashHex = harness.sha256Hex(
+      "coverage-product-series",
+    );
     const productAddress = protocol.derivePolicySeriesPda({
       programId: harness.programId,
       poolAddress: productPool.poolAddress,
@@ -3647,41 +4305,57 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       mappingVersion: 1,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const updateProductResult = await harness.send("update_policy_series", updateProductTx, [state.governanceAuthority]);
+    const updateProductResult = await harness.send(
+      "update_policy_series",
+      updateProductTx,
+      [state.governanceAuthority],
+    );
     scenario.recordSuccess(updateProductResult);
-    const productState = await decodePolicySeries(harness.connection, productAddress);
+    const productState = await decodePolicySeries(
+      harness.connection,
+      productAddress,
+    );
     assert.equal(productState.displayName, "Localnet Coverage Product Updated");
     assert.equal(productState.metadataUri, "https://coverage.local/product-v2");
     assert.equal(productState.durationSecs, 10_800n);
 
-    const splPaymentOptionAddress = protocol.derivePolicySeriesPaymentOptionPda({
-      programId: harness.programId,
-      poolAddress: productPool.poolAddress,
-      seriesRefHash: Buffer.from(coverageSeriesRefHashHex, "hex"),
-      paymentMint: payoutMint,
-    });
-    const upsertSplOptionResult = await upsertPolicySeriesPaymentOptionForScenario({
-      harness,
-      authority: state.governanceAuthority,
-      poolAddress: productPool.poolAddress,
-      seriesRefHashHex: coverageSeriesRefHashHex,
-      paymentMint: payoutMint,
-      paymentAmount: 1_500n,
-    });
+    const splPaymentOptionAddress = protocol.derivePolicySeriesPaymentOptionPda(
+      {
+        programId: harness.programId,
+        poolAddress: productPool.poolAddress,
+        seriesRefHash: Buffer.from(coverageSeriesRefHashHex, "hex"),
+        paymentMint: payoutMint,
+      },
+    );
+    const upsertSplOptionResult =
+      await upsertPolicySeriesPaymentOptionForScenario({
+        harness,
+        authority: state.governanceAuthority,
+        poolAddress: productPool.poolAddress,
+        seriesRefHashHex: coverageSeriesRefHashHex,
+        paymentMint: payoutMint,
+        paymentAmount: 1_500n,
+      });
     scenario.recordSuccess(upsertSplOptionResult);
     assert.equal(
-      (await decodePolicySeriesPaymentOption(harness.connection, splPaymentOptionAddress)).paymentAmount,
+      (
+        await decodePolicySeriesPaymentOption(
+          harness.connection,
+          splPaymentOptionAddress,
+        )
+      ).paymentAmount,
       1_500n,
     );
 
-    const upsertSolOptionResult = await upsertPolicySeriesPaymentOptionForScenario({
-      harness,
-      authority: state.governanceAuthority,
-      poolAddress: productPool.poolAddress,
-      seriesRefHashHex: coverageSeriesRefHashHex,
-      paymentMint: ZERO_PUBKEY,
-      paymentAmount: 1_500n,
-    });
+    const upsertSolOptionResult =
+      await upsertPolicySeriesPaymentOptionForScenario({
+        harness,
+        authority: state.governanceAuthority,
+        poolAddress: productPool.poolAddress,
+        seriesRefHashHex: coverageSeriesRefHashHex,
+        paymentMint: ZERO_PUBKEY,
+        paymentAmount: 1_500n,
+      });
     scenario.recordSuccess(upsertSolOptionResult);
 
     const subscribePolicyAddress = protocol.derivePolicyPositionPda({
@@ -3697,12 +4371,25 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       startsAtTs: nowTs() - 60n,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const subscribeResult = await harness.send("subscribe_policy_series", subscribeTx, [state.openMember]);
+    const subscribeResult = await harness.send(
+      "subscribe_policy_series",
+      subscribeTx,
+      [state.openMember],
+    );
     scenario.recordSuccess(subscribeResult);
-    const subscribePolicyState = await decodePolicyPosition(harness.connection, subscribePolicyAddress);
-    assert.equal(subscribePolicyState.member, state.openMember.publicKey.toBase58());
+    const subscribePolicyState = await decodePolicyPosition(
+      harness.connection,
+      subscribePolicyAddress,
+    );
+    assert.equal(
+      subscribePolicyState.member,
+      state.openMember.publicKey.toBase58(),
+    );
     assert.equal(subscribePolicyState.termsHashHex, productState.termsHashHex);
-    assert.equal(subscribePolicyState.seriesRefHashHex, coverageSeriesRefHashHex);
+    assert.equal(
+      subscribePolicyState.seriesRefHashHex,
+      coverageSeriesRefHashHex,
+    );
 
     const issuedPolicyAddress = protocol.derivePolicyPositionPda({
       programId: harness.programId,
@@ -3718,10 +4405,18 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       startsAtTs: nowTs() - 30n,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const issueResult = await harness.send("issue_policy_position", issueTx, [state.governanceAuthority]);
+    const issueResult = await harness.send("issue_policy_position", issueTx, [
+      state.governanceAuthority,
+    ]);
     scenario.recordSuccess(issueResult);
-    const issuedPolicyState = await decodePolicyPosition(harness.connection, issuedPolicyAddress);
-    assert.equal(issuedPolicyState.member, state.alternateMember.publicKey.toBase58());
+    const issuedPolicyState = await decodePolicyPosition(
+      harness.connection,
+      issuedPolicyAddress,
+    );
+    assert.equal(
+      issuedPolicyState.member,
+      state.alternateMember.publicKey.toBase58(),
+    );
     assert.equal(issuedPolicyState.termsHashHex, productState.termsHashHex);
 
     const openMemberLedgerAddress = protocol.derivePremiumLedgerPda({
@@ -3740,7 +4435,7 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       productPoolAssetVaultAddress,
       true,
     );
-    const payPremiumSplTx = protocol.buildPayPremiumSplV2Tx({
+    const payPremiumSplTx = protocol.buildPayPremiumSplTx({
       payer: state.openMember.publicKey,
       poolAddress: productPool.poolAddress,
       member: state.openMember.publicKey,
@@ -3750,10 +4445,14 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       payerTokenAccount: openMemberPayoutTokenAccount,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const openMemberLedgerBefore = await harness.snapshotAccount(openMemberLedgerAddress);
-    const openMemberTokenBefore = await harness.snapshotTokenAccount(openMemberPayoutTokenAccount);
+    const openMemberLedgerBefore = await harness.snapshotAccount(
+      openMemberLedgerAddress,
+    );
+    const openMemberTokenBefore = await harness.snapshotTokenAccount(
+      openMemberPayoutTokenAccount,
+    );
     const payPremiumSplResult = await harness.send(
-      "pay_premium_spl_v2",
+      "pay_premium_spl",
       payPremiumSplTx,
       [state.openMember],
     );
@@ -3761,18 +4460,26 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
     assertChanged(
       openMemberLedgerBefore,
       await harness.snapshotAccount(openMemberLedgerAddress),
-      "pay_premium_spl_v2 ledger",
+      "pay_premium_spl ledger",
     );
     assertTokenChanged(
       openMemberTokenBefore,
       await harness.snapshotTokenAccount(openMemberPayoutTokenAccount),
-      "pay_premium_spl_v2 payer",
+      "pay_premium_spl payer",
     );
-    const openMemberLedgerState = await decodePremiumLedger(harness.connection, openMemberLedgerAddress);
+    const openMemberLedgerState = await decodePremiumLedger(
+      harness.connection,
+      openMemberLedgerAddress,
+    );
     assert.equal(openMemberLedgerState.periodIndex, 0n);
     assert.equal(openMemberLedgerState.amount, 1_500n);
     assert.equal(
-      (await decodePoolAssetVault(harness.connection, productPoolAssetVaultAddress)).vaultTokenAccount,
+      (
+        await decodePoolAssetVault(
+          harness.connection,
+          productPoolAssetVaultAddress,
+        )
+      ).vaultTokenAccount,
       productPoolVaultTokenAccount.toBase58(),
     );
 
@@ -3782,7 +4489,7 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       seriesRefHash: Buffer.from(coverageSeriesRefHashHex, "hex"),
       member: state.alternateMember.publicKey,
     });
-    const payPremiumSolTx = protocol.buildPayPremiumSolV2Tx({
+    const payPremiumSolTx = protocol.buildPayPremiumSolTx({
       payer: state.alternateMember.publicKey,
       poolAddress: productPool.poolAddress,
       member: state.alternateMember.publicKey,
@@ -3790,9 +4497,11 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
       periodIndex: 0n,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    const poolLamportsBefore = await harness.snapshotAccount(productPool.poolAddress);
+    const poolLamportsBefore = await harness.snapshotAccount(
+      productPool.poolAddress,
+    );
     const payPremiumSolResult = await harness.send(
-      "pay_premium_sol_v2",
+      "pay_premium_sol",
       payPremiumSolTx,
       [state.alternateMember],
     );
@@ -3800,9 +4509,12 @@ async function scenarioCoverageProductPolicyPremiumLifecycle(
     assertChanged(
       poolLamportsBefore,
       await harness.snapshotAccount(productPool.poolAddress),
-      "pay_premium_sol_v2 pool",
+      "pay_premium_sol pool",
     );
-    const alternateLedgerState = await decodePremiumLedger(harness.connection, alternateLedgerAddress);
+    const alternateLedgerState = await decodePremiumLedger(
+      harness.connection,
+      alternateLedgerAddress,
+    );
     assert.equal(alternateLedgerState.periodIndex, 0n);
     assert.equal(alternateLedgerState.amount, 1_500n);
   } finally {
@@ -3814,7 +4526,9 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
   harness: LocalnetHarness,
   state: GlobalState,
 ) {
-  const scenario = harness.beginScenario("quoted-cycle-activation-settlement-cohort-lifecycle");
+  const scenario = harness.beginScenario(
+    "quoted-cycle-activation-settlement-cohort-lifecycle",
+  );
   try {
     await ensureMainOracleReady(harness, state);
 
@@ -3858,7 +4572,9 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       allowDelegateClaim: false,
       challengeWindowSecs: 0n,
     });
-    await harness.send("set_pool_oracle_policy", oraclePolicyTx, [state.governanceAuthority]);
+    await harness.send("set_pool_oracle_policy", oraclePolicyTx, [
+      state.governanceAuthority,
+    ]);
     const poolApproval = await approveOracleForPool({
       harness,
       authority: state.governanceAuthority,
@@ -3873,7 +4589,9 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       permissions: ORACLE_PERMISSION_QUOTE | ORACLE_PERMISSION_CYCLE_SETTLE,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    await harness.send("set_pool_oracle_permissions", permissionsTx, [state.governanceAuthority]);
+    await harness.send("set_pool_oracle_permissions", permissionsTx, [
+      state.governanceAuthority,
+    ]);
 
     const cycleSeriesRefHashHex = harness.sha256Hex("cycle-quote-series");
     await createPolicySeriesForScenario({
@@ -3907,9 +4625,15 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       paymentAmount: 1_000n,
     });
 
-    const invalidSigNonceHashHex = harness.sha256Hex("cycle-quote-invalid-signature-nonce");
-    const invalidSigQuoteMetaHashHex = harness.sha256Hex("cycle-quote-invalid-signature-meta");
-    const invalidSigCohortHashHex = harness.sha256Hex("cycle-quote-invalid-signature-cohort");
+    const invalidSigNonceHashHex = harness.sha256Hex(
+      "cycle-quote-invalid-signature-nonce",
+    );
+    const invalidSigQuoteMetaHashHex = harness.sha256Hex(
+      "cycle-quote-invalid-signature-meta",
+    );
+    const invalidSigCohortHashHex = harness.sha256Hex(
+      "cycle-quote-invalid-signature-cohort",
+    );
     const invalidSigFees = computeCycleFeeBreakdown({
       premiumAmountRaw: 1_000n,
       bondAmountRaw: 125n,
@@ -3918,29 +4642,30 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       oracleFeeBps: 100,
     });
     const invalidSigOracle = Keypair.generate();
-    const invalidSigQuoteInstruction = await harness.quoteVerificationInstruction({
-      oracle: invalidSigOracle,
-      poolAddress: cyclePool.poolAddress,
-      member: state.coverageMember.publicKey,
-      seriesRefHashHex: cycleSeriesRefHashHex,
-      premiumAmountRaw: 1_000n,
-      canonicalPremiumAmount: 1_000n,
-      periodIndex: 7n,
-      commitmentEnabled: true,
-      bondAmountRaw: 125n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: invalidSigFees.protocolFeeRaw,
-      oracleFeeRaw: invalidSigFees.oracleFeeRaw,
-      netPoolPremiumRaw: invalidSigFees.netPoolPremiumRaw,
-      totalAmountRaw: invalidSigFees.totalAmountRaw,
-      includedShieldCount: 0,
-      thresholdBps: 0,
-      outcomeThresholdScore: 725,
-      cohortHashHex: invalidSigCohortHashHex,
-      expiresAtTs: nowTs() + 3_600n,
-      nonceHashHex: invalidSigNonceHashHex,
-      quoteMetaHashHex: invalidSigQuoteMetaHashHex,
-    });
+    const invalidSigQuoteInstruction =
+      await harness.quoteVerificationInstruction({
+        oracle: invalidSigOracle,
+        poolAddress: cyclePool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: cycleSeriesRefHashHex,
+        premiumAmountRaw: 1_000n,
+        canonicalPremiumAmount: 1_000n,
+        periodIndex: 7n,
+        commitmentEnabled: true,
+        bondAmountRaw: 125n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: invalidSigFees.protocolFeeRaw,
+        oracleFeeRaw: invalidSigFees.oracleFeeRaw,
+        netPoolPremiumRaw: invalidSigFees.netPoolPremiumRaw,
+        totalAmountRaw: invalidSigFees.totalAmountRaw,
+        includedShieldCount: 0,
+        thresholdBps: 0,
+        outcomeThresholdScore: 725,
+        cohortHashHex: invalidSigCohortHashHex,
+        expiresAtTs: nowTs() + 3_600n,
+        nonceHashHex: invalidSigNonceHashHex,
+        quoteMetaHashHex: invalidSigQuoteMetaHashHex,
+      });
     const invalidSigMemberCycleAddress = protocol.deriveMemberCyclePda({
       programId: harness.programId,
       poolAddress: cyclePool.poolAddress,
@@ -3954,49 +4679,59 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       seriesRefHash: Buffer.from(cycleSeriesRefHashHex, "hex"),
       member: state.coverageMember.publicKey,
     });
-    const invalidSigTx = addComputeBudget(protocol.buildActivateCycleWithQuoteSolTx({
-      payer: state.coverageMember.publicKey,
-      poolAddress: cyclePool.poolAddress,
-      oracle: state.oracle.publicKey,
-      seriesRefHashHex: cycleSeriesRefHashHex,
-      periodIndex: 7n,
-      nonceHashHex: invalidSigNonceHashHex,
-      premiumAmountRaw: 1_000n,
-      canonicalPremiumAmount: 1_000n,
-      commitmentEnabled: true,
-      bondAmountRaw: 125n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: invalidSigFees.protocolFeeRaw,
-      oracleFeeRaw: invalidSigFees.oracleFeeRaw,
-      netPoolPremiumRaw: invalidSigFees.netPoolPremiumRaw,
-      totalAmountRaw: invalidSigFees.totalAmountRaw,
-      includedShieldCount: 0,
-      thresholdBps: 0,
-      outcomeThresholdScore: 725,
-      cohortHashHex: invalidSigCohortHashHex,
-      expiresAtTs: nowTs() + 3_600n,
-      quoteMetaHashHex: invalidSigQuoteMetaHashHex,
-      recentBlockhash: await harness.latestBlockhash(),
-      quoteVerificationInstruction: invalidSigQuoteInstruction,
-    }));
+    const invalidSigTx = addComputeBudget(
+      protocol.buildActivateCycleWithQuoteSolTx({
+        payer: state.coverageMember.publicKey,
+        poolAddress: cyclePool.poolAddress,
+        oracle: state.oracle.publicKey,
+        seriesRefHashHex: cycleSeriesRefHashHex,
+        periodIndex: 7n,
+        nonceHashHex: invalidSigNonceHashHex,
+        premiumAmountRaw: 1_000n,
+        canonicalPremiumAmount: 1_000n,
+        commitmentEnabled: true,
+        bondAmountRaw: 125n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: invalidSigFees.protocolFeeRaw,
+        oracleFeeRaw: invalidSigFees.oracleFeeRaw,
+        netPoolPremiumRaw: invalidSigFees.netPoolPremiumRaw,
+        totalAmountRaw: invalidSigFees.totalAmountRaw,
+        includedShieldCount: 0,
+        thresholdBps: 0,
+        outcomeThresholdScore: 725,
+        cohortHashHex: invalidSigCohortHashHex,
+        expiresAtTs: nowTs() + 3_600n,
+        quoteMetaHashHex: invalidSigQuoteMetaHashHex,
+        recentBlockhash: await harness.latestBlockhash(),
+        quoteVerificationInstruction: invalidSigQuoteInstruction,
+      }),
+    );
     const invalidSigLookupTable = await harness.createLookupTable(
       state.governanceAuthority,
       lookupAddressesForTransaction(invalidSigTx),
     );
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.InvalidQuoteSignatureInstruction ?? "quote-invalid-signature-layout",
+      caseId:
+        COVERED_ERROR_CASES.InvalidQuoteSignatureInstruction ??
+        "quote-invalid-signature-layout",
       expectedErrorName: "InvalidQuoteSignatureInstruction",
       tx: invalidSigTx,
       signers: [state.coverageMember],
-      unchangedAddresses: [invalidSigMemberCycleAddress, invalidSigPremiumLedgerAddress],
+      unchangedAddresses: [
+        invalidSigMemberCycleAddress,
+        invalidSigPremiumLedgerAddress,
+      ],
       lookupTables: [invalidSigLookupTable],
     });
     scenario.recordFailure(
-      COVERED_ERROR_CASES.InvalidQuoteSignatureInstruction ?? "quote-invalid-signature-layout",
+      COVERED_ERROR_CASES.InvalidQuoteSignatureInstruction ??
+        "quote-invalid-signature-layout",
     );
 
     const expiredNonceHashHex = harness.sha256Hex("cycle-quote-expired-nonce");
-    const expiredQuoteMetaHashHex = harness.sha256Hex("cycle-quote-expired-meta");
+    const expiredQuoteMetaHashHex = harness.sha256Hex(
+      "cycle-quote-expired-meta",
+    );
     const expiredQuoteFees = computeCycleFeeBreakdown({
       premiumAmountRaw: 1_000n,
       bondAmountRaw: 150n,
@@ -4040,31 +4775,33 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       seriesRefHash: Buffer.from(cycleSeriesRefHashHex, "hex"),
       member: state.coverageMember.publicKey,
     });
-    const expiredQuoteTx = addComputeBudget(protocol.buildActivateCycleWithQuoteSolTx({
-      payer: state.coverageMember.publicKey,
-      poolAddress: cyclePool.poolAddress,
-      oracle: state.oracle.publicKey,
-      seriesRefHashHex: cycleSeriesRefHashHex,
-      periodIndex: 0n,
-      nonceHashHex: expiredNonceHashHex,
-      premiumAmountRaw: 1_000n,
-      canonicalPremiumAmount: 1_000n,
-      commitmentEnabled: true,
-      bondAmountRaw: 150n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: expiredQuoteFees.protocolFeeRaw,
-      oracleFeeRaw: expiredQuoteFees.oracleFeeRaw,
-      netPoolPremiumRaw: expiredQuoteFees.netPoolPremiumRaw,
-      totalAmountRaw: expiredQuoteFees.totalAmountRaw,
-      includedShieldCount: 0,
-      thresholdBps: 0,
-      outcomeThresholdScore: 720,
-      cohortHashHex: harness.sha256Hex("cycle-quote-expired-cohort"),
-      expiresAtTs: nowTs() - 1n,
-      quoteMetaHashHex: expiredQuoteMetaHashHex,
-      recentBlockhash: await harness.latestBlockhash(),
-      quoteVerificationInstruction: expiredQuoteInstruction,
-    }));
+    const expiredQuoteTx = addComputeBudget(
+      protocol.buildActivateCycleWithQuoteSolTx({
+        payer: state.coverageMember.publicKey,
+        poolAddress: cyclePool.poolAddress,
+        oracle: state.oracle.publicKey,
+        seriesRefHashHex: cycleSeriesRefHashHex,
+        periodIndex: 0n,
+        nonceHashHex: expiredNonceHashHex,
+        premiumAmountRaw: 1_000n,
+        canonicalPremiumAmount: 1_000n,
+        commitmentEnabled: true,
+        bondAmountRaw: 150n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: expiredQuoteFees.protocolFeeRaw,
+        oracleFeeRaw: expiredQuoteFees.oracleFeeRaw,
+        netPoolPremiumRaw: expiredQuoteFees.netPoolPremiumRaw,
+        totalAmountRaw: expiredQuoteFees.totalAmountRaw,
+        includedShieldCount: 0,
+        thresholdBps: 0,
+        outcomeThresholdScore: 720,
+        cohortHashHex: harness.sha256Hex("cycle-quote-expired-cohort"),
+        expiresAtTs: nowTs() - 1n,
+        quoteMetaHashHex: expiredQuoteMetaHashHex,
+        recentBlockhash: await harness.latestBlockhash(),
+        quoteVerificationInstruction: expiredQuoteInstruction,
+      }),
+    );
     const expiredLookupTable = await harness.createLookupTable(
       state.governanceAuthority,
       lookupAddressesForTransaction(expiredQuoteTx),
@@ -4074,10 +4811,15 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       expectedErrorName: "QuoteExpired",
       tx: expiredQuoteTx,
       signers: [state.coverageMember],
-      unchangedAddresses: [expiredMemberCycleAddress, expiredPremiumLedgerAddress],
+      unchangedAddresses: [
+        expiredMemberCycleAddress,
+        expiredPremiumLedgerAddress,
+      ],
       lookupTables: [expiredLookupTable],
     });
-    scenario.recordFailure(COVERED_ERROR_CASES.QuoteExpired ?? "quote-expired-sol");
+    scenario.recordFailure(
+      COVERED_ERROR_CASES.QuoteExpired ?? "quote-expired-sol",
+    );
 
     const splNonceHashHex = harness.sha256Hex("cycle-quote-spl-nonce");
     const splQuoteMetaHashHex = harness.sha256Hex("cycle-quote-spl-meta");
@@ -4131,33 +4873,35 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       seriesRefHash: Buffer.from(cycleSeriesRefHashHex, "hex"),
       member: state.openMember.publicKey,
     });
-    const activateSplTx = addComputeBudget(protocol.buildActivateCycleWithQuoteSplTx({
-      payer: state.openMember.publicKey,
-      poolAddress: cyclePool.poolAddress,
-      oracle: state.oracle.publicKey,
-      paymentMint: payoutMint,
-      payerTokenAccount: openMemberPayoutTokenAccount,
-      seriesRefHashHex: cycleSeriesRefHashHex,
-      periodIndex: 0n,
-      nonceHashHex: splNonceHashHex,
-      premiumAmountRaw: 1_000n,
-      canonicalPremiumAmount: 1_000n,
-      commitmentEnabled: true,
-      bondAmountRaw: 200n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: splQuoteFees.protocolFeeRaw,
-      oracleFeeRaw: splQuoteFees.oracleFeeRaw,
-      netPoolPremiumRaw: splQuoteFees.netPoolPremiumRaw,
-      totalAmountRaw: splQuoteFees.totalAmountRaw,
-      includedShieldCount: 0,
-      thresholdBps: 0,
-      outcomeThresholdScore: 700,
-      cohortHashHex: splCohortHashHex,
-      expiresAtTs: nowTs() + 3_600n,
-      quoteMetaHashHex: splQuoteMetaHashHex,
-      recentBlockhash: await harness.latestBlockhash(),
-      quoteVerificationInstruction: splQuoteInstruction,
-    }));
+    const activateSplTx = addComputeBudget(
+      protocol.buildActivateCycleWithQuoteSplTx({
+        payer: state.openMember.publicKey,
+        poolAddress: cyclePool.poolAddress,
+        oracle: state.oracle.publicKey,
+        paymentMint: payoutMint,
+        payerTokenAccount: openMemberPayoutTokenAccount,
+        seriesRefHashHex: cycleSeriesRefHashHex,
+        periodIndex: 0n,
+        nonceHashHex: splNonceHashHex,
+        premiumAmountRaw: 1_000n,
+        canonicalPremiumAmount: 1_000n,
+        commitmentEnabled: true,
+        bondAmountRaw: 200n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: splQuoteFees.protocolFeeRaw,
+        oracleFeeRaw: splQuoteFees.oracleFeeRaw,
+        netPoolPremiumRaw: splQuoteFees.netPoolPremiumRaw,
+        totalAmountRaw: splQuoteFees.totalAmountRaw,
+        includedShieldCount: 0,
+        thresholdBps: 0,
+        outcomeThresholdScore: 700,
+        cohortHashHex: splCohortHashHex,
+        expiresAtTs: nowTs() + 3_600n,
+        quoteMetaHashHex: splQuoteMetaHashHex,
+        recentBlockhash: await harness.latestBlockhash(),
+        quoteVerificationInstruction: splQuoteInstruction,
+      }),
+    );
     const splLookupTable = await harness.createLookupTable(
       state.governanceAuthority,
       lookupAddressesForTransaction(activateSplTx),
@@ -4169,17 +4913,22 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       [splLookupTable],
     );
     scenario.recordSuccess(activateSplResult);
-    const splMemberCycleState = await decodeMemberCycle(harness.connection, splMemberCycleAddress);
+    const splMemberCycleState = await decodeMemberCycle(
+      harness.connection,
+      splMemberCycleAddress,
+    );
     assert.equal(splMemberCycleState.paymentMint, payoutMint.toBase58());
     assert.equal(splMemberCycleState.periodIndex, 0n);
     assert.equal(splMemberCycleState.bondAmountRaw, 200n);
     assert.equal(splMemberCycleState.outcomeThresholdScore, 700);
     assert.equal(
-      (await decodePremiumLedger(harness.connection, splPremiumLedgerAddress)).amount,
+      (await decodePremiumLedger(harness.connection, splPremiumLedgerAddress))
+        .amount,
       1_000n,
     );
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, splReserveAddress)).reservedRefundAmount,
+      (await decodePoolTreasuryReserve(harness.connection, splReserveAddress))
+        .reservedRefundAmount,
       200n,
     );
 
@@ -4189,7 +4938,9 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       seriesRefHash: Buffer.from(cycleSeriesRefHashHex, "hex"),
       cohortHash: Buffer.from(splCohortHashHex, "hex"),
     });
-    const settleSplRefundBefore = await harness.snapshotTokenAccount(openMemberPayoutTokenAccount);
+    const settleSplRefundBefore = await harness.snapshotTokenAccount(
+      openMemberPayoutTokenAccount,
+    );
     const settleSplTx = protocol.buildSettleCycleCommitmentTx({
       oracle: state.oracle.publicKey,
       poolAddress: cyclePool.poolAddress,
@@ -4215,16 +4966,26 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       await harness.snapshotTokenAccount(openMemberPayoutTokenAccount),
       "settle_cycle_commitment refund",
     );
-    const settledSplCycleState = await decodeMemberCycle(harness.connection, splMemberCycleAddress);
+    const settledSplCycleState = await decodeMemberCycle(
+      harness.connection,
+      splMemberCycleAddress,
+    );
     assert.equal(settledSplCycleState.status, 2);
     assert.equal(settledSplCycleState.passed, true);
     assert.equal(settledSplCycleState.settledHealthAlphaScore, 740);
-    const splCohortRootState = await decodeCohortSettlementRoot(harness.connection, splCohortRootAddress);
-    assert.equal(splCohortRootState.cohortHashHex, settledSplCycleState.cohortHashHex);
+    const splCohortRootState = await decodeCohortSettlementRoot(
+      harness.connection,
+      splCohortRootAddress,
+    );
+    assert.equal(
+      splCohortRootState.cohortHashHex,
+      settledSplCycleState.cohortHashHex,
+    );
     assert.equal(splCohortRootState.successfulMemberCount, 1);
     assert.equal(splCohortRootState.successfulHealthAlphaScoreSum, 740n);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, splReserveAddress)).reservedRefundAmount,
+      (await decodePoolTreasuryReserve(harness.connection, splReserveAddress))
+        .reservedRefundAmount,
       0n,
     );
 
@@ -4247,7 +5008,12 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
     );
     scenario.recordSuccess(finalizeCohortResult);
     assert.equal(
-      (await decodeCohortSettlementRoot(harness.connection, splCohortRootAddress)).finalized,
+      (
+        await decodeCohortSettlementRoot(
+          harness.connection,
+          splCohortRootAddress,
+        )
+      ).finalized,
       true,
     );
 
@@ -4295,31 +5061,33 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       poolAddress: cyclePool.poolAddress,
       paymentMint: ZERO_PUBKEY,
     });
-    const activateSolTx = addComputeBudget(protocol.buildActivateCycleWithQuoteSolTx({
-      payer: state.alternateMember.publicKey,
-      poolAddress: cyclePool.poolAddress,
-      oracle: state.oracle.publicKey,
-      seriesRefHashHex: cycleSeriesRefHashHex,
-      periodIndex: 0n,
-      nonceHashHex: solNonceHashHex,
-      premiumAmountRaw: 1_000n,
-      canonicalPremiumAmount: 1_000n,
-      commitmentEnabled: true,
-      bondAmountRaw: 300n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: solQuoteFees.protocolFeeRaw,
-      oracleFeeRaw: solQuoteFees.oracleFeeRaw,
-      netPoolPremiumRaw: solQuoteFees.netPoolPremiumRaw,
-      totalAmountRaw: solQuoteFees.totalAmountRaw,
-      includedShieldCount: 1,
-      thresholdBps: 500,
-      outcomeThresholdScore: 0,
-      cohortHashHex: "00".repeat(32),
-      expiresAtTs: nowTs() + 3_600n,
-      quoteMetaHashHex: solQuoteMetaHashHex,
-      recentBlockhash: await harness.latestBlockhash(),
-      quoteVerificationInstruction: solQuoteInstruction,
-    }));
+    const activateSolTx = addComputeBudget(
+      protocol.buildActivateCycleWithQuoteSolTx({
+        payer: state.alternateMember.publicKey,
+        poolAddress: cyclePool.poolAddress,
+        oracle: state.oracle.publicKey,
+        seriesRefHashHex: cycleSeriesRefHashHex,
+        periodIndex: 0n,
+        nonceHashHex: solNonceHashHex,
+        premiumAmountRaw: 1_000n,
+        canonicalPremiumAmount: 1_000n,
+        commitmentEnabled: true,
+        bondAmountRaw: 300n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: solQuoteFees.protocolFeeRaw,
+        oracleFeeRaw: solQuoteFees.oracleFeeRaw,
+        netPoolPremiumRaw: solQuoteFees.netPoolPremiumRaw,
+        totalAmountRaw: solQuoteFees.totalAmountRaw,
+        includedShieldCount: 1,
+        thresholdBps: 500,
+        outcomeThresholdScore: 0,
+        cohortHashHex: "00".repeat(32),
+        expiresAtTs: nowTs() + 3_600n,
+        quoteMetaHashHex: solQuoteMetaHashHex,
+        recentBlockhash: await harness.latestBlockhash(),
+        quoteVerificationInstruction: solQuoteInstruction,
+      }),
+    );
     const solLookupTable = await harness.createLookupTable(
       state.governanceAuthority,
       lookupAddressesForTransaction(activateSolTx),
@@ -4331,12 +5099,16 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       [solLookupTable],
     );
     scenario.recordSuccess(activateSolResult);
-    const solMemberCycleState = await decodeMemberCycle(harness.connection, solMemberCycleAddress);
+    const solMemberCycleState = await decodeMemberCycle(
+      harness.connection,
+      solMemberCycleAddress,
+    );
     assert.equal(solMemberCycleState.paymentMint, ZERO_PUBKEY.toBase58());
     assert.equal(solMemberCycleState.includedShieldCount, 1);
     assert.equal(solMemberCycleState.thresholdBps, 500);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, solReserveAddress)).reservedRefundAmount,
+      (await decodePoolTreasuryReserve(harness.connection, solReserveAddress))
+        .reservedRefundAmount,
       300n,
     );
 
@@ -4353,7 +5125,9 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       recentBlockhash: await harness.latestBlockhash(),
       cohortHashHex: "00".repeat(32),
     });
-    const poolLamportsBefore = await harness.snapshotAccount(cyclePool.poolAddress);
+    const poolLamportsBefore = await harness.snapshotAccount(
+      cyclePool.poolAddress,
+    );
     const settleSolResult = await harness.send(
       "settle_cycle_commitment_sol",
       settleSolTx,
@@ -4365,12 +5139,16 @@ async function scenarioQuotedCycleActivationSettlementCohortLifecycle(
       await harness.snapshotAccount(cyclePool.poolAddress),
       "settle_cycle_commitment_sol pool",
     );
-    const settledSolCycleState = await decodeMemberCycle(harness.connection, solMemberCycleAddress);
+    const settledSolCycleState = await decodeMemberCycle(
+      harness.connection,
+      solMemberCycleAddress,
+    );
     assert.equal(settledSolCycleState.status, 2);
     assert.equal(settledSolCycleState.passed, false);
     assert.equal(settledSolCycleState.shieldConsumed, true);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, solReserveAddress)).reservedRefundAmount,
+      (await decodePoolTreasuryReserve(harness.connection, solReserveAddress))
+        .reservedRefundAmount,
       0n,
     );
   } finally {
@@ -4382,7 +5160,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
   harness: LocalnetHarness,
   state: GlobalState,
 ) {
-  const scenario = harness.beginScenario("treasury-withdrawal-and-coverage-claim-lifecycle");
+  const scenario = harness.beginScenario(
+    "treasury-withdrawal-and-coverage-claim-lifecycle",
+  );
   try {
     await ensureMainOracleReady(harness, state);
 
@@ -4495,20 +5275,27 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       poolAddress: claimPool.poolAddress,
       payoutMint,
     });
-    const claimPoolVaultTokenAccount = Keypair.generate();
+    const claimPoolVaultTokenAccountAddress = getAssociatedTokenAddressSync(
+      payoutMint,
+      claimPoolAssetVault,
+      true,
+    );
+    await harness.getOrCreateAta({
+      payer: state.governanceAuthority,
+      mint: payoutMint,
+      owner: claimPoolAssetVault,
+    });
     await harness.send(
       "fund_pool_spl",
       protocol.buildFundPoolSplTx({
         funder: state.governanceAuthority.publicKey,
         poolAddress: claimPool.poolAddress,
         payoutMint,
-        poolVaultTokenAccount: claimPoolVaultTokenAccount.publicKey,
-        poolVaultTokenAccountSigner: true,
         funderTokenAccount: governancePayoutTokenAccount,
         recentBlockhash: await harness.latestBlockhash(),
         amount: 6_000_000n,
       }),
-      [state.governanceAuthority, claimPoolVaultTokenAccount],
+      [state.governanceAuthority],
     );
 
     const claimSeriesRefHashHex = harness.sha256Hex("claim-flow-series");
@@ -4527,9 +5314,15 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       poolAddress: claimPool.poolAddress,
       recentBlockhash: await harness.latestBlockhash(),
     });
-    await harness.send("enroll_member_open", enrollCoverageClaimMemberTx, [state.coverageMember]);
-    await harness.send("enroll_member_open", enrollAlternateClaimMemberTx, [state.alternateMember]);
-    await harness.send("enroll_member_open", enrollOpenClaimMemberTx, [state.openMember]);
+    await harness.send("enroll_member_open", enrollCoverageClaimMemberTx, [
+      state.coverageMember,
+    ]);
+    await harness.send("enroll_member_open", enrollAlternateClaimMemberTx, [
+      state.alternateMember,
+    ]);
+    await harness.send("enroll_member_open", enrollOpenClaimMemberTx, [
+      state.openMember,
+    ]);
     await createPolicySeriesForScenario({
       harness,
       authority: state.governanceAuthority,
@@ -4544,6 +5337,14 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       premiumGraceSecs: 3_600n,
       premiumAmount: 2_400n,
     });
+    await upsertPolicySeriesPaymentOptionForScenario({
+      harness,
+      authority: state.governanceAuthority,
+      poolAddress: claimPool.poolAddress,
+      seriesRefHashHex: claimSeriesRefHashHex,
+      paymentMint: payoutMint,
+      paymentAmount: 2_400n,
+    });
 
     const policyStartsAt = nowTs() - 120n;
     const issuePolicyPosition = async (member: PublicKey) => {
@@ -4555,7 +5356,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
         startsAtTs: policyStartsAt,
         recentBlockhash: await harness.latestBlockhash(),
       });
-      await harness.send("issue_policy_position", tx, [state.governanceAuthority]);
+      await harness.send("issue_policy_position", tx, [
+        state.governanceAuthority,
+      ]);
     };
     await issuePolicyPosition(state.coverageMember.publicKey);
     await issuePolicyPosition(state.alternateMember.publicKey);
@@ -4577,53 +5380,68 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       harness.connection,
       coverageMemberPolicyAddress,
     );
-    assert.equal(coverageMemberPolicyState.pool, claimPool.poolAddress.toBase58());
-    assert.equal(coverageMemberPolicyState.member, state.coverageMember.publicKey.toBase58());
-    assert.equal(coverageMemberPolicyState.seriesRefHashHex, claimSeriesRefHashHex);
+    assert.equal(
+      coverageMemberPolicyState.pool,
+      claimPool.poolAddress.toBase58(),
+    );
+    assert.equal(
+      coverageMemberPolicyState.member,
+      state.coverageMember.publicKey.toBase58(),
+    );
+    assert.equal(
+      coverageMemberPolicyState.seriesRefHashHex,
+      claimSeriesRefHashHex,
+    );
     const claimSeriesAddress = protocol.derivePolicySeriesPda({
       programId: harness.programId,
       poolAddress: claimPool.poolAddress,
       seriesRefHash: Buffer.from(claimSeriesRefHashHex, "hex"),
     });
-    const payPremiumOnchainTx = protocol.buildPayPremiumOnchainTx({
+    const payPremiumSplTx = protocol.buildPayPremiumSplTx({
       payer: state.coverageMember.publicKey,
       poolAddress: claimPool.poolAddress,
       member: state.coverageMember.publicKey,
       seriesRefHashHex: claimSeriesRefHashHex,
-      payoutMint,
+      paymentMint: payoutMint,
       periodIndex: 0n,
-      amount: 2_400n,
       payerTokenAccount: coverageMemberPayoutTokenAccount,
-      poolVaultTokenAccount: claimPoolVaultTokenAccount.publicKey,
       recentBlockhash: await harness.latestBlockhash(),
     });
     assert.equal(
-      payPremiumOnchainTx.instructions[0]?.keys[2]?.pubkey.toBase58(),
+      payPremiumSplTx.instructions[0]?.keys[2]?.pubkey.toBase58(),
       claimPool.poolAddress.toBase58(),
     );
     assert.equal(
-      payPremiumOnchainTx.instructions[0]?.keys[4]?.pubkey.toBase58(),
+      payPremiumSplTx.instructions[0]?.keys[5]?.pubkey.toBase58(),
       claimSeriesAddress.toBase58(),
     );
     assert.equal(
-      payPremiumOnchainTx.instructions[0]?.keys[5]?.pubkey.toBase58(),
+      payPremiumSplTx.instructions[0]?.keys[3]?.pubkey.toBase58(),
       coverageMemberPolicyAddress.toBase58(),
     );
     assert.equal(
-      payPremiumOnchainTx.instructions[0]?.keys[6]?.pubkey.toBase58(),
+      payPremiumSplTx.instructions[0]?.keys[4]?.pubkey.toBase58(),
       state.coverageMember.publicKey.toBase58(),
     );
-    const payPremiumOnchainResult = await harness.send(
-      "pay_premium_onchain",
-      payPremiumOnchainTx,
+    const payPremiumSplResult = await harness.send(
+      "pay_premium_spl",
+      payPremiumSplTx,
       [state.coverageMember],
     );
-    scenario.recordSuccess(payPremiumOnchainResult);
-    const coverageMemberLedgerState = await decodePremiumLedger(harness.connection, coverageMemberLedgerAddress);
+    scenario.recordSuccess(payPremiumSplResult);
+    const coverageMemberLedgerState = await decodePremiumLedger(
+      harness.connection,
+      coverageMemberLedgerAddress,
+    );
     assert.equal(coverageMemberLedgerState.periodIndex, 0n);
     assert.equal(coverageMemberLedgerState.amount, 2_400n);
     assert.equal(
-      (await decodePolicyPosition(harness.connection, coverageMemberPolicyAddress)).nextDueAt > policyStartsAt,
+      (
+        await decodePolicyPosition(
+          harness.connection,
+          coverageMemberPolicyAddress,
+        )
+      ).nextDueAt > policyStartsAt,
       true,
     );
 
@@ -4633,7 +5451,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       seriesRefHash: Buffer.from(claimSeriesRefHashHex, "hex"),
       member: state.alternateMember.publicKey,
     });
-    const premiumReplayHashHex = harness.sha256Hex("claim-flow-offchain-premium");
+    const premiumReplayHashHex = harness.sha256Hex(
+      "claim-flow-offchain-premium",
+    );
     const premiumReplayAddress = protocol.derivePremiumReplayPda({
       programId: harness.programId,
       poolAddress: claimPool.poolAddress,
@@ -4641,7 +5461,8 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       member: state.alternateMember.publicKey,
       replayHash: Buffer.from(premiumReplayHashHex, "hex"),
     });
-    const premiumReplayBefore = await harness.snapshotAccount(premiumReplayAddress);
+    const premiumReplayBefore =
+      await harness.snapshotAccount(premiumReplayAddress);
     const attestPremiumResult = await harness.send(
       "attest_premium_paid_offchain",
       protocol.buildAttestPremiumPaidOffchainTx({
@@ -4659,7 +5480,12 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
     );
     scenario.recordSuccess(attestPremiumResult);
     assert.equal(
-      (await decodePremiumLedger(harness.connection, alternateMemberLedgerAddress)).amount,
+      (
+        await decodePremiumLedger(
+          harness.connection,
+          alternateMemberLedgerAddress,
+        )
+      ).amount,
       2_200n,
     );
     assertChanged(
@@ -4700,7 +5526,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
     );
 
     await harness.expectCustomError({
-      caseId: COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ?? "coverage-claim-close-before-decision",
+      caseId:
+        COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ??
+        "coverage-claim-close-before-decision",
       expectedErrorName: "InvalidCoverageClaimStateTransition",
       tx: protocol.buildCloseCoverageClaimTx({
         authority: state.governanceAuthority.publicKey,
@@ -4716,13 +5544,14 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       unchangedAddresses: [claimOneAddress],
     });
     scenario.recordFailure(
-      COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ?? "coverage-claim-close-before-decision",
+      COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ??
+        "coverage-claim-close-before-decision",
     );
 
     const reviewClaimOneResult = await harness.send(
       "review_coverage_claim",
       protocol.buildReviewCoverageClaimTx({
-        authority: state.governanceAuthority.publicKey,
+        oracle: state.oracle.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.coverageMember.publicKey,
         seriesRefHashHex: claimSeriesRefHashHex,
@@ -4735,7 +5564,7 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
         codeSystemFamilyHashHex: harness.sha256Hex("claim-flow-codes-1"),
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority],
+      [state.oracle],
     );
     scenario.recordSuccess(reviewClaimOneResult);
     assert.equal(
@@ -4746,7 +5575,7 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
     const attachDecisionSupportResult = await harness.send(
       "attach_coverage_claim_decision_support",
       protocol.buildAttachCoverageClaimDecisionSupportTx({
-        authority: state.governanceAuthority.publicKey,
+        oracle: state.oracle.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.coverageMember.publicKey,
         seriesRefHashHex: claimSeriesRefHashHex,
@@ -4754,16 +5583,24 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
         aiDecisionHashHex: harness.sha256Hex("claim-flow-ai-decision-1"),
         aiPolicyHashHex: harness.sha256Hex("claim-flow-ai-policy-1"),
         aiExecutionEnvironmentHashHex: harness.sha256Hex("claim-flow-ai-env-1"),
-        aiAttestationRefHashHex: harness.sha256Hex("claim-flow-ai-attestation-1"),
+        aiAttestationRefHashHex: harness.sha256Hex(
+          "claim-flow-ai-attestation-1",
+        ),
         aiRole: protocol.AI_ROLE_CLAIM_PROCESSOR,
         automationMode: protocol.AUTOMATION_MODE_ATTESTED,
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority],
+      [state.oracle],
     );
     scenario.recordSuccess(attachDecisionSupportResult);
-    const attachedClaimState = await decodeCoverageClaim(harness.connection, claimOneAddress);
-    assert.equal(attachedClaimState.aiAutomationMode, protocol.AUTOMATION_MODE_ATTESTED);
+    const attachedClaimState = await decodeCoverageClaim(
+      harness.connection,
+      claimOneAddress,
+    );
+    assert.equal(
+      attachedClaimState.aiAutomationMode,
+      protocol.AUTOMATION_MODE_ATTESTED,
+    );
     assert.equal(
       attachedClaimState.aiDecisionHashHex,
       harness.sha256Hex("claim-flow-ai-decision-1"),
@@ -4777,7 +5614,7 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
     const approveClaimResult = await harness.send(
       "approve_coverage_claim",
       protocol.buildApproveCoverageClaimTx({
-        authority: state.governanceAuthority.publicKey,
+        oracle: state.oracle.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.coverageMember.publicKey,
         seriesRefHashHex: claimSeriesRefHashHex,
@@ -4785,57 +5622,198 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
         approvedAmount: 300_000n,
         payoutMint,
         poolAssetVault: claimPoolAssetVault,
-        poolVaultTokenAccount: claimPoolVaultTokenAccount.publicKey,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
         decisionReasonHashHex: harness.sha256Hex("claim-flow-approve-reason-1"),
         adjudicationRefHashHex: harness.sha256Hex("claim-flow-adjudication-1"),
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority],
+      [state.oracle],
     );
     scenario.recordSuccess(approveClaimResult);
-    const approvedClaimState = await decodeCoverageClaim(harness.connection, claimOneAddress);
-    assert.equal(approvedClaimState.status, protocol.COVERAGE_CLAIM_STATUS_APPROVED);
+    const approvedClaimState = await decodeCoverageClaim(
+      harness.connection,
+      claimOneAddress,
+    );
+    assert.equal(
+      approvedClaimState.status,
+      protocol.COVERAGE_CLAIM_STATUS_APPROVED,
+    );
     assert.equal(approvedClaimState.reservedAmount, 300_000n);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress)).reservedCoverageClaimAmount,
+      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress))
+        .reservedCoverageClaimAmount,
       300_000n,
     );
 
-    const claimOneRecipientBefore = await harness.snapshotTokenAccount(coverageMemberPayoutTokenAccount);
-    const payClaimResult = await harness.send(
-      "pay_coverage_claim",
-      protocol.buildPayCoverageClaimTx({
-        authority: state.governanceAuthority.publicKey,
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.DelegateNotAuthorized ??
+        "coverage-claim-pull-without-delegate",
+      expectedErrorName: "DelegateNotAuthorized",
+      tx: protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.alternateMember.publicKey,
         claimant: state.coverageMember.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.coverageMember.publicKey,
         seriesRefHashHex: claimSeriesRefHashHex,
         intentHashHex: claimOneIntentHashHex,
-        payoutAmount: 300_000n,
+        payoutAmount: 50_000n,
         payoutMint,
         recipientSystemAccount: state.coverageMember.publicKey,
         poolAssetVault: claimPoolAssetVault,
-        poolVaultTokenAccount: claimPoolVaultTokenAccount.publicKey,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
         recipientTokenAccount: coverageMemberPayoutTokenAccount,
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority],
+      signers: [state.alternateMember],
+      unchangedAddresses: [claimOneAddress],
+    });
+
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.RecipientMismatch ??
+        "coverage-claim-pull-recipient-mismatch",
+      expectedErrorName: "RecipientMismatch",
+      tx: protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.coverageMember.publicKey,
+        claimant: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimOneIntentHashHex,
+        payoutAmount: 50_000n,
+        payoutMint,
+        recipientSystemAccount: state.coverageMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: alternateMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.coverageMember],
+      unchangedAddresses: [claimOneAddress],
+    });
+
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.CoverageClaimPayoutExceedsReservedAmount ??
+        "coverage-claim-pull-exceeds-reserve",
+      expectedErrorName: "CoverageClaimPayoutExceedsReservedAmount",
+      tx: protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.coverageMember.publicKey,
+        claimant: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimOneIntentHashHex,
+        payoutAmount: 400_000n,
+        payoutMint,
+        recipientSystemAccount: state.coverageMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: coverageMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.coverageMember],
+      unchangedAddresses: [claimOneAddress],
+    });
+
+    await harness.send(
+      "set_claim_delegate",
+      protocol.buildSetClaimDelegateTx({
+        member: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        delegate: state.alternateMember.publicKey,
+        active: true,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.coverageMember],
     );
-    scenario.recordSuccess(payClaimResult);
+
+    const claimOneRecipientBefore = await harness.snapshotTokenAccount(
+      coverageMemberPayoutTokenAccount,
+    );
+    const claimantPullResult = await harness.send(
+      "claim_approved_coverage_payout",
+      protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.coverageMember.publicKey,
+        claimant: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimOneIntentHashHex,
+        payoutAmount: 200_000n,
+        payoutMint,
+        recipientSystemAccount: state.coverageMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: coverageMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.coverageMember],
+    );
+    scenario.recordSuccess(claimantPullResult);
     assert.ok(
-      payClaimResult.events.includes("CoverageClaimPayoutCompletedEvent"),
-      "pay_coverage_claim must emit CoverageClaimPayoutCompletedEvent",
+      claimantPullResult.events.includes("CoverageClaimPayoutCompletedEvent"),
+      "claim_approved_coverage_payout must emit CoverageClaimPayoutCompletedEvent",
     );
     assertTokenChanged(
       claimOneRecipientBefore,
       await harness.snapshotTokenAccount(coverageMemberPayoutTokenAccount),
-      "pay_coverage_claim recipient",
+      "claim_approved_coverage_payout claimant recipient",
     );
-    const paidClaimState = await decodeCoverageClaim(harness.connection, claimOneAddress);
+    const partiallyPaidClaimState = await decodeCoverageClaim(
+      harness.connection,
+      claimOneAddress,
+    );
+    assert.equal(
+      partiallyPaidClaimState.status,
+      protocol.COVERAGE_CLAIM_STATUS_PARTIALLY_PAID,
+    );
+    assert.equal(partiallyPaidClaimState.paidAmount, 200_000n);
+    assert.equal(partiallyPaidClaimState.reservedAmount, 100_000n);
+    assert.equal(
+      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress))
+        .reservedCoverageClaimAmount,
+      100_000n,
+    );
+
+    const claimOneRecipientAfterPartial = await harness.snapshotTokenAccount(
+      coverageMemberPayoutTokenAccount,
+    );
+    const delegatePullResult = await harness.send(
+      "claim_approved_coverage_payout",
+      protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.alternateMember.publicKey,
+        claimant: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimOneIntentHashHex,
+        payoutAmount: 100_000n,
+        payoutMint,
+        recipientSystemAccount: state.coverageMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: coverageMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.alternateMember],
+    );
+    scenario.recordSuccess(delegatePullResult);
+    assertTokenChanged(
+      claimOneRecipientAfterPartial,
+      await harness.snapshotTokenAccount(coverageMemberPayoutTokenAccount),
+      "claim_approved_coverage_payout delegate recipient",
+    );
+    const paidClaimState = await decodeCoverageClaim(
+      harness.connection,
+      claimOneAddress,
+    );
     assert.equal(paidClaimState.status, protocol.COVERAGE_CLAIM_STATUS_PAID);
     assert.equal(paidClaimState.paidAmount, 300_000n);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress)).reservedCoverageClaimAmount,
+      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress))
+        .reservedCoverageClaimAmount,
       0n,
     );
 
@@ -4854,13 +5832,44 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       [state.governanceAuthority],
     );
     scenario.recordSuccess(closeClaimResult);
-    const closedClaimState = await decodeCoverageClaim(harness.connection, claimOneAddress);
-    assert.equal(closedClaimState.status, protocol.COVERAGE_CLAIM_STATUS_CLOSED);
+    const closedClaimState = await decodeCoverageClaim(
+      harness.connection,
+      claimOneAddress,
+    );
+    assert.equal(
+      closedClaimState.status,
+      protocol.COVERAGE_CLAIM_STATUS_CLOSED,
+    );
     assert.equal(closedClaimState.recoveryAmount, 25_000n);
     assert.equal(
-      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress)).recoveredCoverageClaimAmount,
+      (await decodePoolTreasuryReserve(harness.connection, claimReserveAddress))
+        .recoveredCoverageClaimAmount,
       25_000n,
     );
+
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ??
+        "coverage-claim-pull-after-close",
+      expectedErrorName: "InvalidCoverageClaimStateTransition",
+      tx: protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.coverageMember.publicKey,
+        claimant: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimOneIntentHashHex,
+        payoutAmount: 1n,
+        payoutMint,
+        recipientSystemAccount: state.coverageMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: coverageMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.coverageMember],
+      unchangedAddresses: [claimOneAddress],
+    });
 
     const claimTwoIntentHashHex = harness.sha256Hex("claim-flow-intent-2");
     const claimTwoAddress = protocol.deriveCoverageClaimPda({
@@ -4887,7 +5896,7 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
     await harness.send(
       "review_coverage_claim",
       protocol.buildReviewCoverageClaimTx({
-        authority: state.governanceAuthority.publicKey,
+        oracle: state.oracle.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.alternateMember.publicKey,
         seriesRefHashHex: claimSeriesRefHashHex,
@@ -4900,28 +5909,53 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
         codeSystemFamilyHashHex: harness.sha256Hex("claim-flow-codes-2"),
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority],
+      [state.oracle],
     );
     const denyClaimResult = await harness.send(
       "deny_coverage_claim",
       protocol.buildDenyCoverageClaimTx({
-        authority: state.governanceAuthority.publicKey,
+        oracle: state.oracle.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.alternateMember.publicKey,
         seriesRefHashHex: claimSeriesRefHashHex,
         intentHashHex: claimTwoIntentHashHex,
         payoutMint,
         decisionReasonHashHex: harness.sha256Hex("claim-flow-deny-reason-2"),
-        adjudicationRefHashHex: harness.sha256Hex("claim-flow-deny-adjudication-2"),
+        adjudicationRefHashHex: harness.sha256Hex(
+          "claim-flow-deny-adjudication-2",
+        ),
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority],
+      [state.oracle],
     );
     scenario.recordSuccess(denyClaimResult);
     assert.equal(
       (await decodeCoverageClaim(harness.connection, claimTwoAddress)).status,
       protocol.COVERAGE_CLAIM_STATUS_DENIED,
     );
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ??
+        "coverage-claim-pull-after-deny",
+      expectedErrorName: "InvalidCoverageClaimStateTransition",
+      tx: protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.alternateMember.publicKey,
+        claimant: state.alternateMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.alternateMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimTwoIntentHashHex,
+        payoutAmount: 1n,
+        payoutMint,
+        recipientSystemAccount: state.alternateMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: alternateMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.alternateMember],
+      unchangedAddresses: [claimTwoAddress],
+    });
 
     const claimThreeIntentHashHex = harness.sha256Hex("claim-flow-intent-3");
     const claimThreeAddress = protocol.deriveCoverageClaimPda({
@@ -4945,11 +5979,36 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       [state.openMember],
     );
     scenario.recordSuccess(submitClaimThreeResult);
-    const claimThreeRecipientBefore = await harness.snapshotTokenAccount(openMemberPayoutTokenAccount);
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.InvalidCoverageClaimStateTransition ??
+        "coverage-claim-pull-before-approval",
+      expectedErrorName: "InvalidCoverageClaimStateTransition",
+      tx: protocol.buildClaimApprovedCoveragePayoutTx({
+        claimSigner: state.openMember.publicKey,
+        claimant: state.openMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.openMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimThreeIntentHashHex,
+        payoutAmount: 1n,
+        payoutMint,
+        recipientSystemAccount: state.openMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: openMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.openMember],
+      unchangedAddresses: [claimThreeAddress],
+    });
+    const claimThreeRecipientBefore = await harness.snapshotTokenAccount(
+      openMemberPayoutTokenAccount,
+    );
     const settleClaimResult = await harness.send(
       "settle_coverage_claim",
       protocol.buildSettleCoverageClaimTx({
-        authority: state.governanceAuthority.publicKey,
+        oracle: state.oracle.publicKey,
         claimant: state.openMember.publicKey,
         poolAddress: claimPool.poolAddress,
         member: state.openMember.publicKey,
@@ -4959,11 +6018,11 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
         payoutMint,
         recipientSystemAccount: state.openMember.publicKey,
         poolAssetVault: claimPoolAssetVault,
-        poolVaultTokenAccount: claimPoolVaultTokenAccount.publicKey,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
         recipientTokenAccount: openMemberPayoutTokenAccount,
         recentBlockhash: await harness.latestBlockhash(),
       }),
-      [state.governanceAuthority, state.openMember],
+      [state.oracle, state.openMember],
     );
     scenario.recordSuccess(settleClaimResult);
     assertTokenChanged(
@@ -4971,9 +6030,213 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       await harness.snapshotTokenAccount(openMemberPayoutTokenAccount),
       "settle_coverage_claim recipient",
     );
-    const settledClaimState = await decodeCoverageClaim(harness.connection, claimThreeAddress);
+    const settledClaimState = await decodeCoverageClaim(
+      harness.connection,
+      claimThreeAddress,
+    );
     assert.equal(settledClaimState.status, protocol.COVERAGE_CLAIM_STATUS_PAID);
     assert.equal(settledClaimState.paidAmount, 200_000n);
+
+    const claimFourIntentHashHex = harness.sha256Hex("claim-flow-intent-4");
+    const claimFourAddress = protocol.deriveCoverageClaimPda({
+      programId: harness.programId,
+      poolAddress: claimPool.poolAddress,
+      seriesRefHash: Buffer.from(claimSeriesRefHashHex, "hex"),
+      member: state.alternateMember.publicKey,
+      intentHash: Buffer.from(claimFourIntentHashHex, "hex"),
+    });
+    const submitClaimFourResult = await harness.send(
+      "submit_coverage_claim",
+      protocol.buildSubmitCoverageClaimTx({
+        claimant: state.alternateMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.alternateMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimFourIntentHashHex,
+        eventHashHex: harness.sha256Hex("claim-flow-event-4"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.alternateMember],
+    );
+    scenario.recordSuccess(submitClaimFourResult);
+    await harness.send(
+      "review_coverage_claim",
+      protocol.buildReviewCoverageClaimTx({
+        oracle: state.oracle.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.alternateMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimFourIntentHashHex,
+        requestedAmount: 160_000n,
+        evidenceHashHex: harness.sha256Hex("claim-flow-evidence-4"),
+        interopRefHashHex: harness.sha256Hex("claim-flow-interop-4"),
+        claimFamily: protocol.COVERAGE_CLAIM_FAMILY_REIMBURSEMENT,
+        interopProfileHashHex: harness.sha256Hex("claim-flow-profile-4"),
+        codeSystemFamilyHashHex: harness.sha256Hex("claim-flow-codes-4"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.oracle],
+    );
+    await harness.send(
+      "approve_coverage_claim",
+      protocol.buildApproveCoverageClaimTx({
+        oracle: state.oracle.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.alternateMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimFourIntentHashHex,
+        approvedAmount: 90_000n,
+        payoutMint,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        decisionReasonHashHex: harness.sha256Hex("claim-flow-approve-reason-4"),
+        adjudicationRefHashHex: harness.sha256Hex("claim-flow-adjudication-4"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.oracle],
+    );
+    const claimFourRecipientBefore = await harness.snapshotTokenAccount(
+      alternateMemberPayoutTokenAccount,
+    );
+    const compatibilityPayResult = await harness.send(
+      "pay_coverage_claim",
+      protocol.buildPayCoverageClaimTx({
+        authority: state.governanceAuthority.publicKey,
+        claimant: state.alternateMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.alternateMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimFourIntentHashHex,
+        payoutAmount: 90_000n,
+        payoutMint,
+        recipientSystemAccount: state.alternateMember.publicKey,
+        poolAssetVault: claimPoolAssetVault,
+        poolVaultTokenAccount: claimPoolVaultTokenAccountAddress,
+        recipientTokenAccount: alternateMemberPayoutTokenAccount,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.governanceAuthority],
+    );
+    scenario.recordSuccess(compatibilityPayResult);
+    assertTokenChanged(
+      claimFourRecipientBefore,
+      await harness.snapshotTokenAccount(alternateMemberPayoutTokenAccount),
+      "pay_coverage_claim compatibility recipient",
+    );
+    assert.equal(
+      (await decodeCoverageClaim(harness.connection, claimFourAddress)).status,
+      protocol.COVERAGE_CLAIM_STATUS_PAID,
+    );
+
+    const claimFiveIntentHashHex = harness.sha256Hex("claim-flow-intent-5");
+    const claimFiveAddress = protocol.deriveCoverageClaimPda({
+      programId: harness.programId,
+      poolAddress: claimPool.poolAddress,
+      seriesRefHash: Buffer.from(claimSeriesRefHashHex, "hex"),
+      member: state.coverageMember.publicKey,
+      intentHash: Buffer.from(claimFiveIntentHashHex, "hex"),
+    });
+    await harness.send(
+      "submit_coverage_claim",
+      protocol.buildSubmitCoverageClaimTx({
+        claimant: state.coverageMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimFiveIntentHashHex,
+        eventHashHex: harness.sha256Hex("claim-flow-event-5"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.coverageMember],
+    );
+    await harness.send(
+      "set_pool_oracle_permissions",
+      protocol.buildSetPoolOraclePermissionsTx({
+        authority: state.governanceAuthority.publicKey,
+        poolAddress: claimPool.poolAddress,
+        oracle: state.oracle.publicKey,
+        permissions: protocol.ORACLE_PERMISSION_DATA_ATTEST,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.governanceAuthority],
+    );
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.OraclePermissionDenied ??
+        "coverage-claim-review-without-claim-permission",
+      expectedErrorName: "OraclePermissionDenied",
+      tx: protocol.buildReviewCoverageClaimTx({
+        oracle: state.oracle.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.coverageMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimFiveIntentHashHex,
+        requestedAmount: 50_000n,
+        evidenceHashHex: harness.sha256Hex("claim-flow-evidence-5"),
+        interopRefHashHex: harness.sha256Hex("claim-flow-interop-5"),
+        claimFamily: protocol.COVERAGE_CLAIM_FAMILY_REIMBURSEMENT,
+        interopProfileHashHex: harness.sha256Hex("claim-flow-profile-5"),
+        codeSystemFamilyHashHex: harness.sha256Hex("claim-flow-codes-5"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.oracle],
+      unchangedAddresses: [claimFiveAddress],
+    });
+
+    const claimSixIntentHashHex = harness.sha256Hex("claim-flow-intent-6");
+    const claimSixAddress = protocol.deriveCoverageClaimPda({
+      programId: harness.programId,
+      poolAddress: claimPool.poolAddress,
+      seriesRefHash: Buffer.from(claimSeriesRefHashHex, "hex"),
+      member: state.openMember.publicKey,
+      intentHash: Buffer.from(claimSixIntentHashHex, "hex"),
+    });
+    await harness.send(
+      "submit_coverage_claim",
+      protocol.buildSubmitCoverageClaimTx({
+        claimant: state.openMember.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.openMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimSixIntentHashHex,
+        eventHashHex: harness.sha256Hex("claim-flow-event-6"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.openMember],
+    );
+    await harness.send(
+      "set_pool_oracle",
+      protocol.buildSetPoolOracleTx({
+        authority: state.governanceAuthority.publicKey,
+        poolAddress: claimPool.poolAddress,
+        oracle: state.oracle.publicKey,
+        active: false,
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      [state.governanceAuthority],
+    );
+    await harness.expectCustomError({
+      caseId:
+        COVERED_ERROR_CASES.OracleNotApprovedForPool ??
+        "coverage-claim-review-with-inactive-oracle",
+      expectedErrorName: "OracleNotApprovedForPool",
+      tx: protocol.buildReviewCoverageClaimTx({
+        oracle: state.oracle.publicKey,
+        poolAddress: claimPool.poolAddress,
+        member: state.openMember.publicKey,
+        seriesRefHashHex: claimSeriesRefHashHex,
+        intentHashHex: claimSixIntentHashHex,
+        requestedAmount: 25_000n,
+        evidenceHashHex: harness.sha256Hex("claim-flow-evidence-6"),
+        interopRefHashHex: harness.sha256Hex("claim-flow-interop-6"),
+        claimFamily: protocol.COVERAGE_CLAIM_FAMILY_FAST,
+        interopProfileHashHex: harness.sha256Hex("claim-flow-profile-6"),
+        codeSystemFamilyHashHex: harness.sha256Hex("claim-flow-codes-6"),
+        recentBlockhash: await harness.latestBlockhash(),
+      }),
+      signers: [state.oracle],
+      unchangedAddresses: [claimSixAddress],
+    });
 
     const feePool = await createPool({
       harness,
@@ -5086,33 +6349,35 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       nonceHashHex: splFeeNonceHashHex,
       quoteMetaHashHex: splFeeQuoteMetaHashHex,
     });
-    const activateFeeSplTx = addComputeBudget(protocol.buildActivateCycleWithQuoteSplTx({
-      payer: state.openMember.publicKey,
-      poolAddress: feePool.poolAddress,
-      oracle: state.oracle.publicKey,
-      paymentMint: payoutMint,
-      payerTokenAccount: openMemberPayoutTokenAccount,
-      seriesRefHashHex: feeSeriesRefHashHex,
-      periodIndex: 0n,
-      nonceHashHex: splFeeNonceHashHex,
-      premiumAmountRaw: 2_500n,
-      canonicalPremiumAmount: 2_500n,
-      commitmentEnabled: true,
-      bondAmountRaw: 250n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: splFeeQuoteBreakdown.protocolFeeRaw,
-      oracleFeeRaw: splFeeQuoteBreakdown.oracleFeeRaw,
-      netPoolPremiumRaw: splFeeQuoteBreakdown.netPoolPremiumRaw,
-      totalAmountRaw: splFeeQuoteBreakdown.totalAmountRaw,
-      includedShieldCount: 0,
-      thresholdBps: 500,
-      outcomeThresholdScore: 0,
-      cohortHashHex: "00".repeat(32),
-      expiresAtTs: nowTs() + 3_600n,
-      quoteMetaHashHex: splFeeQuoteMetaHashHex,
-      recentBlockhash: await harness.latestBlockhash(),
-      quoteVerificationInstruction: splFeeQuoteInstruction,
-    }));
+    const activateFeeSplTx = addComputeBudget(
+      protocol.buildActivateCycleWithQuoteSplTx({
+        payer: state.openMember.publicKey,
+        poolAddress: feePool.poolAddress,
+        oracle: state.oracle.publicKey,
+        paymentMint: payoutMint,
+        payerTokenAccount: openMemberPayoutTokenAccount,
+        seriesRefHashHex: feeSeriesRefHashHex,
+        periodIndex: 0n,
+        nonceHashHex: splFeeNonceHashHex,
+        premiumAmountRaw: 2_500n,
+        canonicalPremiumAmount: 2_500n,
+        commitmentEnabled: true,
+        bondAmountRaw: 250n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: splFeeQuoteBreakdown.protocolFeeRaw,
+        oracleFeeRaw: splFeeQuoteBreakdown.oracleFeeRaw,
+        netPoolPremiumRaw: splFeeQuoteBreakdown.netPoolPremiumRaw,
+        totalAmountRaw: splFeeQuoteBreakdown.totalAmountRaw,
+        includedShieldCount: 0,
+        thresholdBps: 500,
+        outcomeThresholdScore: 0,
+        cohortHashHex: "00".repeat(32),
+        expiresAtTs: nowTs() + 3_600n,
+        quoteMetaHashHex: splFeeQuoteMetaHashHex,
+        recentBlockhash: await harness.latestBlockhash(),
+        quoteVerificationInstruction: splFeeQuoteInstruction,
+      }),
+    );
     const splFeeLookupTable = await harness.createLookupTable(
       state.governanceAuthority,
       lookupAddressesForTransaction(activateFeeSplTx),
@@ -5174,31 +6439,33 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       nonceHashHex: solFeeNonceHashHex,
       quoteMetaHashHex: solFeeQuoteMetaHashHex,
     });
-    const activateFeeSolTx = addComputeBudget(protocol.buildActivateCycleWithQuoteSolTx({
-      payer: state.alternateMember.publicKey,
-      poolAddress: feePool.poolAddress,
-      oracle: state.oracle.publicKey,
-      seriesRefHashHex: feeSeriesRefHashHex,
-      periodIndex: 0n,
-      nonceHashHex: solFeeNonceHashHex,
-      premiumAmountRaw: 2_500n,
-      canonicalPremiumAmount: 2_500n,
-      commitmentEnabled: true,
-      bondAmountRaw: 250n,
-      shieldFeeRaw: 0n,
-      protocolFeeRaw: solFeeQuoteBreakdown.protocolFeeRaw,
-      oracleFeeRaw: solFeeQuoteBreakdown.oracleFeeRaw,
-      netPoolPremiumRaw: solFeeQuoteBreakdown.netPoolPremiumRaw,
-      totalAmountRaw: solFeeQuoteBreakdown.totalAmountRaw,
-      includedShieldCount: 0,
-      thresholdBps: 500,
-      outcomeThresholdScore: 0,
-      cohortHashHex: "00".repeat(32),
-      expiresAtTs: nowTs() + 3_600n,
-      quoteMetaHashHex: solFeeQuoteMetaHashHex,
-      recentBlockhash: await harness.latestBlockhash(),
-      quoteVerificationInstruction: solFeeQuoteInstruction,
-    }));
+    const activateFeeSolTx = addComputeBudget(
+      protocol.buildActivateCycleWithQuoteSolTx({
+        payer: state.alternateMember.publicKey,
+        poolAddress: feePool.poolAddress,
+        oracle: state.oracle.publicKey,
+        seriesRefHashHex: feeSeriesRefHashHex,
+        periodIndex: 0n,
+        nonceHashHex: solFeeNonceHashHex,
+        premiumAmountRaw: 2_500n,
+        canonicalPremiumAmount: 2_500n,
+        commitmentEnabled: true,
+        bondAmountRaw: 250n,
+        shieldFeeRaw: 0n,
+        protocolFeeRaw: solFeeQuoteBreakdown.protocolFeeRaw,
+        oracleFeeRaw: solFeeQuoteBreakdown.oracleFeeRaw,
+        netPoolPremiumRaw: solFeeQuoteBreakdown.netPoolPremiumRaw,
+        totalAmountRaw: solFeeQuoteBreakdown.totalAmountRaw,
+        includedShieldCount: 0,
+        thresholdBps: 500,
+        outcomeThresholdScore: 0,
+        cohortHashHex: "00".repeat(32),
+        expiresAtTs: nowTs() + 3_600n,
+        quoteMetaHashHex: solFeeQuoteMetaHashHex,
+        recentBlockhash: await harness.latestBlockhash(),
+        quoteVerificationInstruction: solFeeQuoteInstruction,
+      }),
+    );
     const solFeeLookupTable = await harness.createLookupTable(
       state.governanceAuthority,
       lookupAddressesForTransaction(activateFeeSolTx),
@@ -5232,9 +6499,15 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       poolAddress: feePool.poolAddress,
       payoutMint,
     });
-    const feePoolVaultTokenAccount = getAssociatedTokenAddressSync(payoutMint, feePoolAssetVault, true);
+    const feePoolVaultTokenAccount = getAssociatedTokenAddressSync(
+      payoutMint,
+      feePoolAssetVault,
+      true,
+    );
 
-    const poolTreasurySplRecipientBefore = await harness.snapshotTokenAccount(governancePayoutTokenAccount);
+    const poolTreasurySplRecipientBefore = await harness.snapshotTokenAccount(
+      governancePayoutTokenAccount,
+    );
     const withdrawPoolTreasurySplResult = await harness.send(
       "withdraw_pool_treasury_spl",
       protocol.buildWithdrawPoolTreasurySplTx({
@@ -5254,7 +6527,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       "withdraw_pool_treasury_spl recipient",
     );
 
-    const poolTreasurySolRecipientBefore = await harness.snapshotAccount(state.governanceAuthority.publicKey);
+    const poolTreasurySolRecipientBefore = await harness.snapshotAccount(
+      state.governanceAuthority.publicKey,
+    );
     const withdrawPoolTreasurySolResult = await harness.send(
       "withdraw_pool_treasury_sol",
       protocol.buildWithdrawPoolTreasurySolTx({
@@ -5273,7 +6548,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       "withdraw_pool_treasury_sol recipient",
     );
 
-    const protocolFeeSplRecipientBefore = await harness.snapshotTokenAccount(governancePayoutTokenAccount);
+    const protocolFeeSplRecipientBefore = await harness.snapshotTokenAccount(
+      governancePayoutTokenAccount,
+    );
     const withdrawProtocolFeeSplResult = await harness.send(
       "withdraw_protocol_fee_spl",
       protocol.buildWithdrawProtocolFeeSplTx({
@@ -5292,7 +6569,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       "withdraw_protocol_fee_spl recipient",
     );
 
-    const protocolFeeSolRecipientBefore = await harness.snapshotAccount(state.governanceAuthority.publicKey);
+    const protocolFeeSolRecipientBefore = await harness.snapshotAccount(
+      state.governanceAuthority.publicKey,
+    );
     const withdrawProtocolFeeSolResult = await harness.send(
       "withdraw_protocol_fee_sol",
       protocol.buildWithdrawProtocolFeeSolTx({
@@ -5310,7 +6589,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       "withdraw_protocol_fee_sol recipient",
     );
 
-    const oracleFeeSplRecipientBefore = await harness.snapshotTokenAccount(oraclePayoutTokenAccount);
+    const oracleFeeSplRecipientBefore = await harness.snapshotTokenAccount(
+      oraclePayoutTokenAccount,
+    );
     const withdrawOracleFeeSplResult = await harness.send(
       "withdraw_pool_oracle_fee_spl",
       protocol.buildWithdrawPoolOracleFeeSplTx({
@@ -5330,7 +6611,9 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       "withdraw_pool_oracle_fee_spl recipient",
     );
 
-    const oracleFeeSolRecipientBefore = await harness.snapshotAccount(state.oracle.publicKey);
+    const oracleFeeSolRecipientBefore = await harness.snapshotAccount(
+      state.oracle.publicKey,
+    );
     const withdrawOracleFeeSolResult = await harness.send(
       "withdraw_pool_oracle_fee_sol",
       protocol.buildWithdrawPoolOracleFeeSolTx({
@@ -5349,9 +6632,14 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
       "withdraw_pool_oracle_fee_sol recipient",
     );
 
-    const feePoolVaultState = await getAccount(harness.connection, feePoolVaultTokenAccount, "confirmed");
+    const feePoolVaultState = await getAccount(
+      harness.connection,
+      feePoolVaultTokenAccount,
+      "confirmed",
+    );
     assert.equal(
-      (await decodePoolAssetVault(harness.connection, feePoolAssetVault)).vaultTokenAccount,
+      (await decodePoolAssetVault(harness.connection, feePoolAssetVault))
+        .vaultTokenAccount,
       feePoolVaultTokenAccount.toBase58(),
     );
     assert.ok(feePoolVaultState.amount >= 0n);
@@ -5363,25 +6651,43 @@ async function scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
 test("localnet protocol surface matrix", async () => {
   const harness = new LocalnetHarness();
   const state = await createGlobalState(harness);
-  const liveInstructionNames = instructionSurface().map((instruction) => instruction.name).sort();
+  const liveInstructionNames = instructionSurface()
+    .map((instruction) => instruction.name)
+    .sort();
   const manifestInstructions = manifestInstructionAssignments().sort();
   const duplicateManifestInstructions = manifestInstructions.filter(
     (name, index) => manifestInstructions.indexOf(name) !== index,
   );
-  const instructionExceptionNames = Object.keys(INSTRUCTION_EXCEPTION_REASONS).sort();
+  const instructionExceptionNames = Object.keys(
+    INSTRUCTION_EXCEPTION_REASONS,
+  ).sort();
   const unexpectedInstructionExceptions = instructionExceptionNames.filter(
     (name) => !liveInstructionNames.includes(name),
   );
-  const liveErrorNames = idlErrors().map((entry) => entry.name).sort();
+  const liveErrorNames = idlErrors()
+    .map((entry) => entry.name)
+    .sort();
 
-  assert.deepEqual(duplicateManifestInstructions, [], "manifest lists duplicate instructions");
-  assert.deepEqual(manifestInstructions, liveInstructionNames, "manifest instruction assignment drifted from contract surface");
+  assert.deepEqual(
+    duplicateManifestInstructions,
+    [],
+    "manifest lists duplicate instructions",
+  );
+  assert.deepEqual(
+    manifestInstructions,
+    liveInstructionNames,
+    "manifest instruction assignment drifted from contract surface",
+  );
   assert.deepEqual(
     unexpectedInstructionExceptions,
     [],
     "instruction exception manifest references unknown instructions",
   );
-  assert.deepEqual([...KNOWN_ERROR_NAMES].sort(), liveErrorNames, "tracked error list drifted from the live IDL");
+  assert.deepEqual(
+    [...KNOWN_ERROR_NAMES].sort(),
+    liveErrorNames,
+    "tracked error list drifted from the live IDL",
+  );
 
   try {
     for (const scenarioName of SCENARIO_ORDER) {
@@ -5390,10 +6696,6 @@ test("localnet protocol surface matrix", async () => {
       }
       if (scenarioName === "protocol-governance-oracle-lifecycle") {
         await scenarioProtocolGovernanceOracleLifecycle(harness, state);
-        continue;
-      }
-      if (scenarioName === "legacy-registry-compatibility") {
-        await scenarioLegacyRegistryCompatibility(harness, state);
         continue;
       }
       if (scenarioName === "pool-schema-member-lifecycle") {
@@ -5416,15 +6718,25 @@ test("localnet protocol surface matrix", async () => {
         await scenarioCoverageProductPolicyPremiumLifecycle(harness, state);
         continue;
       }
-      if (scenarioName === "quoted-cycle-activation-settlement-cohort-lifecycle") {
-        await scenarioQuotedCycleActivationSettlementCohortLifecycle(harness, state);
+      if (
+        scenarioName === "quoted-cycle-activation-settlement-cohort-lifecycle"
+      ) {
+        await scenarioQuotedCycleActivationSettlementCohortLifecycle(
+          harness,
+          state,
+        );
         continue;
       }
       if (scenarioName === "treasury-withdrawal-and-coverage-claim-lifecycle") {
-        await scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(harness, state);
+        await scenarioTreasuryWithdrawalAndCoverageClaimLifecycle(
+          harness,
+          state,
+        );
         continue;
       }
-      throw new Error(`Scenario ${scenarioName} is not implemented yet in the localnet matrix`);
+      throw new Error(
+        `Scenario ${scenarioName} is not implemented yet in the localnet matrix`,
+      );
     }
 
     if (!harness.selectedScenario) {
@@ -5439,11 +6751,13 @@ test("localnet protocol surface matrix", async () => {
     }
   } finally {
     await harness.writeSummary({
-      expectedErrorCases: manifestCoveredErrorCases().map(({ errorName, caseId }) => ({
-        caseId,
-        errorName,
-        errorCode: null,
-      })),
+      expectedErrorCases: manifestCoveredErrorCases().map(
+        ({ errorName, caseId }) => ({
+          caseId,
+          errorName,
+          errorCode: null,
+        }),
+      ),
       instructionExceptions: manifestInstructionExceptions(),
       errorExceptions: manifestErrorExceptions(),
     });

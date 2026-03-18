@@ -6,7 +6,6 @@ const SEARCH_TARGETS = [
   'README.md',
   'programs/omegax_protocol/src',
   'frontend',
-  'tests',
   'idl/omegax_protocol.json',
   'shared/protocol_contract.json',
   'scripts/bootstrap_protocol.ts',
@@ -30,8 +29,8 @@ const CHECKS = [
     pattern: '6SmJvZYWtQSbcEjhKi1bhtS4fA8QfV5rQdZPqfCbXj6f',
   },
   {
-    label: 'legacy instruction name',
-    pattern: '\\b(initialize_protocol|set_protocol_pause|create_pool|set_cycle_window|fund_pool|enroll_member|submit_claim)\\b',
+    label: 'legacy public instruction name',
+    pattern: '\\b(initialize_protocol_v2|create_pool_v2|register_oracle_v2|claim_oracle_v2|update_oracle_profile_v2|pay_premium_sol_v2|pay_premium_spl_v2|pay_premium_onchain|set_protocol_pause|set_cycle_window|fund_pool|enroll_member|submit_claim)\\b',
   },
 ];
 

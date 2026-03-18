@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: fa3db56a52c0087da4a329c7acf0436dad07da47ee21bc3728171b00e1278823
+// contract_sha256: 3863e7cd9d153f0c141ad7096733747da801da1fa465c1cf422990cc7188a6ec
 
 export type ProtocolInstructionName =
   | "activate_cycle_with_quote_sol"
@@ -10,11 +10,12 @@ export type ProtocolInstructionName =
   | "attest_premium_paid_offchain"
   | "backfill_schema_dependency_ledger"
   | "cancel_pool_liquidity_redemption"
-  | "claim_oracle_v2"
+  | "claim_approved_coverage_payout"
+  | "claim_oracle"
   | "close_coverage_claim"
   | "close_outcome_schema"
   | "create_policy_series"
-  | "create_pool_v2"
+  | "create_pool"
   | "deny_coverage_claim"
   | "deposit_pool_liquidity_sol"
   | "deposit_pool_liquidity_spl"
@@ -31,19 +32,17 @@ export type ProtocolInstructionName =
   | "fund_pool_spl"
   | "initialize_pool_liquidity_sol"
   | "initialize_pool_liquidity_spl"
-  | "initialize_protocol_v2"
+  | "initialize_protocol"
   | "issue_policy_position"
   | "mint_policy_nft"
   | "open_cycle_outcome_dispute"
   | "pay_coverage_claim"
-  | "pay_premium_onchain"
-  | "pay_premium_sol_v2"
-  | "pay_premium_spl_v2"
+  | "pay_premium_sol"
+  | "pay_premium_spl"
   | "redeem_pool_liquidity_sol"
   | "redeem_pool_liquidity_spl"
   | "register_invite_issuer"
   | "register_oracle"
-  | "register_oracle_v2"
   | "register_outcome_schema"
   | "register_pool_capital_class"
   | "request_pool_liquidity_redemption"
@@ -76,7 +75,7 @@ export type ProtocolInstructionName =
   | "submit_reward_claim"
   | "subscribe_policy_series"
   | "update_oracle_metadata"
-  | "update_oracle_profile_v2"
+  | "update_oracle_profile"
   | "update_policy_series"
   | "upsert_policy_series_payment_option"
   | "verify_outcome_schema"
@@ -111,11 +110,12 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "attest_premium_paid_offchain": Uint8Array.from([242, 83, 241, 97, 223, 35, 142, 233]),
   "backfill_schema_dependency_ledger": Uint8Array.from([109, 109, 247, 151, 229, 78, 52, 167]),
   "cancel_pool_liquidity_redemption": Uint8Array.from([248, 220, 247, 255, 55, 42, 204, 124]),
-  "claim_oracle_v2": Uint8Array.from([175, 183, 37, 186, 182, 99, 159, 205]),
+  "claim_approved_coverage_payout": Uint8Array.from([153, 160, 11, 64, 204, 101, 248, 254]),
+  "claim_oracle": Uint8Array.from([1, 252, 166, 132, 45, 24, 23, 233]),
   "close_coverage_claim": Uint8Array.from([63, 109, 39, 103, 154, 75, 86, 152]),
   "close_outcome_schema": Uint8Array.from([196, 81, 8, 61, 95, 145, 225, 2]),
   "create_policy_series": Uint8Array.from([70, 162, 231, 218, 211, 136, 110, 176]),
-  "create_pool_v2": Uint8Array.from([133, 27, 21, 38, 67, 86, 91, 132]),
+  "create_pool": Uint8Array.from([233, 146, 209, 142, 207, 104, 64, 188]),
   "deny_coverage_claim": Uint8Array.from([59, 3, 164, 192, 123, 245, 248, 254]),
   "deposit_pool_liquidity_sol": Uint8Array.from([136, 231, 55, 185, 200, 161, 34, 159]),
   "deposit_pool_liquidity_spl": Uint8Array.from([140, 157, 100, 11, 234, 116, 216, 216]),
@@ -132,19 +132,17 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "fund_pool_spl": Uint8Array.from([99, 26, 242, 219, 161, 74, 170, 0]),
   "initialize_pool_liquidity_sol": Uint8Array.from([155, 66, 197, 22, 174, 245, 230, 42]),
   "initialize_pool_liquidity_spl": Uint8Array.from([180, 228, 68, 246, 176, 50, 135, 243]),
-  "initialize_protocol_v2": Uint8Array.from([37, 200, 203, 247, 123, 64, 108, 119]),
+  "initialize_protocol": Uint8Array.from([188, 233, 252, 106, 134, 146, 202, 91]),
   "issue_policy_position": Uint8Array.from([77, 87, 137, 166, 254, 206, 125, 200]),
   "mint_policy_nft": Uint8Array.from([201, 115, 125, 162, 26, 191, 157, 248]),
   "open_cycle_outcome_dispute": Uint8Array.from([170, 182, 131, 129, 23, 60, 145, 26]),
   "pay_coverage_claim": Uint8Array.from([14, 7, 72, 236, 172, 26, 43, 131]),
-  "pay_premium_onchain": Uint8Array.from([88, 116, 130, 81, 105, 242, 154, 183]),
-  "pay_premium_sol_v2": Uint8Array.from([116, 116, 59, 202, 16, 21, 66, 167]),
-  "pay_premium_spl_v2": Uint8Array.from([188, 146, 31, 197, 212, 50, 180, 239]),
+  "pay_premium_sol": Uint8Array.from([142, 162, 23, 57, 245, 235, 187, 121]),
+  "pay_premium_spl": Uint8Array.from([25, 112, 12, 200, 208, 96, 83, 223]),
   "redeem_pool_liquidity_sol": Uint8Array.from([85, 132, 108, 65, 171, 21, 71, 159]),
   "redeem_pool_liquidity_spl": Uint8Array.from([141, 225, 196, 206, 12, 186, 89, 161]),
   "register_invite_issuer": Uint8Array.from([209, 185, 172, 26, 188, 212, 64, 100]),
   "register_oracle": Uint8Array.from([176, 200, 234, 37, 199, 129, 164, 111]),
-  "register_oracle_v2": Uint8Array.from([76, 235, 44, 248, 17, 59, 182, 35]),
   "register_outcome_schema": Uint8Array.from([187, 68, 109, 211, 168, 181, 105, 32]),
   "register_pool_capital_class": Uint8Array.from([10, 20, 85, 225, 74, 245, 209, 74]),
   "request_pool_liquidity_redemption": Uint8Array.from([55, 86, 51, 79, 183, 221, 126, 178]),
@@ -177,7 +175,7 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "submit_reward_claim": Uint8Array.from([231, 212, 126, 42, 124, 15, 254, 29]),
   "subscribe_policy_series": Uint8Array.from([135, 40, 137, 106, 140, 44, 202, 232]),
   "update_oracle_metadata": Uint8Array.from([10, 18, 95, 102, 9, 230, 159, 159]),
-  "update_oracle_profile_v2": Uint8Array.from([80, 100, 94, 159, 193, 73, 50, 178]),
+  "update_oracle_profile": Uint8Array.from([175, 66, 157, 51, 96, 190, 163, 98]),
   "update_policy_series": Uint8Array.from([36, 142, 7, 12, 26, 110, 84, 187]),
   "upsert_policy_series_payment_option": Uint8Array.from([205, 184, 8, 198, 170, 172, 61, 199]),
   "verify_outcome_schema": Uint8Array.from([221, 10, 144, 137, 106, 214, 205, 170]),
@@ -257,7 +255,10 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   "cancel_pool_liquidity_redemption": [
 
   ],
-  "claim_oracle_v2": [
+  "claim_approved_coverage_payout": [
+      { name: "payout_amount", type: "u64" },
+  ],
+  "claim_oracle": [
 
   ],
   "close_coverage_claim": [
@@ -287,7 +288,7 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
       { name: "terms_version", type: "u16" },
       { name: "mapping_version", type: "u16" },
   ],
-  "create_pool_v2": [
+  "create_pool": [
       { name: "pool_id", type: "string" },
       { name: "organization_ref", type: "string" },
       { name: "payout_lamports_per_pass", type: "u64" },
@@ -357,7 +358,7 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   "initialize_pool_liquidity_spl": [
       { name: "initial_amount", type: "u64" },
   ],
-  "initialize_protocol_v2": [
+  "initialize_protocol": [
       { name: "protocol_fee_bps", type: "u16" },
       { name: "governance_realm", type: "pubkey" },
       { name: "governance_config", type: "pubkey" },
@@ -379,15 +380,10 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   "pay_coverage_claim": [
       { name: "payout_amount", type: "u64" },
   ],
-  "pay_premium_onchain": [
-      { name: "series_ref_hash", type: {"array":["u8",32]} },
-      { name: "period_index", type: "u64" },
-      { name: "amount", type: "u64" },
-  ],
-  "pay_premium_sol_v2": [
+  "pay_premium_sol": [
       { name: "period_index", type: "u64" },
   ],
-  "pay_premium_spl_v2": [
+  "pay_premium_spl": [
       { name: "period_index", type: "u64" },
   ],
   "redeem_pool_liquidity_sol": [
@@ -404,9 +400,6 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
       { name: "active", type: "bool" },
   ],
   "register_oracle": [
-      { name: "metadata_uri", type: "string" },
-  ],
-  "register_oracle_v2": [
       { name: "oracle_pubkey", type: "pubkey" },
       { name: "oracle_type", type: "u8" },
       { name: "display_name", type: "string" },
@@ -549,6 +542,7 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   "set_protocol_params": [
       { name: "protocol_fee_bps", type: "u16" },
       { name: "allowed_payout_mints_hash", type: {"array":["u8",32]} },
+      { name: "default_stake_mint", type: "pubkey" },
       { name: "min_oracle_stake", type: "u64" },
       { name: "emergency_paused", type: "bool" },
   ],
@@ -614,7 +608,7 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
       { name: "metadata_uri", type: "string" },
       { name: "active", type: "bool" },
   ],
-  "update_oracle_profile_v2": [
+  "update_oracle_profile": [
       { name: "oracle_type", type: "u8" },
       { name: "display_name", type: "string" },
       { name: "legal_name", type: "string" },
@@ -675,7 +669,7 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
 export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, ProtocolInstructionAccount[]> = {
   "activate_cycle_with_quote_sol": [
       { name: "payer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "subject.pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "subject.member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "subject.oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -698,7 +692,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "activate_cycle_with_quote_spl": [
       { name: "payer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "subject.pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "subject.member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "subject.oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -728,9 +722,12 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "approve_coverage_claim": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
-      { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
+      { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
+      { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
+      { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_treasury_reserve", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 114, 101, 115, 101, 114, 118, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "pool_terms.payout_asset_mint" }] },
@@ -739,15 +736,18 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "attach_coverage_claim_decision_support": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
+      { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
+      { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_automation_policy", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 97, 117, 116, 111, 109, 97, 116, 105, 111, 110, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
   ],
   "attest_premium_paid_offchain": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
@@ -760,7 +760,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "backfill_schema_dependency_ledger": [
       { name: "governance_authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "schema_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [115, 99, 104, 101, 109, 97] }, { kind: "arg", path: "schema_key_hash" }] },
       { name: "schema_dependency", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [115, 99, 104, 101, 109, 97, 95, 100, 101, 112, 101, 110, 100, 101, 110, 99, 121] }, { kind: "arg", path: "schema_key_hash" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
@@ -774,14 +774,30 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "redeemer_share_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "token_program", writable: false, signer: false, optional: false, address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", pdaSeeds: undefined },
   ],
-  "claim_oracle_v2": [
+  "claim_approved_coverage_payout": [
+      { name: "claim_signer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
+      { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
+      { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "claimant", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "claim_delegate", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 100, 101, 108, 101, 103, 97, 116, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "claimant" }] },
+      { name: "pool_treasury_reserve", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 114, 101, 115, 101, 114, 118, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "pool_terms.payout_asset_mint" }] },
+      { name: "recipient_system_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_asset_vault", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "recipient_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "token_program", writable: false, signer: false, optional: false, address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", pdaSeeds: undefined },
+      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
+  ],
+  "claim_oracle": [
       { name: "oracle", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "oracle_profile", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle" }] },
   ],
   "close_coverage_claim": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -790,30 +806,33 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "close_outcome_schema": [
       { name: "governance_authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "schema_entry", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "schema_dependency", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "recipient_system_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "create_policy_series": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_series", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 115, 101, 114, 105, 101, 115] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
-  "create_pool_v2": [
+  "create_pool": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108] }, { kind: "account", path: "authority" }, { kind: "arg", path: "pool_id" }] },
       { name: "pool_terms", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "oracle_policy", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "deny_coverage_claim": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
-      { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
+      { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
+      { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
+      { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_treasury_reserve", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 114, 101, 115, 101, 114, 118, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "pool_terms.payout_asset_mint" }] },
@@ -821,7 +840,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "deposit_pool_liquidity_sol": [
       { name: "depositor", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_liquidity_config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 99, 111, 110, 102, 105, 103] }, { kind: "account", path: "pool" }] },
@@ -836,7 +855,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "deposit_pool_liquidity_spl": [
       { name: "depositor", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "payout_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -880,7 +899,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "fail_pool_liquidity_redemption": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "redemption_request", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_share_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -891,7 +910,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "finalize_cohort_settlement_root": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
@@ -918,7 +937,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "fulfill_pool_liquidity_redemption_sol": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_treasury_reserve", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 114, 101, 115, 101, 114, 118, 101] }, { kind: "account", path: "pool" }, { kind: "const", value: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }] },
@@ -931,7 +950,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "fulfill_pool_liquidity_redemption_spl": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "payout_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -956,8 +975,9 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "payout_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_asset_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 97, 115, 115, 101, 116, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "pool" }, { kind: "account", path: "payout_mint" }] },
-      { name: "pool_vault_token_account", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "account", path: "pool_asset_vault" }, { kind: "const", value: [6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169] }, { kind: "account", path: "payout_mint" }] },
       { name: "funder_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "associated_token_program", writable: false, signer: false, optional: false, address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", pdaSeeds: undefined },
       { name: "token_program", writable: false, signer: false, optional: false, address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", pdaSeeds: undefined },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
@@ -987,14 +1007,14 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "associated_token_program", writable: false, signer: false, optional: false, address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", pdaSeeds: undefined },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
-  "initialize_protocol_v2": [
+  "initialize_protocol": [
       { name: "admin", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "issue_policy_position": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "membership", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [109, 101, 109, 98, 101, 114, 115, 104, 105, 112] }, { kind: "account", path: "pool" }, { kind: "arg", path: "member" }] },
       { name: "policy_series", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 115, 101, 114, 105, 101, 115] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }] },
@@ -1004,20 +1024,20 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "mint_policy_nft": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_position_nft", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "open_cycle_outcome_dispute": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "aggregate", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "pay_coverage_claim": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1030,24 +1050,9 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "token_program", writable: false, signer: false, optional: false, address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", pdaSeeds: undefined },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
-  "pay_premium_onchain": [
+  "pay_premium_sol": [
       { name: "payer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
-      { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
-      { name: "policy_series", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 115, 101, 114, 105, 101, 115] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }] },
-      { name: "policy_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 112, 111, 115, 105, 116, 105, 111, 110] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }, { kind: "account", path: "member" }] },
-      { name: "member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "premium_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 101, 109, 105, 117, 109, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }, { kind: "account", path: "member" }] },
-      { name: "pool_asset_vault", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 97, 115, 115, 101, 116, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "pool" }, { kind: "account", path: "pool_terms.payout_asset_mint" }] },
-      { name: "payer_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "pool_vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "token_program", writable: false, signer: false, optional: false, address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", pdaSeeds: undefined },
-      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
-  ],
-  "pay_premium_sol_v2": [
-      { name: "payer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1056,9 +1061,9 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "premium_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
-  "pay_premium_spl_v2": [
+  "pay_premium_spl": [
       { name: "payer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1075,7 +1080,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "redeem_pool_liquidity_sol": [
       { name: "redeemer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_liquidity_config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 99, 111, 110, 102, 105, 103] }, { kind: "account", path: "pool" }] },
@@ -1091,7 +1096,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "redeem_pool_liquidity_spl": [
       { name: "redeemer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "payout_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1115,11 +1120,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "register_oracle": [
-      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "oracle_entry", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
-      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
-  ],
-  "register_oracle_v2": [
       { name: "admin", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "arg", path: "oracle_pubkey" }] },
       { name: "oracle_profile", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "arg", path: "oracle_pubkey" }] },
@@ -1133,7 +1133,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "register_pool_capital_class": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_liquidity_config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 99, 111, 110, 102, 105, 103] }, { kind: "account", path: "pool" }] },
@@ -1143,7 +1143,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "request_pool_liquidity_redemption": [
       { name: "redeemer", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_liquidity_config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 99, 111, 110, 102, 105, 103] }, { kind: "account", path: "pool" }] },
@@ -1166,25 +1166,28 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "resolve_cycle_outcome_dispute": [
       { name: "governance_authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_treasury_reserve", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 114, 101, 115, 101, 114, 118, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "pool_terms.payout_asset_mint" }] },
       { name: "aggregate", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "review_coverage_claim": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
+      { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
+      { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "rotate_governance_authority": [
       { name: "governance_authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
   ],
   "schedule_pool_liquidity_redemption": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "redemption_request", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_control_authority", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 99, 111, 110, 116, 114, 111, 108, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121] }, { kind: "account", path: "pool" }] },
@@ -1207,7 +1210,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "set_pool_automation_policy": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_automation_policy", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 97, 117, 116, 111, 109, 97, 116, 105, 111, 110, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
       { name: "pool_control_authority", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 99, 111, 110, 116, 114, 111, 108, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121] }, { kind: "account", path: "pool" }] },
@@ -1215,7 +1218,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "set_pool_compliance_policy": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_compliance_policy", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 99, 111, 109, 112, 108, 105, 97, 110, 99, 101, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
       { name: "pool_control_authority", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 99, 111, 110, 116, 114, 111, 108, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121] }, { kind: "account", path: "pool" }] },
@@ -1223,14 +1226,14 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "set_pool_control_authorities": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_control_authority", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 99, 111, 110, 116, 114, 111, 108, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121] }, { kind: "account", path: "pool" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "set_pool_coverage_reserve_floor": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_treasury_reserve", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 114, 101, 115, 101, 114, 118, 101] }, { kind: "account", path: "pool" }, { kind: "arg", path: "payment_mint" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
@@ -1258,13 +1261,13 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "set_pool_oracle_policy": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_policy", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
   ],
   "set_pool_risk_controls": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "pool_risk_config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 114, 105, 115, 107, 95, 99, 111, 110, 102, 105, 103] }, { kind: "account", path: "pool" }] },
@@ -1283,13 +1286,16 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "set_protocol_params": [
       { name: "governance_authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
   ],
   "settle_coverage_claim": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "claimant", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
+      { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
+      { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "coverage_claim", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1303,7 +1309,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "settle_cycle_commitment": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
@@ -1321,7 +1327,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "settle_cycle_commitment_sol": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "member", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
@@ -1335,7 +1341,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "slash_oracle": [
       { name: "governance_authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "stake_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 115, 116, 97, 107, 101] }, { kind: "account", path: "stake_position.oracle" }, { kind: "account", path: "stake_position.staker" }] },
       { name: "stake_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "slash_treasury_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1343,7 +1349,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "stake_oracle": [
       { name: "staker", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle_entry.oracle" }] },
       { name: "stake_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 115, 116, 97, 107, 101] }, { kind: "account", path: "oracle_entry.oracle" }, { kind: "account", path: "staker" }] },
       { name: "stake_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1354,7 +1360,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "submit_coverage_claim": [
       { name: "claimant", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_series", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 115, 101, 114, 105, 101, 115] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }] },
       { name: "policy_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 112, 111, 115, 105, 116, 105, 111, 110] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }, { kind: "arg", path: "member" }] },
@@ -1367,7 +1373,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   "submit_outcome_attestation_vote": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "stake_position", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
@@ -1385,7 +1391,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "submit_reward_claim": [
       { name: "claimant", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "pool_terms", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 101, 114, 109, 115] }, { kind: "account", path: "pool" }] },
       { name: "oracle_policy", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
@@ -1399,14 +1405,14 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "pool_asset_vault", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "pool_vault_token_account", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "recipient_token_account", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
-      { name: "claim_record_v2", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "claim_record", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "token_program", writable: false, signer: false, optional: false, address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", pdaSeeds: undefined },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
       { name: "pool_compliance_policy", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 99, 111, 109, 112, 108, 105, 97, 110, 99, 101, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "pool" }] },
   ],
   "subscribe_policy_series": [
       { name: "member", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "membership", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [109, 101, 109, 98, 101, 114, 115, 104, 105, 112] }, { kind: "account", path: "pool" }, { kind: "account", path: "member" }] },
       { name: "policy_series", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 115, 101, 114, 105, 101, 115] }, { kind: "account", path: "pool" }, { kind: "arg", path: "series_ref_hash" }] },
@@ -1418,19 +1424,19 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "oracle", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
   ],
-  "update_oracle_profile_v2": [
+  "update_oracle_profile": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_profile", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle_profile.oracle" }] },
   ],
   "update_policy_series": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_series", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "upsert_policy_series_payment_option": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "policy_series", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "payment_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -1439,12 +1445,12 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "verify_outcome_schema": [
       { name: "governance_authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "schema_entry", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "withdraw_pool_oracle_fee_sol": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
@@ -1453,7 +1459,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "withdraw_pool_oracle_fee_spl": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool_oracle_permissions", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 115] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
@@ -1465,7 +1471,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "withdraw_pool_treasury_sol": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
@@ -1475,7 +1481,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "withdraw_pool_treasury_spl": [
       { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "oracle_entry", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101] }, { kind: "account", path: "oracle" }] },
       { name: "pool_oracle", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101] }, { kind: "account", path: "pool" }, { kind: "account", path: "oracle" }] },
@@ -1489,13 +1495,13 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "withdraw_protocol_fee_sol": [
       { name: "governance_authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "protocol_fee_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 102, 101, 101, 95, 118, 97, 117, 108, 116] }, { kind: "const", value: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }] },
       { name: "recipient_system_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
   "withdraw_protocol_fee_spl": [
       { name: "governance_authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "config_v2", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103, 95, 118, 50] }] },
+      { name: "config", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "payment_mint", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "protocol_fee_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 102, 101, 101, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "payment_mint" }] },
       { name: "protocol_fee_vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "account", path: "protocol_fee_vault" }, { kind: "const", value: [6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169] }, { kind: "account", path: "payment_mint" }] },
@@ -1507,7 +1513,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
 export const PROTOCOL_ACCOUNT_DISCRIMINATORS: Record<string, Uint8Array> = {
   "AttestationVote": Uint8Array.from([62, 193, 192, 215, 123, 0, 10, 74]),
   "ClaimDelegateAuthorization": Uint8Array.from([189, 112, 90, 21, 58, 36, 122, 190]),
-  "ClaimRecordV2": Uint8Array.from([111, 81, 130, 121, 236, 77, 17, 249]),
+  "ClaimRecord": Uint8Array.from([57, 229, 0, 9, 65, 62, 96, 7]),
   "CohortSettlementRoot": Uint8Array.from([168, 134, 108, 200, 193, 147, 65, 42]),
   "CoverageClaimRecord": Uint8Array.from([175, 235, 72, 214, 125, 172, 103, 151]),
   "CycleOutcomeAggregate": Uint8Array.from([192, 232, 57, 215, 226, 48, 48, 74]),
@@ -1542,13 +1548,13 @@ export const PROTOCOL_ACCOUNT_DISCRIMINATORS: Record<string, Uint8Array> = {
   "PoolTreasuryReserve": Uint8Array.from([121, 27, 52, 255, 23, 215, 164, 99]),
   "PremiumAttestationReplay": Uint8Array.from([79, 111, 170, 140, 139, 124, 78, 91]),
   "PremiumLedger": Uint8Array.from([148, 143, 139, 75, 8, 175, 27, 78]),
-  "ProtocolConfigV2": Uint8Array.from([108, 178, 219, 20, 244, 156, 125, 109]),
+  "ProtocolConfig": Uint8Array.from([207, 91, 250, 28, 152, 179, 215, 209]),
   "ProtocolFeeVault": Uint8Array.from([199, 15, 107, 45, 108, 244, 162, 105]),
   "SchemaDependencyLedger": Uint8Array.from([87, 115, 211, 54, 36, 177, 77, 131]),
 };
 
 export const PROTOCOL_PDA_SEEDS: Record<string, string[]> = {
-  "config_v2": ["config_v2"],
+  "config": ["config"],
   "pool": ["pool", "<authority>", "<pool_id>"],
   "oracle": ["oracle", "<oracle>"],
   "oracle_profile": ["oracle_profile", "<oracle>"],
@@ -1578,7 +1584,7 @@ export const PROTOCOL_PDA_SEEDS: Record<string, string[]> = {
   "attestation_vote": ["attestation_vote", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>", "<oracle>"],
   "outcome_aggregate": ["outcome_agg", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>"],
   "claim_delegate": ["claim_delegate", "<pool>", "<member>"],
-  "claim_v2": ["claim_v2", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>"],
+  "claim": ["claim", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>"],
   "policy_position": ["policy_position", "<pool>", "<series_ref_hash>", "<member>"],
   "policy_position_nft": ["policy_position_nft", "<pool>", "<series_ref_hash>", "<member>"],
   "premium_ledger": ["premium_ledger", "<pool>", "<series_ref_hash>", "<member>"],

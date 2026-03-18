@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: fa3db56a52c0087da4a329c7acf0436dad07da47ee21bc3728171b00e1278823
+// contract_sha256: 3863e7cd9d153f0c141ad7096733747da801da1fa465c1cf422990cc7188a6ec
 
 package com.omegax.protocol
 
@@ -15,11 +15,12 @@ object ProtocolContract {
         "attest_premium_paid_offchain" to byteArrayOf(242u.toByte(), 83u.toByte(), 241u.toByte(), 97u.toByte(), 223u.toByte(), 35u.toByte(), 142u.toByte(), 233u.toByte()),
         "backfill_schema_dependency_ledger" to byteArrayOf(109u.toByte(), 109u.toByte(), 247u.toByte(), 151u.toByte(), 229u.toByte(), 78u.toByte(), 52u.toByte(), 167u.toByte()),
         "cancel_pool_liquidity_redemption" to byteArrayOf(248u.toByte(), 220u.toByte(), 247u.toByte(), 255u.toByte(), 55u.toByte(), 42u.toByte(), 204u.toByte(), 124u.toByte()),
-        "claim_oracle_v2" to byteArrayOf(175u.toByte(), 183u.toByte(), 37u.toByte(), 186u.toByte(), 182u.toByte(), 99u.toByte(), 159u.toByte(), 205u.toByte()),
+        "claim_approved_coverage_payout" to byteArrayOf(153u.toByte(), 160u.toByte(), 11u.toByte(), 64u.toByte(), 204u.toByte(), 101u.toByte(), 248u.toByte(), 254u.toByte()),
+        "claim_oracle" to byteArrayOf(1u.toByte(), 252u.toByte(), 166u.toByte(), 132u.toByte(), 45u.toByte(), 24u.toByte(), 23u.toByte(), 233u.toByte()),
         "close_coverage_claim" to byteArrayOf(63u.toByte(), 109u.toByte(), 39u.toByte(), 103u.toByte(), 154u.toByte(), 75u.toByte(), 86u.toByte(), 152u.toByte()),
         "close_outcome_schema" to byteArrayOf(196u.toByte(), 81u.toByte(), 8u.toByte(), 61u.toByte(), 95u.toByte(), 145u.toByte(), 225u.toByte(), 2u.toByte()),
         "create_policy_series" to byteArrayOf(70u.toByte(), 162u.toByte(), 231u.toByte(), 218u.toByte(), 211u.toByte(), 136u.toByte(), 110u.toByte(), 176u.toByte()),
-        "create_pool_v2" to byteArrayOf(133u.toByte(), 27u.toByte(), 21u.toByte(), 38u.toByte(), 67u.toByte(), 86u.toByte(), 91u.toByte(), 132u.toByte()),
+        "create_pool" to byteArrayOf(233u.toByte(), 146u.toByte(), 209u.toByte(), 142u.toByte(), 207u.toByte(), 104u.toByte(), 64u.toByte(), 188u.toByte()),
         "deny_coverage_claim" to byteArrayOf(59u.toByte(), 3u.toByte(), 164u.toByte(), 192u.toByte(), 123u.toByte(), 245u.toByte(), 248u.toByte(), 254u.toByte()),
         "deposit_pool_liquidity_sol" to byteArrayOf(136u.toByte(), 231u.toByte(), 55u.toByte(), 185u.toByte(), 200u.toByte(), 161u.toByte(), 34u.toByte(), 159u.toByte()),
         "deposit_pool_liquidity_spl" to byteArrayOf(140u.toByte(), 157u.toByte(), 100u.toByte(), 11u.toByte(), 234u.toByte(), 116u.toByte(), 216u.toByte(), 216u.toByte()),
@@ -36,19 +37,17 @@ object ProtocolContract {
         "fund_pool_spl" to byteArrayOf(99u.toByte(), 26u.toByte(), 242u.toByte(), 219u.toByte(), 161u.toByte(), 74u.toByte(), 170u.toByte(), 0u.toByte()),
         "initialize_pool_liquidity_sol" to byteArrayOf(155u.toByte(), 66u.toByte(), 197u.toByte(), 22u.toByte(), 174u.toByte(), 245u.toByte(), 230u.toByte(), 42u.toByte()),
         "initialize_pool_liquidity_spl" to byteArrayOf(180u.toByte(), 228u.toByte(), 68u.toByte(), 246u.toByte(), 176u.toByte(), 50u.toByte(), 135u.toByte(), 243u.toByte()),
-        "initialize_protocol_v2" to byteArrayOf(37u.toByte(), 200u.toByte(), 203u.toByte(), 247u.toByte(), 123u.toByte(), 64u.toByte(), 108u.toByte(), 119u.toByte()),
+        "initialize_protocol" to byteArrayOf(188u.toByte(), 233u.toByte(), 252u.toByte(), 106u.toByte(), 134u.toByte(), 146u.toByte(), 202u.toByte(), 91u.toByte()),
         "issue_policy_position" to byteArrayOf(77u.toByte(), 87u.toByte(), 137u.toByte(), 166u.toByte(), 254u.toByte(), 206u.toByte(), 125u.toByte(), 200u.toByte()),
         "mint_policy_nft" to byteArrayOf(201u.toByte(), 115u.toByte(), 125u.toByte(), 162u.toByte(), 26u.toByte(), 191u.toByte(), 157u.toByte(), 248u.toByte()),
         "open_cycle_outcome_dispute" to byteArrayOf(170u.toByte(), 182u.toByte(), 131u.toByte(), 129u.toByte(), 23u.toByte(), 60u.toByte(), 145u.toByte(), 26u.toByte()),
         "pay_coverage_claim" to byteArrayOf(14u.toByte(), 7u.toByte(), 72u.toByte(), 236u.toByte(), 172u.toByte(), 26u.toByte(), 43u.toByte(), 131u.toByte()),
-        "pay_premium_onchain" to byteArrayOf(88u.toByte(), 116u.toByte(), 130u.toByte(), 81u.toByte(), 105u.toByte(), 242u.toByte(), 154u.toByte(), 183u.toByte()),
-        "pay_premium_sol_v2" to byteArrayOf(116u.toByte(), 116u.toByte(), 59u.toByte(), 202u.toByte(), 16u.toByte(), 21u.toByte(), 66u.toByte(), 167u.toByte()),
-        "pay_premium_spl_v2" to byteArrayOf(188u.toByte(), 146u.toByte(), 31u.toByte(), 197u.toByte(), 212u.toByte(), 50u.toByte(), 180u.toByte(), 239u.toByte()),
+        "pay_premium_sol" to byteArrayOf(142u.toByte(), 162u.toByte(), 23u.toByte(), 57u.toByte(), 245u.toByte(), 235u.toByte(), 187u.toByte(), 121u.toByte()),
+        "pay_premium_spl" to byteArrayOf(25u.toByte(), 112u.toByte(), 12u.toByte(), 200u.toByte(), 208u.toByte(), 96u.toByte(), 83u.toByte(), 223u.toByte()),
         "redeem_pool_liquidity_sol" to byteArrayOf(85u.toByte(), 132u.toByte(), 108u.toByte(), 65u.toByte(), 171u.toByte(), 21u.toByte(), 71u.toByte(), 159u.toByte()),
         "redeem_pool_liquidity_spl" to byteArrayOf(141u.toByte(), 225u.toByte(), 196u.toByte(), 206u.toByte(), 12u.toByte(), 186u.toByte(), 89u.toByte(), 161u.toByte()),
         "register_invite_issuer" to byteArrayOf(209u.toByte(), 185u.toByte(), 172u.toByte(), 26u.toByte(), 188u.toByte(), 212u.toByte(), 64u.toByte(), 100u.toByte()),
         "register_oracle" to byteArrayOf(176u.toByte(), 200u.toByte(), 234u.toByte(), 37u.toByte(), 199u.toByte(), 129u.toByte(), 164u.toByte(), 111u.toByte()),
-        "register_oracle_v2" to byteArrayOf(76u.toByte(), 235u.toByte(), 44u.toByte(), 248u.toByte(), 17u.toByte(), 59u.toByte(), 182u.toByte(), 35u.toByte()),
         "register_outcome_schema" to byteArrayOf(187u.toByte(), 68u.toByte(), 109u.toByte(), 211u.toByte(), 168u.toByte(), 181u.toByte(), 105u.toByte(), 32u.toByte()),
         "register_pool_capital_class" to byteArrayOf(10u.toByte(), 20u.toByte(), 85u.toByte(), 225u.toByte(), 74u.toByte(), 245u.toByte(), 209u.toByte(), 74u.toByte()),
         "request_pool_liquidity_redemption" to byteArrayOf(55u.toByte(), 86u.toByte(), 51u.toByte(), 79u.toByte(), 183u.toByte(), 221u.toByte(), 126u.toByte(), 178u.toByte()),
@@ -81,7 +80,7 @@ object ProtocolContract {
         "submit_reward_claim" to byteArrayOf(231u.toByte(), 212u.toByte(), 126u.toByte(), 42u.toByte(), 124u.toByte(), 15u.toByte(), 254u.toByte(), 29u.toByte()),
         "subscribe_policy_series" to byteArrayOf(135u.toByte(), 40u.toByte(), 137u.toByte(), 106u.toByte(), 140u.toByte(), 44u.toByte(), 202u.toByte(), 232u.toByte()),
         "update_oracle_metadata" to byteArrayOf(10u.toByte(), 18u.toByte(), 95u.toByte(), 102u.toByte(), 9u.toByte(), 230u.toByte(), 159u.toByte(), 159u.toByte()),
-        "update_oracle_profile_v2" to byteArrayOf(80u.toByte(), 100u.toByte(), 94u.toByte(), 159u.toByte(), 193u.toByte(), 73u.toByte(), 50u.toByte(), 178u.toByte()),
+        "update_oracle_profile" to byteArrayOf(175u.toByte(), 66u.toByte(), 157u.toByte(), 51u.toByte(), 96u.toByte(), 190u.toByte(), 163u.toByte(), 98u.toByte()),
         "update_policy_series" to byteArrayOf(36u.toByte(), 142u.toByte(), 7u.toByte(), 12u.toByte(), 26u.toByte(), 110u.toByte(), 84u.toByte(), 187u.toByte()),
         "upsert_policy_series_payment_option" to byteArrayOf(205u.toByte(), 184u.toByte(), 8u.toByte(), 198u.toByte(), 170u.toByte(), 172u.toByte(), 61u.toByte(), 199u.toByte()),
         "verify_outcome_schema" to byteArrayOf(221u.toByte(), 10u.toByte(), 144u.toByte(), 137u.toByte(), 106u.toByte(), 214u.toByte(), 205u.toByte(), 170u.toByte()),
@@ -94,7 +93,7 @@ object ProtocolContract {
     )
 
     val pdaSeeds: Map<String, List<String>> = mapOf(
-        "config_v2" to listOf("config_v2"),
+        "config" to listOf("config"),
         "pool" to listOf("pool", "<authority>", "<pool_id>"),
         "oracle" to listOf("oracle", "<oracle>"),
         "oracle_profile" to listOf("oracle_profile", "<oracle>"),
@@ -124,7 +123,7 @@ object ProtocolContract {
         "attestation_vote" to listOf("attestation_vote", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>", "<oracle>"),
         "outcome_aggregate" to listOf("outcome_agg", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>"),
         "claim_delegate" to listOf("claim_delegate", "<pool>", "<member>"),
-        "claim_v2" to listOf("claim_v2", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>"),
+        "claim" to listOf("claim", "<pool>", "<series_ref_hash>", "<member>", "<cycle_hash>", "<rule_hash>"),
         "policy_position" to listOf("policy_position", "<pool>", "<series_ref_hash>", "<member>"),
         "policy_position_nft" to listOf("policy_position_nft", "<pool>", "<series_ref_hash>", "<member>"),
         "premium_ledger" to listOf("premium_ledger", "<pool>", "<series_ref_hash>", "<member>"),
@@ -140,7 +139,7 @@ object ProtocolContract {
     val accountDiscriminators: Map<String, ByteArray> = mapOf(
         "AttestationVote" to byteArrayOf(62u.toByte(), 193u.toByte(), 192u.toByte(), 215u.toByte(), 123u.toByte(), 0u.toByte(), 10u.toByte(), 74u.toByte()),
         "ClaimDelegateAuthorization" to byteArrayOf(189u.toByte(), 112u.toByte(), 90u.toByte(), 21u.toByte(), 58u.toByte(), 36u.toByte(), 122u.toByte(), 190u.toByte()),
-        "ClaimRecordV2" to byteArrayOf(111u.toByte(), 81u.toByte(), 130u.toByte(), 121u.toByte(), 236u.toByte(), 77u.toByte(), 17u.toByte(), 249u.toByte()),
+        "ClaimRecord" to byteArrayOf(57u.toByte(), 229u.toByte(), 0u.toByte(), 9u.toByte(), 65u.toByte(), 62u.toByte(), 96u.toByte(), 7u.toByte()),
         "CohortSettlementRoot" to byteArrayOf(168u.toByte(), 134u.toByte(), 108u.toByte(), 200u.toByte(), 193u.toByte(), 147u.toByte(), 65u.toByte(), 42u.toByte()),
         "CoverageClaimRecord" to byteArrayOf(175u.toByte(), 235u.toByte(), 72u.toByte(), 214u.toByte(), 125u.toByte(), 172u.toByte(), 103u.toByte(), 151u.toByte()),
         "CycleOutcomeAggregate" to byteArrayOf(192u.toByte(), 232u.toByte(), 57u.toByte(), 215u.toByte(), 226u.toByte(), 48u.toByte(), 48u.toByte(), 74u.toByte()),
@@ -175,7 +174,7 @@ object ProtocolContract {
         "PoolTreasuryReserve" to byteArrayOf(121u.toByte(), 27u.toByte(), 52u.toByte(), 255u.toByte(), 23u.toByte(), 215u.toByte(), 164u.toByte(), 99u.toByte()),
         "PremiumAttestationReplay" to byteArrayOf(79u.toByte(), 111u.toByte(), 170u.toByte(), 140u.toByte(), 139u.toByte(), 124u.toByte(), 78u.toByte(), 91u.toByte()),
         "PremiumLedger" to byteArrayOf(148u.toByte(), 143u.toByte(), 139u.toByte(), 75u.toByte(), 8u.toByte(), 175u.toByte(), 27u.toByte(), 78u.toByte()),
-        "ProtocolConfigV2" to byteArrayOf(108u.toByte(), 178u.toByte(), 219u.toByte(), 20u.toByte(), 244u.toByte(), 156u.toByte(), 125u.toByte(), 109u.toByte()),
+        "ProtocolConfig" to byteArrayOf(207u.toByte(), 91u.toByte(), 250u.toByte(), 28u.toByte(), 152u.toByte(), 179u.toByte(), 215u.toByte(), 209u.toByte()),
         "ProtocolFeeVault" to byteArrayOf(199u.toByte(), 15u.toByte(), 107u.toByte(), 45u.toByte(), 108u.toByte(), 244u.toByte(), 162u.toByte(), 105u.toByte()),
         "SchemaDependencyLedger" to byteArrayOf(87u.toByte(), 115u.toByte(), 211u.toByte(), 54u.toByte(), 36u.toByte(), 177u.toByte(), 77u.toByte(), 131u.toByte()),
     )

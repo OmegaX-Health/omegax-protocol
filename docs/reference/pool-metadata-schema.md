@@ -18,7 +18,7 @@ This document defines the off-chain metadata JSON used for DeFi-facing pool metr
     "apyBps": 1250,
     "apyWindowDays": 30,
     "apyAsOfTs": 1730000000,
-    "apyMethodologyUri": "https://example.com/apy-methodology"
+    "apyMethodologyUri": "https://docs.omegax.health/methodology/liquidity-apy"
   }
 }
 ```

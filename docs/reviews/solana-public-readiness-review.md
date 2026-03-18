@@ -13,7 +13,7 @@ The main remaining weakness is program modularity. The protocol surface is large
 | Dimension | Score | Evidence |
 | --- | --- | --- |
 | Boundary hygiene | `3/3` | public verification no longer depends on sibling repositories; maintainer-only workspace sync is documented separately |
-| Program modularity | `1/3` | `lib.rs`, `v2/pools.rs`, and `v2/cycles/activation.rs` remain the biggest concentration points |
+| Program modularity | `1/3` | `lib.rs`, `surface/pools.rs`, and `surface/cycles/activation.rs` remain the biggest concentration points |
 | Code readability | `2/3` | module docs, root account docs, and handler grouping comments now exist; deeper handler flows still require file hopping |
 | Docs and onboarding | `3/3` | the repo now has a Solana architecture guide, instruction map, release gate, and a recorded readiness audit |
 | Verification discipline | `3/3` | public CI and `verify:public` include Rust format, Rust tests, Rust lint, contract parity, public hygiene, frontend build, and license checks |
@@ -35,8 +35,8 @@ The remaining concerns are high-priority cleanup items, not publish blockers.
 
 ## Structural refactors
 
-- Split `programs/omegax_protocol/src/v2/pools.rs` by lifecycle so pool configuration, enrollment, and liquidity are no longer mixed in one file.
-- Split `programs/omegax_protocol/src/v2/cycles/activation.rs` into quote verification vs fund movement / state-write stages.
+- Split `programs/omegax_protocol/src/surface/pools.rs` by lifecycle so pool configuration, enrollment, and liquidity are no longer mixed in one file.
+- Split `programs/omegax_protocol/src/surface/cycles/activation.rs` into quote verification vs fund movement / state-write stages.
 - Continue thinning `programs/omegax_protocol/src/lib.rs` so it remains an entrypoint facade rather than a second place to understand state layout.
 - Consider replacing mode/status `u8` constants with typed enums or tightly documented wrappers where Anchor compatibility allows it without changing the public wire shape.
 
@@ -49,4 +49,4 @@ The remaining concerns are high-priority cleanup items, not publish blockers.
 
 ## Next recommendation
 
-If only one deeper cleanup project is funded next, split `v2/pools.rs` first. That file currently mixes too many unrelated mental models for a first-time reviewer: pool bootstrap, schema/rule configuration, invite issuers, enrollment, funding, and liquidity.
+If only one deeper cleanup project is funded next, split `surface/pools.rs` first. That file currently mixes too many unrelated mental models for a first-time reviewer: pool bootstrap, schema/rule configuration, invite issuers, enrollment, funding, and liquidity.

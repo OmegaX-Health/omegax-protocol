@@ -636,7 +636,7 @@ function rewardClaimAccount(params: {
   bump: number;
 }): Uint8Array {
   return concat([
-    discriminator('ClaimRecordV2'),
+    discriminator('ClaimRecord'),
     pubkey(params.pool),
     params.seriesRefHash,
     pubkey(params.member),

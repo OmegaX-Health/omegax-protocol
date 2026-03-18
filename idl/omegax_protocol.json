@@ -2,7 +2,7 @@
   "address": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",
   "metadata": {
     "name": "omegax_protocol",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "spec": "0.1.0",
     "description": "OmegaX permissionless pool protocol (rewards + coverage)"
   },
@@ -29,7 +29,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -40,10 +40,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -915,7 +912,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -926,10 +923,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -1726,15 +1720,12 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "oracle",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "pool"
-          ]
+          "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -1745,18 +1736,110 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
           }
         },
         {
-          "name": "pool",
-          "writable": true
+          "name": "oracle_entry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool"
+        },
+        {
+          "name": "pool_oracle",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permissions",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
         },
         {
           "name": "pool_terms",
@@ -1882,15 +1965,12 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "oracle",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "pool"
-          ]
+          "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -1901,17 +1981,110 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
           }
         },
         {
+          "name": "oracle_entry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
           "name": "pool"
+        },
+        {
+          "name": "pool_oracle",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permissions",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
         },
         {
           "name": "coverage_claim",
@@ -2022,7 +2195,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -2033,10 +2206,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -2357,7 +2527,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -2368,10 +2538,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -2581,16 +2748,201 @@
       "args": []
     },
     {
-      "name": "claim_oracle_v2",
+      "name": "claim_approved_coverage_payout",
+      "docs": [
+        "Lets a claimant or active delegate pull an already approved coverage payout."
+      ],
       "discriminator": [
-        175,
-        183,
-        37,
-        186,
-        182,
-        99,
-        159,
-        205
+        153,
+        160,
+        11,
+        64,
+        204,
+        101,
+        248,
+        254
+      ],
+      "accounts": [
+        {
+          "name": "claim_signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "pool_terms",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  101,
+                  114,
+                  109,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "coverage_claim",
+          "writable": true
+        },
+        {
+          "name": "claimant"
+        },
+        {
+          "name": "claim_delegate",
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "claimant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_treasury_reserve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  114,
+                  101,
+                  115,
+                  101,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_terms.payout_asset_mint",
+                "account": "PoolTerms"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient_system_account",
+          "writable": true
+        },
+        {
+          "name": "pool_asset_vault"
+        },
+        {
+          "name": "pool_vault_token_account",
+          "writable": true
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "payout_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim_oracle",
+      "discriminator": [
+        1,
+        252,
+        166,
+        132,
+        45,
+        24,
+        23,
+        233
       ],
       "accounts": [
         {
@@ -2676,7 +3028,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -2687,10 +3039,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -2803,7 +3152,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -2814,10 +3163,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -2860,7 +3206,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -2871,10 +3217,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -3042,19 +3385,19 @@
       ]
     },
     {
-      "name": "create_pool_v2",
+      "name": "create_pool",
       "docs": [
         "Creates the base pool, terms, and oracle-policy accounts for a new protocol pool."
       ],
       "discriminator": [
-        133,
-        27,
-        21,
-        38,
-        67,
-        86,
-        91,
-        132
+        233,
+        146,
+        209,
+        142,
+        207,
+        104,
+        64,
+        188
       ],
       "accounts": [
         {
@@ -3063,7 +3406,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -3074,10 +3417,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -3254,15 +3594,12 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "oracle",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "pool"
-          ]
+          "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -3273,18 +3610,110 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
           }
         },
         {
-          "name": "pool",
-          "writable": true
+          "name": "oracle_entry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool"
+        },
+        {
+          "name": "pool_oracle",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permissions",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
         },
         {
           "name": "pool_terms",
@@ -3404,7 +3833,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -3415,10 +3844,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -3738,7 +4164,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -3749,10 +4175,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -4543,7 +4966,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -4554,10 +4977,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -4738,7 +5158,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -4749,10 +5169,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -5215,7 +5632,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -5226,10 +5643,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -5507,7 +5921,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -5518,10 +5932,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -5915,11 +6326,100 @@
         {
           "name": "pool_vault_token_account",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "pool_asset_vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payout_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
           "name": "funder_token_account",
           "writable": true
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
           "name": "token_program",
@@ -6534,16 +7034,16 @@
       ]
     },
     {
-      "name": "initialize_protocol_v2",
+      "name": "initialize_protocol",
       "discriminator": [
-        37,
-        200,
-        203,
-        247,
-        123,
-        64,
-        108,
-        119
+        188,
+        233,
+        252,
+        106,
+        134,
+        146,
+        202,
+        91
       ],
       "accounts": [
         {
@@ -6552,7 +7052,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "writable": true,
           "pda": {
             "seeds": [
@@ -6564,10 +7064,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -6623,7 +7120,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -6634,10 +7131,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -6839,7 +7333,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -6850,10 +7344,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -6901,7 +7392,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -6912,10 +7403,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -6963,7 +7451,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -6974,10 +7462,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -7095,16 +7580,16 @@
       ]
     },
     {
-      "name": "pay_premium_onchain",
+      "name": "pay_premium_sol",
       "discriminator": [
-        88,
-        116,
-        130,
-        81,
-        105,
-        242,
-        154,
-        183
+        142,
+        162,
+        23,
+        57,
+        245,
+        235,
+        187,
+        121
       ],
       "accounts": [
         {
@@ -7113,7 +7598,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -7124,267 +7609,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "pool"
-        },
-        {
-          "name": "pool_terms",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  116,
-                  101,
-                  114,
-                  109,
-                  115
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "policy_series",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  108,
-                  105,
-                  99,
-                  121,
-                  95,
-                  115,
-                  101,
-                  114,
-                  105,
-                  101,
-                  115
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "arg",
-                "path": "series_ref_hash"
-              }
-            ]
-          }
-        },
-        {
-          "name": "policy_position",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  108,
-                  105,
-                  99,
-                  121,
-                  95,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "arg",
-                "path": "series_ref_hash"
-              },
-              {
-                "kind": "account",
-                "path": "member"
-              }
-            ]
-          }
-        },
-        {
-          "name": "member"
-        },
-        {
-          "name": "premium_ledger",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  101,
-                  109,
-                  105,
-                  117,
-                  109,
-                  95,
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "arg",
-                "path": "series_ref_hash"
-              },
-              {
-                "kind": "account",
-                "path": "member"
-              }
-            ]
-          }
-        },
-        {
-          "name": "pool_asset_vault",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  115,
-                  115,
-                  101,
-                  116,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "account",
-                "path": "pool_terms.payout_asset_mint",
-                "account": "PoolTerms"
-              }
-            ]
-          }
-        },
-        {
-          "name": "payer_token_account",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_token_account",
-          "writable": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "series_ref_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "period_index",
-          "type": "u64"
-        },
-        {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "pay_premium_sol_v2",
-      "discriminator": [
-        116,
-        116,
-        59,
-        202,
-        16,
-        21,
-        66,
-        167
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "config_v2",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -7424,16 +7649,16 @@
       ]
     },
     {
-      "name": "pay_premium_spl_v2",
+      "name": "pay_premium_spl",
       "discriminator": [
-        188,
-        146,
-        31,
-        197,
-        212,
-        50,
-        180,
-        239
+        25,
+        112,
+        12,
+        200,
+        208,
+        96,
+        83,
+        223
       ],
       "accounts": [
         {
@@ -7442,7 +7667,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -7453,10 +7678,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -7656,7 +7878,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -7667,10 +7889,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -8008,7 +8227,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -8019,10 +8238,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -8425,6 +8641,9 @@
     },
     {
       "name": "register_oracle",
+      "docs": [
+        "Registers a rich oracle profile used by the staking and attestation flows."
+      ],
       "discriminator": [
         176,
         200,
@@ -8434,62 +8653,6 @@
         129,
         164,
         111
-      ],
-      "accounts": [
-        {
-          "name": "oracle",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "oracle_entry",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  114,
-                  97,
-                  99,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "oracle"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "metadata_uri",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "register_oracle_v2",
-      "docs": [
-        "Registers a rich oracle profile used by the v2 staking and attestation flows."
-      ],
-      "discriminator": [
-        76,
-        235,
-        44,
-        248,
-        17,
-        59,
-        182,
-        35
       ],
       "accounts": [
         {
@@ -8767,7 +8930,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -8778,10 +8941,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -8986,7 +9146,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -8997,10 +9157,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -9513,7 +9670,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -9524,10 +9681,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -9632,15 +9786,12 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "oracle",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "pool"
-          ]
+          "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -9651,17 +9802,110 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
           }
         },
         {
+          "name": "oracle_entry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
           "name": "pool"
+        },
+        {
+          "name": "pool_oracle",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permissions",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
         },
         {
           "name": "coverage_claim",
@@ -9733,7 +9977,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "writable": true,
           "pda": {
             "seeds": [
@@ -9745,10 +9989,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -9781,7 +10022,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -9792,10 +10033,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -10200,7 +10438,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -10211,10 +10449,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -10353,7 +10588,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -10364,10 +10599,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -10532,7 +10764,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -10543,10 +10775,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -10640,7 +10869,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -10651,10 +10880,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -11039,7 +11265,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -11050,10 +11276,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -11144,7 +11367,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -11155,10 +11378,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -11462,7 +11682,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "writable": true,
           "pda": {
             "seeds": [
@@ -11474,10 +11694,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -11497,6 +11714,10 @@
               32
             ]
           }
+        },
+        {
+          "name": "default_stake_mint",
+          "type": "pubkey"
         },
         {
           "name": "min_oracle_stake",
@@ -11525,19 +11746,16 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "oracle",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "pool"
-          ]
+          "signer": true
         },
         {
           "name": "claimant",
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -11548,11 +11766,30 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_entry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
               }
             ]
           }
@@ -11560,6 +11797,80 @@
         {
           "name": "pool",
           "writable": true
+        },
+        {
+          "name": "pool_oracle",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permissions",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
         },
         {
           "name": "pool_terms",
@@ -11691,7 +12002,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -11702,10 +12013,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -12007,7 +12315,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -12018,10 +12326,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -12305,7 +12610,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -12316,10 +12621,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -12399,7 +12701,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -12410,10 +12712,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -12527,7 +12826,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -12538,10 +12837,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -12825,7 +13121,7 @@
           }
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -12836,10 +13132,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -13251,7 +13544,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -13262,10 +13555,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -13442,7 +13732,7 @@
           "optional": true
         },
         {
-          "name": "claim_record_v2",
+          "name": "claim_record",
           "writable": true
         },
         {
@@ -13554,7 +13844,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -13565,10 +13855,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -13798,16 +14085,16 @@
       ]
     },
     {
-      "name": "update_oracle_profile_v2",
+      "name": "update_oracle_profile",
       "discriminator": [
-        80,
-        100,
-        94,
-        159,
-        193,
-        73,
-        50,
-        178
+        175,
+        66,
+        157,
+        51,
+        96,
+        190,
+        163,
+        98
       ],
       "accounts": [
         {
@@ -13910,7 +14197,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -13921,10 +14208,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -14070,7 +14354,7 @@
           ]
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -14081,10 +14365,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -14142,7 +14423,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -14153,10 +14434,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -14193,7 +14471,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -14204,10 +14482,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -14391,7 +14666,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -14402,10 +14677,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -14654,7 +14926,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -14665,10 +14937,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -14880,7 +15149,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -14891,10 +15160,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -15120,7 +15386,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -15131,10 +15397,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -15239,7 +15502,7 @@
           "signer": true
         },
         {
-          "name": "config_v2",
+          "name": "config",
           "pda": {
             "seeds": [
               {
@@ -15250,10 +15513,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  95,
-                  118,
-                  50
+                  103
                 ]
               }
             ]
@@ -15433,16 +15693,16 @@
       ]
     },
     {
-      "name": "ClaimRecordV2",
+      "name": "ClaimRecord",
       "discriminator": [
-        111,
-        81,
-        130,
-        121,
-        236,
-        77,
-        17,
-        249
+        57,
+        229,
+        0,
+        9,
+        65,
+        62,
+        96,
+        7
       ]
     },
     {
@@ -15888,16 +16148,16 @@
       ]
     },
     {
-      "name": "ProtocolConfigV2",
+      "name": "ProtocolConfig",
       "discriminator": [
-        108,
-        178,
-        219,
-        20,
-        244,
-        156,
-        125,
-        109
+        207,
+        91,
+        250,
+        28,
+        152,
+        179,
+        215,
+        209
       ]
     },
     {
@@ -17165,7 +17425,7 @@
       }
     },
     {
-      "name": "ClaimRecordV2",
+      "name": "ClaimRecord",
       "type": {
         "kind": "struct",
         "fields": [
@@ -18094,7 +18354,7 @@
     {
       "name": "OracleProfile",
       "docs": [
-        "Rich oracle profile used by the v2 oracle onboarding and staking flows."
+        "Rich oracle profile used by the oracle onboarding and staking flows."
       ],
       "type": {
         "kind": "struct",
@@ -20056,7 +20316,7 @@
       }
     },
     {
-      "name": "ProtocolConfigV2",
+      "name": "ProtocolConfig",
       "type": {
         "kind": "struct",
         "fields": [

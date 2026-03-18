@@ -10,14 +10,17 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
 import {
   PROTOCOL_ACCOUNT_DISCRIMINATORS,
   PROTOCOL_INSTRUCTION_DISCRIMINATORS,
   PROTOCOL_PROGRAM_ID,
 } from "./generated/protocol-contract";
 
-const SEED_CONFIG_V2 = "config_v2";
+const SEED_CONFIG = "config";
 const SEED_POOL = "pool";
 const SEED_ORACLE = "oracle";
 const SEED_ORACLE_PROFILE = "oracle_profile";
@@ -51,7 +54,7 @@ const SEED_POOL_TREASURY_RESERVE = "pool_treasury_reserve";
 const SEED_REDEMPTION_REQUEST = "redemption_request";
 const SEED_OUTCOME_AGGREGATE = "outcome_agg";
 const SEED_CLAIM_DELEGATE = "claim_delegate";
-const SEED_CLAIM_V2 = "claim_v2";
+const SEED_CLAIM = "claim";
 const SEED_PREMIUM_LEDGER = "premium_ledger";
 const SEED_PREMIUM_REPLAY = "premium_replay";
 const SEED_COVERAGE_CLAIM = "coverage_claim";
@@ -63,57 +66,86 @@ export const ZERO_PUBKEY = "11111111111111111111111111111111";
 const ZERO_PUBKEY_KEY = new PublicKey(ZERO_PUBKEY);
 const MAX_POOL_ID_SEED_BYTES = 32;
 const MAX_ORACLE_SUPPORTED_SCHEMAS = 16;
-const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const TOKEN_PROGRAM_ID = new PublicKey(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+);
 const ASSOCIATED_TOKEN_PROGRAM_ID_KEY = ASSOCIATED_TOKEN_PROGRAM_ID;
 const SLIPPAGE_BPS_DENOMINATOR = 10_000n;
 export const REFERENCE_NAV_SCALE = 1_000_000_000n;
 export const DEFAULT_LIQUIDITY_SLIPPAGE_BPS = 50;
 
-const IX_INITIALIZE_PROTOCOL_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.initialize_protocol_v2;
-const IX_SET_PROTOCOL_PARAMS = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_protocol_params;
-const IX_ROTATE_GOVERNANCE_AUTHORITY = PROTOCOL_INSTRUCTION_DISCRIMINATORS.rotate_governance_authority;
+const IX_INITIALIZE_PROTOCOL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.initialize_protocol;
+const IX_SET_PROTOCOL_PARAMS =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_protocol_params;
+const IX_ROTATE_GOVERNANCE_AUTHORITY =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.rotate_governance_authority;
 const IX_REGISTER_ORACLE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_oracle;
-const IX_REGISTER_ORACLE_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_oracle_v2;
-const IX_CLAIM_ORACLE_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.claim_oracle_v2;
-const IX_UPDATE_ORACLE_PROFILE_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.update_oracle_profile_v2;
-const IX_UPDATE_ORACLE_METADATA = PROTOCOL_INSTRUCTION_DISCRIMINATORS.update_oracle_metadata;
+const IX_CLAIM_ORACLE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.claim_oracle;
+const IX_UPDATE_ORACLE_PROFILE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.update_oracle_profile;
+const IX_UPDATE_ORACLE_METADATA =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.update_oracle_metadata;
 const IX_STAKE_ORACLE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.stake_oracle;
 const IX_REQUEST_UNSTAKE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.request_unstake;
-const IX_FINALIZE_UNSTAKE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.finalize_unstake;
+const IX_FINALIZE_UNSTAKE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.finalize_unstake;
 const IX_SLASH_ORACLE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.slash_oracle;
 const IX_SET_POOL_ORACLE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_oracle;
 const IX_SET_POOL_STATUS = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_status;
-const IX_CREATE_POOL_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.create_pool_v2;
-const IX_SET_POOL_ORACLE_POLICY = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_oracle_policy;
+const IX_CREATE_POOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.create_pool;
+const IX_SET_POOL_ORACLE_POLICY =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_oracle_policy;
 const IX_SET_POOL_COVERAGE_RESERVE_FLOOR =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_coverage_reserve_floor;
-const IX_SET_POOL_RISK_CONTROLS = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_risk_controls;
-const IX_SET_POOL_COMPLIANCE_POLICY = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_compliance_policy;
-const IX_SET_POOL_CONTROL_AUTHORITIES = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_control_authorities;
-const IX_SET_POOL_AUTOMATION_POLICY = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_automation_policy;
+const IX_SET_POOL_RISK_CONTROLS =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_risk_controls;
+const IX_SET_POOL_COMPLIANCE_POLICY =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_compliance_policy;
+const IX_SET_POOL_CONTROL_AUTHORITIES =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_control_authorities;
+const IX_SET_POOL_AUTOMATION_POLICY =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_automation_policy;
 const IX_SET_POOL_ORACLE_PERMISSIONS =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_oracle_permissions;
-const IX_SET_POOL_TERMS_HASH = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_terms_hash;
-const IX_REGISTER_OUTCOME_SCHEMA = PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_outcome_schema;
-const IX_VERIFY_OUTCOME_SCHEMA = PROTOCOL_INSTRUCTION_DISCRIMINATORS.verify_outcome_schema;
+const IX_SET_POOL_TERMS_HASH =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_terms_hash;
+const IX_REGISTER_OUTCOME_SCHEMA =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_outcome_schema;
+const IX_VERIFY_OUTCOME_SCHEMA =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.verify_outcome_schema;
 const IX_BACKFILL_SCHEMA_DEPENDENCY_LEDGER =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.backfill_schema_dependency_ledger;
-const IX_CLOSE_OUTCOME_SCHEMA = PROTOCOL_INSTRUCTION_DISCRIMINATORS.close_outcome_schema;
-const IX_REGISTER_INVITE_ISSUER = PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_invite_issuer;
-const IX_ENROLL_MEMBER_OPEN = PROTOCOL_INSTRUCTION_DISCRIMINATORS.enroll_member_open;
-const IX_ENROLL_MEMBER_TOKEN_GATE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.enroll_member_token_gate;
-const IX_ENROLL_MEMBER_INVITE_PERMIT = PROTOCOL_INSTRUCTION_DISCRIMINATORS.enroll_member_invite_permit;
-const IX_SET_CLAIM_DELEGATE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_claim_delegate;
+const IX_CLOSE_OUTCOME_SCHEMA =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.close_outcome_schema;
+const IX_REGISTER_INVITE_ISSUER =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_invite_issuer;
+const IX_ENROLL_MEMBER_OPEN =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.enroll_member_open;
+const IX_ENROLL_MEMBER_TOKEN_GATE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.enroll_member_token_gate;
+const IX_ENROLL_MEMBER_INVITE_PERMIT =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.enroll_member_invite_permit;
+const IX_SET_CLAIM_DELEGATE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_claim_delegate;
 const IX_FUND_POOL_SOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.fund_pool_sol;
 const IX_FUND_POOL_SPL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.fund_pool_spl;
-const IX_INITIALIZE_POOL_LIQUIDITY_SOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.initialize_pool_liquidity_sol;
-const IX_INITIALIZE_POOL_LIQUIDITY_SPL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.initialize_pool_liquidity_spl;
-const IX_SET_POOL_LIQUIDITY_ENABLED = PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_liquidity_enabled;
-const IX_REGISTER_POOL_CAPITAL_CLASS = PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_pool_capital_class;
-const IX_DEPOSIT_POOL_LIQUIDITY_SOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.deposit_pool_liquidity_sol;
-const IX_DEPOSIT_POOL_LIQUIDITY_SPL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.deposit_pool_liquidity_spl;
-const IX_REDEEM_POOL_LIQUIDITY_SOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.redeem_pool_liquidity_sol;
-const IX_REDEEM_POOL_LIQUIDITY_SPL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.redeem_pool_liquidity_spl;
+const IX_INITIALIZE_POOL_LIQUIDITY_SOL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.initialize_pool_liquidity_sol;
+const IX_INITIALIZE_POOL_LIQUIDITY_SPL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.initialize_pool_liquidity_spl;
+const IX_SET_POOL_LIQUIDITY_ENABLED =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_pool_liquidity_enabled;
+const IX_REGISTER_POOL_CAPITAL_CLASS =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.register_pool_capital_class;
+const IX_DEPOSIT_POOL_LIQUIDITY_SOL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.deposit_pool_liquidity_sol;
+const IX_DEPOSIT_POOL_LIQUIDITY_SPL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.deposit_pool_liquidity_spl;
+const IX_REDEEM_POOL_LIQUIDITY_SOL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.redeem_pool_liquidity_sol;
+const IX_REDEEM_POOL_LIQUIDITY_SPL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.redeem_pool_liquidity_spl;
 const IX_REQUEST_POOL_LIQUIDITY_REDEMPTION =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.request_pool_liquidity_redemption;
 const IX_SCHEDULE_POOL_LIQUIDITY_REDEMPTION =
@@ -126,10 +158,14 @@ const IX_FULFILL_POOL_LIQUIDITY_REDEMPTION_SOL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.fulfill_pool_liquidity_redemption_sol;
 const IX_FULFILL_POOL_LIQUIDITY_REDEMPTION_SPL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.fulfill_pool_liquidity_redemption_spl;
-const IX_SUBMIT_OUTCOME_ATTESTATION_VOTE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.submit_outcome_attestation_vote;
-const IX_FINALIZE_CYCLE_OUTCOME = PROTOCOL_INSTRUCTION_DISCRIMINATORS.finalize_cycle_outcome;
-const IX_OPEN_CYCLE_OUTCOME_DISPUTE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.open_cycle_outcome_dispute;
-const IX_RESOLVE_CYCLE_OUTCOME_DISPUTE = PROTOCOL_INSTRUCTION_DISCRIMINATORS.resolve_cycle_outcome_dispute;
+const IX_SUBMIT_OUTCOME_ATTESTATION_VOTE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.submit_outcome_attestation_vote;
+const IX_FINALIZE_CYCLE_OUTCOME =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.finalize_cycle_outcome;
+const IX_OPEN_CYCLE_OUTCOME_DISPUTE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.open_cycle_outcome_dispute;
+const IX_RESOLVE_CYCLE_OUTCOME_DISPUTE =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.resolve_cycle_outcome_dispute;
 const IX_ACTIVATE_CYCLE_WITH_QUOTE_SOL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.activate_cycle_with_quote_sol;
 const IX_ACTIVATE_CYCLE_WITH_QUOTE_SPL =
@@ -140,35 +176,51 @@ const IX_SETTLE_CYCLE_COMMITMENT_SOL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.settle_cycle_commitment_sol;
 const IX_FINALIZE_COHORT_SETTLEMENT_ROOT =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.finalize_cohort_settlement_root;
-const IX_SUBMIT_REWARD_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.submit_reward_claim;
-const IX_CREATE_POLICY_SERIES = PROTOCOL_INSTRUCTION_DISCRIMINATORS.create_policy_series;
-const IX_UPDATE_POLICY_SERIES = PROTOCOL_INSTRUCTION_DISCRIMINATORS.update_policy_series;
+const IX_SUBMIT_REWARD_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.submit_reward_claim;
+const IX_CREATE_POLICY_SERIES =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.create_policy_series;
+const IX_UPDATE_POLICY_SERIES =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.update_policy_series;
 const IX_UPSERT_POLICY_SERIES_PAYMENT_OPTION =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.upsert_policy_series_payment_option;
-const IX_SUBSCRIBE_POLICY_SERIES = PROTOCOL_INSTRUCTION_DISCRIMINATORS.subscribe_policy_series;
-const IX_ISSUE_POLICY_POSITION = PROTOCOL_INSTRUCTION_DISCRIMINATORS.issue_policy_position;
+const IX_SUBSCRIBE_POLICY_SERIES =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.subscribe_policy_series;
+const IX_ISSUE_POLICY_POSITION =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.issue_policy_position;
 const IX_SET_POLICY_SERIES_OUTCOME_RULE =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.set_policy_series_outcome_rule;
 const IX_MINT_POLICY_NFT = PROTOCOL_INSTRUCTION_DISCRIMINATORS.mint_policy_nft;
-const IX_PAY_PREMIUM_SPL_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_premium_spl_v2;
-const IX_PAY_PREMIUM_SOL_V2 = PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_premium_sol_v2;
-const IX_PAY_PREMIUM_ONCHAIN = PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_premium_onchain;
-const IX_ATTEST_PREMIUM_PAID_OFFCHAIN = PROTOCOL_INSTRUCTION_DISCRIMINATORS.attest_premium_paid_offchain;
-const IX_SUBMIT_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.submit_coverage_claim;
-const IX_REVIEW_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.review_coverage_claim;
+const IX_PAY_PREMIUM_SPL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_premium_spl;
+const IX_PAY_PREMIUM_SOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_premium_sol;
+const IX_ATTEST_PREMIUM_PAID_OFFCHAIN =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.attest_premium_paid_offchain;
+const IX_SUBMIT_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.submit_coverage_claim;
+const IX_REVIEW_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.review_coverage_claim;
 const IX_ATTACH_COVERAGE_CLAIM_DECISION_SUPPORT =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.attach_coverage_claim_decision_support;
-const IX_APPROVE_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.approve_coverage_claim;
-const IX_DENY_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.deny_coverage_claim;
-const IX_PAY_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_coverage_claim;
-const IX_CLOSE_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.close_coverage_claim;
-const IX_SETTLE_COVERAGE_CLAIM = PROTOCOL_INSTRUCTION_DISCRIMINATORS.settle_coverage_claim;
+const IX_APPROVE_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.approve_coverage_claim;
+const IX_DENY_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.deny_coverage_claim;
+const IX_PAY_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.pay_coverage_claim;
+const IX_CLAIM_APPROVED_COVERAGE_PAYOUT =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.claim_approved_coverage_payout;
+const IX_CLOSE_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.close_coverage_claim;
+const IX_SETTLE_COVERAGE_CLAIM =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.settle_coverage_claim;
 const IX_WITHDRAW_POOL_TREASURY_SPL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_pool_treasury_spl;
 const IX_WITHDRAW_POOL_TREASURY_SOL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_pool_treasury_sol;
-const IX_WITHDRAW_PROTOCOL_FEE_SPL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_protocol_fee_spl;
-const IX_WITHDRAW_PROTOCOL_FEE_SOL = PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_protocol_fee_sol;
+const IX_WITHDRAW_PROTOCOL_FEE_SPL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_protocol_fee_spl;
+const IX_WITHDRAW_PROTOCOL_FEE_SOL =
+  PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_protocol_fee_sol;
 const IX_WITHDRAW_POOL_ORACLE_FEE_SPL =
   PROTOCOL_INSTRUCTION_DISCRIMINATORS.withdraw_pool_oracle_fee_spl;
 const IX_WITHDRAW_POOL_ORACLE_FEE_SOL =
@@ -238,11 +290,11 @@ export const AI_ROLE_CLAIM_PROCESSOR = 3;
 export const AI_ROLE_SETTLEMENT_PLANNER = 4;
 export const AI_ROLE_ORACLE = 5;
 export const AI_ROLE_ALL_MASK =
-  (1 << AI_ROLE_UNDERWRITER)
-  | (1 << AI_ROLE_PRICING_AGENT)
-  | (1 << AI_ROLE_CLAIM_PROCESSOR)
-  | (1 << AI_ROLE_SETTLEMENT_PLANNER)
-  | (1 << AI_ROLE_ORACLE);
+  (1 << AI_ROLE_UNDERWRITER) |
+  (1 << AI_ROLE_PRICING_AGENT) |
+  (1 << AI_ROLE_CLAIM_PROCESSOR) |
+  (1 << AI_ROLE_SETTLEMENT_PLANNER) |
+  (1 << AI_ROLE_ORACLE);
 export const OUTCOME_REVIEW_STATUS_CLEAR = 0;
 export const OUTCOME_REVIEW_STATUS_PENDING_CHALLENGE = 1;
 export const OUTCOME_REVIEW_STATUS_CHALLENGED = 2;
@@ -267,13 +319,27 @@ export const ORACLE_TYPE_HOSPITAL_CLINIC = 1;
 export const ORACLE_TYPE_HEALTH_APP = 2;
 export const ORACLE_TYPE_WEARABLE_DATA_PROVIDER = 3;
 export const ORACLE_TYPE_OTHER = 4;
+export const ORACLE_PERMISSION_DATA_ATTEST = 1 << 0;
+export const ORACLE_PERMISSION_QUOTE = 1 << 1;
+export const ORACLE_PERMISSION_CYCLE_SETTLE = 1 << 2;
+export const ORACLE_PERMISSION_CLAIM_SETTLE = 1 << 3;
+export const ORACLE_PERMISSION_TREASURY_WITHDRAW = 1 << 4;
+export const ORACLE_PERMISSION_FEE_WITHDRAW = 1 << 5;
+export const ORACLE_PERMISSION_ALL =
+  ORACLE_PERMISSION_DATA_ATTEST
+  | ORACLE_PERMISSION_QUOTE
+  | ORACLE_PERMISSION_CYCLE_SETTLE
+  | ORACLE_PERMISSION_CLAIM_SETTLE
+  | ORACLE_PERMISSION_TREASURY_WITHDRAW
+  | ORACLE_PERMISSION_FEE_WITHDRAW;
 export const ORACLE_ROLE_QUOTE_ATTESTER = 1;
 export const ORACLE_ROLE_OUTCOME_ATTESTER = 2;
 export const ORACLE_ROLE_PREMIUM_ATTESTER = 3;
 export const ORACLE_ROLE_CLAIM_ADJUDICATOR = 4;
 export const ORACLE_ROLE_TREASURY_OPERATOR = 5;
 
-export const DEFAULT_DEV_GOVERNANCE = "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez";
+export const DEFAULT_DEV_GOVERNANCE =
+  "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez";
 
 type Bytes32Input = string | Uint8Array;
 
@@ -351,7 +417,10 @@ async function hashStringTo32(value: string): Promise<Uint8Array> {
   if (!globalThis.crypto?.subtle) {
     throw new Error("Web Crypto is unavailable in this environment");
   }
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
   return new Uint8Array(digest);
 }
 
@@ -407,8 +476,14 @@ export function computePoolCapitalUtilizationBps(params: {
   encumberedCapital: bigint;
 }): number {
   if (params.reservesBefore <= 0n || params.encumberedCapital <= 0n) return 0;
-  const utilization = (params.encumberedCapital * SLIPPAGE_BPS_DENOMINATOR) / params.reservesBefore;
-  return Number(utilization > SLIPPAGE_BPS_DENOMINATOR ? SLIPPAGE_BPS_DENOMINATOR : utilization);
+  const utilization =
+    (params.encumberedCapital * SLIPPAGE_BPS_DENOMINATOR) /
+    params.reservesBefore;
+  return Number(
+    utilization > SLIPPAGE_BPS_DENOMINATOR
+      ? SLIPPAGE_BPS_DENOMINATOR
+      : utilization,
+  );
 }
 
 export function computePoolReferenceNavScaled(params: {
@@ -430,13 +505,20 @@ export function computePoolLiquidityRedeemAmountOut(params: {
     reservesBefore: params.reservesBefore,
     encumberedCapital: params.encumberedCapital ?? 0n,
   });
-  if (params.sharesIn <= 0n || params.sharesSupply <= 0n || redeemableReserves <= 0n) {
+  if (
+    params.sharesIn <= 0n ||
+    params.sharesSupply <= 0n ||
+    redeemableReserves <= 0n
+  ) {
     return 0n;
   }
   return (params.sharesIn * redeemableReserves) / params.sharesSupply;
 }
 
-export function computePoolLiquidityMinOut(expectedOut: bigint, slippageBps: number): bigint {
+export function computePoolLiquidityMinOut(
+  expectedOut: bigint,
+  slippageBps: number,
+): bigint {
   if (expectedOut <= 0n) return 0n;
   const normalizedBps = Math.max(0, Math.min(10_000, Math.floor(slippageBps)));
   const keepBps = BigInt(10_000 - normalizedBps);
@@ -456,8 +538,11 @@ export function getProgramId(): PublicKey {
   return new PublicKey((fromEnv && fromEnv.trim()) || PROTOCOL_PROGRAM_ID);
 }
 
-export function deriveConfigV2Pda(programId: PublicKey): PublicKey {
-  return PublicKey.findProgramAddressSync([new TextEncoder().encode(SEED_CONFIG_V2)], programId)[0];
+export function deriveConfigPda(programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode(SEED_CONFIG)],
+    programId,
+  )[0];
 }
 
 export function derivePoolPda(params: {
@@ -501,7 +586,11 @@ export function derivePoolOraclePda(params: {
   oracle: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_ORACLE), params.poolAddress.toBuffer(), params.oracle.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_ORACLE),
+      params.poolAddress.toBuffer(),
+      params.oracle.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -511,7 +600,10 @@ export function derivePoolOraclePolicyPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_ORACLE_POLICY), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_ORACLE_POLICY),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -547,7 +639,11 @@ export function deriveMembershipPda(params: {
   member: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_MEMBERSHIP), params.poolAddress.toBuffer(), params.member.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_MEMBERSHIP),
+      params.poolAddress.toBuffer(),
+      params.member.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -595,7 +691,10 @@ export function deriveSchemaDependencyPda(params: {
     throw new Error("schemaKeyHash must be exactly 32 bytes");
   }
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_SCHEMA_DEPENDENCY), Buffer.from(params.schemaKeyHash)],
+    [
+      new TextEncoder().encode(SEED_SCHEMA_DEPENDENCY),
+      Buffer.from(params.schemaKeyHash),
+    ],
     params.programId,
   )[0];
 }
@@ -653,7 +752,11 @@ export function deriveOracleStakePda(params: {
   staker: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_ORACLE_STAKE), params.oracle.toBuffer(), params.staker.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_ORACLE_STAKE),
+      params.oracle.toBuffer(),
+      params.staker.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -745,12 +848,16 @@ export function deriveClaimDelegatePda(params: {
   member: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_CLAIM_DELEGATE), params.poolAddress.toBuffer(), params.member.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_CLAIM_DELEGATE),
+      params.poolAddress.toBuffer(),
+      params.member.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
 
-export function deriveClaimV2Pda(params: {
+export function deriveClaimPda(params: {
   programId: PublicKey;
   poolAddress: PublicKey;
   seriesRefHash: Uint8Array;
@@ -763,7 +870,7 @@ export function deriveClaimV2Pda(params: {
   }
   return PublicKey.findProgramAddressSync(
     [
-      new TextEncoder().encode(SEED_CLAIM_V2),
+      new TextEncoder().encode(SEED_CLAIM),
       params.poolAddress.toBuffer(),
       Buffer.from(params.seriesRefHash),
       params.member.toBuffer(),
@@ -794,7 +901,10 @@ export function derivePoolRiskConfigPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_RISK_CONFIG), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_RISK_CONFIG),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -804,7 +914,10 @@ export function derivePoolLiquidityConfigPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_LIQUIDITY_CONFIG), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_LIQUIDITY_CONFIG),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -847,7 +960,10 @@ export function derivePoolCompliancePolicyPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_COMPLIANCE_POLICY), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_COMPLIANCE_POLICY),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -857,7 +973,10 @@ export function derivePoolControlAuthorityPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_CONTROL_AUTHORITY), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_CONTROL_AUTHORITY),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -867,7 +986,10 @@ export function derivePoolAutomationPolicyPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_AUTOMATION_POLICY), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_AUTOMATION_POLICY),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -892,7 +1014,10 @@ export function derivePoolShareMintPda(params: {
   poolAddress: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_POOL_SHARE_MINT), params.poolAddress.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_POOL_SHARE_MINT),
+      params.poolAddress.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -1069,7 +1194,10 @@ export function deriveProtocolFeeVaultPda(params: {
   paymentMint: PublicKey;
 }): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode(SEED_PROTOCOL_FEE_VAULT), params.paymentMint.toBuffer()],
+    [
+      new TextEncoder().encode(SEED_PROTOCOL_FEE_VAULT),
+      params.paymentMint.toBuffer(),
+    ],
     params.programId,
   )[0];
 }
@@ -1152,20 +1280,20 @@ function encodeCycleQuoteActivationData(
   ]);
 }
 
-export function buildInitializeProtocolV2Tx(params: {
+export function buildInitializeProtocolTx(params: {
   admin: PublicKey;
   recentBlockhash: string;
   protocolFeeBps: number;
   governanceRealm: string;
   governanceConfig: string;
-  defaultStakeMint?: string;
+  defaultStakeMint: string;
   minOracleStake: bigint;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const defaultStakeMint = new PublicKey(params.defaultStakeMint ?? ZERO_PUBKEY);
+  const config = deriveConfigPda(programId);
+  const defaultStakeMint = new PublicKey(params.defaultStakeMint);
   const data = concat([
-    IX_INITIALIZE_PROTOCOL_V2,
+    IX_INITIALIZE_PROTOCOL,
     encodeU16(params.protocolFeeBps),
     new PublicKey(params.governanceRealm).toBytes(),
     new PublicKey(params.governanceConfig).toBytes(),
@@ -1177,7 +1305,7 @@ export function buildInitializeProtocolV2Tx(params: {
     programId,
     keys: [
       { pubkey: params.admin, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
@@ -1194,15 +1322,17 @@ export function buildSetProtocolParamsTx(params: {
   recentBlockhash: string;
   protocolFeeBps: number;
   allowedPayoutMintsHashHex: string;
+  defaultStakeMint: string;
   minOracleStake: bigint;
   emergencyPaused: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const data = concat([
     IX_SET_PROTOCOL_PARAMS,
     encodeU16(params.protocolFeeBps),
     asBytes32(params.allowedPayoutMintsHashHex),
+    new PublicKey(params.defaultStakeMint).toBytes(),
     encodeU64(params.minOracleStake),
     Uint8Array.from([params.emergencyPaused ? 1 : 0]),
   ]);
@@ -1211,7 +1341,7 @@ export function buildSetProtocolParamsTx(params: {
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
@@ -1228,13 +1358,16 @@ export function buildRotateGovernanceAuthorityTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const data = concat([IX_ROTATE_GOVERNANCE_AUTHORITY, params.newAuthority.toBytes()]);
+  const config = deriveConfigPda(programId);
+  const data = concat([
+    IX_ROTATE_GOVERNANCE_AUTHORITY,
+    params.newAuthority.toBytes(),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
@@ -1246,28 +1379,6 @@ export function buildRotateGovernanceAuthorityTx(params: {
 }
 
 export function buildRegisterOracleTx(params: {
-  oracle: PublicKey;
-  recentBlockhash: string;
-  metadataUri: string;
-}): Transaction {
-  const programId = getProgramId();
-  const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
-  const data = concat([IX_REGISTER_ORACLE, encodeString(params.metadataUri.trim())]);
-
-  const ix = new TransactionInstruction({
-    programId,
-    keys: [
-      { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: oracleEntry, isSigner: false, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: Buffer.from(data),
-  });
-
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
-}
-
-export function buildRegisterOracleV2Tx(params: {
   admin: PublicKey;
   oracle: PublicKey;
   recentBlockhash: string;
@@ -1282,9 +1393,12 @@ export function buildRegisterOracleV2Tx(params: {
 }): Transaction {
   const programId = getProgramId();
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
-  const oracleProfile = deriveOracleProfilePda({ programId, oracle: params.oracle });
+  const oracleProfile = deriveOracleProfilePda({
+    programId,
+    oracle: params.oracle,
+  });
   const data = concat([
-    IX_REGISTER_ORACLE_V2,
+    IX_REGISTER_ORACLE,
     params.oracle.toBytes(),
     Uint8Array.from([params.oracleType]),
     encodeString(params.displayName.trim()),
@@ -1307,16 +1421,22 @@ export function buildRegisterOracleV2Tx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.admin, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.admin,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
-export function buildClaimOracleV2Tx(params: {
+export function buildClaimOracleTx(params: {
   oracle: PublicKey;
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
-  const oracleProfile = deriveOracleProfilePda({ programId, oracle: params.oracle });
+  const oracleProfile = deriveOracleProfilePda({
+    programId,
+    oracle: params.oracle,
+  });
   const ix = new TransactionInstruction({
     programId,
     keys: [
@@ -1324,12 +1444,15 @@ export function buildClaimOracleV2Tx(params: {
       { pubkey: oracleEntry, isSigner: false, isWritable: true },
       { pubkey: oracleProfile, isSigner: false, isWritable: true },
     ],
-    data: Buffer.from(IX_CLAIM_ORACLE_V2),
+    data: Buffer.from(IX_CLAIM_ORACLE),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
-export function buildUpdateOracleProfileV2Tx(params: {
+export function buildUpdateOracleProfileTx(params: {
   authority: PublicKey;
   oracle: PublicKey;
   recentBlockhash: string;
@@ -1343,9 +1466,12 @@ export function buildUpdateOracleProfileV2Tx(params: {
   supportedSchemaKeyHashesHex: string[];
 }): Transaction {
   const programId = getProgramId();
-  const oracleProfile = deriveOracleProfilePda({ programId, oracle: params.oracle });
+  const oracleProfile = deriveOracleProfilePda({
+    programId,
+    oracle: params.oracle,
+  });
   const data = concat([
-    IX_UPDATE_ORACLE_PROFILE_V2,
+    IX_UPDATE_ORACLE_PROFILE,
     Uint8Array.from([params.oracleType]),
     encodeString(params.displayName.trim()),
     encodeString(params.legalName.trim()),
@@ -1365,7 +1491,10 @@ export function buildUpdateOracleProfileV2Tx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildUpdateOracleMetadataTx(params: {
@@ -1391,7 +1520,10 @@ export function buildUpdateOracleMetadataTx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildStakeOracleTx(params: {
@@ -1404,7 +1536,7 @@ export function buildStakeOracleTx(params: {
   amount: bigint;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const stakePosition = deriveOracleStakePda({
     programId,
@@ -1416,7 +1548,7 @@ export function buildStakeOracleTx(params: {
     programId,
     keys: [
       { pubkey: params.staker, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: stakePosition, isSigner: false, isWritable: true },
       { pubkey: params.stakeMint, isSigner: false, isWritable: true },
@@ -1427,7 +1559,10 @@ export function buildStakeOracleTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.staker, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.staker,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRequestUnstakeTx(params: {
@@ -1456,7 +1591,10 @@ export function buildRequestUnstakeTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.staker, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.staker,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFinalizeUnstakeTx(params: {
@@ -1479,12 +1617,19 @@ export function buildFinalizeUnstakeTx(params: {
       { pubkey: params.staker, isSigner: true, isWritable: false },
       { pubkey: stakePosition, isSigner: false, isWritable: true },
       { pubkey: params.stakeVault, isSigner: false, isWritable: true },
-      { pubkey: params.destinationTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.destinationTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.staker, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.staker,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSlashOracleTx(params: {
@@ -1496,16 +1641,20 @@ export function buildSlashOracleTx(params: {
   amount: bigint;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const data = concat([IX_SLASH_ORACLE, encodeU64(params.amount)]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.stakePosition, isSigner: false, isWritable: true },
       { pubkey: params.stakeVault, isSigner: false, isWritable: true },
-      { pubkey: params.slashTreasuryTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.slashTreasuryTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
@@ -1530,7 +1679,10 @@ export function buildSetPoolOracleTx(params: {
     poolAddress: params.poolAddress,
     oracle: params.oracle,
   });
-  const data = concat([IX_SET_POOL_ORACLE, Uint8Array.from([params.active ? 1 : 0])]);
+  const data = concat([
+    IX_SET_POOL_ORACLE,
+    Uint8Array.from([params.active ? 1 : 0]),
+  ]);
 
   const ix = new TransactionInstruction({
     programId,
@@ -1544,7 +1696,10 @@ export function buildSetPoolOracleTx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolStatusTx(params: {
@@ -1554,13 +1709,18 @@ export function buildSetPoolStatusTx(params: {
   status: number;
 }): Transaction {
   if (
-    params.status !== POOL_STATUS_DRAFT
-    && params.status !== POOL_STATUS_ACTIVE
-    && params.status !== POOL_STATUS_CLOSED
+    params.status !== POOL_STATUS_DRAFT &&
+    params.status !== POOL_STATUS_ACTIVE &&
+    params.status !== POOL_STATUS_CLOSED
   ) {
-    throw new Error("Pool status must be one of DRAFT(0), ACTIVE(1), or CLOSED(3).");
+    throw new Error(
+      "Pool status must be one of DRAFT(0), ACTIVE(1), or CLOSED(3).",
+    );
   }
-  const data = concat([IX_SET_POOL_STATUS, Uint8Array.from([params.status & 0xff])]);
+  const data = concat([
+    IX_SET_POOL_STATUS,
+    Uint8Array.from([params.status & 0xff]),
+  ]);
   const ix = new TransactionInstruction({
     programId: getProgramId(),
     keys: [
@@ -1569,10 +1729,13 @@ export function buildSetPoolStatusTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
-export function buildCreatePoolV2Tx(params: {
+export function buildCreatePoolTx(params: {
   authority: PublicKey;
   recentBlockhash: string;
   poolId: string;
@@ -1590,15 +1753,19 @@ export function buildCreatePoolV2Tx(params: {
   payoutAssetMint?: string;
 }): { tx: Transaction; poolAddress: PublicKey } {
   const programId = getProgramId();
-  const poolAddress = derivePoolPda({ programId, authority: params.authority, poolId: params.poolId.trim() });
-  const configV2 = deriveConfigV2Pda(programId);
+  const poolAddress = derivePoolPda({
+    programId,
+    authority: params.authority,
+    poolId: params.poolId.trim(),
+  });
+  const config = deriveConfigPda(programId);
   const poolTerms = derivePoolTermsPda({ programId, poolAddress });
   const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress });
   const tokenGateMint = new PublicKey(params.tokenGateMint);
   const inviteIssuer = new PublicKey(params.inviteIssuer ?? ZERO_PUBKEY);
   const payoutAssetMint = new PublicKey(params.payoutAssetMint ?? ZERO_PUBKEY);
   const data = concat([
-    IX_CREATE_POOL_V2,
+    IX_CREATE_POOL,
     encodeString(params.poolId.trim()),
     encodeString(params.organizationRef.trim()),
     encodeU64(params.payoutLamportsPerPass),
@@ -1618,7 +1785,7 @@ export function buildCreatePoolV2Tx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: poolAddress, isSigner: false, isWritable: true },
       { pubkey: poolTerms, isSigner: false, isWritable: true },
       { pubkey: oraclePolicy, isSigner: false, isWritable: true },
@@ -1628,7 +1795,10 @@ export function buildCreatePoolV2Tx(params: {
   });
 
   return {
-    tx: new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix),
+    tx: new Transaction({
+      feePayer: params.authority,
+      recentBlockhash: params.recentBlockhash,
+    }).add(ix),
     poolAddress,
   };
 }
@@ -1645,8 +1815,11 @@ export function buildSetPoolOraclePolicyTx(params: {
   challengeWindowSecs?: bigint;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const oraclePolicy = derivePoolOraclePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const data = concat([
     IX_SET_POOL_ORACLE_POLICY,
     Uint8Array.from([params.quorumM & 0xff]),
@@ -1661,14 +1834,17 @@ export function buildSetPoolOraclePolicyTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: oraclePolicy, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolCoverageReserveFloorTx(params: {
@@ -1679,7 +1855,7 @@ export function buildSetPoolCoverageReserveFloorTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
@@ -1694,14 +1870,17 @@ export function buildSetPoolCoverageReserveFloorTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolOraclePermissionsTx(params: {
@@ -1723,7 +1902,10 @@ export function buildSetPoolOraclePermissionsTx(params: {
     poolAddress: params.poolAddress,
     oracle: params.oracle,
   });
-  const data = concat([IX_SET_POOL_ORACLE_PERMISSIONS, encodeU32(params.permissions)]);
+  const data = concat([
+    IX_SET_POOL_ORACLE_PERMISSIONS,
+    encodeU32(params.permissions),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
@@ -1737,7 +1919,10 @@ export function buildSetPoolOraclePermissionsTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolRiskControlsTx(params: {
@@ -1752,9 +1937,15 @@ export function buildSetPoolRiskControlsTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolRiskConfig = derivePoolRiskConfigPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolRiskConfig = derivePoolRiskConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
@@ -1769,22 +1960,32 @@ export function buildSetPoolRiskControlsTx(params: {
   ]);
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: poolRiskConfig, isSigner: false, isWritable: true },
     { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
     {
       pubkey: params.includePoolControlAuthority
-        ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+        ? derivePoolControlAuthorityPda({
+            programId,
+            poolAddress: params.poolAddress,
+          })
         : programId,
       isSigner: false,
       isWritable: false,
     },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolCompliancePolicyTx(params: {
@@ -1803,22 +2004,32 @@ export function buildSetPoolCompliancePolicyTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolCompliancePolicy = derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolCompliancePolicy = derivePoolCompliancePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolCompliancePolicy, isSigner: false, isWritable: true },
   ];
   keys.push({
     pubkey: params.includePoolControlAuthority
-      ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolControlAuthorityPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
+  keys.push({
+    pubkey: SystemProgram.programId,
+    isSigner: false,
+    isWritable: false,
+  });
   const data = concat([
     IX_SET_POOL_COMPLIANCE_POLICY,
     asBytes32(params.providerRefHashHex ?? "00".repeat(32)),
@@ -1831,8 +2042,15 @@ export function buildSetPoolCompliancePolicyTx(params: {
     Uint8Array.from([params.payoutRailMode & 0xff]),
     Uint8Array.from([params.active ? 1 : 0]),
   ]);
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolControlAuthoritiesTx(params: {
@@ -1845,8 +2063,11 @@ export function buildSetPoolControlAuthoritiesTx(params: {
   guardianAuthority: PublicKey;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolControlAuthority = derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolControlAuthority = derivePoolControlAuthorityPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const data = concat([
     IX_SET_POOL_CONTROL_AUTHORITIES,
     params.operatorAuthority.toBytes(),
@@ -1858,14 +2079,17 @@ export function buildSetPoolControlAuthoritiesTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: poolControlAuthority, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolAutomationPolicyTx(params: {
@@ -1880,22 +2104,32 @@ export function buildSetPoolAutomationPolicyTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolAutomationPolicy = derivePoolAutomationPolicyPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolAutomationPolicy = derivePoolAutomationPolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolAutomationPolicy, isSigner: false, isWritable: true },
   ];
   keys.push({
     pubkey: params.includePoolControlAuthority
-      ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolControlAuthorityPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
+  keys.push({
+    pubkey: SystemProgram.programId,
+    isSigner: false,
+    isWritable: false,
+  });
   const data = concat([
     IX_SET_POOL_AUTOMATION_POLICY,
     Uint8Array.from([params.oracleAutomationMode & 0xff]),
@@ -1904,8 +2138,15 @@ export function buildSetPoolAutomationPolicyTx(params: {
     encodeU64(params.maxAutoClaimAmount),
     asBytes32(params.requiredAttestationProviderRefHashHex ?? "00".repeat(32)),
   ]);
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolTermsHashTx(params: {
@@ -1918,7 +2159,10 @@ export function buildSetPoolTermsHashTx(params: {
   metadataUri: string;
 }): Transaction {
   const programId = getProgramId();
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const data = concat([
     IX_SET_POOL_TERMS_HASH,
     asBytes32(params.termsHashHex),
@@ -1936,7 +2180,10 @@ export function buildSetPoolTermsHashTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRegisterOutcomeSchemaTx(params: {
@@ -1956,7 +2203,10 @@ export function buildRegisterOutcomeSchemaTx(params: {
   const programId = getProgramId();
   const schemaKeyHash = asBytes32(params.schemaKeyHashHex);
   const schemaEntry = deriveSchemaPda({ programId, schemaKeyHash });
-  const schemaDependency = deriveSchemaDependencyPda({ programId, schemaKeyHash });
+  const schemaDependency = deriveSchemaDependencyPda({
+    programId,
+    schemaKeyHash,
+  });
   const data = concat([
     IX_REGISTER_OUTCOME_SCHEMA,
     schemaKeyHash,
@@ -1982,7 +2232,10 @@ export function buildRegisterOutcomeSchemaTx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.publisher, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.publisher,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildVerifyOutcomeSchemaTx(params: {
@@ -1992,21 +2245,30 @@ export function buildVerifyOutcomeSchemaTx(params: {
   verified: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const schemaEntry = deriveSchemaPda({ programId, schemaKeyHash: asBytes32(params.schemaKeyHashHex) });
-  const data = concat([IX_VERIFY_OUTCOME_SCHEMA, Uint8Array.from([params.verified ? 1 : 0])]);
+  const config = deriveConfigPda(programId);
+  const schemaEntry = deriveSchemaPda({
+    programId,
+    schemaKeyHash: asBytes32(params.schemaKeyHashHex),
+  });
+  const data = concat([
+    IX_VERIFY_OUTCOME_SCHEMA,
+    Uint8Array.from([params.verified ? 1 : 0]),
+  ]);
 
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: schemaEntry, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.governanceAuthority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildCloseOutcomeSchemaTx(params: {
@@ -2017,22 +2279,32 @@ export function buildCloseOutcomeSchemaTx(params: {
 }): Transaction {
   const programId = getProgramId();
   const schemaKeyHash = asBytes32(params.schemaKeyHashHex);
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const schemaEntry = deriveSchemaPda({ programId, schemaKeyHash });
-  const schemaDependency = deriveSchemaDependencyPda({ programId, schemaKeyHash });
+  const schemaDependency = deriveSchemaDependencyPda({
+    programId,
+    schemaKeyHash,
+  });
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: schemaEntry, isSigner: false, isWritable: true },
       { pubkey: schemaDependency, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
     ],
     data: Buffer.from(IX_CLOSE_OUTCOME_SCHEMA),
   });
 
-  return new Transaction({ feePayer: params.governanceAuthority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildBackfillSchemaDependencyLedgerTx(params: {
@@ -2043,28 +2315,34 @@ export function buildBackfillSchemaDependencyLedgerTx(params: {
 }): Transaction {
   const programId = getProgramId();
   const schemaKeyHash = asBytes32(params.schemaKeyHashHex);
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const schemaEntry = deriveSchemaPda({ programId, schemaKeyHash });
-  const schemaDependency = deriveSchemaDependencyPda({ programId, schemaKeyHash });
+  const schemaDependency = deriveSchemaDependencyPda({
+    programId,
+    schemaKeyHash,
+  });
   const data = concat([IX_BACKFILL_SCHEMA_DEPENDENCY_LEDGER, schemaKeyHash]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: schemaEntry, isSigner: false, isWritable: false },
       { pubkey: schemaDependency, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-      ...((params.poolRuleAddresses ?? []).map((pubkey) => ({
+      ...(params.poolRuleAddresses ?? []).map((pubkey) => ({
         pubkey,
         isSigner: false,
         isWritable: false,
-      }))),
+      })),
     ],
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.governanceAuthority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPolicySeriesOutcomeRuleTx(params: {
@@ -2093,7 +2371,10 @@ export function buildSetPolicySeriesOutcomeRuleTx(params: {
     seriesRefHash,
   });
   const schemaEntry = deriveSchemaPda({ programId, schemaKeyHash });
-  const schemaDependency = deriveSchemaDependencyPda({ programId, schemaKeyHash });
+  const schemaDependency = deriveSchemaDependencyPda({
+    programId,
+    schemaKeyHash,
+  });
   const poolRule = derivePoolRulePda({
     programId,
     poolAddress: params.poolAddress,
@@ -2129,7 +2410,10 @@ export function buildSetPolicySeriesOutcomeRuleTx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildEnrollMemberTokenGateTx(params: {
@@ -2159,15 +2443,29 @@ export function buildEnrollMemberTokenGateTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
+  keys.push({
+    pubkey: SystemProgram.programId,
+    isSigner: false,
+    isWritable: false,
+  });
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
 
-  return new Transaction({ feePayer: params.member, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.member,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRegisterInviteIssuerTx(params: {
@@ -2178,7 +2476,10 @@ export function buildRegisterInviteIssuerTx(params: {
   active: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const inviteIssuerEntry = deriveInviteIssuerPda({ programId, issuer: params.issuer });
+  const inviteIssuerEntry = deriveInviteIssuerPda({
+    programId,
+    issuer: params.issuer,
+  });
   const data = concat([
     IX_REGISTER_INVITE_ISSUER,
     encodeString(params.organizationRef.trim()),
@@ -2194,7 +2495,10 @@ export function buildRegisterInviteIssuerTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.issuer, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.issuer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildEnrollMemberOpenTx(params: {
@@ -2221,14 +2525,28 @@ export function buildEnrollMemberOpenTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.member, recentBlockhash: params.recentBlockhash }).add(ix);
+  keys.push({
+    pubkey: SystemProgram.programId,
+    isSigner: false,
+    isWritable: false,
+  });
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.member,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildEnrollMemberInvitePermitTx(params: {
@@ -2248,7 +2566,10 @@ export function buildEnrollMemberInvitePermitTx(params: {
     poolAddress: params.poolAddress,
     member: params.member,
   });
-  const inviteIssuerEntry = deriveInviteIssuerPda({ programId, issuer: params.issuer });
+  const inviteIssuerEntry = deriveInviteIssuerPda({
+    programId,
+    issuer: params.issuer,
+  });
   const nonceHash = asBytes32(params.nonceHashHex);
   const enrollmentReplay = deriveEnrollmentReplayPda({
     programId,
@@ -2274,7 +2595,10 @@ export function buildEnrollMemberInvitePermitTx(params: {
     { pubkey: inviteIssuerEntry, isSigner: false, isWritable: false },
     {
       pubkey: params.includePoolCompliancePolicy
-        ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+        ? derivePoolCompliancePolicyPda({
+            programId,
+            poolAddress: params.poolAddress,
+          })
         : programId,
       isSigner: false,
       isWritable: false,
@@ -2286,8 +2610,15 @@ export function buildEnrollMemberInvitePermitTx(params: {
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.member, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.member,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetClaimDelegateTx(params: {
@@ -2324,7 +2655,10 @@ export function buildSetClaimDelegateTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.member, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.member,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFundPoolSolTx(params: {
@@ -2345,91 +2679,25 @@ export function buildFundPoolSolTx(params: {
     data: Buffer.from(data),
   });
 
-  return new Transaction({ feePayer: params.funder, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.funder,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFundPoolSplTx(params: {
   funder: PublicKey;
   poolAddress: PublicKey;
   payoutMint: PublicKey;
-  poolVaultTokenAccount: PublicKey;
-  poolVaultTokenAccountSigner?: boolean;
   funderTokenAccount: PublicKey;
   recentBlockhash: string;
   amount: bigint;
 }): Transaction {
   const programId = getProgramId();
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolAssetVault = derivePoolAssetVaultPda({
+  const poolTerms = derivePoolTermsPda({
     programId,
     poolAddress: params.poolAddress,
-    payoutMint: params.payoutMint,
   });
-  const data = concat([IX_FUND_POOL_SPL, encodeU64(params.amount)]);
-  const ix = new TransactionInstruction({
-    programId,
-    keys: [
-      { pubkey: params.funder, isSigner: true, isWritable: true },
-      { pubkey: params.poolAddress, isSigner: false, isWritable: false },
-      { pubkey: poolTerms, isSigner: false, isWritable: false },
-      { pubkey: params.payoutMint, isSigner: false, isWritable: true },
-      { pubkey: poolAssetVault, isSigner: false, isWritable: true },
-      { pubkey: params.poolVaultTokenAccount, isSigner: params.poolVaultTokenAccountSigner ?? true, isWritable: true },
-      { pubkey: params.funderTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: Buffer.from(data),
-  });
-  return new Transaction({ feePayer: params.funder, recentBlockhash: params.recentBlockhash }).add(ix);
-}
-
-export function buildInitializePoolLiquiditySolTx(params: {
-  authority: PublicKey;
-  poolAddress: PublicKey;
-  recentBlockhash: string;
-  initialLamports: bigint;
-}): Transaction {
-  const programId = getProgramId();
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
-  const authorityShareTokenAccount = getAssociatedTokenAddressSync(
-    poolShareMint,
-    params.authority,
-    false,
-    TOKEN_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
-  );
-  const data = concat([IX_INITIALIZE_POOL_LIQUIDITY_SOL, encodeU64(params.initialLamports)]);
-  const ix = new TransactionInstruction({
-    programId,
-    keys: [
-      { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: params.poolAddress, isSigner: false, isWritable: true },
-      { pubkey: poolTerms, isSigner: false, isWritable: false },
-      { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
-      { pubkey: poolShareMint, isSigner: false, isWritable: true },
-      { pubkey: authorityShareTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: Buffer.from(data),
-  });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
-}
-
-export function buildInitializePoolLiquiditySplTx(params: {
-  authority: PublicKey;
-  poolAddress: PublicKey;
-  payoutMint: PublicKey;
-  authorityPayoutTokenAccount: PublicKey;
-  recentBlockhash: string;
-  initialAmount: bigint;
-}): Transaction {
-  const programId = getProgramId();
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
   const poolAssetVault = derivePoolAssetVaultPda({
     programId,
     poolAddress: params.poolAddress,
@@ -2442,8 +2710,52 @@ export function buildInitializePoolLiquiditySplTx(params: {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
   );
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const data = concat([IX_FUND_POOL_SPL, encodeU64(params.amount)]);
+  const ix = new TransactionInstruction({
+    programId,
+    keys: [
+      { pubkey: params.funder, isSigner: true, isWritable: true },
+      { pubkey: params.poolAddress, isSigner: false, isWritable: false },
+      { pubkey: poolTerms, isSigner: false, isWritable: false },
+      { pubkey: params.payoutMint, isSigner: false, isWritable: true },
+      { pubkey: poolAssetVault, isSigner: false, isWritable: true },
+      { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: params.funderTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+        isSigner: false,
+        isWritable: false,
+      },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.funder,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
+}
+
+export function buildInitializePoolLiquiditySolTx(params: {
+  authority: PublicKey;
+  poolAddress: PublicKey;
+  recentBlockhash: string;
+  initialLamports: bigint;
+}): Transaction {
+  const programId = getProgramId();
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const authorityShareTokenAccount = getAssociatedTokenAddressSync(
     poolShareMint,
     params.authority,
@@ -2451,7 +2763,79 @@ export function buildInitializePoolLiquiditySplTx(params: {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
   );
-  const data = concat([IX_INITIALIZE_POOL_LIQUIDITY_SPL, encodeU64(params.initialAmount)]);
+  const data = concat([
+    IX_INITIALIZE_POOL_LIQUIDITY_SOL,
+    encodeU64(params.initialLamports),
+  ]);
+  const ix = new TransactionInstruction({
+    programId,
+    keys: [
+      { pubkey: params.authority, isSigner: true, isWritable: true },
+      { pubkey: params.poolAddress, isSigner: false, isWritable: true },
+      { pubkey: poolTerms, isSigner: false, isWritable: false },
+      { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
+      { pubkey: poolShareMint, isSigner: false, isWritable: true },
+      { pubkey: authorityShareTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      {
+        pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+        isSigner: false,
+        isWritable: false,
+      },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
+}
+
+export function buildInitializePoolLiquiditySplTx(params: {
+  authority: PublicKey;
+  poolAddress: PublicKey;
+  payoutMint: PublicKey;
+  authorityPayoutTokenAccount: PublicKey;
+  recentBlockhash: string;
+  initialAmount: bigint;
+}): Transaction {
+  const programId = getProgramId();
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolAssetVault = derivePoolAssetVaultPda({
+    programId,
+    poolAddress: params.poolAddress,
+    payoutMint: params.payoutMint,
+  });
+  const poolVaultTokenAccount = getAssociatedTokenAddressSync(
+    params.payoutMint,
+    poolAssetVault,
+    true,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+  );
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const authorityShareTokenAccount = getAssociatedTokenAddressSync(
+    poolShareMint,
+    params.authority,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+  );
+  const data = concat([
+    IX_INITIALIZE_POOL_LIQUIDITY_SPL,
+    encodeU64(params.initialAmount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
@@ -2461,17 +2845,28 @@ export function buildInitializePoolLiquiditySplTx(params: {
       { pubkey: params.payoutMint, isSigner: false, isWritable: true },
       { pubkey: poolAssetVault, isSigner: false, isWritable: true },
       { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.authorityPayoutTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.authorityPayoutTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
       { pubkey: poolShareMint, isSigner: false, isWritable: true },
       { pubkey: authorityShareTokenAccount, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
+      {
+        pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSetPoolLiquidityEnabledTx(params: {
@@ -2481,8 +2876,14 @@ export function buildSetPoolLiquidityEnabledTx(params: {
   enabled: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const data = concat([IX_SET_POOL_LIQUIDITY_ENABLED, Uint8Array.from([params.enabled ? 1 : 0])]);
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const data = concat([
+    IX_SET_POOL_LIQUIDITY_ENABLED,
+    Uint8Array.from([params.enabled ? 1 : 0]),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
@@ -2492,7 +2893,10 @@ export function buildSetPoolLiquidityEnabledTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRegisterPoolCapitalClassTx(params: {
@@ -2513,10 +2917,19 @@ export function buildRegisterPoolCapitalClassTx(params: {
   vintageIndex: number;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolCapitalClass = derivePoolCapitalClassPda({
     programId,
     poolAddress: params.poolAddress,
@@ -2541,7 +2954,7 @@ export function buildRegisterPoolCapitalClassTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: poolTerms, isSigner: false, isWritable: false },
       { pubkey: poolLiquidityConfig, isSigner: false, isWritable: false },
@@ -2551,7 +2964,10 @@ export function buildRegisterPoolCapitalClassTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildDepositPoolLiquiditySolTx(params: {
@@ -2565,10 +2981,19 @@ export function buildDepositPoolLiquiditySolTx(params: {
   includeMembership?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const depositorShareTokenAccount = getAssociatedTokenAddressSync(
     poolShareMint,
     params.depositor,
@@ -2583,39 +3008,61 @@ export function buildDepositPoolLiquiditySolTx(params: {
   ]);
   const keys = [
     { pubkey: params.depositor, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: true },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
     { pubkey: poolShareMint, isSigner: false, isWritable: true },
     { pubkey: depositorShareTokenAccount, isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
+    {
+      pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+      isSigner: false,
+      isWritable: false,
+    },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
   keys.push({
     pubkey: params.includePoolCapitalClass
-      ? derivePoolCapitalClassPda({ programId, poolAddress: params.poolAddress, shareMint: poolShareMint })
+      ? derivePoolCapitalClassPda({
+          programId,
+          poolAddress: params.poolAddress,
+          shareMint: poolShareMint,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includeMembership
-      ? deriveMembershipPda({ programId, poolAddress: params.poolAddress, member: params.depositor })
+      ? deriveMembershipPda({
+          programId,
+          poolAddress: params.poolAddress,
+          member: params.depositor,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.depositor, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.depositor,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildDepositPoolLiquiditySplTx(params: {
@@ -2631,8 +3078,11 @@ export function buildDepositPoolLiquiditySplTx(params: {
   includeMembership?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolAssetVault = derivePoolAssetVaultPda({
     programId,
     poolAddress: params.poolAddress,
@@ -2645,8 +3095,14 @@ export function buildDepositPoolLiquiditySplTx(params: {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
   );
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const depositorShareTokenAccount = getAssociatedTokenAddressSync(
     poolShareMint,
     params.depositor,
@@ -2661,43 +3117,69 @@ export function buildDepositPoolLiquiditySplTx(params: {
   ]);
   const keys = [
     { pubkey: params.depositor, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: params.payoutMint, isSigner: false, isWritable: true },
     { pubkey: poolAssetVault, isSigner: false, isWritable: false },
     { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: params.depositorPayoutTokenAccount, isSigner: false, isWritable: true },
+    {
+      pubkey: params.depositorPayoutTokenAccount,
+      isSigner: false,
+      isWritable: true,
+    },
     { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
     { pubkey: poolShareMint, isSigner: false, isWritable: true },
     { pubkey: depositorShareTokenAccount, isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
+    {
+      pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+      isSigner: false,
+      isWritable: false,
+    },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
   keys.push({
     pubkey: params.includePoolCapitalClass
-      ? derivePoolCapitalClassPda({ programId, poolAddress: params.poolAddress, shareMint: poolShareMint })
+      ? derivePoolCapitalClassPda({
+          programId,
+          poolAddress: params.poolAddress,
+          shareMint: poolShareMint,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includeMembership
-      ? deriveMembershipPda({ programId, poolAddress: params.poolAddress, member: params.depositor })
+      ? deriveMembershipPda({
+          programId,
+          poolAddress: params.poolAddress,
+          member: params.depositor,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.depositor, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.depositor,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRedeemPoolLiquiditySolTx(params: {
@@ -2711,16 +3193,28 @@ export function buildRedeemPoolLiquiditySolTx(params: {
   includeMembership?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolRiskConfig = derivePoolRiskConfigPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolRiskConfig = derivePoolRiskConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
     paymentMint: new PublicKey(ZERO_PUBKEY),
   });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redeemerShareTokenAccount = getAssociatedTokenAddressSync(
     poolShareMint,
     params.redeemer,
@@ -2735,7 +3229,7 @@ export function buildRedeemPoolLiquiditySolTx(params: {
   ]);
   const keys = [
     { pubkey: params.redeemer, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: true },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
@@ -2748,27 +3242,45 @@ export function buildRedeemPoolLiquiditySolTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolCapitalClass
-      ? derivePoolCapitalClassPda({ programId, poolAddress: params.poolAddress, shareMint: poolShareMint })
+      ? derivePoolCapitalClassPda({
+          programId,
+          poolAddress: params.poolAddress,
+          shareMint: poolShareMint,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includeMembership
-      ? deriveMembershipPda({ programId, poolAddress: params.poolAddress, member: params.redeemer })
+      ? deriveMembershipPda({
+          programId,
+          poolAddress: params.poolAddress,
+          member: params.redeemer,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.redeemer, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.redeemer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRedeemPoolLiquiditySplTx(params: {
@@ -2784,8 +3296,11 @@ export function buildRedeemPoolLiquiditySplTx(params: {
   includeMembership?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolAssetVault = derivePoolAssetVaultPda({
     programId,
     poolAddress: params.poolAddress,
@@ -2798,14 +3313,23 @@ export function buildRedeemPoolLiquiditySplTx(params: {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
   );
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolRiskConfig = derivePoolRiskConfigPda({ programId, poolAddress: params.poolAddress });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolRiskConfig = derivePoolRiskConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
     paymentMint: params.payoutMint,
   });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redeemerShareTokenAccount = getAssociatedTokenAddressSync(
     poolShareMint,
     params.redeemer,
@@ -2820,13 +3344,17 @@ export function buildRedeemPoolLiquiditySplTx(params: {
   ]);
   const keys = [
     { pubkey: params.redeemer, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: params.payoutMint, isSigner: false, isWritable: true },
     { pubkey: poolAssetVault, isSigner: false, isWritable: false },
     { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: params.redeemerPayoutTokenAccount, isSigner: false, isWritable: true },
+    {
+      pubkey: params.redeemerPayoutTokenAccount,
+      isSigner: false,
+      isWritable: true,
+    },
     { pubkey: poolLiquidityConfig, isSigner: false, isWritable: true },
     { pubkey: poolRiskConfig, isSigner: false, isWritable: true },
     { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
@@ -2837,27 +3365,45 @@ export function buildRedeemPoolLiquiditySplTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolCapitalClass
-      ? derivePoolCapitalClassPda({ programId, poolAddress: params.poolAddress, shareMint: poolShareMint })
+      ? derivePoolCapitalClassPda({
+          programId,
+          poolAddress: params.poolAddress,
+          shareMint: poolShareMint,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includeMembership
-      ? deriveMembershipPda({ programId, poolAddress: params.poolAddress, member: params.redeemer })
+      ? deriveMembershipPda({
+          programId,
+          poolAddress: params.poolAddress,
+          member: params.redeemer,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.redeemer, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.redeemer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildRequestPoolLiquidityRedemptionTx(params: {
@@ -2874,20 +3420,32 @@ export function buildRequestPoolLiquidityRedemptionTx(params: {
   includeMembership?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const poolLiquidityConfig = derivePoolLiquidityConfigPda({ programId, poolAddress: params.poolAddress });
-  const poolRiskConfig = derivePoolRiskConfigPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolLiquidityConfig = derivePoolLiquidityConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const poolRiskConfig = derivePoolRiskConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const payoutMint = params.payoutMint ?? new PublicKey(ZERO_PUBKEY);
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
     paymentMint: payoutMint,
   });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redeemerShareTokenAccount =
-    params.redeemerShareTokenAccount
-    ?? getAssociatedTokenAddressSync(
+    params.redeemerShareTokenAccount ??
+    getAssociatedTokenAddressSync(
       poolShareMint,
       params.redeemer,
       false,
@@ -2916,7 +3474,7 @@ export function buildRequestPoolLiquidityRedemptionTx(params: {
   ]);
   const keys = [
     { pubkey: params.redeemer, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: poolLiquidityConfig, isSigner: false, isWritable: false },
@@ -2927,32 +3485,54 @@ export function buildRequestPoolLiquidityRedemptionTx(params: {
     { pubkey: redemptionRequest, isSigner: false, isWritable: true },
     { pubkey: redemptionRequestShareEscrow, isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
+    {
+      pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+      isSigner: false,
+      isWritable: false,
+    },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
   keys.push({
     pubkey: params.includePoolCapitalClass
-      ? derivePoolCapitalClassPda({ programId, poolAddress: params.poolAddress, shareMint: poolShareMint })
+      ? derivePoolCapitalClassPda({
+          programId,
+          poolAddress: params.poolAddress,
+          shareMint: poolShareMint,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({
     pubkey: params.includeMembership
-      ? deriveMembershipPda({ programId, poolAddress: params.poolAddress, member: params.redeemer })
+      ? deriveMembershipPda({
+          programId,
+          poolAddress: params.poolAddress,
+          member: params.redeemer,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.redeemer, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.redeemer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSchedulePoolLiquidityRedemptionTx(params: {
@@ -2963,16 +3543,19 @@ export function buildSchedulePoolLiquidityRedemptionTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: params.redemptionRequest, isSigner: false, isWritable: true },
   ];
   keys.push({
     pubkey: params.includePoolControlAuthority
-      ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolControlAuthorityPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
@@ -2982,7 +3565,10 @@ export function buildSchedulePoolLiquidityRedemptionTx(params: {
     keys,
     data: Buffer.from(IX_SCHEDULE_POOL_LIQUIDITY_REDEMPTION),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildCancelPoolLiquidityRedemptionTx(params: {
@@ -2993,7 +3579,10 @@ export function buildCancelPoolLiquidityRedemptionTx(params: {
   redeemerShareTokenAccount?: PublicKey;
 }): Transaction {
   const programId = getProgramId();
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redemptionRequestShareEscrow = getAssociatedTokenAddressSync(
     poolShareMint,
     params.redemptionRequest,
@@ -3002,8 +3591,8 @@ export function buildCancelPoolLiquidityRedemptionTx(params: {
     ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
   );
   const redeemerShareTokenAccount =
-    params.redeemerShareTokenAccount
-    ?? getAssociatedTokenAddressSync(
+    params.redeemerShareTokenAccount ??
+    getAssociatedTokenAddressSync(
       poolShareMint,
       params.redeemer,
       false,
@@ -3017,13 +3606,20 @@ export function buildCancelPoolLiquidityRedemptionTx(params: {
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: params.redemptionRequest, isSigner: false, isWritable: true },
       { pubkey: poolShareMint, isSigner: false, isWritable: true },
-      { pubkey: redemptionRequestShareEscrow, isSigner: false, isWritable: true },
+      {
+        pubkey: redemptionRequestShareEscrow,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: redeemerShareTokenAccount, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(IX_CANCEL_POOL_LIQUIDITY_REDEMPTION),
   });
-  return new Transaction({ feePayer: params.redeemer, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.redeemer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFailPoolLiquidityRedemptionTx(params: {
@@ -3037,8 +3633,11 @@ export function buildFailPoolLiquidityRedemptionTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redemptionRequestShareEscrow = getAssociatedTokenAddressSync(
     poolShareMint,
     params.redemptionRequest,
@@ -3047,8 +3646,8 @@ export function buildFailPoolLiquidityRedemptionTx(params: {
     ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
   );
   const redeemerShareTokenAccount =
-    params.redeemerShareTokenAccount
-    ?? getAssociatedTokenAddressSync(
+    params.redeemerShareTokenAccount ??
+    getAssociatedTokenAddressSync(
       poolShareMint,
       params.redeemer,
       false,
@@ -3057,7 +3656,7 @@ export function buildFailPoolLiquidityRedemptionTx(params: {
     );
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: params.redemptionRequest, isSigner: false, isWritable: true },
     { pubkey: poolShareMint, isSigner: false, isWritable: true },
@@ -3066,15 +3665,28 @@ export function buildFailPoolLiquidityRedemptionTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolControlAuthority
-      ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolControlAuthorityPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
   keys.push({ pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false });
-  const data = concat([IX_FAIL_POOL_LIQUIDITY_REDEMPTION, encodeU16(params.failureCode)]);
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  const data = concat([
+    IX_FAIL_POOL_LIQUIDITY_REDEMPTION,
+    encodeU16(params.failureCode),
+  ]);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFulfillPoolLiquidityRedemptionSolTx(params: {
@@ -3086,14 +3698,20 @@ export function buildFulfillPoolLiquidityRedemptionSolTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
     paymentMint: new PublicKey(ZERO_PUBKEY),
   });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redemptionRequestShareEscrow = getAssociatedTokenAddressSync(
     poolShareMint,
     params.redemptionRequest,
@@ -3103,7 +3721,7 @@ export function buildFulfillPoolLiquidityRedemptionSolTx(params: {
   );
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: true },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
@@ -3114,7 +3732,10 @@ export function buildFulfillPoolLiquidityRedemptionSolTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolControlAuthority
-      ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolControlAuthorityPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
@@ -3125,7 +3746,10 @@ export function buildFulfillPoolLiquidityRedemptionSolTx(params: {
     keys,
     data: Buffer.from(IX_FULFILL_POOL_LIQUIDITY_REDEMPTION_SOL),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFulfillPoolLiquidityRedemptionSplTx(params: {
@@ -3138,8 +3762,11 @@ export function buildFulfillPoolLiquidityRedemptionSplTx(params: {
   includePoolControlAuthority?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolAssetVault = derivePoolAssetVaultPda({
     programId,
     poolAddress: params.poolAddress,
@@ -3157,7 +3784,10 @@ export function buildFulfillPoolLiquidityRedemptionSplTx(params: {
     poolAddress: params.poolAddress,
     paymentMint: params.payoutMint,
   });
-  const poolShareMint = derivePoolShareMintPda({ programId, poolAddress: params.poolAddress });
+  const poolShareMint = derivePoolShareMintPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const redemptionRequestShareEscrow = getAssociatedTokenAddressSync(
     poolShareMint,
     params.redemptionRequest,
@@ -3167,7 +3797,7 @@ export function buildFulfillPoolLiquidityRedemptionSplTx(params: {
   );
   const keys = [
     { pubkey: params.authority, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: params.payoutMint, isSigner: false, isWritable: true },
@@ -3177,11 +3807,18 @@ export function buildFulfillPoolLiquidityRedemptionSplTx(params: {
     { pubkey: params.redemptionRequest, isSigner: false, isWritable: true },
     { pubkey: poolShareMint, isSigner: false, isWritable: true },
     { pubkey: redemptionRequestShareEscrow, isSigner: false, isWritable: true },
-    { pubkey: params.redeemerPayoutTokenAccount, isSigner: false, isWritable: true },
+    {
+      pubkey: params.redeemerPayoutTokenAccount,
+      isSigner: false,
+      isWritable: true,
+    },
   ];
   keys.push({
     pubkey: params.includePoolControlAuthority
-      ? derivePoolControlAuthorityPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolControlAuthorityPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
@@ -3192,22 +3829,27 @@ export function buildFulfillPoolLiquidityRedemptionSplTx(params: {
     keys,
     data: Buffer.from(IX_FULFILL_POOL_LIQUIDITY_REDEMPTION_SPL),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
-export function buildActivateCycleWithQuoteSolTx(params: CycleQuoteActivationParams & {
-  payer: PublicKey;
-  poolAddress: PublicKey;
-  oracle: PublicKey;
-  recentBlockhash: string;
-  member?: PublicKey;
-  instructionsSysvar?: PublicKey;
-  quoteVerificationInstruction?: TransactionInstruction;
-}): Transaction {
+export function buildActivateCycleWithQuoteSolTx(
+  params: CycleQuoteActivationParams & {
+    payer: PublicKey;
+    poolAddress: PublicKey;
+    oracle: PublicKey;
+    recentBlockhash: string;
+    member?: PublicKey;
+    instructionsSysvar?: PublicKey;
+    quoteVerificationInstruction?: TransactionInstruction;
+  },
+): Transaction {
   const programId = getProgramId();
   const member = params.member ?? params.payer;
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
     programId,
@@ -3219,7 +3861,10 @@ export function buildActivateCycleWithQuoteSolTx(params: CycleQuoteActivationPar
     poolAddress: params.poolAddress,
     oracle: params.oracle,
   });
-  const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress: params.poolAddress });
+  const oraclePolicy = derivePoolOraclePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const membership = deriveMembershipPda({
     programId,
     poolAddress: params.poolAddress,
@@ -3287,7 +3932,7 @@ export function buildActivateCycleWithQuoteSolTx(params: CycleQuoteActivationPar
     programId,
     keys: [
       { pubkey: params.payer, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
       { pubkey: member, isSigner: false, isWritable: false },
       { pubkey: params.oracle, isSigner: false, isWritable: false },
@@ -3297,7 +3942,11 @@ export function buildActivateCycleWithQuoteSolTx(params: CycleQuoteActivationPar
       { pubkey: oraclePolicy, isSigner: false, isWritable: false },
       { pubkey: membership, isSigner: false, isWritable: true },
       { pubkey: coverageProduct, isSigner: false, isWritable: false },
-      { pubkey: coverageProductPaymentOption, isSigner: false, isWritable: false },
+      {
+        pubkey: coverageProductPaymentOption,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: coveragePolicy, isSigner: false, isWritable: true },
       { pubkey: coveragePolicyNft, isSigner: false, isWritable: true },
       { pubkey: premiumLedger, isSigner: false, isWritable: true },
@@ -3313,30 +3962,37 @@ export function buildActivateCycleWithQuoteSolTx(params: CycleQuoteActivationPar
         isWritable: false,
       },
     ],
-    data: Buffer.from(encodeCycleQuoteActivationData(IX_ACTIVATE_CYCLE_WITH_QUOTE_SOL, params)),
+    data: Buffer.from(
+      encodeCycleQuoteActivationData(IX_ACTIVATE_CYCLE_WITH_QUOTE_SOL, params),
+    ),
   });
-  const tx = new Transaction({ feePayer: params.payer, recentBlockhash: params.recentBlockhash });
+  const tx = new Transaction({
+    feePayer: params.payer,
+    recentBlockhash: params.recentBlockhash,
+  });
   if (params.quoteVerificationInstruction) {
     tx.add(params.quoteVerificationInstruction);
   }
   return tx.add(ix);
 }
 
-export function buildActivateCycleWithQuoteSplTx(params: CycleQuoteActivationParams & {
-  payer: PublicKey;
-  poolAddress: PublicKey;
-  oracle: PublicKey;
-  paymentMint: PublicKey;
-  payerTokenAccount: PublicKey;
-  recentBlockhash: string;
-  member?: PublicKey;
-  instructionsSysvar?: PublicKey;
-  quoteVerificationInstruction?: TransactionInstruction;
-}): Transaction {
+export function buildActivateCycleWithQuoteSplTx(
+  params: CycleQuoteActivationParams & {
+    payer: PublicKey;
+    poolAddress: PublicKey;
+    oracle: PublicKey;
+    paymentMint: PublicKey;
+    payerTokenAccount: PublicKey;
+    recentBlockhash: string;
+    member?: PublicKey;
+    instructionsSysvar?: PublicKey;
+    quoteVerificationInstruction?: TransactionInstruction;
+  },
+): Transaction {
   const programId = getProgramId();
   const member = params.member ?? params.payer;
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
     programId,
@@ -3348,7 +4004,10 @@ export function buildActivateCycleWithQuoteSplTx(params: CycleQuoteActivationPar
     poolAddress: params.poolAddress,
     oracle: params.oracle,
   });
-  const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress: params.poolAddress });
+  const oraclePolicy = derivePoolOraclePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const membership = deriveMembershipPda({
     programId,
     poolAddress: params.poolAddress,
@@ -3433,7 +4092,7 @@ export function buildActivateCycleWithQuoteSplTx(params: CycleQuoteActivationPar
     programId,
     keys: [
       { pubkey: params.payer, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: member, isSigner: false, isWritable: false },
       { pubkey: params.oracle, isSigner: false, isWritable: false },
@@ -3443,7 +4102,11 @@ export function buildActivateCycleWithQuoteSplTx(params: CycleQuoteActivationPar
       { pubkey: oraclePolicy, isSigner: false, isWritable: false },
       { pubkey: membership, isSigner: false, isWritable: true },
       { pubkey: coverageProduct, isSigner: false, isWritable: false },
-      { pubkey: coverageProductPaymentOption, isSigner: false, isWritable: false },
+      {
+        pubkey: coverageProductPaymentOption,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: params.paymentMint, isSigner: false, isWritable: true },
       { pubkey: coveragePolicy, isSigner: false, isWritable: true },
       { pubkey: coveragePolicyNft, isSigner: false, isWritable: true },
@@ -3452,14 +4115,26 @@ export function buildActivateCycleWithQuoteSplTx(params: CycleQuoteActivationPar
       { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
       { pubkey: params.payerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: protocolFeeVault, isSigner: false, isWritable: true },
-      { pubkey: protocolFeeVaultTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: protocolFeeVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: poolOracleFeeVault, isSigner: false, isWritable: true },
-      { pubkey: poolOracleFeeVaultTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: poolOracleFeeVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
       { pubkey: memberCycle, isSigner: false, isWritable: true },
       { pubkey: cycleQuoteReplay, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
+      {
+        pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       {
         pubkey: params.instructionsSysvar ?? SYSVAR_INSTRUCTIONS_PUBKEY,
@@ -3467,9 +4142,14 @@ export function buildActivateCycleWithQuoteSplTx(params: CycleQuoteActivationPar
         isWritable: false,
       },
     ],
-    data: Buffer.from(encodeCycleQuoteActivationData(IX_ACTIVATE_CYCLE_WITH_QUOTE_SPL, params)),
+    data: Buffer.from(
+      encodeCycleQuoteActivationData(IX_ACTIVATE_CYCLE_WITH_QUOTE_SPL, params),
+    ),
   });
-  const tx = new Transaction({ feePayer: params.payer, recentBlockhash: params.recentBlockhash });
+  const tx = new Transaction({
+    feePayer: params.payer,
+    recentBlockhash: params.recentBlockhash,
+  });
   if (params.quoteVerificationInstruction) {
     tx.add(params.quoteVerificationInstruction);
   }
@@ -3491,7 +4171,7 @@ export function buildSettleCycleCommitmentTx(params: {
   cohortHashHex?: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
     programId,
@@ -3543,7 +4223,7 @@ export function buildSettleCycleCommitmentTx(params: {
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: params.member, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
@@ -3553,7 +4233,11 @@ export function buildSettleCycleCommitmentTx(params: {
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
       { pubkey: poolAssetVault, isSigner: false, isWritable: false },
       { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: memberCycle, isSigner: false, isWritable: true },
       { pubkey: cohortSettlementRoot, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -3561,7 +4245,10 @@ export function buildSettleCycleCommitmentTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSettleCycleCommitmentSolTx(params: {
@@ -3578,7 +4265,7 @@ export function buildSettleCycleCommitmentSolTx(params: {
   cohortHashHex?: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
     programId,
@@ -3621,21 +4308,28 @@ export function buildSettleCycleCommitmentSolTx(params: {
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
       { pubkey: params.member, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: poolOracle, isSigner: false, isWritable: false },
       { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: memberCycle, isSigner: false, isWritable: true },
       { pubkey: cohortSettlementRoot, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFinalizeCohortSettlementRootTx(params: {
@@ -3647,7 +4341,7 @@ export function buildFinalizeCohortSettlementRootTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
@@ -3660,7 +4354,10 @@ export function buildFinalizeCohortSettlementRootTx(params: {
     poolAddress: params.poolAddress,
     oracle: params.oracle,
   });
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
@@ -3672,12 +4369,16 @@ export function buildFinalizeCohortSettlementRootTx(params: {
     seriesRefHash,
     cohortHash: asBytes32(params.cohortHashHex),
   });
-  const data = concat([IX_FINALIZE_COHORT_SETTLEMENT_ROOT, seriesRefHash, asBytes32(params.cohortHashHex)]);
+  const data = concat([
+    IX_FINALIZE_COHORT_SETTLEMENT_ROOT,
+    seriesRefHash,
+    asBytes32(params.cohortHashHex),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: poolOracle, isSigner: false, isWritable: false },
@@ -3688,7 +4389,10 @@ export function buildFinalizeCohortSettlementRootTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSubmitOutcomeAttestationVoteTx(params: {
@@ -3716,7 +4420,7 @@ export function buildSubmitOutcomeAttestationVoteTx(params: {
   includePoolAutomationPolicy?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const stakePosition = deriveOracleStakePda({
@@ -3724,8 +4428,14 @@ export function buildSubmitOutcomeAttestationVoteTx(params: {
     oracle: params.oracle,
     staker: params.oracle,
   });
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress: params.poolAddress });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const oraclePolicy = derivePoolOraclePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
@@ -3785,7 +4495,9 @@ export function buildSubmitOutcomeAttestationVoteTx(params: {
     asBytes32(params.evidenceHashHex ?? "00".repeat(32)),
     asBytes32(params.externalAttestationRefHashHex ?? "00".repeat(32)),
     Uint8Array.from([(params.aiRole ?? AI_ROLE_NONE) & 0xff]),
-    Uint8Array.from([(params.automationMode ?? AUTOMATION_MODE_DISABLED) & 0xff]),
+    Uint8Array.from([
+      (params.automationMode ?? AUTOMATION_MODE_DISABLED) & 0xff,
+    ]),
     asBytes32(params.modelVersionHashHex ?? "00".repeat(32)),
     asBytes32(params.policyVersionHashHex ?? "00".repeat(32)),
     asBytes32(params.executionEnvironmentHashHex ?? "00".repeat(32)),
@@ -3796,7 +4508,7 @@ export function buildSubmitOutcomeAttestationVoteTx(params: {
   const keys = [
     { pubkey: params.oracle, isSigner: true, isWritable: true },
     { pubkey: oracleEntry, isSigner: false, isWritable: false },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: stakePosition, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: false },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
@@ -3812,14 +4524,28 @@ export function buildSubmitOutcomeAttestationVoteTx(params: {
   ];
   keys.push({
     pubkey: params.includePoolAutomationPolicy
-      ? derivePoolAutomationPolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolAutomationPolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  keys.push({ pubkey: SystemProgram.programId, isSigner: false, isWritable: false });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  keys.push({
+    pubkey: SystemProgram.programId,
+    isSigner: false,
+    isWritable: false,
+  });
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildFinalizeCycleOutcomeTx(params: {
@@ -3833,8 +4559,14 @@ export function buildFinalizeCycleOutcomeTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress: params.poolAddress });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const oraclePolicy = derivePoolOraclePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
@@ -3863,7 +4595,10 @@ export function buildFinalizeCycleOutcomeTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.feePayer, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.feePayer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildOpenCycleOutcomeDisputeTx(params: {
@@ -3874,19 +4609,25 @@ export function buildOpenCycleOutcomeDisputeTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const data = concat([IX_OPEN_CYCLE_OUTCOME_DISPUTE, asBytes32(params.disputeReasonHashHex)]);
+  const config = deriveConfigPda(programId);
+  const data = concat([
+    IX_OPEN_CYCLE_OUTCOME_DISPUTE,
+    asBytes32(params.disputeReasonHashHex),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: params.aggregate, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildResolveCycleOutcomeDisputeTx(params: {
@@ -3898,19 +4639,25 @@ export function buildResolveCycleOutcomeDisputeTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
     paymentMint: params.payoutMint,
   });
-  const data = concat([IX_RESOLVE_CYCLE_OUTCOME_DISPUTE, Uint8Array.from([params.sustainOriginalOutcome ? 1 : 0])]);
+  const data = concat([
+    IX_RESOLVE_CYCLE_OUTCOME_DISPUTE,
+    Uint8Array.from([params.sustainOriginalOutcome ? 1 : 0]),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: poolTerms, isSigner: false, isWritable: true },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
@@ -3946,12 +4693,18 @@ export function buildSubmitRewardClaimTx(params: {
   includePoolCompliancePolicy?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const cycleHash = asBytes32(params.cycleHashHex);
   const ruleHash = asBytes32(params.ruleHashHex);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const oraclePolicy = derivePoolOraclePolicyPda({ programId, poolAddress: params.poolAddress });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const oraclePolicy = derivePoolOraclePolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const poolTreasuryReserve = derivePoolTreasuryReservePda({
     programId,
     poolAddress: params.poolAddress,
@@ -3970,7 +4723,7 @@ export function buildSubmitRewardClaimTx(params: {
     cycleHash,
     ruleHash,
   });
-  const claimRecordV2 = deriveClaimV2Pda({
+  const claimRecord = deriveClaimPda({
     programId,
     poolAddress: params.poolAddress,
     seriesRefHash,
@@ -3989,33 +4742,71 @@ export function buildSubmitRewardClaimTx(params: {
   ]);
   const keys = [
     { pubkey: params.claimant, isSigner: true, isWritable: true },
-    { pubkey: configV2, isSigner: false, isWritable: false },
+    { pubkey: config, isSigner: false, isWritable: false },
     { pubkey: params.poolAddress, isSigner: false, isWritable: true },
     { pubkey: poolTerms, isSigner: false, isWritable: false },
     { pubkey: oraclePolicy, isSigner: false, isWritable: false },
     { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
     { pubkey: membership, isSigner: false, isWritable: false },
     { pubkey: aggregate, isSigner: false, isWritable: true },
-    { pubkey: params.memberCycle ?? programId, isSigner: false, isWritable: false },
-    { pubkey: params.cohortSettlementRoot ?? params.poolAddress, isSigner: false, isWritable: true },
-    { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
-    { pubkey: params.claimDelegate ?? programId, isSigner: false, isWritable: false },
-    { pubkey: params.poolAssetVault ?? programId, isSigner: false, isWritable: false },
-    { pubkey: params.poolVaultTokenAccount ?? programId, isSigner: false, isWritable: true },
-    { pubkey: params.recipientTokenAccount ?? programId, isSigner: false, isWritable: true },
-    { pubkey: claimRecordV2, isSigner: false, isWritable: true },
+    {
+      pubkey: params.memberCycle ?? programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: params.cohortSettlementRoot ?? params.poolAddress,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: params.recipientSystemAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: params.claimDelegate ?? programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: params.poolAssetVault ?? programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: params.poolVaultTokenAccount ?? programId,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: params.recipientTokenAccount ?? programId,
+      isSigner: false,
+      isWritable: true,
+    },
+    { pubkey: claimRecord, isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
   keys.push({
     pubkey: params.includePoolCompliancePolicy
-      ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
+      ? derivePoolCompliancePolicyPda({
+          programId,
+          poolAddress: params.poolAddress,
+        })
       : programId,
     isSigner: false,
     isWritable: false,
   });
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.claimant, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.claimant,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildCreatePolicySeriesTx(params: {
@@ -4043,7 +4834,7 @@ export function buildCreatePolicySeriesTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const policySeries = derivePolicySeriesPda({
     programId,
@@ -4076,14 +4867,17 @@ export function buildCreatePolicySeriesTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: policySeries, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildUpdatePolicySeriesTx(params: {
@@ -4111,7 +4905,7 @@ export function buildUpdatePolicySeriesTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const policySeries = derivePolicySeriesPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4142,13 +4936,16 @@ export function buildUpdatePolicySeriesTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: policySeries, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildUpsertPolicySeriesPaymentOptionTx(params: {
@@ -4161,7 +4958,7 @@ export function buildUpsertPolicySeriesPaymentOptionTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const policySeries = derivePolicySeriesPda({
     programId,
@@ -4184,7 +4981,7 @@ export function buildUpsertPolicySeriesPaymentOptionTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: policySeries, isSigner: false, isWritable: true },
       { pubkey: params.paymentMint, isSigner: false, isWritable: false },
@@ -4193,7 +4990,10 @@ export function buildUpsertPolicySeriesPaymentOptionTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSubscribePolicySeriesTx(params: {
@@ -4204,7 +5004,7 @@ export function buildSubscribePolicySeriesTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const membership = deriveMembershipPda({
     programId,
@@ -4237,7 +5037,7 @@ export function buildSubscribePolicySeriesTx(params: {
     programId,
     keys: [
       { pubkey: params.member, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: membership, isSigner: false, isWritable: false },
       { pubkey: policySeries, isSigner: false, isWritable: false },
@@ -4247,7 +5047,10 @@ export function buildSubscribePolicySeriesTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.member, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.member,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildIssuePolicyPositionTx(params: {
@@ -4259,7 +5062,7 @@ export function buildIssuePolicyPositionTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const membership = deriveMembershipPda({
     programId,
@@ -4293,7 +5096,7 @@ export function buildIssuePolicyPositionTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: membership, isSigner: false, isWritable: false },
       { pubkey: policySeries, isSigner: false, isWritable: false },
@@ -4303,7 +5106,10 @@ export function buildIssuePolicyPositionTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildMintPolicyNftTx(params: {
@@ -4316,7 +5122,7 @@ export function buildMintPolicyNftTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const coveragePolicy = derivePolicyPositionPda({
     programId,
@@ -4330,22 +5136,29 @@ export function buildMintPolicyNftTx(params: {
     seriesRefHash,
     member: params.member,
   });
-  const data = concat([IX_MINT_POLICY_NFT, params.nftMint.toBytes(), encodeString(params.metadataUri.trim())]);
+  const data = concat([
+    IX_MINT_POLICY_NFT,
+    params.nftMint.toBytes(),
+    encodeString(params.metadataUri.trim()),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: coveragePolicy, isSigner: false, isWritable: true },
       { pubkey: coveragePolicyNft, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
-export function buildPayPremiumSplV2Tx(params: {
+export function buildPayPremiumSplTx(params: {
   payer: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
@@ -4356,7 +5169,7 @@ export function buildPayPremiumSplV2Tx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const coveragePolicy = derivePolicyPositionPda({
     programId,
@@ -4390,32 +5203,43 @@ export function buildPayPremiumSplV2Tx(params: {
     mint: params.paymentMint,
     authority: poolAssetVault,
   });
-  const data = concat([IX_PAY_PREMIUM_SPL_V2, encodeU64(params.periodIndex)]);
+  const data = concat([IX_PAY_PREMIUM_SPL, encodeU64(params.periodIndex)]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.payer, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: coveragePolicy, isSigner: false, isWritable: true },
       { pubkey: params.member, isSigner: false, isWritable: false },
       { pubkey: coverageProduct, isSigner: false, isWritable: false },
-      { pubkey: coverageProductPaymentOption, isSigner: false, isWritable: false },
+      {
+        pubkey: coverageProductPaymentOption,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: params.paymentMint, isSigner: false, isWritable: true },
       { pubkey: premiumLedger, isSigner: false, isWritable: true },
       { pubkey: poolAssetVault, isSigner: false, isWritable: true },
       { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
       { pubkey: params.payerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY, isSigner: false, isWritable: false },
+      {
+        pubkey: ASSOCIATED_TOKEN_PROGRAM_ID_KEY,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.payer, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.payer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
-export function buildPayPremiumSolV2Tx(params: {
+export function buildPayPremiumSolTx(params: {
   payer: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
@@ -4424,7 +5248,7 @@ export function buildPayPremiumSolV2Tx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const coveragePolicy = derivePolicyPositionPda({
     programId,
@@ -4449,89 +5273,30 @@ export function buildPayPremiumSolV2Tx(params: {
     seriesRefHash,
     member: params.member,
   });
-  const data = concat([IX_PAY_PREMIUM_SOL_V2, encodeU64(params.periodIndex)]);
+  const data = concat([IX_PAY_PREMIUM_SOL, encodeU64(params.periodIndex)]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.payer, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
       { pubkey: coveragePolicy, isSigner: false, isWritable: true },
       { pubkey: params.member, isSigner: false, isWritable: false },
       { pubkey: coverageProduct, isSigner: false, isWritable: false },
-      { pubkey: coverageProductPaymentOption, isSigner: false, isWritable: false },
+      {
+        pubkey: coverageProductPaymentOption,
+        isSigner: false,
+        isWritable: false,
+      },
       { pubkey: premiumLedger, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.payer, recentBlockhash: params.recentBlockhash }).add(ix);
-}
-
-export function buildPayPremiumOnchainTx(params: {
-  payer: PublicKey;
-  poolAddress: PublicKey;
-  member: PublicKey;
-  seriesRefHashHex: string;
-  payoutMint: PublicKey;
-  periodIndex: bigint;
-  amount: bigint;
-  payerTokenAccount: PublicKey;
-  poolVaultTokenAccount: PublicKey;
-  recentBlockhash: string;
-}): Transaction {
-  const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
-  const seriesRefHash = asBytes32(params.seriesRefHashHex);
-  const policySeries = derivePolicySeriesPda({
-    programId,
-    poolAddress: params.poolAddress,
-    seriesRefHash,
-  });
-  const coveragePolicy = derivePolicyPositionPda({
-    programId,
-    poolAddress: params.poolAddress,
-    seriesRefHash,
-    member: params.member,
-  });
-  const poolAssetVault = derivePoolAssetVaultPda({
-    programId,
-    poolAddress: params.poolAddress,
-    payoutMint: params.payoutMint,
-  });
-  const premiumLedger = derivePremiumLedgerPda({
-    programId,
-    poolAddress: params.poolAddress,
-    seriesRefHash,
-    member: params.member,
-  });
-  const data = concat([
-    IX_PAY_PREMIUM_ONCHAIN,
-    seriesRefHash,
-    encodeU64(params.periodIndex),
-    encodeU64(params.amount),
-  ]);
-  const ix = new TransactionInstruction({
-    programId,
-    keys: [
-      { pubkey: params.payer, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
-      { pubkey: params.poolAddress, isSigner: false, isWritable: false },
-      { pubkey: poolTerms, isSigner: false, isWritable: false },
-      { pubkey: policySeries, isSigner: false, isWritable: false },
-      { pubkey: coveragePolicy, isSigner: false, isWritable: true },
-      { pubkey: params.member, isSigner: false, isWritable: false },
-      { pubkey: premiumLedger, isSigner: false, isWritable: true },
-      { pubkey: poolAssetVault, isSigner: false, isWritable: false },
-      { pubkey: params.payerTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.poolVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ],
-    data: Buffer.from(data),
-  });
-  return new Transaction({ feePayer: params.payer, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.payer,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildAttestPremiumPaidOffchainTx(params: {
@@ -4546,7 +5311,7 @@ export function buildAttestPremiumPaidOffchainTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
@@ -4597,7 +5362,7 @@ export function buildAttestPremiumPaidOffchainTx(params: {
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: poolOracle, isSigner: false, isWritable: false },
@@ -4610,7 +5375,10 @@ export function buildAttestPremiumPaidOffchainTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSubmitCoverageClaimTx(params: {
@@ -4625,7 +5393,7 @@ export function buildSubmitCoverageClaimTx(params: {
   includePoolCompliancePolicy?: boolean;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const policySeries = derivePolicySeriesPda({
     programId,
@@ -4638,7 +5406,10 @@ export function buildSubmitCoverageClaimTx(params: {
     seriesRefHash,
     member: params.member,
   });
-  const poolRiskConfig = derivePoolRiskConfigPda({ programId, poolAddress: params.poolAddress });
+  const poolRiskConfig = derivePoolRiskConfigPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const intentHash = asBytes32(params.intentHashHex);
   const coverageClaim = deriveCoverageClaimPda({
     programId,
@@ -4655,29 +5426,43 @@ export function buildSubmitCoverageClaimTx(params: {
     asBytes32(params.eventHashHex),
   ]);
   const keys = [
-      { pubkey: params.claimant, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
-      { pubkey: params.poolAddress, isSigner: false, isWritable: false },
-      { pubkey: policySeries, isSigner: false, isWritable: false },
-      { pubkey: coveragePolicy, isSigner: false, isWritable: true },
-      { pubkey: poolRiskConfig, isSigner: false, isWritable: true },
-      { pubkey: params.claimDelegate ?? programId, isSigner: false, isWritable: false },
-      { pubkey: coverageClaim, isSigner: false, isWritable: true },
-      {
-        pubkey: params.includePoolCompliancePolicy
-          ? derivePoolCompliancePolicyPda({ programId, poolAddress: params.poolAddress })
-          : programId,
-        isSigner: false,
-        isWritable: false,
-      },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    { pubkey: params.claimant, isSigner: true, isWritable: true },
+    { pubkey: config, isSigner: false, isWritable: false },
+    { pubkey: params.poolAddress, isSigner: false, isWritable: false },
+    { pubkey: policySeries, isSigner: false, isWritable: false },
+    { pubkey: coveragePolicy, isSigner: false, isWritable: true },
+    { pubkey: poolRiskConfig, isSigner: false, isWritable: true },
+    {
+      pubkey: params.claimDelegate ?? programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    { pubkey: coverageClaim, isSigner: false, isWritable: true },
+    {
+      pubkey: params.includePoolCompliancePolicy
+        ? derivePoolCompliancePolicyPda({
+            programId,
+            poolAddress: params.poolAddress,
+          })
+        : programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
-  return new Transaction({ feePayer: params.claimant, recentBlockhash: params.recentBlockhash }).add(ix);
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.claimant,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildReviewCoverageClaimTx(params: {
-  authority: PublicKey;
+  oracle: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
   seriesRefHashHex: string;
@@ -4691,7 +5476,18 @@ export function buildReviewCoverageClaimTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
+  const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
+  const poolOracle = derivePoolOraclePda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolOraclePermissions = derivePoolOraclePermissionsPda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
   const coverageClaim = deriveCoverageClaimPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4711,18 +5507,24 @@ export function buildReviewCoverageClaimTx(params: {
   const ix = new TransactionInstruction({
     programId,
     keys: [
-      { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: params.oracle, isSigner: true, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: false },
+      { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
+      { pubkey: poolOracle, isSigner: false, isWritable: false },
+      { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildAttachCoverageClaimDecisionSupportTx(params: {
-  authority: PublicKey;
+  oracle: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
   seriesRefHashHex: string;
@@ -4736,7 +5538,18 @@ export function buildAttachCoverageClaimDecisionSupportTx(params: {
   automationMode?: number;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
+  const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
+  const poolOracle = derivePoolOraclePda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolOraclePermissions = derivePoolOraclePermissionsPda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
   const coverageClaim = deriveCoverageClaimPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4744,7 +5557,10 @@ export function buildAttachCoverageClaimDecisionSupportTx(params: {
     member: params.member,
     intentHash: asBytes32(params.intentHashHex),
   });
-  const poolAutomationPolicy = derivePoolAutomationPolicyPda({ programId, poolAddress: params.poolAddress });
+  const poolAutomationPolicy = derivePoolAutomationPolicyPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const data = concat([
     IX_ATTACH_COVERAGE_CLAIM_DECISION_SUPPORT,
     asBytes32(params.aiDecisionHashHex ?? "00".repeat(32)),
@@ -4752,24 +5568,32 @@ export function buildAttachCoverageClaimDecisionSupportTx(params: {
     asBytes32(params.aiExecutionEnvironmentHashHex ?? "00".repeat(32)),
     asBytes32(params.aiAttestationRefHashHex ?? "00".repeat(32)),
     Uint8Array.from([(params.aiRole ?? AI_ROLE_NONE) & 0xff]),
-    Uint8Array.from([(params.automationMode ?? AUTOMATION_MODE_DISABLED) & 0xff]),
+    Uint8Array.from([
+      (params.automationMode ?? AUTOMATION_MODE_DISABLED) & 0xff,
+    ]),
   ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
-      { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: params.oracle, isSigner: true, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: false },
+      { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
+      { pubkey: poolOracle, isSigner: false, isWritable: false },
+      { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
       { pubkey: poolAutomationPolicy, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildApproveCoverageClaimTx(params: {
-  authority: PublicKey;
+  oracle: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
   seriesRefHashHex: string;
@@ -4783,8 +5607,22 @@ export function buildApproveCoverageClaimTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
+  const poolOracle = derivePoolOraclePda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolOraclePermissions = derivePoolOraclePermissionsPda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const coverageClaim = deriveCoverageClaimPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4806,23 +5644,33 @@ export function buildApproveCoverageClaimTx(params: {
   const ix = new TransactionInstruction({
     programId,
     keys: [
-      { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
-      { pubkey: params.poolAddress, isSigner: false, isWritable: true },
+      { pubkey: params.oracle, isSigner: true, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: false },
+      { pubkey: oracleEntry, isSigner: false, isWritable: false },
+      { pubkey: params.poolAddress, isSigner: false, isWritable: false },
+      { pubkey: poolOracle, isSigner: false, isWritable: false },
+      { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: poolTerms, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
       { pubkey: params.poolAssetVault, isSigner: false, isWritable: false },
-      { pubkey: params.poolVaultTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.poolVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildDenyCoverageClaimTx(params: {
-  authority: PublicKey;
+  oracle: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
   seriesRefHashHex: string;
@@ -4833,8 +5681,22 @@ export function buildDenyCoverageClaimTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
+  const poolOracle = derivePoolOraclePda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolOraclePermissions = derivePoolOraclePermissionsPda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const coverageClaim = deriveCoverageClaimPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4855,9 +5717,12 @@ export function buildDenyCoverageClaimTx(params: {
   const ix = new TransactionInstruction({
     programId,
     keys: [
-      { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
-      { pubkey: params.poolAddress, isSigner: false, isWritable: true },
+      { pubkey: params.oracle, isSigner: true, isWritable: true },
+      { pubkey: config, isSigner: false, isWritable: false },
+      { pubkey: oracleEntry, isSigner: false, isWritable: false },
+      { pubkey: params.poolAddress, isSigner: false, isWritable: false },
+      { pubkey: poolOracle, isSigner: false, isWritable: false },
+      { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: poolTerms, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
@@ -4865,7 +5730,10 @@ export function buildDenyCoverageClaimTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildPayCoverageClaimTx(params: {
@@ -4884,8 +5752,11 @@ export function buildPayCoverageClaimTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const coverageClaim = deriveCoverageClaimPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4903,22 +5774,114 @@ export function buildPayCoverageClaimTx(params: {
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
       { pubkey: poolTerms, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
       { pubkey: params.claimant, isSigner: false, isWritable: false },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: params.poolAssetVault, isSigner: false, isWritable: false },
-      { pubkey: params.poolVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.poolVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.recipientTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
+}
+
+export function buildClaimApprovedCoveragePayoutTx(params: {
+  claimSigner: PublicKey;
+  claimant: PublicKey;
+  poolAddress: PublicKey;
+  member: PublicKey;
+  seriesRefHashHex: string;
+  intentHashHex: string;
+  payoutAmount: bigint;
+  payoutMint: PublicKey;
+  recipientSystemAccount: PublicKey;
+  poolAssetVault: PublicKey;
+  poolVaultTokenAccount: PublicKey;
+  recipientTokenAccount: PublicKey;
+  claimDelegate?: PublicKey;
+  recentBlockhash: string;
+}): Transaction {
+  const programId = getProgramId();
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
+  const coverageClaim = deriveCoverageClaimPda({
+    programId,
+    poolAddress: params.poolAddress,
+    seriesRefHash: asBytes32(params.seriesRefHashHex),
+    member: params.member,
+    intentHash: asBytes32(params.intentHashHex),
+  });
+  const poolTreasuryReserve = derivePoolTreasuryReservePda({
+    programId,
+    poolAddress: params.poolAddress,
+    paymentMint: params.payoutMint,
+  });
+  const claimDelegate = params.claimSigner.equals(params.claimant)
+    ? programId
+    : (params.claimDelegate ??
+      deriveClaimDelegatePda({
+        programId,
+        poolAddress: params.poolAddress,
+        member: params.claimant,
+      }));
+  const data = concat([
+    IX_CLAIM_APPROVED_COVERAGE_PAYOUT,
+    encodeU64(params.payoutAmount),
+  ]);
+  const keys = [
+    { pubkey: params.claimSigner, isSigner: true, isWritable: true },
+    { pubkey: config, isSigner: false, isWritable: false },
+    { pubkey: params.poolAddress, isSigner: false, isWritable: true },
+    { pubkey: poolTerms, isSigner: false, isWritable: false },
+    { pubkey: coverageClaim, isSigner: false, isWritable: true },
+    { pubkey: params.claimant, isSigner: false, isWritable: false },
+    { pubkey: claimDelegate, isSigner: false, isWritable: false },
+    { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
+    {
+      pubkey: params.recipientSystemAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    { pubkey: params.poolAssetVault, isSigner: false, isWritable: false },
+    { pubkey: params.poolVaultTokenAccount, isSigner: false, isWritable: true },
+    { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(data),
+  });
+  return new Transaction({
+    feePayer: params.claimSigner,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildCloseCoverageClaimTx(params: {
@@ -4932,8 +5895,11 @@ export function buildCloseCoverageClaimTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const coverageClaim = deriveCoverageClaimPda({
     programId,
     poolAddress: params.poolAddress,
@@ -4946,12 +5912,15 @@ export function buildCloseCoverageClaimTx(params: {
     poolAddress: params.poolAddress,
     paymentMint: params.payoutMint,
   });
-  const data = concat([IX_CLOSE_COVERAGE_CLAIM, encodeU64(params.recoveryAmount)]);
+  const data = concat([
+    IX_CLOSE_COVERAGE_CLAIM,
+    encodeU64(params.recoveryAmount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.authority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
       { pubkey: poolTerms, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
@@ -4960,11 +5929,14 @@ export function buildCloseCoverageClaimTx(params: {
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.authority,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildSettleCoverageClaimTx(params: {
-  authority: PublicKey;
+  oracle: PublicKey;
   claimant: PublicKey;
   poolAddress: PublicKey;
   member: PublicKey;
@@ -4979,8 +5951,22 @@ export function buildSettleCoverageClaimTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
-  const poolTerms = derivePoolTermsPda({ programId, poolAddress: params.poolAddress });
+  const config = deriveConfigPda(programId);
+  const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
+  const poolOracle = derivePoolOraclePda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolOraclePermissions = derivePoolOraclePermissionsPda({
+    programId,
+    poolAddress: params.poolAddress,
+    oracle: params.oracle,
+  });
+  const poolTerms = derivePoolTermsPda({
+    programId,
+    poolAddress: params.poolAddress,
+  });
   const seriesRefHash = asBytes32(params.seriesRefHashHex);
   const coveragePolicy = derivePolicyPositionPda({
     programId,
@@ -5000,28 +5986,49 @@ export function buildSettleCoverageClaimTx(params: {
     poolAddress: params.poolAddress,
     paymentMint: params.payoutMint,
   });
-  const data = concat([IX_SETTLE_COVERAGE_CLAIM, encodeU64(params.payoutAmount)]);
+  const data = concat([
+    IX_SETTLE_COVERAGE_CLAIM,
+    encodeU64(params.payoutAmount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
-      { pubkey: params.authority, isSigner: true, isWritable: false },
+      { pubkey: params.oracle, isSigner: true, isWritable: true },
       { pubkey: params.claimant, isSigner: true, isWritable: false },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
+      { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
+      { pubkey: poolOracle, isSigner: false, isWritable: false },
+      { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: poolTerms, isSigner: false, isWritable: false },
       { pubkey: coverageClaim, isSigner: false, isWritable: true },
       { pubkey: coveragePolicy, isSigner: false, isWritable: true },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: params.poolAssetVault, isSigner: false, isWritable: false },
-      { pubkey: params.poolVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.poolVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.recipientTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.authority, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildWithdrawPoolTreasurySplTx(params: {
@@ -5033,7 +6040,7 @@ export function buildWithdrawPoolTreasurySplTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
     programId,
@@ -5059,12 +6066,15 @@ export function buildWithdrawPoolTreasurySplTx(params: {
     mint: params.paymentMint,
     authority: poolAssetVault,
   });
-  const data = concat([IX_WITHDRAW_POOL_TREASURY_SPL, encodeU64(params.amount)]);
+  const data = concat([
+    IX_WITHDRAW_POOL_TREASURY_SPL,
+    encodeU64(params.amount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: poolOracle, isSigner: false, isWritable: false },
@@ -5073,12 +6083,19 @@ export function buildWithdrawPoolTreasurySplTx(params: {
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
       { pubkey: poolAssetVault, isSigner: false, isWritable: false },
       { pubkey: poolVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildWithdrawPoolTreasurySolTx(params: {
@@ -5089,7 +6106,7 @@ export function buildWithdrawPoolTreasurySolTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOracle = derivePoolOraclePda({
     programId,
@@ -5106,22 +6123,32 @@ export function buildWithdrawPoolTreasurySolTx(params: {
     poolAddress: params.poolAddress,
     paymentMint: ZERO_PUBKEY_KEY,
   });
-  const data = concat([IX_WITHDRAW_POOL_TREASURY_SOL, encodeU64(params.amount)]);
+  const data = concat([
+    IX_WITHDRAW_POOL_TREASURY_SOL,
+    encodeU64(params.amount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: true },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: poolOracle, isSigner: false, isWritable: false },
       { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: poolTreasuryReserve, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildWithdrawProtocolFeeSplTx(params: {
@@ -5132,7 +6159,7 @@ export function buildWithdrawProtocolFeeSplTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const protocolFeeVault = deriveProtocolFeeVaultPda({
     programId,
     paymentMint: params.paymentMint,
@@ -5146,11 +6173,19 @@ export function buildWithdrawProtocolFeeSplTx(params: {
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.paymentMint, isSigner: false, isWritable: true },
       { pubkey: protocolFeeVault, isSigner: false, isWritable: true },
-      { pubkey: protocolFeeVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: protocolFeeVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.recipientTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
@@ -5168,7 +6203,7 @@ export function buildWithdrawProtocolFeeSolTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const protocolFeeVault = deriveProtocolFeeVaultPda({
     programId,
     paymentMint: ZERO_PUBKEY_KEY,
@@ -5178,9 +6213,13 @@ export function buildWithdrawProtocolFeeSolTx(params: {
     programId,
     keys: [
       { pubkey: params.governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: protocolFeeVault, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
     ],
     data: Buffer.from(data),
   });
@@ -5199,7 +6238,7 @@ export function buildWithdrawPoolOracleFeeSplTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOraclePermissions = derivePoolOraclePermissionsPda({
     programId,
@@ -5216,24 +6255,38 @@ export function buildWithdrawPoolOracleFeeSplTx(params: {
     mint: params.paymentMint,
     authority: poolOracleFeeVault,
   });
-  const data = concat([IX_WITHDRAW_POOL_ORACLE_FEE_SPL, encodeU64(params.amount)]);
+  const data = concat([
+    IX_WITHDRAW_POOL_ORACLE_FEE_SPL,
+    encodeU64(params.amount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: params.paymentMint, isSigner: false, isWritable: true },
       { pubkey: poolOracleFeeVault, isSigner: false, isWritable: true },
-      { pubkey: poolOracleFeeVaultTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: params.recipientTokenAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: poolOracleFeeVaultTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.recipientTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export function buildWithdrawPoolOracleFeeSolTx(params: {
@@ -5244,7 +6297,7 @@ export function buildWithdrawPoolOracleFeeSolTx(params: {
   recentBlockhash: string;
 }): Transaction {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
   const oracleEntry = deriveOraclePda({ programId, oracle: params.oracle });
   const poolOraclePermissions = derivePoolOraclePermissionsPda({
     programId,
@@ -5257,25 +6310,35 @@ export function buildWithdrawPoolOracleFeeSolTx(params: {
     oracle: params.oracle,
     paymentMint: ZERO_PUBKEY_KEY,
   });
-  const data = concat([IX_WITHDRAW_POOL_ORACLE_FEE_SOL, encodeU64(params.amount)]);
+  const data = concat([
+    IX_WITHDRAW_POOL_ORACLE_FEE_SOL,
+    encodeU64(params.amount),
+  ]);
   const ix = new TransactionInstruction({
     programId,
     keys: [
       { pubkey: params.oracle, isSigner: true, isWritable: true },
-      { pubkey: configV2, isSigner: false, isWritable: false },
+      { pubkey: config, isSigner: false, isWritable: false },
       { pubkey: params.poolAddress, isSigner: false, isWritable: false },
       { pubkey: oracleEntry, isSigner: false, isWritable: false },
       { pubkey: poolOraclePermissions, isSigner: false, isWritable: false },
       { pubkey: poolOracleFeeVault, isSigner: false, isWritable: true },
-      { pubkey: params.recipientSystemAccount, isSigner: false, isWritable: true },
+      {
+        pubkey: params.recipientSystemAccount,
+        isSigner: false,
+        isWritable: true,
+      },
     ],
     data: Buffer.from(data),
   });
-  return new Transaction({ feePayer: params.oracle, recentBlockhash: params.recentBlockhash }).add(ix);
+  return new Transaction({
+    feePayer: params.oracle,
+    recentBlockhash: params.recentBlockhash,
+  }).add(ix);
 }
 
 export type ProtocolReadiness = {
-  configV2Initialized: boolean;
+  configInitialized: boolean;
   poolExists: boolean;
   poolTermsConfigured: boolean;
   poolAssetVaultConfigured: boolean;
@@ -5293,7 +6356,7 @@ export type ProtocolReadiness = {
   coveragePolicyNftExists: boolean;
   premiumLedgerTracked: boolean;
   derived: {
-    configV2Address: string;
+    configAddress: string;
     poolAddress: string | null;
     poolTermsAddress: string | null;
     poolAssetVaultAddress: string | null;
@@ -5313,7 +6376,10 @@ export type ProtocolReadiness = {
   };
 };
 
-async function accountExists(connection: Connection, address: PublicKey): Promise<boolean> {
+async function accountExists(
+  connection: Connection,
+  address: PublicKey,
+): Promise<boolean> {
   return (await connection.getAccountInfo(address, "confirmed")) != null;
 }
 
@@ -5330,23 +6396,45 @@ export async function fetchProtocolReadiness(params: {
   ruleHashHex?: string | null;
 }): Promise<ProtocolReadiness> {
   const programId = getProgramId();
-  const configV2 = deriveConfigV2Pda(programId);
+  const config = deriveConfigPda(programId);
 
-  const parsedPool = params.poolAddress ? new PublicKey(params.poolAddress) : null;
-  const parsedOracle = params.oracleAddress ? new PublicKey(params.oracleAddress) : null;
-  const parsedStaker = params.stakerAddress ? new PublicKey(params.stakerAddress) : null;
-  const parsedInviteIssuer = params.inviteIssuerAddress ? new PublicKey(params.inviteIssuerAddress) : null;
-  const parsedMember = params.memberAddress ? new PublicKey(params.memberAddress) : null;
-  const parsedPayoutMint = params.payoutMintAddress ? new PublicKey(params.payoutMintAddress) : null;
-  const seriesRefHash = params.seriesRefHashHex ? asBytes32(params.seriesRefHashHex) : null;
-  const schemaKeyHash = params.schemaKeyHashHex ? asBytes32(params.schemaKeyHashHex) : null;
+  const parsedPool = params.poolAddress
+    ? new PublicKey(params.poolAddress)
+    : null;
+  const parsedOracle = params.oracleAddress
+    ? new PublicKey(params.oracleAddress)
+    : null;
+  const parsedStaker = params.stakerAddress
+    ? new PublicKey(params.stakerAddress)
+    : null;
+  const parsedInviteIssuer = params.inviteIssuerAddress
+    ? new PublicKey(params.inviteIssuerAddress)
+    : null;
+  const parsedMember = params.memberAddress
+    ? new PublicKey(params.memberAddress)
+    : null;
+  const parsedPayoutMint = params.payoutMintAddress
+    ? new PublicKey(params.payoutMintAddress)
+    : null;
+  const seriesRefHash = params.seriesRefHashHex
+    ? asBytes32(params.seriesRefHashHex)
+    : null;
+  const schemaKeyHash = params.schemaKeyHashHex
+    ? asBytes32(params.schemaKeyHashHex)
+    : null;
   const ruleHash = params.ruleHashHex ? asBytes32(params.ruleHashHex) : null;
 
-  const configV2Initialized = await accountExists(params.connection, configV2);
-  const poolExists = parsedPool ? await accountExists(params.connection, parsedPool) : false;
+  const configInitialized = await accountExists(params.connection, config);
+  const poolExists = parsedPool
+    ? await accountExists(params.connection, parsedPool)
+    : false;
 
-  const poolTerms = parsedPool ? derivePoolTermsPda({ programId, poolAddress: parsedPool }) : null;
-  const poolTermsInfo = poolTerms ? await params.connection.getAccountInfo(poolTerms, "confirmed") : null;
+  const poolTerms = parsedPool
+    ? derivePoolTermsPda({ programId, poolAddress: parsedPool })
+    : null;
+  const poolTermsInfo = poolTerms
+    ? await params.connection.getAccountInfo(poolTerms, "confirmed")
+    : null;
   const poolTermsConfigured = Boolean(poolTermsInfo);
 
   let effectivePayoutMint: PublicKey | null = parsedPayoutMint;
@@ -5370,28 +6458,53 @@ export async function fetchProtocolReadiness(params: {
         poolAddress: parsedPool,
         payoutMint: effectivePayoutMint,
       });
-      poolAssetVaultConfigured = await accountExists(params.connection, poolAssetVault);
+      poolAssetVaultConfigured = await accountExists(
+        params.connection,
+        poolAssetVault,
+      );
     }
   }
 
-  const oracleEntry = parsedOracle ? deriveOraclePda({ programId, oracle: parsedOracle }) : null;
-  const oracleRegistered = oracleEntry ? await accountExists(params.connection, oracleEntry) : false;
-  const oracleProfile = parsedOracle ? deriveOracleProfilePda({ programId, oracle: parsedOracle }) : null;
-  const oracleProfileExists = oracleProfile ? await accountExists(params.connection, oracleProfile) : false;
-
-  const poolOracle = parsedPool && parsedOracle
-    ? derivePoolOraclePda({ programId, poolAddress: parsedPool, oracle: parsedOracle })
+  const oracleEntry = parsedOracle
+    ? deriveOraclePda({ programId, oracle: parsedOracle })
     : null;
-  const poolOracleApproved = poolOracle ? await accountExists(params.connection, poolOracle) : false;
+  const oracleRegistered = oracleEntry
+    ? await accountExists(params.connection, oracleEntry)
+    : false;
+  const oracleProfile = parsedOracle
+    ? deriveOracleProfilePda({ programId, oracle: parsedOracle })
+    : null;
+  const oracleProfileExists = oracleProfile
+    ? await accountExists(params.connection, oracleProfile)
+    : false;
 
-  const poolOraclePolicy = parsedPool ? derivePoolOraclePolicyPda({ programId, poolAddress: parsedPool }) : null;
+  const poolOracle =
+    parsedPool && parsedOracle
+      ? derivePoolOraclePda({
+          programId,
+          poolAddress: parsedPool,
+          oracle: parsedOracle,
+        })
+      : null;
+  const poolOracleApproved = poolOracle
+    ? await accountExists(params.connection, poolOracle)
+    : false;
+
+  const poolOraclePolicy = parsedPool
+    ? derivePoolOraclePolicyPda({ programId, poolAddress: parsedPool })
+    : null;
   const poolOraclePolicyConfigured = poolOraclePolicy
     ? await accountExists(params.connection, poolOraclePolicy)
     : false;
 
-  const oracleStakePosition = parsedOracle && parsedStaker
-    ? deriveOracleStakePda({ programId, oracle: parsedOracle, staker: parsedStaker })
-    : null;
+  const oracleStakePosition =
+    parsedOracle && parsedStaker
+      ? deriveOracleStakePda({
+          programId,
+          oracle: parsedOracle,
+          staker: parsedStaker,
+        })
+      : null;
   const oracleStakePositionExists = oracleStakePosition
     ? await accountExists(params.connection, oracleStakePosition)
     : false;
@@ -5399,43 +6512,95 @@ export async function fetchProtocolReadiness(params: {
   const inviteIssuer = parsedInviteIssuer
     ? deriveInviteIssuerPda({ programId, issuer: parsedInviteIssuer })
     : null;
-  const inviteIssuerRegistered = inviteIssuer ? await accountExists(params.connection, inviteIssuer) : false;
+  const inviteIssuerRegistered = inviteIssuer
+    ? await accountExists(params.connection, inviteIssuer)
+    : false;
 
-  const membership = parsedPool && parsedMember
-    ? deriveMembershipPda({ programId, poolAddress: parsedPool, member: parsedMember })
+  const membership =
+    parsedPool && parsedMember
+      ? deriveMembershipPda({
+          programId,
+          poolAddress: parsedPool,
+          member: parsedMember,
+        })
+      : null;
+  const memberEnrolled = membership
+    ? await accountExists(params.connection, membership)
+    : false;
+
+  const claimDelegate =
+    parsedPool && parsedMember
+      ? deriveClaimDelegatePda({
+          programId,
+          poolAddress: parsedPool,
+          member: parsedMember,
+        })
+      : null;
+  const claimDelegateConfigured = claimDelegate
+    ? await accountExists(params.connection, claimDelegate)
+    : false;
+
+  const schema = schemaKeyHash
+    ? deriveSchemaPda({ programId, schemaKeyHash })
     : null;
-  const memberEnrolled = membership ? await accountExists(params.connection, membership) : false;
+  const schemaRegistered = schema
+    ? await accountExists(params.connection, schema)
+    : false;
 
-  const claimDelegate = parsedPool && parsedMember
-    ? deriveClaimDelegatePda({ programId, poolAddress: parsedPool, member: parsedMember })
-    : null;
-  const claimDelegateConfigured = claimDelegate ? await accountExists(params.connection, claimDelegate) : false;
+  const rule =
+    parsedPool && seriesRefHash && ruleHash
+      ? derivePoolRulePda({
+          programId,
+          poolAddress: parsedPool,
+          seriesRefHash,
+          ruleHash,
+        })
+      : null;
+  const ruleRegistered = rule
+    ? await accountExists(params.connection, rule)
+    : false;
 
-  const schema = schemaKeyHash ? deriveSchemaPda({ programId, schemaKeyHash }) : null;
-  const schemaRegistered = schema ? await accountExists(params.connection, schema) : false;
+  const coveragePolicy =
+    parsedPool && seriesRefHash && parsedMember
+      ? derivePolicyPositionPda({
+          programId,
+          poolAddress: parsedPool,
+          seriesRefHash,
+          member: parsedMember,
+        })
+      : null;
+  const coveragePolicyExists = coveragePolicy
+    ? await accountExists(params.connection, coveragePolicy)
+    : false;
 
-  const rule = parsedPool && seriesRefHash && ruleHash
-    ? derivePoolRulePda({ programId, poolAddress: parsedPool, seriesRefHash, ruleHash })
-    : null;
-  const ruleRegistered = rule ? await accountExists(params.connection, rule) : false;
+  const coverageNft =
+    parsedPool && seriesRefHash && parsedMember
+      ? derivePolicyPositionNftPda({
+          programId,
+          poolAddress: parsedPool,
+          seriesRefHash,
+          member: parsedMember,
+        })
+      : null;
+  const coveragePolicyNftExists = coverageNft
+    ? await accountExists(params.connection, coverageNft)
+    : false;
 
-  const coveragePolicy = parsedPool && seriesRefHash && parsedMember
-    ? derivePolicyPositionPda({ programId, poolAddress: parsedPool, seriesRefHash, member: parsedMember })
-    : null;
-  const coveragePolicyExists = coveragePolicy ? await accountExists(params.connection, coveragePolicy) : false;
-
-  const coverageNft = parsedPool && seriesRefHash && parsedMember
-    ? derivePolicyPositionNftPda({ programId, poolAddress: parsedPool, seriesRefHash, member: parsedMember })
-    : null;
-  const coveragePolicyNftExists = coverageNft ? await accountExists(params.connection, coverageNft) : false;
-
-  const premiumLedger = parsedPool && seriesRefHash && parsedMember
-    ? derivePremiumLedgerPda({ programId, poolAddress: parsedPool, seriesRefHash, member: parsedMember })
-    : null;
-  const premiumLedgerTracked = premiumLedger ? await accountExists(params.connection, premiumLedger) : false;
+  const premiumLedger =
+    parsedPool && seriesRefHash && parsedMember
+      ? derivePremiumLedgerPda({
+          programId,
+          poolAddress: parsedPool,
+          seriesRefHash,
+          member: parsedMember,
+        })
+      : null;
+  const premiumLedgerTracked = premiumLedger
+    ? await accountExists(params.connection, premiumLedger)
+    : false;
 
   return {
-    configV2Initialized,
+    configInitialized,
     poolExists,
     poolTermsConfigured,
     poolAssetVaultConfigured,
@@ -5453,7 +6618,7 @@ export async function fetchProtocolReadiness(params: {
     coveragePolicyNftExists,
     premiumLedgerTracked,
     derived: {
-      configV2Address: configV2.toBase58(),
+      configAddress: config.toBase58(),
       poolAddress: parsedPool?.toBase58() ?? null,
       poolTermsAddress: poolTerms?.toBase58() ?? null,
       poolAssetVaultAddress: poolAssetVault?.toBase58() ?? null,
@@ -5673,6 +6838,99 @@ export type PoolAutomationPolicySummary = {
   bump: number;
 };
 
+export type ProtocolConfigSummary = {
+  address: string;
+  admin: string;
+  governanceAuthority: string;
+  governanceRealm: string;
+  governanceConfig: string;
+  defaultStakeMint: string;
+  protocolFeeBps: number;
+  minOracleStake: bigint;
+  emergencyPaused: boolean;
+  allowedPayoutMintsHashHex: string;
+  bump: number;
+};
+
+export type OracleStakePositionSummary = {
+  address: string;
+  oracle: string;
+  staker: string;
+  stakeMint: string;
+  stakeVault: string;
+  stakedAmount: bigint;
+  pendingUnstakeAmount: bigint;
+  canFinalizeUnstakeAt: bigint;
+  slashPending: boolean;
+  bump: number;
+};
+
+export type PoolOraclePermissionSetSummary = {
+  address: string;
+  pool: string;
+  oracle: string;
+  permissions: number;
+  bump: number;
+};
+
+export type PolicySeriesPaymentOptionSummary = {
+  address: string;
+  pool: string;
+  seriesRefHashHex: string;
+  paymentMint: string;
+  paymentAmount: bigint;
+  active: boolean;
+  bump: number;
+};
+
+export type PolicyPositionSummary = {
+  address: string;
+  pool: string;
+  member: string;
+  seriesRefHashHex: string;
+  termsHashHex: string;
+  status: number;
+  startsAt: bigint;
+  endsAt: bigint;
+  premiumDueEverySecs: bigint;
+  premiumGraceSecs: bigint;
+  nextDueAt: bigint;
+  nftMint: string;
+  bump: number;
+};
+
+export type PolicyPositionNftSummary = {
+  address: string;
+  pool: string;
+  member: string;
+  seriesRefHashHex: string;
+  nftMint: string;
+  metadataUri: string;
+  bump: number;
+};
+
+export type ClaimDelegateAuthorizationSummary = {
+  address: string;
+  pool: string;
+  member: string;
+  delegate: string;
+  active: boolean;
+  updatedAt: bigint;
+  bump: number;
+};
+
+export type PremiumLedgerSummary = {
+  address: string;
+  pool: string;
+  seriesRefHashHex: string;
+  member: string;
+  periodIndex: bigint;
+  amount: bigint;
+  source: number;
+  paidAt: bigint;
+  bump: number;
+};
+
 export type PoolCapitalMetricsSummary = {
   transitionalSharePath: boolean;
   pool: string | null;
@@ -5701,7 +6959,11 @@ export type PoolCapitalMetricsSummary = {
 };
 
 export type CapitalClassIntegrationPolicySummary = {
-  marketParticipationMode: "transitional" | "direct" | "restricted" | "wrapper-mediated";
+  marketParticipationMode:
+    | "transitional"
+    | "direct"
+    | "restricted"
+    | "wrapper-mediated";
   directSecondaryTransfersAllowed: boolean;
   wrapperRequired: boolean;
   restrictionSurvivesTransfer: boolean;
@@ -5725,6 +6987,68 @@ export type PoolTreasuryReserveSummary = {
   recoveredCoverageClaimAmount: bigint;
   impairedAmount: bigint;
   lastLiabilityUpdateTs: bigint;
+  bump: number;
+};
+
+export type MemberCycleStateSummary = {
+  address: string;
+  pool: string;
+  member: string;
+  seriesRefHashHex: string;
+  periodIndex: bigint;
+  paymentMint: string;
+  premiumAmountRaw: bigint;
+  bondAmountRaw: bigint;
+  shieldFeeRaw: bigint;
+  protocolFeeRaw: bigint;
+  oracleFeeRaw: bigint;
+  netPoolPremiumRaw: bigint;
+  totalAmountRaw: bigint;
+  canonicalPremiumAmount: bigint;
+  commitmentEnabled: boolean;
+  thresholdBps: number;
+  outcomeThresholdScore: number;
+  cohortHashHex: string;
+  settledHealthAlphaScore: number;
+  includedShieldCount: number;
+  shieldConsumed: boolean;
+  status: number;
+  passed: boolean;
+  activatedAt: bigint;
+  settledAt: bigint;
+  quoteHashHex: string;
+  bump: number;
+};
+
+export type CohortSettlementRootSummary = {
+  address: string;
+  pool: string;
+  seriesRefHashHex: string;
+  paymentMint: string;
+  cohortHashHex: string;
+  outcomeThresholdScore: number;
+  successfulMemberCount: number;
+  successfulHealthAlphaScoreSum: bigint;
+  redistributableFailedBondsTotal: bigint;
+  redistributionClaimedAmount: bigint;
+  successfulClaimCount: number;
+  finalized: boolean;
+  zeroSuccessReleased: boolean;
+  finalizedAt: bigint;
+  bump: number;
+};
+
+export type ProtocolFeeVaultSummary = {
+  address: string;
+  paymentMint: string;
+  bump: number;
+};
+
+export type PoolOracleFeeVaultSummary = {
+  address: string;
+  pool: string;
+  oracle: string;
+  paymentMint: string;
   bump: number;
 };
 
@@ -5910,6 +7234,13 @@ export type RewardClaimSummary = {
   bump: number;
 };
 
+export type SchemaDependencyLedgerSummary = {
+  address: string;
+  schemaKeyHashHex: string;
+  activeRuleRefcount: number;
+  bump: number;
+};
+
 export type PoolWithPolicySeriesSummary = PoolSummary & {
   policySeries: PolicySeriesSummary[];
   policySeriesCount: number;
@@ -5952,9 +7283,12 @@ export function buildPoolCapitalMetrics(params: {
     ? computePoolEncumberedCapital({
         reservedRefundAmount: params.treasuryReserve.reservedRefundAmount,
         reservedRewardAmount: params.treasuryReserve.reservedRewardAmount,
-        reservedRedistributionAmount: params.treasuryReserve.reservedRedistributionAmount,
-        manualCoverageReserveAmount: params.treasuryReserve.manualCoverageReserveAmount,
-        reservedCoverageClaimAmount: params.treasuryReserve.reservedCoverageClaimAmount,
+        reservedRedistributionAmount:
+          params.treasuryReserve.reservedRedistributionAmount,
+        manualCoverageReserveAmount:
+          params.treasuryReserve.manualCoverageReserveAmount,
+        reservedCoverageClaimAmount:
+          params.treasuryReserve.reservedCoverageClaimAmount,
         impairedAmount: params.treasuryReserve.impairedAmount,
       })
     : 0n;
@@ -5963,33 +7297,51 @@ export function buildPoolCapitalMetrics(params: {
     encumberedCapital: encumberedCapitalRaw,
   });
   const classMode = params.capitalClass?.classMode ?? CAPITAL_CLASS_MODE_NAV;
-  const redemptionQueueEnabled = params.capitalClass?.redemptionQueueEnabled ?? false;
-  const redemptionMode = params.riskConfig?.redemptionMode ?? POOL_REDEMPTION_MODE_OPEN;
-  const queueOnly = redemptionQueueEnabled || redemptionMode === POOL_REDEMPTION_MODE_QUEUE_ONLY;
+  const redemptionQueueEnabled =
+    params.capitalClass?.redemptionQueueEnabled ?? false;
+  const redemptionMode =
+    params.riskConfig?.redemptionMode ?? POOL_REDEMPTION_MODE_OPEN;
+  const queueOnly =
+    redemptionQueueEnabled ||
+    redemptionMode === POOL_REDEMPTION_MODE_QUEUE_ONLY;
   const availableRedemptionRaw =
-    queueOnly || redemptionMode === POOL_REDEMPTION_MODE_PAUSED ? 0n : freeCapitalRaw;
+    queueOnly || redemptionMode === POOL_REDEMPTION_MODE_PAUSED
+      ? 0n
+      : freeCapitalRaw;
   const distributionLockedRaw =
-    classMode === CAPITAL_CLASS_MODE_DISTRIBUTION || classMode === CAPITAL_CLASS_MODE_HYBRID
-      ? params.treasuryReserve?.reservedRedistributionAmount ?? 0n
+    classMode === CAPITAL_CLASS_MODE_DISTRIBUTION ||
+    classMode === CAPITAL_CLASS_MODE_HYBRID
+      ? (params.treasuryReserve?.reservedRedistributionAmount ?? 0n)
       : 0n;
   return {
     transitionalSharePath: !params.capitalClass,
-    pool: params.capitalClass?.pool ?? params.riskConfig?.pool ?? params.treasuryReserve?.pool ?? null,
+    pool:
+      params.capitalClass?.pool ??
+      params.riskConfig?.pool ??
+      params.treasuryReserve?.pool ??
+      null,
     shareMint: params.capitalClass?.shareMint ?? null,
-    payoutMint: params.capitalClass?.payoutMint ?? params.treasuryReserve?.paymentMint ?? null,
+    payoutMint:
+      params.capitalClass?.payoutMint ??
+      params.treasuryReserve?.paymentMint ??
+      null,
     classIdHashHex: params.capitalClass?.classIdHashHex ?? null,
     seriesRefHashHex: params.capitalClass?.seriesRefHashHex ?? null,
-    complianceProfileHashHex: params.capitalClass?.complianceProfileHashHex ?? null,
+    complianceProfileHashHex:
+      params.capitalClass?.complianceProfileHashHex ?? null,
     classMode,
     classPriority: params.capitalClass?.classPriority ?? null,
-    transferMode: params.capitalClass?.transferMode ?? CAPITAL_TRANSFER_MODE_PERMISSIONLESS,
+    transferMode:
+      params.capitalClass?.transferMode ?? CAPITAL_TRANSFER_MODE_PERMISSIONLESS,
     restricted: params.capitalClass?.restricted ?? false,
     redemptionQueueEnabled,
     ringFenced: params.capitalClass?.ringFenced ?? false,
     vintageIndex: params.capitalClass?.vintageIndex ?? null,
     redemptionMode,
     claimMode: params.riskConfig?.claimMode ?? POOL_CLAIM_MODE_OPEN,
-    impaired: (params.riskConfig?.impaired ?? false) || (params.treasuryReserve?.impairedAmount ?? 0n) > 0n,
+    impaired:
+      (params.riskConfig?.impaired ?? false) ||
+      (params.treasuryReserve?.impairedAmount ?? 0n) > 0n,
     reservesRaw: params.reservesRaw,
     encumberedCapitalRaw,
     freeCapitalRaw,
@@ -6012,16 +7364,22 @@ function maxBigInt(a: bigint, b: bigint): bigint {
 
 function coverageClaimOutstandingAmount(claim: CoverageClaimSummary): bigint {
   if (
-    claim.status === COVERAGE_CLAIM_STATUS_DENIED
-    || claim.status === COVERAGE_CLAIM_STATUS_CLOSED
-    || claim.status === COVERAGE_CLAIM_STATUS_PAID
+    claim.status === COVERAGE_CLAIM_STATUS_DENIED ||
+    claim.status === COVERAGE_CLAIM_STATUS_CLOSED ||
+    claim.status === COVERAGE_CLAIM_STATUS_PAID
   ) {
     return 0n;
   }
-  if (claim.status === COVERAGE_CLAIM_STATUS_SUBMITTED || claim.status === COVERAGE_CLAIM_STATUS_UNDER_REVIEW) {
+  if (
+    claim.status === COVERAGE_CLAIM_STATUS_SUBMITTED ||
+    claim.status === COVERAGE_CLAIM_STATUS_UNDER_REVIEW
+  ) {
     return claim.requestedAmount;
   }
-  const unpaidApproved = claim.approvedAmount > claim.paidAmount ? claim.approvedAmount - claim.paidAmount : 0n;
+  const unpaidApproved =
+    claim.approvedAmount > claim.paidAmount
+      ? claim.approvedAmount - claim.paidAmount
+      : 0n;
   return maxBigInt(claim.reservedAmount, unpaidApproved);
 }
 
@@ -6040,18 +7398,31 @@ export function buildWalletPoolPositionSummary(params: {
   const rewardClaims = params.rewardClaims ?? [];
   const capitalExposureRaw =
     params.shareSupplyRaw > 0n
-      ? (params.shareBalanceRaw * params.capitalMetrics.freeCapitalRaw) / params.shareSupplyRaw
+      ? (params.shareBalanceRaw * params.capitalMetrics.freeCapitalRaw) /
+        params.shareSupplyRaw
       : 0n;
   const currentlyRedeemableRaw =
     params.shareSupplyRaw > 0n
-      ? (params.shareBalanceRaw * params.capitalMetrics.availableRedemptionRaw) / params.shareSupplyRaw
+      ? (params.shareBalanceRaw *
+          params.capitalMetrics.availableRedemptionRaw) /
+        params.shareSupplyRaw
       : 0n;
 
   return {
     owner: params.ownerAddress,
-    pool: params.capitalMetrics.pool ?? params.membership?.pool ?? coverageClaims[0]?.pool ?? rewardClaims[0]?.pool ?? null,
-    memberAddress: params.membership?.member ?? coverageClaims[0]?.member ?? rewardClaims[0]?.member ?? null,
-    memberPositionActive: params.membership?.status === MEMBERSHIP_STATUS_ACTIVE,
+    pool:
+      params.capitalMetrics.pool ??
+      params.membership?.pool ??
+      coverageClaims[0]?.pool ??
+      rewardClaims[0]?.pool ??
+      null,
+    memberAddress:
+      params.membership?.member ??
+      coverageClaims[0]?.member ??
+      rewardClaims[0]?.member ??
+      null,
+    memberPositionActive:
+      params.membership?.status === MEMBERSHIP_STATUS_ACTIVE,
     capitalPositionActive: params.shareBalanceRaw > 0n,
     transitionalSharePath: params.capitalMetrics.transitionalSharePath,
     classMode: params.capitalMetrics.classMode,
@@ -6064,32 +7435,40 @@ export function buildWalletPoolPositionSummary(params: {
     currentlyRedeemableRaw,
     pendingRedemptionRequestCount: redemptionRequests.filter(
       (request) =>
-        request.status === REDEMPTION_REQUEST_STATUS_PENDING || request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED,
+        request.status === REDEMPTION_REQUEST_STATUS_PENDING ||
+        request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED,
     ).length,
     scheduledRedemptionRequestCount: redemptionRequests.filter(
       (request) => request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED,
     ).length,
     pendingRedemptionSharesRaw: redemptionRequests.reduce(
       (sum, request) =>
-        request.status === REDEMPTION_REQUEST_STATUS_PENDING || request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED
+        request.status === REDEMPTION_REQUEST_STATUS_PENDING ||
+        request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED
           ? sum + request.sharesRequested
           : sum,
       0n,
     ),
     pendingRedemptionExpectedRaw: redemptionRequests.reduce(
       (sum, request) =>
-        request.status === REDEMPTION_REQUEST_STATUS_PENDING || request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED
+        request.status === REDEMPTION_REQUEST_STATUS_PENDING ||
+        request.status === REDEMPTION_REQUEST_STATUS_SCHEDULED
           ? sum + request.expectedAmountOut
           : sum,
       0n,
     ),
-    pendingCoverageClaimCount: coverageClaims.filter((claim) => coverageClaimOutstandingAmount(claim) > 0n).length,
+    pendingCoverageClaimCount: coverageClaims.filter(
+      (claim) => coverageClaimOutstandingAmount(claim) > 0n,
+    ).length,
     pendingCoverageExposureRaw: coverageClaims.reduce(
       (sum, claim) => sum + coverageClaimOutstandingAmount(claim),
       0n,
     ),
     pendingRewardClaimCount: rewardClaims.length,
-    pendingRewardPayoutRaw: rewardClaims.reduce((sum, claim) => sum + claim.payoutAmount, 0n),
+    pendingRewardPayoutRaw: rewardClaims.reduce(
+      (sum, claim) => sum + claim.payoutAmount,
+      0n,
+    ),
   };
 }
 
@@ -6110,7 +7489,9 @@ export function buildCapitalClassIntegrationPolicy(params: {
     };
   }
 
-  if (params.capitalMetrics.transferMode === CAPITAL_TRANSFER_MODE_WRAPPER_ONLY) {
+  if (
+    params.capitalMetrics.transferMode === CAPITAL_TRANSFER_MODE_WRAPPER_ONLY
+  ) {
     return {
       marketParticipationMode: "wrapper-mediated",
       directSecondaryTransfersAllowed: false,
@@ -6124,7 +7505,10 @@ export function buildCapitalClassIntegrationPolicy(params: {
     };
   }
 
-  if (params.capitalMetrics.transferMode === CAPITAL_TRANSFER_MODE_RESTRICTED || params.capitalMetrics.restricted) {
+  if (
+    params.capitalMetrics.transferMode === CAPITAL_TRANSFER_MODE_RESTRICTED ||
+    params.capitalMetrics.restricted
+  ) {
     return {
       marketParticipationMode: "restricted",
       directSecondaryTransfersAllowed: false,
@@ -6167,7 +7551,9 @@ class AccountDecoder {
 
   private ensure(size: number): void {
     if (this.offset + size > this.bytes.length) {
-      throw new Error(`Account decode overflow at offset ${this.offset} for size ${size}`);
+      throw new Error(
+        `Account decode overflow at offset ${this.offset} for size ${size}`,
+      );
     }
   }
 
@@ -6188,28 +7574,44 @@ class AccountDecoder {
 
   readU16(): number {
     this.ensure(2);
-    const value = new DataView(this.bytes.buffer, this.bytes.byteOffset + this.offset, 2).getUint16(0, true);
+    const value = new DataView(
+      this.bytes.buffer,
+      this.bytes.byteOffset + this.offset,
+      2,
+    ).getUint16(0, true);
     this.offset += 2;
     return value;
   }
 
   readU32(): number {
     this.ensure(4);
-    const value = new DataView(this.bytes.buffer, this.bytes.byteOffset + this.offset, 4).getUint32(0, true);
+    const value = new DataView(
+      this.bytes.buffer,
+      this.bytes.byteOffset + this.offset,
+      4,
+    ).getUint32(0, true);
     this.offset += 4;
     return value;
   }
 
   readU64(): bigint {
     this.ensure(8);
-    const value = new DataView(this.bytes.buffer, this.bytes.byteOffset + this.offset, 8).getBigUint64(0, true);
+    const value = new DataView(
+      this.bytes.buffer,
+      this.bytes.byteOffset + this.offset,
+      8,
+    ).getBigUint64(0, true);
     this.offset += 8;
     return value;
   }
 
   readI64(): bigint {
     this.ensure(8);
-    const value = new DataView(this.bytes.buffer, this.bytes.byteOffset + this.offset, 8).getBigInt64(0, true);
+    const value = new DataView(
+      this.bytes.buffer,
+      this.bytes.byteOffset + this.offset,
+      8,
+    ).getBigInt64(0, true);
     this.offset += 8;
     return value;
   }
@@ -6260,7 +7662,8 @@ function discoveryCacheKey(
   namespace: string,
   options: Record<string, string | number | boolean | null | undefined>,
 ): string {
-  const endpoint = (connection as Connection & { rpcEndpoint?: string }).rpcEndpoint ?? "rpc";
+  const endpoint =
+    (connection as Connection & { rpcEndpoint?: string }).rpcEndpoint ?? "rpc";
   const programId = getProgramId().toBase58();
   const sorted = Object.entries(options)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -6269,7 +7672,10 @@ function discoveryCacheKey(
   return `${endpoint}|${programId}|${namespace}|${sorted}`;
 }
 
-async function withDiscoveryCache<T>(key: string, loader: () => Promise<T>): Promise<T> {
+async function withDiscoveryCache<T>(
+  key: string,
+  loader: () => Promise<T>,
+): Promise<T> {
   const now = Date.now();
   const cached = discoveryCache.get(key);
   if (cached && cached.expiresAt > now) {
@@ -6284,10 +7690,15 @@ function normalizeSearch(search?: string | null): string {
   return (search ?? "").trim().toLowerCase();
 }
 
-function includesSearch(fields: Array<string | null | undefined>, search?: string | null): boolean {
+function includesSearch(
+  fields: Array<string | null | undefined>,
+  search?: string | null,
+): boolean {
   const normalized = normalizeSearch(search);
   if (!normalized) return true;
-  return fields.some((field) => (field ?? "").toLowerCase().includes(normalized));
+  return fields.some((field) =>
+    (field ?? "").toLowerCase().includes(normalized),
+  );
 }
 
 function accountDiscriminator(accountName: string): Uint8Array {
@@ -6310,8 +7721,32 @@ async function fetchProgramAccounts(
   const discriminator = accountDiscriminator(accountName);
   return connection.getProgramAccounts(getProgramId(), {
     commitment: "confirmed",
-    filters: [{ memcmp: { offset: 0, bytes: encodeBase58(discriminator) } }, ...filters],
+    filters: [
+      { memcmp: { offset: 0, bytes: encodeBase58(discriminator) } },
+      ...filters,
+    ],
   });
+}
+
+function decodeProtocolConfig(
+  address: string,
+  data: Uint8Array,
+): ProtocolConfigSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    admin: d.readPubkey(),
+    governanceAuthority: d.readPubkey(),
+    governanceRealm: d.readPubkey(),
+    governanceConfig: d.readPubkey(),
+    defaultStakeMint: d.readPubkey(),
+    protocolFeeBps: d.readU16(),
+    minOracleStake: d.readU64(),
+    emergencyPaused: d.readBool(),
+    allowedPayoutMintsHashHex: bytesToHex(d.readBytes(32)),
+    bump: d.readU8(),
+  };
 }
 
 function decodePool(address: string, data: Uint8Array): PoolSummary {
@@ -6344,7 +7779,10 @@ function decodeOracle(address: string, data: Uint8Array): OracleSummary {
   };
 }
 
-function decodeOracleProfile(address: string, data: Uint8Array): OracleProfileSummary {
+function decodeOracleProfile(
+  address: string,
+  data: Uint8Array,
+): OracleProfileSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   const oracle = d.readPubkey();
@@ -6357,7 +7795,9 @@ function decodeOracleProfile(address: string, data: Uint8Array): OracleProfileSu
   const logoUri = d.readString();
   const webhookUrl = d.readString();
   const supportedSchemaCount = d.readU8();
-  const supportedSchemaKeyHashesHex = Array.from({ length: MAX_ORACLE_SUPPORTED_SCHEMAS })
+  const supportedSchemaKeyHashesHex = Array.from({
+    length: MAX_ORACLE_SUPPORTED_SCHEMAS,
+  })
     .map(() => bytesToHex(d.readBytes(32)))
     .slice(0, supportedSchemaCount);
   return {
@@ -6380,7 +7820,30 @@ function decodeOracleProfile(address: string, data: Uint8Array): OracleProfileSu
   };
 }
 
-function decodePoolOracleApproval(address: string, data: Uint8Array): PoolOracleApprovalSummary {
+function decodeOracleStakePosition(
+  address: string,
+  data: Uint8Array,
+): OracleStakePositionSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    oracle: d.readPubkey(),
+    staker: d.readPubkey(),
+    stakeMint: d.readPubkey(),
+    stakeVault: d.readPubkey(),
+    stakedAmount: d.readU64(),
+    pendingUnstakeAmount: d.readU64(),
+    canFinalizeUnstakeAt: d.readI64(),
+    slashPending: d.readBool(),
+    bump: d.readU8(),
+  };
+}
+
+function decodePoolOracleApproval(
+  address: string,
+  data: Uint8Array,
+): PoolOracleApprovalSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6392,7 +7855,10 @@ function decodePoolOracleApproval(address: string, data: Uint8Array): PoolOracle
   };
 }
 
-function decodePoolOraclePolicy(address: string, data: Uint8Array): PoolOraclePolicySummary {
+function decodePoolOraclePolicy(
+  address: string,
+  data: Uint8Array,
+): PoolOraclePolicySummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   const pool = d.readPubkey();
@@ -6417,6 +7883,21 @@ function decodePoolOraclePolicy(address: string, data: Uint8Array): PoolOraclePo
   };
 }
 
+function decodePoolOraclePermissionSet(
+  address: string,
+  data: Uint8Array,
+): PoolOraclePermissionSetSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    oracle: d.readPubkey(),
+    permissions: d.readU32(),
+    bump: d.readU8(),
+  };
+}
+
 function decodePoolTerms(address: string, data: Uint8Array): PoolTermsSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
@@ -6433,7 +7914,10 @@ function decodePoolTerms(address: string, data: Uint8Array): PoolTermsSummary {
   };
 }
 
-function decodePoolAssetVault(address: string, data: Uint8Array): PoolAssetVaultSummary {
+function decodePoolAssetVault(
+  address: string,
+  data: Uint8Array,
+): PoolAssetVaultSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6446,7 +7930,10 @@ function decodePoolAssetVault(address: string, data: Uint8Array): PoolAssetVault
   };
 }
 
-function decodePoolLiquidityConfig(address: string, data: Uint8Array): PoolLiquidityConfigSummary {
+function decodePoolLiquidityConfig(
+  address: string,
+  data: Uint8Array,
+): PoolLiquidityConfigSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6459,7 +7946,10 @@ function decodePoolLiquidityConfig(address: string, data: Uint8Array): PoolLiqui
   };
 }
 
-function decodePoolRiskConfig(address: string, data: Uint8Array): PoolRiskConfigSummary {
+function decodePoolRiskConfig(
+  address: string,
+  data: Uint8Array,
+): PoolRiskConfigSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6474,7 +7964,10 @@ function decodePoolRiskConfig(address: string, data: Uint8Array): PoolRiskConfig
   };
 }
 
-function decodePoolCapitalClass(address: string, data: Uint8Array): PoolCapitalClassSummary {
+function decodePoolCapitalClass(
+  address: string,
+  data: Uint8Array,
+): PoolCapitalClassSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6500,7 +7993,27 @@ function decodePoolCapitalClass(address: string, data: Uint8Array): PoolCapitalC
   };
 }
 
-function decodePolicySeries(address: string, data: Uint8Array): PolicySeriesSummary {
+function decodePolicySeriesPaymentOption(
+  address: string,
+  data: Uint8Array,
+): PolicySeriesPaymentOptionSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    seriesRefHashHex: bytesToHex(d.readBytes(32)),
+    paymentMint: d.readPubkey(),
+    paymentAmount: d.readU64(),
+    active: d.readBool(),
+    bump: d.readU8(),
+  };
+}
+
+function decodePolicySeries(
+  address: string,
+  data: Uint8Array,
+): PolicySeriesSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6531,7 +8044,50 @@ function decodePolicySeries(address: string, data: Uint8Array): PolicySeriesSumm
   };
 }
 
-function decodePoolCompliancePolicy(address: string, data: Uint8Array): PoolCompliancePolicySummary {
+function decodePolicyPosition(
+  address: string,
+  data: Uint8Array,
+): PolicyPositionSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    member: d.readPubkey(),
+    seriesRefHashHex: bytesToHex(d.readBytes(32)),
+    termsHashHex: bytesToHex(d.readBytes(32)),
+    status: d.readU8(),
+    startsAt: d.readI64(),
+    endsAt: d.readI64(),
+    premiumDueEverySecs: d.readI64(),
+    premiumGraceSecs: d.readI64(),
+    nextDueAt: d.readI64(),
+    nftMint: d.readPubkey(),
+    bump: d.readU8(),
+  };
+}
+
+function decodePolicyPositionNft(
+  address: string,
+  data: Uint8Array,
+): PolicyPositionNftSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    member: d.readPubkey(),
+    seriesRefHashHex: bytesToHex(d.readBytes(32)),
+    nftMint: d.readPubkey(),
+    metadataUri: d.readString(),
+    bump: d.readU8(),
+  };
+}
+
+function decodePoolCompliancePolicy(
+  address: string,
+  data: Uint8Array,
+): PoolCompliancePolicySummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6552,7 +8108,10 @@ function decodePoolCompliancePolicy(address: string, data: Uint8Array): PoolComp
   };
 }
 
-function decodePoolControlAuthority(address: string, data: Uint8Array): PoolControlAuthoritySummary {
+function decodePoolControlAuthority(
+  address: string,
+  data: Uint8Array,
+): PoolControlAuthoritySummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6567,7 +8126,10 @@ function decodePoolControlAuthority(address: string, data: Uint8Array): PoolCont
   };
 }
 
-function decodePoolAutomationPolicy(address: string, data: Uint8Array): PoolAutomationPolicySummary {
+function decodePoolAutomationPolicy(
+  address: string,
+  data: Uint8Array,
+): PoolAutomationPolicySummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6584,7 +8146,38 @@ function decodePoolAutomationPolicy(address: string, data: Uint8Array): PoolAuto
   };
 }
 
-function decodePoolTreasuryReserve(address: string, data: Uint8Array): PoolTreasuryReserveSummary {
+function decodeProtocolFeeVault(
+  address: string,
+  data: Uint8Array,
+): ProtocolFeeVaultSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    paymentMint: d.readPubkey(),
+    bump: d.readU8(),
+  };
+}
+
+function decodePoolOracleFeeVault(
+  address: string,
+  data: Uint8Array,
+): PoolOracleFeeVaultSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    oracle: d.readPubkey(),
+    paymentMint: d.readPubkey(),
+    bump: d.readU8(),
+  };
+}
+
+function decodePoolTreasuryReserve(
+  address: string,
+  data: Uint8Array,
+): PoolTreasuryReserveSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   const pool = d.readPubkey();
@@ -6613,6 +8206,68 @@ function decodePoolTreasuryReserve(address: string, data: Uint8Array): PoolTreas
     impairedAmount,
     lastLiabilityUpdateTs,
     bump,
+  };
+}
+
+function decodeMemberCycleState(
+  address: string,
+  data: Uint8Array,
+): MemberCycleStateSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    member: d.readPubkey(),
+    seriesRefHashHex: bytesToHex(d.readBytes(32)),
+    periodIndex: d.readU64(),
+    paymentMint: d.readPubkey(),
+    premiumAmountRaw: d.readU64(),
+    bondAmountRaw: d.readU64(),
+    shieldFeeRaw: d.readU64(),
+    protocolFeeRaw: d.readU64(),
+    oracleFeeRaw: d.readU64(),
+    netPoolPremiumRaw: d.readU64(),
+    totalAmountRaw: d.readU64(),
+    canonicalPremiumAmount: d.readU64(),
+    commitmentEnabled: d.readBool(),
+    thresholdBps: d.readU16(),
+    outcomeThresholdScore: d.readU16(),
+    cohortHashHex: bytesToHex(d.readBytes(32)),
+    settledHealthAlphaScore: d.readU16(),
+    includedShieldCount: d.readU8(),
+    shieldConsumed: d.readBool(),
+    status: d.readU8(),
+    passed: d.readBool(),
+    activatedAt: d.readI64(),
+    settledAt: d.readI64(),
+    quoteHashHex: bytesToHex(d.readBytes(32)),
+    bump: d.readU8(),
+  };
+}
+
+function decodeCohortSettlementRoot(
+  address: string,
+  data: Uint8Array,
+): CohortSettlementRootSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    seriesRefHashHex: bytesToHex(d.readBytes(32)),
+    paymentMint: d.readPubkey(),
+    cohortHashHex: bytesToHex(d.readBytes(32)),
+    outcomeThresholdScore: d.readU16(),
+    successfulMemberCount: d.readU32(),
+    successfulHealthAlphaScoreSum: d.readU64(),
+    redistributableFailedBondsTotal: d.readU64(),
+    redistributionClaimedAmount: d.readU64(),
+    successfulClaimCount: d.readU32(),
+    finalized: d.readBool(),
+    zeroSuccessReleased: d.readBool(),
+    finalizedAt: d.readI64(),
+    bump: d.readU8(),
   };
 }
 
@@ -6648,8 +8303,12 @@ function decodeRule(address: string, data: Uint8Array): RuleSummary {
   const schemaKey = d.readString();
   const schemaVersion = d.readU16();
   const hasExpandedRuleFields = d.remaining() > 34;
-  const interopProfileHashHex = hasExpandedRuleFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const codeSystemFamilyHashHex = hasExpandedRuleFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const interopProfileHashHex = hasExpandedRuleFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const codeSystemFamilyHashHex = hasExpandedRuleFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const mappingVersion = hasExpandedRuleFields ? d.readU16() : 0;
   const payoutHashHex = bytesToHex(d.readBytes(32));
   const enabled = d.readBool();
@@ -6672,7 +8331,10 @@ function decodeRule(address: string, data: Uint8Array): RuleSummary {
   };
 }
 
-function decodeMembership(address: string, data: Uint8Array): MembershipSummary {
+function decodeMembership(
+  address: string,
+  data: Uint8Array,
+): MembershipSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6687,7 +8349,27 @@ function decodeMembership(address: string, data: Uint8Array): MembershipSummary 
   };
 }
 
-function decodeInviteIssuer(address: string, data: Uint8Array): InviteIssuerSummary {
+function decodeClaimDelegateAuthorization(
+  address: string,
+  data: Uint8Array,
+): ClaimDelegateAuthorizationSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    member: d.readPubkey(),
+    delegate: d.readPubkey(),
+    active: d.readBool(),
+    updatedAt: d.readI64(),
+    bump: d.readU8(),
+  };
+}
+
+function decodeInviteIssuer(
+  address: string,
+  data: Uint8Array,
+): InviteIssuerSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6700,7 +8382,29 @@ function decodeInviteIssuer(address: string, data: Uint8Array): InviteIssuerSumm
   };
 }
 
-function decodeAttestationVote(address: string, data: Uint8Array): AttestationVoteSummary {
+function decodePremiumLedger(
+  address: string,
+  data: Uint8Array,
+): PremiumLedgerSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    pool: d.readPubkey(),
+    seriesRefHashHex: bytesToHex(d.readBytes(32)),
+    member: d.readPubkey(),
+    periodIndex: d.readU64(),
+    amount: d.readU64(),
+    source: d.readU8(),
+    paidAt: d.readI64(),
+    bump: d.readU8(),
+  };
+}
+
+function decodeAttestationVote(
+  address: string,
+  data: Uint8Array,
+): AttestationVoteSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   const pool = d.readPubkey();
@@ -6712,16 +8416,25 @@ function decodeAttestationVote(address: string, data: Uint8Array): AttestationVo
   const passed = d.readBool();
   const attestationDigestHex = bytesToHex(d.readBytes(32));
   const observedValueHashHex = bytesToHex(d.readBytes(32));
-  const evidenceHashHex = d.remaining() >= 32 ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const evidenceHashHex =
+    d.remaining() >= 32 ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
   const externalAttestationRefHashHex =
     d.remaining() >= 32 ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
   const hasAiFields = d.remaining() > 9;
   const aiRole = hasAiFields ? d.readU8() : AI_ROLE_NONE;
   const automationMode = hasAiFields ? d.readU8() : AUTOMATION_MODE_DISABLED;
-  const modelVersionHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const policyVersionHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const executionEnvironmentHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const attestationProviderRefHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const modelVersionHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const policyVersionHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const executionEnvironmentHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const attestationProviderRefHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const asOfTs = d.remaining() >= 8 ? d.readI64() : 0n;
   const bump = d.remaining() >= 1 ? d.readU8() : 0;
   return {
@@ -6748,7 +8461,10 @@ function decodeAttestationVote(address: string, data: Uint8Array): AttestationVo
   };
 }
 
-function decodeOutcomeAggregate(address: string, data: Uint8Array): OutcomeAggregateSummary {
+function decodeOutcomeAggregate(
+  address: string,
+  data: Uint8Array,
+): OutcomeAggregateSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   const pool = d.readPubkey();
@@ -6764,22 +8480,37 @@ function decodeOutcomeAggregate(address: string, data: Uint8Array): OutcomeAggre
   const passed = d.readBool();
   const claimed = d.readBool();
   const rewardLiabilityReserved = d.readBool();
-  const evidenceHashHex = d.remaining() >= 32 ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const evidenceHashHex =
+    d.remaining() >= 32 ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
   const externalAttestationRefHashHex =
     d.remaining() >= 32 ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
   const hasReviewAndAiFields = d.remaining() > 9;
-  const reviewStatus = hasReviewAndAiFields ? d.readU8() : OUTCOME_REVIEW_STATUS_CLEAR;
+  const reviewStatus = hasReviewAndAiFields
+    ? d.readU8()
+    : OUTCOME_REVIEW_STATUS_CLEAR;
   const challengeWindowEndsAt = hasReviewAndAiFields ? d.readI64() : 0n;
-  const disputeReasonHashHex = hasReviewAndAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const disputeReasonHashHex = hasReviewAndAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const disputedBy = hasReviewAndAiFields ? d.readPubkey() : ZERO_PUBKEY;
   const resolvedBy = hasReviewAndAiFields ? d.readPubkey() : ZERO_PUBKEY;
   const resolvedAt = hasReviewAndAiFields ? d.readI64() : 0n;
   const aiRole = hasReviewAndAiFields ? d.readU8() : AI_ROLE_NONE;
-  const automationMode = hasReviewAndAiFields ? d.readU8() : AUTOMATION_MODE_DISABLED;
-  const modelVersionHashHex = hasReviewAndAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const policyVersionHashHex = hasReviewAndAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const executionEnvironmentHashHex = hasReviewAndAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const attestationProviderRefHashHex = hasReviewAndAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const automationMode = hasReviewAndAiFields
+    ? d.readU8()
+    : AUTOMATION_MODE_DISABLED;
+  const modelVersionHashHex = hasReviewAndAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const policyVersionHashHex = hasReviewAndAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const executionEnvironmentHashHex = hasReviewAndAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const attestationProviderRefHashHex = hasReviewAndAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const latestAsOfTs = d.remaining() >= 8 ? d.readI64() : 0n;
   const bump = d.remaining() >= 1 ? d.readU8() : 0;
   return {
@@ -6816,7 +8547,10 @@ function decodeOutcomeAggregate(address: string, data: Uint8Array): OutcomeAggre
   };
 }
 
-function decodeCoverageClaim(address: string, data: Uint8Array): CoverageClaimSummary {
+function decodeCoverageClaim(
+  address: string,
+  data: Uint8Array,
+): CoverageClaimSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   const pool = d.readPubkey();
@@ -6828,12 +8562,20 @@ function decodeCoverageClaim(address: string, data: Uint8Array): CoverageClaimSu
   const evidenceHashHex = bytesToHex(d.readBytes(32));
   const interopRefHashHex = bytesToHex(d.readBytes(32));
   const hasExpandedCaseFields = d.remaining() >= 205;
-  const interopProfileHashHex = hasExpandedCaseFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const codeSystemFamilyHashHex = hasExpandedCaseFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const interopProfileHashHex = hasExpandedCaseFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const codeSystemFamilyHashHex = hasExpandedCaseFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const decisionReasonHashHex = bytesToHex(d.readBytes(32));
-  const adjudicationRefHashHex = hasExpandedCaseFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const adjudicationRefHashHex = hasExpandedCaseFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const status = d.readU8();
-  const claimFamily = hasExpandedCaseFields ? d.readU8() : COVERAGE_CLAIM_FAMILY_FAST;
+  const claimFamily = hasExpandedCaseFields
+    ? d.readU8()
+    : COVERAGE_CLAIM_FAMILY_FAST;
   const appealCount = hasExpandedCaseFields ? d.readU16() : 0;
   const requestedAmount = d.readU64();
   const approvedAmount = d.readU64();
@@ -6841,10 +8583,18 @@ function decodeCoverageClaim(address: string, data: Uint8Array): CoverageClaimSu
   const reservedAmount = d.readU64();
   const recoveryAmount = hasExpandedCaseFields ? d.readU64() : 0n;
   const hasAiFields = d.remaining() > 33;
-  const aiDecisionHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const aiPolicyHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const aiExecutionEnvironmentHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
-  const aiAttestationRefHashHex = hasAiFields ? bytesToHex(d.readBytes(32)) : "00".repeat(32);
+  const aiDecisionHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const aiPolicyHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const aiExecutionEnvironmentHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
+  const aiAttestationRefHashHex = hasAiFields
+    ? bytesToHex(d.readBytes(32))
+    : "00".repeat(32);
   const aiAutomationMode = hasAiFields ? d.readU8() : AUTOMATION_MODE_DISABLED;
   const submittedAt = d.readI64();
   const reviewedAt = d.readI64();
@@ -6886,7 +8636,10 @@ function decodeCoverageClaim(address: string, data: Uint8Array): CoverageClaimSu
   };
 }
 
-function decodeRedemptionRequest(address: string, data: Uint8Array): PoolRedemptionRequestSummary {
+function decodeRedemptionRequest(
+  address: string,
+  data: Uint8Array,
+): PoolRedemptionRequestSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6912,7 +8665,10 @@ function decodeRedemptionRequest(address: string, data: Uint8Array): PoolRedempt
   };
 }
 
-function decodeRewardClaim(address: string, data: Uint8Array): RewardClaimSummary {
+function decodeRewardClaim(
+  address: string,
+  data: Uint8Array,
+): RewardClaimSummary {
   const d = new AccountDecoder(data);
   d.readBytes(8);
   return {
@@ -6928,6 +8684,20 @@ function decodeRewardClaim(address: string, data: Uint8Array): RewardClaimSummar
     payoutAmount: d.readU64(),
     recipient: d.readPubkey(),
     submittedAt: d.readI64(),
+    bump: d.readU8(),
+  };
+}
+
+function decodeSchemaDependencyLedger(
+  address: string,
+  data: Uint8Array,
+): SchemaDependencyLedgerSummary {
+  const d = new AccountDecoder(data);
+  d.readBytes(8);
+  return {
+    address,
+    schemaKeyHashHex: bytesToHex(d.readBytes(32)),
+    activeRuleRefcount: d.readU32(),
     bump: d.readU8(),
   };
 }
@@ -6951,23 +8721,101 @@ export function clearProtocolDiscoveryCache(): void {
   discoveryCache.clear();
 }
 
+export async function listProtocolConfig(params: {
+  connection: Connection;
+}): Promise<ProtocolConfigSummary[]> {
+  const cacheKey = discoveryCacheKey(params.connection, "protocol-config", {});
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "ProtocolConfig",
+    );
+    return parseAccounts(accounts, decodeProtocolConfig).sort((a, b) =>
+      a.address.localeCompare(b.address),
+    );
+  });
+}
+
+export async function fetchProtocolConfig(params: {
+  connection: Connection;
+}): Promise<ProtocolConfigSummary | null> {
+  const rows = await listProtocolConfig(params);
+  return rows[0] ?? null;
+}
+
 export async function listPools(params: {
   connection: Connection;
   authority?: string | null;
   search?: string | null;
 }): Promise<PoolSummary[]> {
   const authority = params.authority?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pools", { authority, search: params.search ?? null });
+  const cacheKey = discoveryCacheKey(params.connection, "pools", {
+    authority,
+    search: params.search ?? null,
+  });
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (authority) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(authority).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(authority).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "Pool", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "Pool",
+      filters,
+    );
     const rows = parseAccounts(accounts, decodePool)
-      .filter((row) => includesSearch([row.poolId, row.organizationRef, row.address, row.authority], params.search))
-      .sort((a, b) => a.poolId.localeCompare(b.poolId) || a.address.localeCompare(b.address));
+      .filter((row) =>
+        includesSearch(
+          [row.poolId, row.organizationRef, row.address, row.authority],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.poolId.localeCompare(b.poolId) ||
+          a.address.localeCompare(b.address),
+      );
     return rows;
+  });
+}
+
+export async function listOracleStakePositions(params: {
+  connection: Connection;
+  oracleAddress?: string | null;
+  stakerAddress?: string | null;
+  search?: string | null;
+}): Promise<OracleStakePositionSummary[]> {
+  const oracleAddress = params.oracleAddress?.trim() || null;
+  const stakerAddress = params.stakerAddress?.trim() || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "oracle-stake-positions",
+    {
+      oracleAddress,
+      stakerAddress,
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "OracleStakePosition",
+    );
+    return parseAccounts(accounts, decodeOracleStakePosition)
+      .filter((row) => (oracleAddress ? row.oracle === oracleAddress : true))
+      .filter((row) => (stakerAddress ? row.staker === stakerAddress : true))
+      .filter((row) =>
+        includesSearch(
+          [row.oracle, row.staker, row.stakeMint, row.address],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.oracle.localeCompare(b.oracle) || a.staker.localeCompare(b.staker),
+      );
   });
 }
 
@@ -6984,12 +8832,23 @@ export async function listPoolTerms(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolTerms", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolTerms",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolTerms)
-      .filter((row) => includesSearch([row.pool, row.metadataUri, row.address], params.search))
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .filter((row) =>
+        includesSearch([row.pool, row.metadataUri, row.address], params.search),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7006,15 +8865,26 @@ export async function listPoolAssetVaults(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolAssetVault", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolAssetVault",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolAssetVault)
-      .filter(
-        (row) =>
-          includesSearch([row.pool, row.payoutMint, row.vaultTokenAccount, row.address], params.search),
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.payoutMint, row.vaultTokenAccount, row.address],
+          params.search,
+        ),
       )
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7024,19 +8894,37 @@ export async function listPoolLiquidityConfigs(params: {
   search?: string | null;
 }): Promise<PoolLiquidityConfigSummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-liquidity-configs", {
-    poolAddress,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-liquidity-configs",
+    {
+      poolAddress,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolLiquidityConfig", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolLiquidityConfig",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolLiquidityConfig)
-      .filter((row) => includesSearch([row.pool, row.payoutMint, row.shareMint, row.address], params.search))
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.payoutMint, row.shareMint, row.address],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7053,12 +8941,23 @@ export async function listPoolRiskConfigs(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolRiskConfig", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolRiskConfig",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolRiskConfig)
-      .filter((row) => includesSearch([row.pool, row.updatedBy, row.address], params.search))
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .filter((row) =>
+        includesSearch([row.pool, row.updatedBy, row.address], params.search),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7070,36 +8969,96 @@ export async function listPoolCapitalClasses(params: {
 }): Promise<PoolCapitalClassSummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
   const shareMint = params.shareMint?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-capital-classes", {
-    poolAddress,
-    shareMint,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-capital-classes",
+    {
+      poolAddress,
+      shareMint,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (shareMint) {
-      filters.push({ memcmp: { offset: 40, bytes: asPubkey(shareMint).toBase58() } });
+      filters.push({
+        memcmp: { offset: 40, bytes: asPubkey(shareMint).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolCapitalClass", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolCapitalClass",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolCapitalClass)
-      .filter(
-        (row) =>
-          includesSearch(
-            [
-              row.pool,
-              row.shareMint,
-              row.payoutMint,
-              row.classIdHashHex,
-              row.complianceProfileHashHex,
-              row.address,
-            ],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.shareMint,
+            row.payoutMint,
+            row.classIdHashHex,
+            row.complianceProfileHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
       )
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.classIdHashHex.localeCompare(b.classIdHashHex));
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) ||
+          a.classIdHashHex.localeCompare(b.classIdHashHex),
+      );
+  });
+}
+
+export async function listPolicySeriesPaymentOptions(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  seriesRefHashHex?: string | null;
+  activeOnly?: boolean;
+  search?: string | null;
+}): Promise<PolicySeriesPaymentOptionSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const seriesRefHashHex =
+    params.seriesRefHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "policy-series-payment-options",
+    {
+      poolAddress,
+      seriesRefHashHex,
+      activeOnly: Boolean(params.activeOnly),
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PolicySeriesPaymentOption",
+    );
+    return parseAccounts(accounts, decodePolicySeriesPaymentOption)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) =>
+        seriesRefHashHex ? row.seriesRefHashHex === seriesRefHashHex : true,
+      )
+      .filter((row) => (params.activeOnly ? row.active : true))
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.paymentMint, row.seriesRefHashHex, row.address],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) ||
+          a.seriesRefHashHex.localeCompare(b.seriesRefHashHex),
+      );
   });
 }
 
@@ -7118,23 +9077,132 @@ export async function listPolicySeries(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PolicySeries", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PolicySeries",
+      filters,
+    );
     return parseAccounts(accounts, decodePolicySeries)
-      .filter((row) => (params.activeOnly ? row.status === POLICY_SERIES_STATUS_ACTIVE : true))
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.seriesRefHashHex, row.displayName, row.metadataUri, row.comparabilityHashHex, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        params.activeOnly ? row.status === POLICY_SERIES_STATUS_ACTIVE : true,
+      )
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.seriesRefHashHex,
+            row.displayName,
+            row.metadataUri,
+            row.comparabilityHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
       )
       .sort(
         (a, b) =>
-          Number(a.status !== POLICY_SERIES_STATUS_ACTIVE) - Number(b.status !== POLICY_SERIES_STATUS_ACTIVE)
-          || a.displayName.localeCompare(b.displayName)
-          || a.seriesRefHashHex.localeCompare(b.seriesRefHashHex),
+          Number(a.status !== POLICY_SERIES_STATUS_ACTIVE) -
+            Number(b.status !== POLICY_SERIES_STATUS_ACTIVE) ||
+          a.displayName.localeCompare(b.displayName) ||
+          a.seriesRefHashHex.localeCompare(b.seriesRefHashHex),
+      );
+  });
+}
+
+export async function listPolicyPositions(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  memberAddress?: string | null;
+  seriesRefHashHex?: string | null;
+  search?: string | null;
+}): Promise<PolicyPositionSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const memberAddress = params.memberAddress?.trim() || null;
+  const seriesRefHashHex =
+    params.seriesRefHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(params.connection, "policy-positions", {
+    poolAddress,
+    memberAddress,
+    seriesRefHashHex,
+    search: params.search ?? null,
+  });
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PolicyPosition",
+    );
+    return parseAccounts(accounts, decodePolicyPosition)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (memberAddress ? row.member === memberAddress : true))
+      .filter((row) =>
+        seriesRefHashHex ? row.seriesRefHashHex === seriesRefHashHex : true,
+      )
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.member,
+            row.seriesRefHashHex,
+            row.nftMint,
+            row.address,
+          ],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.member.localeCompare(b.member) ||
+          a.seriesRefHashHex.localeCompare(b.seriesRefHashHex),
+      );
+  });
+}
+
+export async function listPolicyPositionNfts(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  memberAddress?: string | null;
+  seriesRefHashHex?: string | null;
+  search?: string | null;
+}): Promise<PolicyPositionNftSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const memberAddress = params.memberAddress?.trim() || null;
+  const seriesRefHashHex =
+    params.seriesRefHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "policy-position-nfts",
+    {
+      poolAddress,
+      memberAddress,
+      seriesRefHashHex,
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PolicyPositionNft",
+    );
+    return parseAccounts(accounts, decodePolicyPositionNft)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (memberAddress ? row.member === memberAddress : true))
+      .filter((row) =>
+        seriesRefHashHex ? row.seriesRefHashHex === seriesRefHashHex : true,
+      )
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.member, row.nftMint, row.metadataUri, row.address],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.member.localeCompare(b.member) ||
+          a.seriesRefHashHex.localeCompare(b.seriesRefHashHex),
       );
   });
 }
@@ -7146,27 +9214,45 @@ export async function listPoolCompliancePolicies(params: {
   search?: string | null;
 }): Promise<PoolCompliancePolicySummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-compliance-policies", {
-    poolAddress,
-    activeOnly: Boolean(params.activeOnly),
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-compliance-policies",
+    {
+      poolAddress,
+      activeOnly: Boolean(params.activeOnly),
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolCompliancePolicy", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolCompliancePolicy",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolCompliancePolicy)
       .filter((row) => (params.activeOnly ? row.active : true))
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.providerRefHashHex, row.credentialTypeHashHex, row.updatedBy, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.providerRefHashHex,
+            row.credentialTypeHashHex,
+            row.updatedBy,
+            row.address,
+          ],
+          params.search,
+        ),
       )
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7176,25 +9262,43 @@ export async function listPoolControlAuthorities(params: {
   search?: string | null;
 }): Promise<PoolControlAuthoritySummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-control-authorities", {
-    poolAddress,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-control-authorities",
+    {
+      poolAddress,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolControlAuthority", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolControlAuthority",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolControlAuthority)
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.operatorAuthority, row.riskManagerAuthority, row.complianceAuthority, row.guardianAuthority],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.operatorAuthority,
+            row.riskManagerAuthority,
+            row.complianceAuthority,
+            row.guardianAuthority,
+          ],
+          params.search,
+        ),
       )
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7204,25 +9308,42 @@ export async function listPoolAutomationPolicies(params: {
   search?: string | null;
 }): Promise<PoolAutomationPolicySummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-automation-policies", {
-    poolAddress,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-automation-policies",
+    {
+      poolAddress,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolAutomationPolicy", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolAutomationPolicy",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolAutomationPolicy)
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.requiredAttestationProviderRefHashHex, row.updatedBy, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.requiredAttestationProviderRefHashHex,
+            row.updatedBy,
+            row.address,
+          ],
+          params.search,
+        ),
       )
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7234,29 +9355,40 @@ export async function listPoolTreasuryReserves(params: {
 }): Promise<PoolTreasuryReserveSummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
   const paymentMint = params.paymentMint?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-treasury-reserves", {
-    poolAddress,
-    paymentMint,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-treasury-reserves",
+    {
+      poolAddress,
+      paymentMint,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (paymentMint) {
-      filters.push({ memcmp: { offset: 40, bytes: asPubkey(paymentMint).toBase58() } });
+      filters.push({
+        memcmp: { offset: 40, bytes: asPubkey(paymentMint).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolTreasuryReserve", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolTreasuryReserve",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolTreasuryReserve)
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.paymentMint, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch([row.pool, row.paymentMint, row.address], params.search),
       )
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address));
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.address.localeCompare(b.address),
+      );
   });
 }
 
@@ -7270,10 +9402,18 @@ export async function listOracles(params: {
     activeOnly: Boolean(params.activeOnly),
   });
   return withDiscoveryCache(cacheKey, async () => {
-    const accounts = await fetchProgramAccounts(params.connection, "OracleRegistryEntry");
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "OracleRegistryEntry",
+    );
     return parseAccounts(accounts, decodeOracle)
       .filter((row) => (params.activeOnly ? row.active : true))
-      .filter((row) => includesSearch([row.oracle, row.metadataUri, row.address], params.search))
+      .filter((row) =>
+        includesSearch(
+          [row.oracle, row.metadataUri, row.address],
+          params.search,
+        ),
+      )
       .sort((a, b) => a.oracle.localeCompare(b.oracle));
   });
 }
@@ -7288,17 +9428,31 @@ export async function listOracleProfiles(params: {
     claimedOnly: Boolean(params.claimedOnly),
   });
   return withDiscoveryCache(cacheKey, async () => {
-    const accounts = await fetchProgramAccounts(params.connection, "OracleProfile");
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "OracleProfile",
+    );
     return parseAccounts(accounts, decodeOracleProfile)
       .filter((row) => (params.claimedOnly ? row.claimed : true))
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.oracle, row.admin, row.displayName, row.legalName, row.websiteUrl, row.appUrl, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.oracle,
+            row.admin,
+            row.displayName,
+            row.legalName,
+            row.websiteUrl,
+            row.appUrl,
+            row.address,
+          ],
+          params.search,
+        ),
       )
-      .sort((a, b) => a.displayName.localeCompare(b.displayName) || a.oracle.localeCompare(b.oracle));
+      .sort(
+        (a, b) =>
+          a.displayName.localeCompare(b.displayName) ||
+          a.oracle.localeCompare(b.oracle),
+      );
   });
 }
 
@@ -7345,25 +9499,42 @@ export async function listPoolOracleApprovals(params: {
 }): Promise<PoolOracleApprovalSummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
   const oracleAddress = params.oracleAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-oracle-approvals", {
-    poolAddress,
-    oracleAddress,
-    activeOnly: Boolean(params.activeOnly),
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-oracle-approvals",
+    {
+      poolAddress,
+      oracleAddress,
+      activeOnly: Boolean(params.activeOnly),
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (oracleAddress) {
-      filters.push({ memcmp: { offset: 40, bytes: asPubkey(oracleAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 40, bytes: asPubkey(oracleAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolOracleApproval", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolOracleApproval",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolOracleApproval)
       .filter((row) => (params.activeOnly ? row.active : true))
-      .filter((row) => includesSearch([row.pool, row.oracle, row.address], params.search))
-      .sort((a, b) => a.pool.localeCompare(b.pool) || a.oracle.localeCompare(b.oracle));
+      .filter((row) =>
+        includesSearch([row.pool, row.oracle, row.address], params.search),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.oracle.localeCompare(b.oracle),
+      );
   });
 }
 
@@ -7373,24 +9544,74 @@ export async function listPoolOraclePolicies(params: {
   search?: string | null;
 }): Promise<PoolOraclePolicySummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-oracle-policies", {
-    poolAddress,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-oracle-policies",
+    {
+      poolAddress,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolOraclePolicy", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolOraclePolicy",
+      filters,
+    );
     return parseAccounts(accounts, decodePoolOraclePolicy)
       .filter((row) =>
         includesSearch(
-          [row.pool, String(row.quorumM), String(row.quorumN), row.requireVerifiedSchema ? "verified" : "any"],
+          [
+            row.pool,
+            String(row.quorumM),
+            String(row.quorumN),
+            row.requireVerifiedSchema ? "verified" : "any",
+          ],
           params.search,
         ),
       )
       .sort((a, b) => a.pool.localeCompare(b.pool));
+  });
+}
+
+export async function listPoolOraclePermissionSets(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  oracleAddress?: string | null;
+  search?: string | null;
+}): Promise<PoolOraclePermissionSetSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const oracleAddress = params.oracleAddress?.trim() || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-oracle-permission-sets",
+    {
+      poolAddress,
+      oracleAddress,
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolOraclePermissionSet",
+    );
+    return parseAccounts(accounts, decodePoolOraclePermissionSet)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (oracleAddress ? row.oracle === oracleAddress : true))
+      .filter((row) =>
+        includesSearch([row.pool, row.oracle, row.address], params.search),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.oracle.localeCompare(b.oracle),
+      );
   });
 }
 
@@ -7404,10 +9625,18 @@ export async function listSchemas(params: {
     verifiedOnly: Boolean(params.verifiedOnly),
   });
   return withDiscoveryCache(cacheKey, async () => {
-    const accounts = await fetchProgramAccounts(params.connection, "OutcomeSchemaRegistryEntry");
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "OutcomeSchemaRegistryEntry",
+    );
     return parseAccounts(accounts, decodeSchema)
       .filter((row) => (params.verifiedOnly ? row.verified : true))
-      .filter((row) => includesSearch([row.schemaKey, row.schemaKeyHashHex, row.metadataUri, row.publisher], params.search))
+      .filter((row) =>
+        includesSearch(
+          [row.schemaKey, row.schemaKeyHashHex, row.metadataUri, row.publisher],
+          params.search,
+        ),
+      )
       .sort(
         (a, b) =>
           Number(b.verified) - Number(a.verified) ||
@@ -7426,7 +9655,8 @@ export async function listPoolRules(params: {
   search?: string | null;
 }): Promise<RuleSummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
-  const schemaKeyHashHex = params.schemaKeyHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const schemaKeyHashHex =
+    params.schemaKeyHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
   const cacheKey = discoveryCacheKey(params.connection, "pool-rules", {
     poolAddress,
     schemaKeyHashHex,
@@ -7436,16 +9666,36 @@ export async function listPoolRules(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (schemaKeyHashHex) {
-      filters.push({ memcmp: { offset: 104, bytes: encodeBase58(asBytes32(schemaKeyHashHex)) } });
+      filters.push({
+        memcmp: {
+          offset: 104,
+          bytes: encodeBase58(asBytes32(schemaKeyHashHex)),
+        },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolOutcomeRule", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolOutcomeRule",
+      filters,
+    );
     return parseAccounts(accounts, decodeRule)
       .filter((row) => (params.enabledOnly ? row.enabled : true))
-      .filter((row) => includesSearch([row.ruleId, row.schemaKey, row.ruleHashHex, row.pool], params.search))
-      .sort((a, b) => a.ruleId.localeCompare(b.ruleId) || a.ruleHashHex.localeCompare(b.ruleHashHex));
+      .filter((row) =>
+        includesSearch(
+          [row.ruleId, row.schemaKey, row.ruleHashHex, row.pool],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.ruleId.localeCompare(b.ruleId) ||
+          a.ruleHashHex.localeCompare(b.ruleHashHex),
+      );
   });
 }
 
@@ -7467,16 +9717,78 @@ export async function listMemberships(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (memberAddress) {
-      filters.push({ memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "MembershipRecord", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "MembershipRecord",
+      filters,
+    );
     return parseAccounts(accounts, decodeMembership)
-      .filter((row) => (params.activeOnly ? row.status === MEMBERSHIP_STATUS_ACTIVE : true))
-      .filter((row) => includesSearch([row.pool, row.member, row.address], params.search))
-      .sort((a, b) => a.member.localeCompare(b.member) || a.pool.localeCompare(b.pool));
+      .filter((row) =>
+        params.activeOnly ? row.status === MEMBERSHIP_STATUS_ACTIVE : true,
+      )
+      .filter((row) =>
+        includesSearch([row.pool, row.member, row.address], params.search),
+      )
+      .sort(
+        (a, b) =>
+          a.member.localeCompare(b.member) || a.pool.localeCompare(b.pool),
+      );
+  });
+}
+
+export async function listClaimDelegateAuthorizations(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  memberAddress?: string | null;
+  delegateAddress?: string | null;
+  activeOnly?: boolean;
+  search?: string | null;
+}): Promise<ClaimDelegateAuthorizationSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const memberAddress = params.memberAddress?.trim() || null;
+  const delegateAddress = params.delegateAddress?.trim() || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "claim-delegate-authorizations",
+    {
+      poolAddress,
+      memberAddress,
+      delegateAddress,
+      activeOnly: Boolean(params.activeOnly),
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "ClaimDelegateAuthorization",
+    );
+    return parseAccounts(accounts, decodeClaimDelegateAuthorization)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (memberAddress ? row.member === memberAddress : true))
+      .filter((row) =>
+        delegateAddress ? row.delegate === delegateAddress : true,
+      )
+      .filter((row) => (params.activeOnly ? row.active : true))
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.member, row.delegate, row.address],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.member.localeCompare(b.member),
+      );
   });
 }
 
@@ -7490,11 +9802,66 @@ export async function listInviteIssuers(params: {
     search: params.search ?? null,
   });
   return withDiscoveryCache(cacheKey, async () => {
-    const accounts = await fetchProgramAccounts(params.connection, "InviteIssuerRegistryEntry");
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "InviteIssuerRegistryEntry",
+    );
     return parseAccounts(accounts, decodeInviteIssuer)
       .filter((row) => (params.activeOnly ? row.active : true))
-      .filter((row) => includesSearch([row.issuer, row.organizationRef, row.metadataUri], params.search))
-      .sort((a, b) => a.organizationRef.localeCompare(b.organizationRef) || a.issuer.localeCompare(b.issuer));
+      .filter((row) =>
+        includesSearch(
+          [row.issuer, row.organizationRef, row.metadataUri],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.organizationRef.localeCompare(b.organizationRef) ||
+          a.issuer.localeCompare(b.issuer),
+      );
+  });
+}
+
+export async function listPremiumLedgers(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  memberAddress?: string | null;
+  seriesRefHashHex?: string | null;
+  search?: string | null;
+}): Promise<PremiumLedgerSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const memberAddress = params.memberAddress?.trim() || null;
+  const seriesRefHashHex =
+    params.seriesRefHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(params.connection, "premium-ledgers", {
+    poolAddress,
+    memberAddress,
+    seriesRefHashHex,
+    search: params.search ?? null,
+  });
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PremiumLedger",
+    );
+    return parseAccounts(accounts, decodePremiumLedger)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (memberAddress ? row.member === memberAddress : true))
+      .filter((row) =>
+        seriesRefHashHex ? row.seriesRefHashHex === seriesRefHashHex : true,
+      )
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.member, row.seriesRefHashHex, row.address],
+          params.search,
+        ),
+      )
+      .sort((a, b) => {
+        if (a.paidAt === b.paidAt) {
+          return a.address.localeCompare(b.address);
+        }
+        return a.paidAt > b.paidAt ? -1 : 1;
+      });
   });
 }
 
@@ -7514,34 +9881,90 @@ export async function listAttestationVotes(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (memberAddress) {
-      filters.push({ memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "AttestationVote", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "AttestationVote",
+      filters,
+    );
     return parseAccounts(accounts, decodeAttestationVote)
-      .filter(
-        (row) =>
-          includesSearch(
-            [
-              row.pool,
-              row.member,
-              row.oracle,
-              row.cycleHashHex,
-              row.ruleHashHex,
-              row.address,
-            ],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.member,
+            row.oracle,
+            row.cycleHashHex,
+            row.ruleHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
       )
       .sort(
         (a, b) =>
-          a.pool.localeCompare(b.pool)
-          || a.member.localeCompare(b.member)
-          || a.oracle.localeCompare(b.oracle)
-          || a.address.localeCompare(b.address),
+          a.pool.localeCompare(b.pool) ||
+          a.member.localeCompare(b.member) ||
+          a.oracle.localeCompare(b.oracle) ||
+          a.address.localeCompare(b.address),
       );
+  });
+}
+
+export async function listMemberCycles(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  memberAddress?: string | null;
+  seriesRefHashHex?: string | null;
+  search?: string | null;
+}): Promise<MemberCycleStateSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const memberAddress = params.memberAddress?.trim() || null;
+  const seriesRefHashHex =
+    params.seriesRefHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(params.connection, "member-cycles", {
+    poolAddress,
+    memberAddress,
+    seriesRefHashHex,
+    search: params.search ?? null,
+  });
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "MemberCycleState",
+    );
+    return parseAccounts(accounts, decodeMemberCycleState)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (memberAddress ? row.member === memberAddress : true))
+      .filter((row) =>
+        seriesRefHashHex ? row.seriesRefHashHex === seriesRefHashHex : true,
+      )
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.member,
+            row.paymentMint,
+            row.seriesRefHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
+      )
+      .sort((a, b) => {
+        if (a.activatedAt === b.activatedAt) {
+          return a.address.localeCompare(b.address);
+        }
+        return a.activatedAt > b.activatedAt ? -1 : 1;
+      });
   });
 }
 
@@ -7563,20 +9986,85 @@ export async function listOutcomeAggregates(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (memberAddress) {
-      filters.push({ memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "CycleOutcomeAggregate", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "CycleOutcomeAggregate",
+      filters,
+    );
     return parseAccounts(accounts, decodeOutcomeAggregate)
       .filter((row) => (params.finalizedOnly ? row.finalized : true))
-      .filter((row) => includesSearch([row.member, row.pool, row.ruleHashHex, row.cycleHashHex], params.search))
+      .filter((row) =>
+        includesSearch(
+          [row.member, row.pool, row.ruleHashHex, row.cycleHashHex],
+          params.search,
+        ),
+      )
       .sort((a, b) => {
         if (a.latestAsOfTs === b.latestAsOfTs) {
           return a.address.localeCompare(b.address);
         }
         return a.latestAsOfTs > b.latestAsOfTs ? -1 : 1;
+      });
+  });
+}
+
+export async function listCohortSettlementRoots(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  seriesRefHashHex?: string | null;
+  finalizedOnly?: boolean;
+  search?: string | null;
+}): Promise<CohortSettlementRootSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const seriesRefHashHex =
+    params.seriesRefHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "cohort-settlement-roots",
+    {
+      poolAddress,
+      seriesRefHashHex,
+      finalizedOnly: Boolean(params.finalizedOnly),
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "CohortSettlementRoot",
+    );
+    return parseAccounts(accounts, decodeCohortSettlementRoot)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) =>
+        seriesRefHashHex ? row.seriesRefHashHex === seriesRefHashHex : true,
+      )
+      .filter((row) => (params.finalizedOnly ? row.finalized : true))
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.paymentMint,
+            row.seriesRefHashHex,
+            row.cohortHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
+      )
+      .sort((a, b) => {
+        if (a.finalizedAt === b.finalizedAt) {
+          return a.address.localeCompare(b.address);
+        }
+        return a.finalizedAt > b.finalizedAt ? -1 : 1;
       });
   });
 }
@@ -7600,22 +10088,38 @@ export async function listCoverageClaims(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (memberAddress) {
-      filters.push({ memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() },
+      });
     }
     if (claimantAddress) {
-      filters.push({ memcmp: { offset: 104, bytes: asPubkey(claimantAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 104, bytes: asPubkey(claimantAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "CoverageClaimRecord", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "CoverageClaimRecord",
+      filters,
+    );
     return parseAccounts(accounts, decodeCoverageClaim)
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.member, row.claimant, row.intentHashHex, row.eventHashHex, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.member,
+            row.claimant,
+            row.intentHashHex,
+            row.eventHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
       )
       .sort((a, b) => {
         if (a.submittedAt === b.submittedAt) {
@@ -7645,30 +10149,39 @@ export async function listRewardClaims(params: {
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (memberAddress) {
-      filters.push({ memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 72, bytes: asPubkey(memberAddress).toBase58() },
+      });
     }
     if (claimantAddress) {
-      filters.push({ memcmp: { offset: 104, bytes: asPubkey(claimantAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 104, bytes: asPubkey(claimantAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "ClaimRecordV2", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "ClaimRecord",
+      filters,
+    );
     return parseAccounts(accounts, decodeRewardClaim)
-      .filter(
-        (row) =>
-          includesSearch(
-            [
-              row.pool,
-              row.member,
-              row.claimant,
-              row.cycleHashHex,
-              row.ruleHashHex,
-              row.intentHashHex,
-              row.address,
-            ],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.member,
+            row.claimant,
+            row.cycleHashHex,
+            row.ruleHashHex,
+            row.intentHashHex,
+            row.address,
+          ],
+          params.search,
+        ),
       )
       .sort((a, b) => {
         if (a.submittedAt === b.submittedAt) {
@@ -7676,6 +10189,107 @@ export async function listRewardClaims(params: {
         }
         return a.submittedAt > b.submittedAt ? -1 : 1;
       });
+  });
+}
+
+export async function listProtocolFeeVaults(params: {
+  connection: Connection;
+  paymentMint?: string | null;
+  search?: string | null;
+}): Promise<ProtocolFeeVaultSummary[]> {
+  const paymentMint = params.paymentMint?.trim() || null;
+  const cacheKey = discoveryCacheKey(params.connection, "protocol-fee-vaults", {
+    paymentMint,
+    search: params.search ?? null,
+  });
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "ProtocolFeeVault",
+    );
+    return parseAccounts(accounts, decodeProtocolFeeVault)
+      .filter((row) => (paymentMint ? row.paymentMint === paymentMint : true))
+      .filter((row) =>
+        includesSearch([row.paymentMint, row.address], params.search),
+      )
+      .sort(
+        (a, b) =>
+          a.paymentMint.localeCompare(b.paymentMint) ||
+          a.address.localeCompare(b.address),
+      );
+  });
+}
+
+export async function listPoolOracleFeeVaults(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  oracleAddress?: string | null;
+  paymentMint?: string | null;
+  search?: string | null;
+}): Promise<PoolOracleFeeVaultSummary[]> {
+  const poolAddress = params.poolAddress?.trim() || null;
+  const oracleAddress = params.oracleAddress?.trim() || null;
+  const paymentMint = params.paymentMint?.trim() || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-oracle-fee-vaults",
+    {
+      poolAddress,
+      oracleAddress,
+      paymentMint,
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolOracleFeeVault",
+    );
+    return parseAccounts(accounts, decodePoolOracleFeeVault)
+      .filter((row) => (poolAddress ? row.pool === poolAddress : true))
+      .filter((row) => (oracleAddress ? row.oracle === oracleAddress : true))
+      .filter((row) => (paymentMint ? row.paymentMint === paymentMint : true))
+      .filter((row) =>
+        includesSearch(
+          [row.pool, row.oracle, row.paymentMint, row.address],
+          params.search,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          a.pool.localeCompare(b.pool) || a.oracle.localeCompare(b.oracle),
+      );
+  });
+}
+
+export async function listSchemaDependencyLedgers(params: {
+  connection: Connection;
+  schemaKeyHashHex?: string | null;
+  search?: string | null;
+}): Promise<SchemaDependencyLedgerSummary[]> {
+  const schemaKeyHashHex =
+    params.schemaKeyHashHex?.trim().toLowerCase().replace(/^0x/, "") || null;
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "schema-dependency-ledgers",
+    {
+      schemaKeyHashHex,
+      search: params.search ?? null,
+    },
+  );
+  return withDiscoveryCache(cacheKey, async () => {
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "SchemaDependencyLedger",
+    );
+    return parseAccounts(accounts, decodeSchemaDependencyLedger)
+      .filter((row) =>
+        schemaKeyHashHex ? row.schemaKeyHashHex === schemaKeyHashHex : true,
+      )
+      .filter((row) =>
+        includesSearch([row.schemaKeyHashHex, row.address], params.search),
+      )
+      .sort((a, b) => a.schemaKeyHashHex.localeCompare(b.schemaKeyHashHex));
   });
 }
 
@@ -7687,27 +10301,45 @@ export async function listPoolRedemptionRequests(params: {
 }): Promise<PoolRedemptionRequestSummary[]> {
   const poolAddress = params.poolAddress?.trim() || null;
   const redeemerAddress = params.redeemerAddress?.trim() || null;
-  const cacheKey = discoveryCacheKey(params.connection, "pool-redemption-requests", {
-    poolAddress,
-    redeemerAddress,
-    search: params.search ?? null,
-  });
+  const cacheKey = discoveryCacheKey(
+    params.connection,
+    "pool-redemption-requests",
+    {
+      poolAddress,
+      redeemerAddress,
+      search: params.search ?? null,
+    },
+  );
   return withDiscoveryCache(cacheKey, async () => {
     const filters: GetProgramAccountsFilter[] = [];
     if (poolAddress) {
-      filters.push({ memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 8, bytes: asPubkey(poolAddress).toBase58() },
+      });
     }
     if (redeemerAddress) {
-      filters.push({ memcmp: { offset: 40, bytes: asPubkey(redeemerAddress).toBase58() } });
+      filters.push({
+        memcmp: { offset: 40, bytes: asPubkey(redeemerAddress).toBase58() },
+      });
     }
-    const accounts = await fetchProgramAccounts(params.connection, "PoolRedemptionRequest", filters);
+    const accounts = await fetchProgramAccounts(
+      params.connection,
+      "PoolRedemptionRequest",
+      filters,
+    );
     return parseAccounts(accounts, decodeRedemptionRequest)
-      .filter(
-        (row) =>
-          includesSearch(
-            [row.pool, row.redeemer, row.requestHashHex, row.shareMint, row.payoutMint, row.address],
-            params.search,
-          ),
+      .filter((row) =>
+        includesSearch(
+          [
+            row.pool,
+            row.redeemer,
+            row.requestHashHex,
+            row.shareMint,
+            row.payoutMint,
+            row.address,
+          ],
+          params.search,
+        ),
       )
       .sort((a, b) => {
         if (a.requestedAt === b.requestedAt) {
@@ -7751,7 +10383,9 @@ export async function listPoolsWithPolicySeries(params: {
       ...pool,
       policySeries,
       policySeriesCount: policySeries.length,
-      activePolicySeriesCount: policySeries.filter((entry) => entry.status === POLICY_SERIES_STATUS_ACTIVE).length,
+      activePolicySeriesCount: policySeries.filter(
+        (entry) => entry.status === POLICY_SERIES_STATUS_ACTIVE,
+      ).length,
     };
   });
 }
@@ -7764,7 +10398,11 @@ export async function listWalletTokenAccountsForMint(params: {
 }): Promise<TokenAccountSummary[]> {
   const owner = asPubkey(params.owner).toBase58();
   const mint = asPubkey(params.mint).toBase58();
-  const cacheKey = discoveryCacheKey(params.connection, "token-accounts", { owner, mint, search: params.search ?? null });
+  const cacheKey = discoveryCacheKey(params.connection, "token-accounts", {
+    owner,
+    mint,
+    search: params.search ?? null,
+  });
   return withDiscoveryCache(cacheKey, async () => {
     const response = await params.connection.getParsedTokenAccountsByOwner(
       new PublicKey(owner),
@@ -7786,7 +10424,12 @@ export async function listWalletTokenAccountsForMint(params: {
       });
     }
     return rows
-      .filter((row) => includesSearch([row.address, row.uiAmountString, row.amount], params.search))
+      .filter((row) =>
+        includesSearch(
+          [row.address, row.uiAmountString, row.amount],
+          params.search,
+        ),
+      )
       .sort((a, b) => {
         const amountCmp = BigInt(b.amount) - BigInt(a.amount);
         if (amountCmp !== 0n) return amountCmp > 0n ? 1 : -1;
@@ -7796,16 +10439,26 @@ export async function listWalletTokenAccountsForMint(params: {
 }
 
 function resolveExplorerCluster(clusterOverride?: string): string {
-  return clusterOverride?.trim() || process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER?.trim() || "devnet";
+  return (
+    clusterOverride?.trim() ||
+    process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER?.trim() ||
+    "devnet"
+  );
 }
 
-export function toExplorerLink(signature: string, clusterOverride?: string): string {
+export function toExplorerLink(
+  signature: string,
+  clusterOverride?: string,
+): string {
   const cluster = resolveExplorerCluster(clusterOverride);
   const normalizedSignature = signature.trim();
   return `https://explorer.solana.com/tx/${encodeURIComponent(normalizedSignature)}?cluster=${encodeURIComponent(cluster)}`;
 }
 
-export function toExplorerAddressLink(address: string, clusterOverride?: string): string {
+export function toExplorerAddressLink(
+  address: string,
+  clusterOverride?: string,
+): string {
   const cluster = resolveExplorerCluster(clusterOverride);
   const normalizedAddress = address.trim();
   return `https://explorer.solana.com/address/${encodeURIComponent(normalizedAddress)}?cluster=${encodeURIComponent(cluster)}`;

@@ -2,7 +2,6 @@
 
 export const SCENARIO_ORDER = [
   "protocol-governance-oracle-lifecycle",
-  "legacy-registry-compatibility",
   "pool-schema-member-lifecycle",
   "direct-liquidity-lifecycle",
   "queued-liquidity-lifecycle",
@@ -15,18 +14,13 @@ export const SCENARIO_ORDER = [
 export type ScenarioName = (typeof SCENARIO_ORDER)[number];
 
 export const SCENARIO_INSTRUCTIONS: Record<ScenarioName, string[]> = {
-  "legacy-registry-compatibility": [
-    "register_oracle",
-    "set_pool_oracle",
-    "backfill_schema_dependency_ledger",
-  ],
   "protocol-governance-oracle-lifecycle": [
-    "initialize_protocol_v2",
+    "initialize_protocol",
     "set_protocol_params",
     "rotate_governance_authority",
-    "register_oracle_v2",
-    "claim_oracle_v2",
-    "update_oracle_profile_v2",
+    "register_oracle",
+    "claim_oracle",
+    "update_oracle_profile",
     "update_oracle_metadata",
     "stake_oracle",
     "request_unstake",
@@ -34,8 +28,9 @@ export const SCENARIO_INSTRUCTIONS: Record<ScenarioName, string[]> = {
     "slash_oracle",
   ],
   "pool-schema-member-lifecycle": [
-    "create_pool_v2",
+    "create_pool",
     "set_pool_status",
+    "set_pool_oracle",
     "set_pool_oracle_policy",
     "set_pool_coverage_reserve_floor",
     "set_pool_risk_controls",
@@ -46,6 +41,7 @@ export const SCENARIO_INSTRUCTIONS: Record<ScenarioName, string[]> = {
     "set_pool_terms_hash",
     "register_outcome_schema",
     "verify_outcome_schema",
+    "backfill_schema_dependency_ledger",
     "close_outcome_schema",
     "set_policy_series_outcome_rule",
     "register_invite_issuer",
@@ -88,8 +84,8 @@ export const SCENARIO_INSTRUCTIONS: Record<ScenarioName, string[]> = {
     "subscribe_policy_series",
     "issue_policy_position",
     "mint_policy_nft",
-    "pay_premium_spl_v2",
-    "pay_premium_sol_v2",
+    "pay_premium_spl",
+    "pay_premium_sol",
   ],
   "quoted-cycle-activation-settlement-cohort-lifecycle": [
     "activate_cycle_with_quote_sol",
@@ -105,13 +101,13 @@ export const SCENARIO_INSTRUCTIONS: Record<ScenarioName, string[]> = {
     "withdraw_protocol_fee_sol",
     "withdraw_pool_oracle_fee_spl",
     "withdraw_pool_oracle_fee_sol",
-    "pay_premium_onchain",
     "attest_premium_paid_offchain",
     "submit_coverage_claim",
     "review_coverage_claim",
     "attach_coverage_claim_decision_support",
     "approve_coverage_claim",
     "deny_coverage_claim",
+    "claim_approved_coverage_payout",
     "pay_coverage_claim",
     "close_coverage_claim",
     "settle_coverage_claim",

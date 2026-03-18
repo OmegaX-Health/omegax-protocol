@@ -8,19 +8,19 @@ Start in this order:
 
 1. [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs) for the Anchor entrypoint surface
 2. [`programs/omegax_protocol/src/core_accounts.rs`](../../programs/omegax_protocol/src/core_accounts.rs) for root account types shared across the protocol
-3. [`programs/omegax_protocol/src/v2.rs`](../../programs/omegax_protocol/src/v2.rs) for the v2 module index
-4. the relevant v2 handler file for the lifecycle you care about
-5. the matching file under `src/v2/contexts/` for Anchor account validation
-6. [`programs/omegax_protocol/src/v2/state.rs`](../../programs/omegax_protocol/src/v2/state.rs) for v2 account storage
-7. the matching helper file under `src/v2/shared/` for reusable validation, quote, liquidity, treasury, or coverage logic
+3. [`programs/omegax_protocol/src/surface.rs`](../../programs/omegax_protocol/src/surface.rs) for the current module index
+4. the relevant handler file for the lifecycle you care about
+5. the matching file under `src/surface/contexts/` for Anchor account validation
+6. [`programs/omegax_protocol/src/surface/state.rs`](../../programs/omegax_protocol/src/surface/state.rs) for current account storage
+7. the matching helper file under `src/surface/shared/` for reusable validation, quote, liquidity, treasury, or coverage logic
 
 ## Top-level layers
 
 ### 1. Anchor entrypoints
 
 - `src/lib.rs` is the public instruction surface.
-- Legacy registry instructions still live inline there.
-- The rest of the program delegates immediately into the v2 domain handlers so the entrypoint file stays routing-focused.
+- Registry approval instructions still live inline there.
+- The rest of the program delegates immediately into the current domain handlers so the entrypoint file stays routing-focused.
 
 ### 2. Root account types
 
@@ -30,11 +30,11 @@ Start in this order:
   - `OracleProfile`
   - `PoolOracleApproval`
   - `MembershipRecord`
-- It also keeps the legacy `register_oracle` and `set_pool_oracle` account contexts close to the state they operate on.
+- It also keeps the `register_oracle` and `set_pool_oracle` account contexts close to the state they operate on.
 
-### 3. v2 domain surface
+### 3. Current Domain Surface
 
-- `src/v2.rs` is the v2 index and shared import surface.
+- `src/surface.rs` is the current module index and shared import surface.
 - Handler files are grouped by lifecycle:
   - `admin.rs` for governance and oracle administration
   - `pools.rs` for pool creation, enrollment, and liquidity
@@ -46,7 +46,7 @@ Start in this order:
 
 ### 4. Account validation
 
-- `src/v2/contexts/` contains the Anchor `#[derive(Accounts)]` definitions grouped by protocol area.
+- `src/surface/contexts/` contains the Anchor `#[derive(Accounts)]` definitions grouped by protocol area.
 - The most complex validation surfaces today are:
   - `contexts/pools.rs`
   - `contexts/coverage.rs`
@@ -56,8 +56,8 @@ Start in this order:
 
 ### 5. State and helpers
 
-- `src/v2/state.rs` contains the v2-owned account layouts and `space()` helpers.
-- `src/v2/shared/` contains helper logic grouped by protocol concern:
+- `src/surface/state.rs` contains the current account layouts and `space()` helpers.
+- `src/surface/shared/` contains helper logic grouped by protocol concern:
   - `guards.rs` for paused/closed checks
   - `compliance.rs` for action-level credential and rail gating
   - `oracle.rs` for oracle profile and permission validation
@@ -71,14 +71,14 @@ Start in this order:
 
 ### Governance and oracle lifecycle
 
-- Bootstrap with `initialize_protocol_v2`.
-- Register and claim oracle identity with `register_oracle_v2` and `claim_oracle_v2`.
+- Bootstrap with `initialize_protocol`.
+- Register and claim oracle identity with `register_oracle` and `claim_oracle`.
 - Update profile and metadata through the admin/oracle flows.
 - Stake, request unstake, finalize unstake, and slash through `admin.rs`.
 
 ### Pool lifecycle
 
-- Create the pool and its companion policy/terms accounts in `create_pool_v2`.
+- Create the pool and its companion policy/terms accounts in `create_pool`.
 - Configure pool status, oracle policy, reserve floor, scoped risk controls, series metadata, compliance policy, delegated control authorities, automation policy, rules, and invite issuers in `pools.rs`.
 - Enroll members through open, token-gated, or invite-based flows.
 - Fund and manage liquidity through the same domain file today, including capital-class registration plus direct and queued redemption paths.
@@ -97,6 +97,7 @@ Start in this order:
 - Cycle settlement and cohort settlement roots live in `cycles/settlement.rs`.
 - Coverage claims and premium attestations settle treasury state in `treasury.rs`.
 - Coverage claims now support explicit review, approval, denial, partial payout, closure, appeal count, recovery bookkeeping, optional compliance gating, and AI decision-support commitments without storing raw external payloads onchain.
+- Coverage claim adjudication is delegated through pool-approved oracle keys with `ORACLE_PERMISSION_CLAIM_SETTLE`, while approved reimbursement claims can be pulled by the claimant or an active claim delegate instead of forcing governance or pool authority to push each payout.
 - `PoolTreasuryReserve` now acts as the beginning of a liability ledger, so liquidity and claim payouts reconcile against free capital instead of gross reserves alone.
 - `PoolRiskConfig` complements that ledger by letting the pool authority or governance pause claim intake, move redemptions to queue-only, or book an impairment amount without changing the pool’s broader lifecycle status.
 - The current share mint is now treated explicitly as a transitional compatibility path: `PoolCapitalClass` wraps that share mint with class mode, restriction, vintage, and queue metadata, while `shared/liquidity.rs` exposes reserve-aware reference NAV, utilization, available-redemption semantics, and redemption-request lifecycle semantics from the combined class, risk, and treasury state.
@@ -109,8 +110,8 @@ Start in this order:
 These are the first files to revisit when readability or modularity needs improvement:
 
 - `src/lib.rs`
-- `src/v2/pools.rs`
-- `src/v2/cycles/activation.rs`
+- `src/surface/pools.rs`
+- `src/surface/cycles/activation.rs`
 
 Those files are the current concentration points for routing, onboarding/lifecycle branching, and quote-driven cycle activation.
 

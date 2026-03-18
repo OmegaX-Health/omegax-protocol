@@ -93,10 +93,10 @@ test("fetchProtocolReadiness treats SOL payout pools as vault-configured", async
   const connection = new MockConnection();
   const programId = protocol.getProgramId();
   const pool = Keypair.generate().publicKey;
-  const configV2 = protocol.deriveConfigV2Pda(programId);
+  const config = protocol.deriveConfigPda(programId);
   const poolTerms = protocol.derivePoolTermsPda({ programId, poolAddress: pool });
 
-  connection.set(configV2, dummyAccount());
+  connection.set(config, dummyAccount());
   connection.set(pool, dummyAccount());
   connection.set(
     poolTerms,
@@ -118,7 +118,7 @@ test("fetchProtocolReadiness derives SPL vault PDA from pool terms payout mint",
   const programId = protocol.getProgramId();
   const pool = Keypair.generate().publicKey;
   const payoutMint = Keypair.generate().publicKey;
-  const configV2 = protocol.deriveConfigV2Pda(programId);
+  const config = protocol.deriveConfigPda(programId);
   const poolTerms = protocol.derivePoolTermsPda({ programId, poolAddress: pool });
   const poolAssetVault = protocol.derivePoolAssetVaultPda({
     programId,
@@ -126,7 +126,7 @@ test("fetchProtocolReadiness derives SPL vault PDA from pool terms payout mint",
     payoutMint,
   });
 
-  connection.set(configV2, dummyAccount());
+  connection.set(config, dummyAccount());
   connection.set(pool, dummyAccount());
   connection.set(poolTerms, dummyAccount(poolTermsAccount({ pool, payoutMint })));
   connection.set(poolAssetVault, dummyAccount());

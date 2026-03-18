@@ -107,7 +107,37 @@ test('contract includes coverage claim case-management instructions', () => {
   assert.ok(names.has('approve_coverage_claim'), 'missing approve_coverage_claim');
   assert.ok(names.has('deny_coverage_claim'), 'missing deny_coverage_claim');
   assert.ok(names.has('pay_coverage_claim'), 'missing pay_coverage_claim');
+  assert.ok(
+    names.has('claim_approved_coverage_payout'),
+    'missing claim_approved_coverage_payout',
+  );
   assert.ok(names.has('close_coverage_claim'), 'missing close_coverage_claim');
+});
+
+test('coverage claim adjudication instructions require pool oracle permission accounts', () => {
+  const names = [
+    'review_coverage_claim',
+    'attach_coverage_claim_decision_support',
+    'approve_coverage_claim',
+    'deny_coverage_claim',
+    'settle_coverage_claim',
+  ];
+  for (const name of names) {
+    const instruction = contract.instructions.find((ix) => ix.name === name);
+    assert.ok(instruction, `missing ${name}`);
+    assert.ok(
+      instruction.accounts.some((account) => account.name === 'oracle_entry'),
+      `${name} must include oracle_entry`,
+    );
+    assert.ok(
+      instruction.accounts.some((account) => account.name === 'pool_oracle'),
+      `${name} must include pool_oracle`,
+    );
+    assert.ok(
+      instruction.accounts.some((account) => account.name === 'pool_oracle_permissions'),
+      `${name} must include pool_oracle_permissions`,
+    );
+  }
 });
 
 test('contract includes series, compliance, queue, and dispute instructions', () => {
@@ -142,6 +172,25 @@ test('contract includes seeker cycle activation and treasury lifecycle instructi
   assert.ok(names.has('settle_cycle_commitment_sol'), 'missing settle_cycle_commitment_sol');
   assert.ok(names.has('withdraw_pool_treasury_spl'), 'missing withdraw_pool_treasury_spl');
   assert.ok(names.has('withdraw_pool_treasury_sol'), 'missing withdraw_pool_treasury_sol');
+});
+
+test('contract removes deprecated instructions and public versioned naming', () => {
+  const instructionNames = contract.instructions.map((ix) => ix.name);
+  const deprecatedInstructionSuffix = ['_', 'v', '2'].join('');
+  const deprecatedAccountToken = ['V', '2'].join('');
+  assert.ok(
+    !instructionNames.includes('pay_premium_onchain'),
+    'deprecated pay_premium_onchain should not be public',
+  );
+  assert.ok(
+    !instructionNames.some((name) => name.endsWith(deprecatedInstructionSuffix)),
+    'public instruction names must not expose deprecated version suffixes',
+  );
+  const accountNames = Object.keys(contract.accountDiscriminators);
+  assert.ok(
+    !accountNames.some((name) => name.includes(deprecatedAccountToken)),
+    'public account names must not expose deprecated version tokens',
+  );
 });
 
 test('oracle data attestation instructions require oracle permission accounts', () => {
@@ -184,7 +233,7 @@ test('contract account discriminators are canonical anchor account discriminator
     'InviteIssuerRegistryEntry',
     'AttestationVote',
     'CycleOutcomeAggregate',
-    'ClaimRecordV2',
+    'ClaimRecord',
     'PolicySeriesPaymentOption',
     'PolicyPosition',
     'PolicyPositionNft',
@@ -202,7 +251,7 @@ test('contract account discriminators are canonical anchor account discriminator
 
 test('contract includes required pda seed schemas', () => {
   const required = [
-    'config_v2',
+    'config',
     'pool',
     'oracle',
     'oracle_stake',
@@ -231,7 +280,7 @@ test('contract includes required pda seed schemas', () => {
     'attestation_vote',
     'outcome_aggregate',
     'claim_delegate',
-    'claim_v2',
+    'claim',
     'policy_position',
     'policy_position_nft',
     'premium_ledger',

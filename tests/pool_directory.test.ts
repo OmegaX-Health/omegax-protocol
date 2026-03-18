@@ -7,7 +7,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import protocolModule from '../frontend/lib/protocol.ts';
 
 const {
-  buildCreatePoolV2Tx,
+  buildCreatePoolTx,
   buildEnrollMemberOpenTx,
   buildRegisterPoolCapitalClassTx,
   buildSetPoolRiskControlsTx,
@@ -55,11 +55,11 @@ test('derivePoolPda is deterministic', () => {
   assert.equal(a.toBase58(), b.toBase58());
 });
 
-test('buildCreatePoolV2Tx builds a transaction with one instruction', () => {
+test('buildCreatePoolTx builds a transaction with one instruction', () => {
   const authority = Keypair.generate().publicKey;
   const recentBlockhash = '11111111111111111111111111111111';
 
-  const { tx, poolAddress } = buildCreatePoolV2Tx({
+  const { tx, poolAddress } = buildCreatePoolTx({
     authority,
     recentBlockhash,
     poolId: 'omegax-test-pool',

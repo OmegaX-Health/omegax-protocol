@@ -9,7 +9,7 @@ import protocolModule from "../frontend/lib/protocol.ts";
 const protocol = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 test("coverage claim case builders derive review and reserve-scoped accounts", () => {
-  const authority = Keypair.generate().publicKey;
+  const oracle = Keypair.generate().publicKey;
   const poolAddress = Keypair.generate().publicKey;
   const member = Keypair.generate().publicKey;
   const payoutMint = Keypair.generate().publicKey;
@@ -27,6 +27,13 @@ test("coverage claim case builders derive review and reserve-scoped accounts", (
     member,
     intentHash: Buffer.from(intentHashHex, "hex"),
   });
+  const oracleEntry = protocol.deriveOraclePda({ programId, oracle });
+  const poolOracle = protocol.derivePoolOraclePda({ programId, poolAddress, oracle });
+  const poolOraclePermissions = protocol.derivePoolOraclePermissionsPda({
+    programId,
+    poolAddress,
+    oracle,
+  });
   const poolTerms = protocol.derivePoolTermsPda({ programId, poolAddress });
   const poolTreasuryReserve = protocol.derivePoolTreasuryReservePda({
     programId,
@@ -35,7 +42,7 @@ test("coverage claim case builders derive review and reserve-scoped accounts", (
   });
 
   const reviewTx = protocol.buildReviewCoverageClaimTx({
-    authority,
+    oracle,
     poolAddress,
     member,
     seriesRefHashHex,
@@ -49,10 +56,16 @@ test("coverage claim case builders derive review and reserve-scoped accounts", (
     recentBlockhash,
   });
   assert.equal(reviewTx.instructions.length, 1);
-  assert.equal(reviewTx.instructions[0]?.keys[3]?.pubkey.toBase58(), coverageClaim.toBase58());
+  assert.equal(reviewTx.instructions[0]?.keys[2]?.pubkey.toBase58(), oracleEntry.toBase58());
+  assert.equal(reviewTx.instructions[0]?.keys[4]?.pubkey.toBase58(), poolOracle.toBase58());
+  assert.equal(
+    reviewTx.instructions[0]?.keys[5]?.pubkey.toBase58(),
+    poolOraclePermissions.toBase58(),
+  );
+  assert.equal(reviewTx.instructions[0]?.keys[6]?.pubkey.toBase58(), coverageClaim.toBase58());
 
   const approveTx = protocol.buildApproveCoverageClaimTx({
-    authority,
+    oracle,
     poolAddress,
     member,
     seriesRefHashHex,
@@ -66,14 +79,24 @@ test("coverage claim case builders derive review and reserve-scoped accounts", (
     recentBlockhash,
   });
   assert.equal(approveTx.instructions.length, 1);
-  assert.equal(approveTx.instructions[0]?.keys[3]?.pubkey.toBase58(), poolTerms.toBase58());
-  assert.equal(approveTx.instructions[0]?.keys[4]?.pubkey.toBase58(), coverageClaim.toBase58());
-  assert.equal(approveTx.instructions[0]?.keys[5]?.pubkey.toBase58(), poolTreasuryReserve.toBase58());
+  assert.equal(approveTx.instructions[0]?.keys[2]?.pubkey.toBase58(), oracleEntry.toBase58());
+  assert.equal(approveTx.instructions[0]?.keys[4]?.pubkey.toBase58(), poolOracle.toBase58());
+  assert.equal(
+    approveTx.instructions[0]?.keys[5]?.pubkey.toBase58(),
+    poolOraclePermissions.toBase58(),
+  );
+  assert.equal(approveTx.instructions[0]?.keys[6]?.pubkey.toBase58(), poolTerms.toBase58());
+  assert.equal(approveTx.instructions[0]?.keys[7]?.pubkey.toBase58(), coverageClaim.toBase58());
+  assert.equal(
+    approveTx.instructions[0]?.keys[8]?.pubkey.toBase58(),
+    poolTreasuryReserve.toBase58(),
+  );
 });
 
 test("coverage claim payout and close builders derive the expected treasury accounts", () => {
   const authority = Keypair.generate().publicKey;
   const claimant = Keypair.generate().publicKey;
+  const delegate = Keypair.generate().publicKey;
   const poolAddress = Keypair.generate().publicKey;
   const member = Keypair.generate().publicKey;
   const payoutMint = Keypair.generate().publicKey;
@@ -99,6 +122,11 @@ test("coverage claim payout and close builders derive the expected treasury acco
     poolAddress,
     paymentMint: payoutMint,
   });
+  const claimDelegate = protocol.deriveClaimDelegatePda({
+    programId,
+    poolAddress,
+    member: claimant,
+  });
 
   const payTx = protocol.buildPayCoverageClaimTx({
     authority,
@@ -119,6 +147,52 @@ test("coverage claim payout and close builders derive the expected treasury acco
   assert.equal(payTx.instructions[0]?.keys[3]?.pubkey.toBase58(), poolTerms.toBase58());
   assert.equal(payTx.instructions[0]?.keys[4]?.pubkey.toBase58(), coverageClaim.toBase58());
   assert.equal(payTx.instructions[0]?.keys[6]?.pubkey.toBase58(), poolTreasuryReserve.toBase58());
+
+  const pullTx = protocol.buildClaimApprovedCoveragePayoutTx({
+    claimSigner: delegate,
+    claimant,
+    poolAddress,
+    member,
+    seriesRefHashHex,
+    intentHashHex,
+    payoutAmount: 44n,
+    payoutMint,
+    recipientSystemAccount,
+    poolAssetVault,
+    poolVaultTokenAccount,
+    recipientTokenAccount,
+    recentBlockhash,
+  });
+  assert.equal(pullTx.instructions.length, 1);
+  assert.equal(pullTx.instructions[0]?.keys[4]?.pubkey.toBase58(), coverageClaim.toBase58());
+  assert.equal(pullTx.instructions[0]?.keys[6]?.pubkey.toBase58(), claimDelegate.toBase58());
+  assert.equal(pullTx.instructions[0]?.keys[7]?.pubkey.toBase58(), poolTreasuryReserve.toBase58());
+
+  const selfPullTx = protocol.buildClaimApprovedCoveragePayoutTx({
+    claimSigner: claimant,
+    claimant,
+    poolAddress,
+    member,
+    seriesRefHashHex,
+    intentHashHex,
+    payoutAmount: 11n,
+    payoutMint,
+    recipientSystemAccount,
+    poolAssetVault,
+    poolVaultTokenAccount,
+    recipientTokenAccount,
+    recentBlockhash,
+  });
+  assert.equal(selfPullTx.instructions.length, 1);
+  assert.equal(selfPullTx.instructions[0]?.keys.length, 14);
+  assert.equal(
+    selfPullTx.instructions[0]?.keys[4]?.pubkey.toBase58(),
+    coverageClaim.toBase58(),
+  );
+  assert.equal(
+    selfPullTx.instructions[0]?.keys[7]?.pubkey.toBase58(),
+    poolTreasuryReserve.toBase58(),
+  );
 
   const closeTx = protocol.buildCloseCoverageClaimTx({
     authority,

@@ -79,7 +79,7 @@ const KOTLIN_GENERATED_PATH = resolve(
 );
 
 const PDA_SEEDS: Record<string, string[]> = {
-  config_v2: ['config_v2'],
+  config: ['config'],
   pool: ['pool', '<authority>', '<pool_id>'],
   oracle: ['oracle', '<oracle>'],
   oracle_profile: ['oracle_profile', '<oracle>'],
@@ -109,7 +109,7 @@ const PDA_SEEDS: Record<string, string[]> = {
   attestation_vote: ['attestation_vote', '<pool>', '<series_ref_hash>', '<member>', '<cycle_hash>', '<rule_hash>', '<oracle>'],
   outcome_aggregate: ['outcome_agg', '<pool>', '<series_ref_hash>', '<member>', '<cycle_hash>', '<rule_hash>'],
   claim_delegate: ['claim_delegate', '<pool>', '<member>'],
-  claim_v2: ['claim_v2', '<pool>', '<series_ref_hash>', '<member>', '<cycle_hash>', '<rule_hash>'],
+  claim: ['claim', '<pool>', '<series_ref_hash>', '<member>', '<cycle_hash>', '<rule_hash>'],
   policy_position: ['policy_position', '<pool>', '<series_ref_hash>', '<member>'],
   policy_position_nft: ['policy_position_nft', '<pool>', '<series_ref_hash>', '<member>'],
   premium_ledger: ['premium_ledger', '<pool>', '<series_ref_hash>', '<member>'],

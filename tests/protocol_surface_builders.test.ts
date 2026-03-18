@@ -18,6 +18,13 @@ const protocol = protocolModule as typeof import("../frontend/lib/protocol.ts");
 const RECENT_BLOCKHASH = "11111111111111111111111111111111";
 const ZERO_PUBKEY = new PublicKey(protocol.ZERO_PUBKEY);
 
+test("frontend protocol module exports canonical builder names only", () => {
+  const exportedNames = Object.keys(protocol);
+  assert.ok(!exportedNames.includes("buildPayPremiumOnchainTx"));
+  assert.ok(!exportedNames.some((name) => name.endsWith("V2Tx")));
+  assert.ok(!exportedNames.some((name) => name.includes("ProtocolConfigV2")));
+});
+
 test("cycle quote builders derive replay, fee, and sysvar accounts", () => {
   const payer = Keypair.generate().publicKey;
   const poolAddress = Keypair.generate().publicKey;
@@ -275,7 +282,7 @@ test("coverage payment-option and premium builders derive product-scoped PDAs", 
   assert.equal(upsertTx.instructions[0]?.keys[3]?.pubkey.toBase58(), coverageProduct.toBase58());
   assert.equal(upsertTx.instructions[0]?.keys[5]?.pubkey.toBase58(), paymentOption.toBase58());
 
-  const splTx = protocol.buildPayPremiumSplV2Tx({
+  const splTx = protocol.buildPayPremiumSplTx({
     payer,
     poolAddress,
     member,
@@ -290,7 +297,7 @@ test("coverage payment-option and premium builders derive product-scoped PDAs", 
   assert.equal(splTx.instructions[0]?.keys[9]?.pubkey.toBase58(), poolAssetVault.toBase58());
   assert.equal(splTx.instructions[0]?.keys[10]?.pubkey.toBase58(), poolVaultTokenAccount.toBase58());
 
-  const solTx = protocol.buildPayPremiumSolV2Tx({
+  const solTx = protocol.buildPayPremiumSolTx({
     payer,
     poolAddress,
     member,

@@ -7,8 +7,8 @@ use anchor_lang::prelude::*;
 pub mod core_accounts;
 pub use core_accounts::*;
 
-pub mod v2;
-use v2::*;
+pub mod surface;
+use surface::*;
 
 declare_id!("Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B");
 
@@ -46,28 +46,13 @@ const MEMBERSHIP_STATUS_ACTIVE: u8 = 1;
 pub mod omegax_protocol {
     use super::*;
 
-    // Legacy registry and pool-oracle approval surface kept for compatibility.
-
-    pub fn register_oracle(ctx: Context<RegisterOracle>, metadata_uri: String) -> Result<()> {
-        require!(
-            metadata_uri.len() <= MAX_METADATA_URI_LEN,
-            OmegaXProtocolV2Error::MetadataUriTooLong
-        );
-
-        let entry = &mut ctx.accounts.oracle_entry;
-        entry.oracle = ctx.accounts.oracle.key();
-        entry.active = true;
-        entry.bump = ctx.bumps.oracle_entry;
-        entry.metadata_uri = metadata_uri;
-
-        Ok(())
-    }
+    // Pool-oracle approval surface.
 
     pub fn set_pool_oracle(ctx: Context<SetPoolOracle>, active: bool) -> Result<()> {
         if active {
             require!(
                 ctx.accounts.oracle_entry.active,
-                OmegaXProtocolV2Error::OracleRegistryNotActive
+                OmegaXProtocolError::OracleRegistryNotActive
             );
         }
 
@@ -82,10 +67,10 @@ pub mod omegax_protocol {
 
     // Governance, oracle onboarding, and staking lifecycle.
 
-    /// Registers a rich oracle profile used by the v2 staking and attestation flows.
+    /// Registers a rich oracle profile used by the staking and attestation flows.
     #[allow(clippy::too_many_arguments)]
-    pub fn register_oracle_v2(
-        ctx: Context<RegisterOracleV2>,
+    pub fn register_oracle(
+        ctx: Context<RegisterOracle>,
         oracle_pubkey: Pubkey,
         oracle_type: u8,
         display_name: String,
@@ -96,7 +81,7 @@ pub mod omegax_protocol {
         webhook_url: String,
         supported_schema_key_hashes: Vec<[u8; 32]>,
     ) -> Result<()> {
-        v2::register_oracle_v2(
+        surface::register_oracle(
             ctx,
             oracle_pubkey,
             oracle_type,
@@ -110,13 +95,13 @@ pub mod omegax_protocol {
         )
     }
 
-    pub fn claim_oracle_v2(ctx: Context<ClaimOracleV2>) -> Result<()> {
-        v2::claim_oracle_v2(ctx)
+    pub fn claim_oracle(ctx: Context<ClaimOracle>) -> Result<()> {
+        surface::claim_oracle(ctx)
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn update_oracle_profile_v2(
-        ctx: Context<UpdateOracleProfileV2>,
+    pub fn update_oracle_profile(
+        ctx: Context<UpdateOracleProfile>,
         oracle_type: u8,
         display_name: String,
         legal_name: String,
@@ -126,7 +111,7 @@ pub mod omegax_protocol {
         webhook_url: String,
         supported_schema_key_hashes: Vec<[u8; 32]>,
     ) -> Result<()> {
-        v2::update_oracle_profile_v2(
+        surface::update_oracle_profile(
             ctx,
             oracle_type,
             display_name,
@@ -139,15 +124,15 @@ pub mod omegax_protocol {
         )
     }
 
-    pub fn initialize_protocol_v2(
-        ctx: Context<InitializeProtocolV2>,
+    pub fn initialize_protocol(
+        ctx: Context<InitializeProtocol>,
         protocol_fee_bps: u16,
         governance_realm: Pubkey,
         governance_config: Pubkey,
         default_stake_mint: Pubkey,
         min_oracle_stake: u64,
     ) -> Result<()> {
-        v2::initialize_protocol_v2(
+        surface::initialize_protocol(
             ctx,
             protocol_fee_bps,
             governance_realm,
@@ -161,7 +146,7 @@ pub mod omegax_protocol {
         ctx: Context<RotateGovernanceAuthority>,
         new_authority: Pubkey,
     ) -> Result<()> {
-        v2::rotate_governance_authority(ctx, new_authority)
+        surface::rotate_governance_authority(ctx, new_authority)
     }
 
     pub fn update_oracle_metadata(
@@ -169,11 +154,11 @@ pub mod omegax_protocol {
         metadata_uri: String,
         active: bool,
     ) -> Result<()> {
-        v2::update_oracle_metadata(ctx, metadata_uri, active)
+        surface::update_oracle_metadata(ctx, metadata_uri, active)
     }
 
     pub fn stake_oracle(ctx: Context<StakeOracle>, amount: u64) -> Result<()> {
-        v2::stake_oracle(ctx, amount)
+        surface::stake_oracle(ctx, amount)
     }
 
     pub fn request_unstake(
@@ -181,23 +166,23 @@ pub mod omegax_protocol {
         amount: u64,
         cooldown_seconds: i64,
     ) -> Result<()> {
-        v2::request_unstake(ctx, amount, cooldown_seconds)
+        surface::request_unstake(ctx, amount, cooldown_seconds)
     }
 
     pub fn finalize_unstake(ctx: Context<FinalizeUnstake>) -> Result<()> {
-        v2::finalize_unstake(ctx)
+        surface::finalize_unstake(ctx)
     }
 
     pub fn slash_oracle(ctx: Context<SlashOracle>, amount: u64) -> Result<()> {
-        v2::slash_oracle(ctx, amount)
+        surface::slash_oracle(ctx, amount)
     }
 
     // Pool creation, membership, and liquidity lifecycle.
 
     /// Creates the base pool, terms, and oracle-policy accounts for a new protocol pool.
     #[allow(clippy::too_many_arguments)]
-    pub fn create_pool_v2(
-        ctx: Context<CreatePoolV2>,
+    pub fn create_pool(
+        ctx: Context<CreatePool>,
         pool_id: String,
         organization_ref: String,
         payout_lamports_per_pass: u64,
@@ -212,7 +197,7 @@ pub mod omegax_protocol {
         cycle_mode: u8,
         metadata_uri: String,
     ) -> Result<()> {
-        v2::create_pool_v2(
+        surface::create_pool(
             ctx,
             pool_id,
             organization_ref,
@@ -231,20 +216,22 @@ pub mod omegax_protocol {
     }
 
     pub fn set_pool_status(ctx: Context<SetPoolStatus>, status: u8) -> Result<()> {
-        v2::set_pool_status(ctx, status)
+        surface::set_pool_status(ctx, status)
     }
 
     pub fn set_protocol_params(
         ctx: Context<SetProtocolParams>,
         protocol_fee_bps: u16,
         allowed_payout_mints_hash: [u8; 32],
+        default_stake_mint: Pubkey,
         min_oracle_stake: u64,
         emergency_paused: bool,
     ) -> Result<()> {
-        v2::set_protocol_params(
+        surface::set_protocol_params(
             ctx,
             protocol_fee_bps,
             allowed_payout_mints_hash,
+            default_stake_mint,
             min_oracle_stake,
             emergency_paused,
         )
@@ -259,7 +246,7 @@ pub mod omegax_protocol {
         allow_delegate_claim: bool,
         challenge_window_secs: i64,
     ) -> Result<()> {
-        v2::set_pool_oracle_policy(
+        surface::set_pool_oracle_policy(
             ctx,
             quorum_m,
             quorum_n,
@@ -275,7 +262,7 @@ pub mod omegax_protocol {
         payment_mint: Pubkey,
         amount: u64,
     ) -> Result<()> {
-        v2::set_pool_coverage_reserve_floor(ctx, payment_mint, amount)
+        surface::set_pool_coverage_reserve_floor(ctx, payment_mint, amount)
     }
 
     pub fn set_pool_risk_controls(
@@ -285,7 +272,7 @@ pub mod omegax_protocol {
         impaired: bool,
         impairment_amount: u64,
     ) -> Result<()> {
-        v2::set_pool_risk_controls(
+        surface::set_pool_risk_controls(
             ctx,
             redemption_mode,
             claim_mode,
@@ -307,7 +294,7 @@ pub mod omegax_protocol {
         payout_rail_mode: u8,
         active: bool,
     ) -> Result<()> {
-        v2::set_pool_compliance_policy(
+        surface::set_pool_compliance_policy(
             ctx,
             provider_ref_hash,
             credential_type_hash,
@@ -328,7 +315,7 @@ pub mod omegax_protocol {
         compliance_authority: Pubkey,
         guardian_authority: Pubkey,
     ) -> Result<()> {
-        v2::set_pool_control_authorities(
+        surface::set_pool_control_authorities(
             ctx,
             operator_authority,
             risk_manager_authority,
@@ -345,7 +332,7 @@ pub mod omegax_protocol {
         max_auto_claim_amount: u64,
         required_attestation_provider_ref_hash: [u8; 32],
     ) -> Result<()> {
-        v2::set_pool_automation_policy(
+        surface::set_pool_automation_policy(
             ctx,
             oracle_automation_mode,
             claim_automation_mode,
@@ -359,7 +346,7 @@ pub mod omegax_protocol {
         ctx: Context<SetPoolOraclePermissions>,
         permissions: u32,
     ) -> Result<()> {
-        v2::set_pool_oracle_permissions(ctx, permissions)
+        surface::set_pool_oracle_permissions(ctx, permissions)
     }
 
     pub fn set_pool_terms_hash(
@@ -369,7 +356,7 @@ pub mod omegax_protocol {
         cycle_mode: u8,
         metadata_uri: String,
     ) -> Result<()> {
-        v2::set_pool_terms_hash(
+        surface::set_pool_terms_hash(
             ctx,
             terms_hash,
             payout_policy_hash,
@@ -391,7 +378,7 @@ pub mod omegax_protocol {
         mapping_version: u16,
         metadata_uri: String,
     ) -> Result<()> {
-        v2::register_outcome_schema(
+        surface::register_outcome_schema(
             ctx,
             schema_key_hash,
             schema_key,
@@ -407,18 +394,18 @@ pub mod omegax_protocol {
     }
 
     pub fn verify_outcome_schema(ctx: Context<VerifyOutcomeSchema>, verified: bool) -> Result<()> {
-        v2::verify_outcome_schema(ctx, verified)
+        surface::verify_outcome_schema(ctx, verified)
     }
 
     pub fn backfill_schema_dependency_ledger(
         ctx: Context<BackfillSchemaDependencyLedger>,
         schema_key_hash: [u8; 32],
     ) -> Result<()> {
-        v2::backfill_schema_dependency_ledger(ctx, schema_key_hash)
+        surface::backfill_schema_dependency_ledger(ctx, schema_key_hash)
     }
 
     pub fn close_outcome_schema(ctx: Context<CloseOutcomeSchema>) -> Result<()> {
-        v2::close_outcome_schema(ctx)
+        surface::close_outcome_schema(ctx)
     }
 
     pub fn set_policy_series_outcome_rule(
@@ -435,7 +422,7 @@ pub mod omegax_protocol {
         payout_hash: [u8; 32],
         enabled: bool,
     ) -> Result<()> {
-        v2::set_policy_series_outcome_rule(
+        surface::set_policy_series_outcome_rule(
             ctx,
             series_ref_hash,
             rule_hash,
@@ -457,21 +444,21 @@ pub mod omegax_protocol {
         metadata_uri: String,
         active: bool,
     ) -> Result<()> {
-        v2::register_invite_issuer(ctx, organization_ref, metadata_uri, active)
+        surface::register_invite_issuer(ctx, organization_ref, metadata_uri, active)
     }
 
     pub fn enroll_member_open(
         ctx: Context<EnrollMemberOpen>,
         subject_commitment: [u8; 32],
     ) -> Result<()> {
-        v2::enroll_member_open(ctx, subject_commitment)
+        surface::enroll_member_open(ctx, subject_commitment)
     }
 
     pub fn enroll_member_token_gate(
         ctx: Context<EnrollMemberTokenGate>,
         subject_commitment: [u8; 32],
     ) -> Result<()> {
-        v2::enroll_member_token_gate(ctx, subject_commitment)
+        surface::enroll_member_token_gate(ctx, subject_commitment)
     }
 
     pub fn enroll_member_invite_permit(
@@ -481,7 +468,7 @@ pub mod omegax_protocol {
         invite_id_hash: [u8; 32],
         expires_at_ts: i64,
     ) -> Result<()> {
-        v2::enroll_member_invite_permit(
+        surface::enroll_member_invite_permit(
             ctx,
             subject_commitment,
             nonce_hash,
@@ -495,36 +482,36 @@ pub mod omegax_protocol {
         delegate: Pubkey,
         active: bool,
     ) -> Result<()> {
-        v2::set_claim_delegate(ctx, delegate, active)
+        surface::set_claim_delegate(ctx, delegate, active)
     }
 
     pub fn fund_pool_sol(ctx: Context<FundPoolSol>, lamports: u64) -> Result<()> {
-        v2::fund_pool_sol(ctx, lamports)
+        surface::fund_pool_sol(ctx, lamports)
     }
 
     pub fn fund_pool_spl(ctx: Context<FundPoolSpl>, amount: u64) -> Result<()> {
-        v2::fund_pool_spl(ctx, amount)
+        surface::fund_pool_spl(ctx, amount)
     }
 
     pub fn initialize_pool_liquidity_sol(
         ctx: Context<InitializePoolLiquiditySol>,
         initial_lamports: u64,
     ) -> Result<()> {
-        v2::initialize_pool_liquidity_sol(ctx, initial_lamports)
+        surface::initialize_pool_liquidity_sol(ctx, initial_lamports)
     }
 
     pub fn initialize_pool_liquidity_spl(
         ctx: Context<InitializePoolLiquiditySpl>,
         initial_amount: u64,
     ) -> Result<()> {
-        v2::initialize_pool_liquidity_spl(ctx, initial_amount)
+        surface::initialize_pool_liquidity_spl(ctx, initial_amount)
     }
 
     pub fn set_pool_liquidity_enabled(
         ctx: Context<SetPoolLiquidityEnabled>,
         enabled: bool,
     ) -> Result<()> {
-        v2::set_pool_liquidity_enabled(ctx, enabled)
+        surface::set_pool_liquidity_enabled(ctx, enabled)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -543,7 +530,7 @@ pub mod omegax_protocol {
         series_ref_hash: [u8; 32],
         vintage_index: u16,
     ) -> Result<()> {
-        v2::register_pool_capital_class(
+        surface::register_pool_capital_class(
             ctx,
             class_id_hash,
             class_mode,
@@ -565,7 +552,7 @@ pub mod omegax_protocol {
         amount_in: u64,
         min_shares_out: u64,
     ) -> Result<()> {
-        v2::deposit_pool_liquidity_sol(ctx, amount_in, min_shares_out)
+        surface::deposit_pool_liquidity_sol(ctx, amount_in, min_shares_out)
     }
 
     pub fn deposit_pool_liquidity_spl(
@@ -573,7 +560,7 @@ pub mod omegax_protocol {
         amount_in: u64,
         min_shares_out: u64,
     ) -> Result<()> {
-        v2::deposit_pool_liquidity_spl(ctx, amount_in, min_shares_out)
+        surface::deposit_pool_liquidity_spl(ctx, amount_in, min_shares_out)
     }
 
     pub fn redeem_pool_liquidity_sol(
@@ -581,7 +568,7 @@ pub mod omegax_protocol {
         shares_in: u64,
         min_amount_out: u64,
     ) -> Result<()> {
-        v2::redeem_pool_liquidity_sol(ctx, shares_in, min_amount_out)
+        surface::redeem_pool_liquidity_sol(ctx, shares_in, min_amount_out)
     }
 
     pub fn redeem_pool_liquidity_spl(
@@ -589,7 +576,7 @@ pub mod omegax_protocol {
         shares_in: u64,
         min_amount_out: u64,
     ) -> Result<()> {
-        v2::redeem_pool_liquidity_spl(ctx, shares_in, min_amount_out)
+        surface::redeem_pool_liquidity_spl(ctx, shares_in, min_amount_out)
     }
 
     pub fn request_pool_liquidity_redemption(
@@ -598,38 +585,38 @@ pub mod omegax_protocol {
         shares_in: u64,
         min_amount_out: u64,
     ) -> Result<()> {
-        v2::request_pool_liquidity_redemption(ctx, request_hash, shares_in, min_amount_out)
+        surface::request_pool_liquidity_redemption(ctx, request_hash, shares_in, min_amount_out)
     }
 
     pub fn schedule_pool_liquidity_redemption(
         ctx: Context<SchedulePoolLiquidityRedemption>,
     ) -> Result<()> {
-        v2::schedule_pool_liquidity_redemption(ctx)
+        surface::schedule_pool_liquidity_redemption(ctx)
     }
 
     pub fn cancel_pool_liquidity_redemption(
         ctx: Context<CancelPoolLiquidityRedemption>,
     ) -> Result<()> {
-        v2::cancel_pool_liquidity_redemption(ctx)
+        surface::cancel_pool_liquidity_redemption(ctx)
     }
 
     pub fn fail_pool_liquidity_redemption(
         ctx: Context<FailPoolLiquidityRedemption>,
         failure_code: u16,
     ) -> Result<()> {
-        v2::fail_pool_liquidity_redemption(ctx, failure_code)
+        surface::fail_pool_liquidity_redemption(ctx, failure_code)
     }
 
     pub fn fulfill_pool_liquidity_redemption_sol(
         ctx: Context<FulfillPoolLiquidityRedemptionSol>,
     ) -> Result<()> {
-        v2::fulfill_pool_liquidity_redemption_sol(ctx)
+        surface::fulfill_pool_liquidity_redemption_sol(ctx)
     }
 
     pub fn fulfill_pool_liquidity_redemption_spl(
         ctx: Context<FulfillPoolLiquidityRedemptionSpl>,
     ) -> Result<()> {
-        v2::fulfill_pool_liquidity_redemption_spl(ctx)
+        surface::fulfill_pool_liquidity_redemption_spl(ctx)
     }
 
     // Reward attestation and claim lifecycle.
@@ -654,7 +641,7 @@ pub mod omegax_protocol {
         as_of_ts: i64,
         passed: bool,
     ) -> Result<()> {
-        v2::submit_outcome_attestation_vote(
+        surface::submit_outcome_attestation_vote(
             ctx,
             member,
             cycle_hash,
@@ -675,21 +662,21 @@ pub mod omegax_protocol {
     }
 
     pub fn finalize_cycle_outcome(ctx: Context<FinalizeCycleOutcome>) -> Result<()> {
-        v2::finalize_cycle_outcome(ctx)
+        surface::finalize_cycle_outcome(ctx)
     }
 
     pub fn open_cycle_outcome_dispute(
         ctx: Context<OpenCycleOutcomeDispute>,
         dispute_reason_hash: [u8; 32],
     ) -> Result<()> {
-        v2::open_cycle_outcome_dispute(ctx, dispute_reason_hash)
+        surface::open_cycle_outcome_dispute(ctx, dispute_reason_hash)
     }
 
     pub fn resolve_cycle_outcome_dispute(
         ctx: Context<ResolveCycleOutcomeDispute>,
         sustain_original_outcome: bool,
     ) -> Result<()> {
-        v2::resolve_cycle_outcome_dispute(ctx, sustain_original_outcome)
+        surface::resolve_cycle_outcome_dispute(ctx, sustain_original_outcome)
     }
 
     pub fn finalize_cohort_settlement_root(
@@ -697,7 +684,7 @@ pub mod omegax_protocol {
         series_ref_hash: [u8; 32],
         cohort_hash: [u8; 32],
     ) -> Result<()> {
-        v2::finalize_cohort_settlement_root(ctx, series_ref_hash, cohort_hash)
+        surface::finalize_cohort_settlement_root(ctx, series_ref_hash, cohort_hash)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -710,7 +697,7 @@ pub mod omegax_protocol {
         payout_amount: u64,
         recipient: Pubkey,
     ) -> Result<()> {
-        v2::submit_reward_claim(
+        surface::submit_reward_claim(
             ctx,
             member,
             cycle_hash,
@@ -746,7 +733,7 @@ pub mod omegax_protocol {
         terms_version: u16,
         mapping_version: u16,
     ) -> Result<()> {
-        v2::create_policy_series(
+        surface::create_policy_series(
             ctx,
             series_ref_hash,
             status,
@@ -792,7 +779,7 @@ pub mod omegax_protocol {
         terms_version: u16,
         mapping_version: u16,
     ) -> Result<()> {
-        v2::update_policy_series(
+        surface::update_policy_series(
             ctx,
             status,
             plan_mode,
@@ -821,7 +808,7 @@ pub mod omegax_protocol {
         payment_amount: u64,
         active: bool,
     ) -> Result<()> {
-        v2::upsert_policy_series_payment_option(ctx, payment_mint, payment_amount, active)
+        surface::upsert_policy_series_payment_option(ctx, payment_mint, payment_amount, active)
     }
 
     pub fn subscribe_policy_series(
@@ -829,7 +816,7 @@ pub mod omegax_protocol {
         series_ref_hash: [u8; 32],
         starts_at: i64,
     ) -> Result<()> {
-        v2::subscribe_policy_series(ctx, series_ref_hash, starts_at)
+        surface::subscribe_policy_series(ctx, series_ref_hash, starts_at)
     }
 
     pub fn issue_policy_position(
@@ -838,7 +825,7 @@ pub mod omegax_protocol {
         series_ref_hash: [u8; 32],
         starts_at: i64,
     ) -> Result<()> {
-        v2::issue_policy_position(ctx, member, series_ref_hash, starts_at)
+        surface::issue_policy_position(ctx, member, series_ref_hash, starts_at)
     }
 
     pub fn mint_policy_nft(
@@ -846,15 +833,15 @@ pub mod omegax_protocol {
         nft_mint: Pubkey,
         metadata_uri: String,
     ) -> Result<()> {
-        v2::mint_policy_nft(ctx, nft_mint, metadata_uri)
+        surface::mint_policy_nft(ctx, nft_mint, metadata_uri)
     }
 
-    pub fn pay_premium_spl_v2(ctx: Context<PayPremiumSplV2>, period_index: u64) -> Result<()> {
-        v2::pay_premium_spl_v2(ctx, period_index)
+    pub fn pay_premium_spl(ctx: Context<PayPremiumSpl>, period_index: u64) -> Result<()> {
+        surface::pay_premium_spl(ctx, period_index)
     }
 
-    pub fn pay_premium_sol_v2(ctx: Context<PayPremiumSolV2>, period_index: u64) -> Result<()> {
-        v2::pay_premium_sol_v2(ctx, period_index)
+    pub fn pay_premium_sol(ctx: Context<PayPremiumSol>, period_index: u64) -> Result<()> {
+        surface::pay_premium_sol(ctx, period_index)
     }
 
     // Quote activation and cycle settlement lifecycle.
@@ -882,7 +869,7 @@ pub mod omegax_protocol {
         expires_at_ts: i64,
         quote_meta_hash: [u8; 32],
     ) -> Result<()> {
-        v2::activate_cycle_with_quote_sol(
+        surface::activate_cycle_with_quote_sol(
             ctx,
             series_ref_hash,
             period_index,
@@ -928,7 +915,7 @@ pub mod omegax_protocol {
         expires_at_ts: i64,
         quote_meta_hash: [u8; 32],
     ) -> Result<()> {
-        v2::activate_cycle_with_quote_spl(
+        surface::activate_cycle_with_quote_spl(
             ctx,
             series_ref_hash,
             period_index,
@@ -960,7 +947,7 @@ pub mod omegax_protocol {
         shield_consumed: bool,
         settled_health_alpha_score: u16,
     ) -> Result<()> {
-        v2::settle_cycle_commitment(
+        surface::settle_cycle_commitment(
             ctx,
             series_ref_hash,
             period_index,
@@ -979,7 +966,7 @@ pub mod omegax_protocol {
         shield_consumed: bool,
         settled_health_alpha_score: u16,
     ) -> Result<()> {
-        v2::settle_cycle_commitment_sol(
+        surface::settle_cycle_commitment_sol(
             ctx,
             series_ref_hash,
             period_index,
@@ -995,51 +982,42 @@ pub mod omegax_protocol {
         ctx: Context<WithdrawPoolTreasurySpl>,
         amount: u64,
     ) -> Result<()> {
-        v2::withdraw_pool_treasury_spl(ctx, amount)
+        surface::withdraw_pool_treasury_spl(ctx, amount)
     }
 
     pub fn withdraw_pool_treasury_sol(
         ctx: Context<WithdrawPoolTreasurySol>,
         amount: u64,
     ) -> Result<()> {
-        v2::withdraw_pool_treasury_sol(ctx, amount)
+        surface::withdraw_pool_treasury_sol(ctx, amount)
     }
 
     pub fn withdraw_protocol_fee_spl(
         ctx: Context<WithdrawProtocolFeeSpl>,
         amount: u64,
     ) -> Result<()> {
-        v2::withdraw_protocol_fee_spl(ctx, amount)
+        surface::withdraw_protocol_fee_spl(ctx, amount)
     }
 
     pub fn withdraw_protocol_fee_sol(
         ctx: Context<WithdrawProtocolFeeSol>,
         amount: u64,
     ) -> Result<()> {
-        v2::withdraw_protocol_fee_sol(ctx, amount)
+        surface::withdraw_protocol_fee_sol(ctx, amount)
     }
 
     pub fn withdraw_pool_oracle_fee_spl(
         ctx: Context<WithdrawPoolOracleFeeSpl>,
         amount: u64,
     ) -> Result<()> {
-        v2::withdraw_pool_oracle_fee_spl(ctx, amount)
+        surface::withdraw_pool_oracle_fee_spl(ctx, amount)
     }
 
     pub fn withdraw_pool_oracle_fee_sol(
         ctx: Context<WithdrawPoolOracleFeeSol>,
         amount: u64,
     ) -> Result<()> {
-        v2::withdraw_pool_oracle_fee_sol(ctx, amount)
-    }
-
-    pub fn pay_premium_onchain(
-        ctx: Context<PayPremiumOnchain>,
-        series_ref_hash: [u8; 32],
-        period_index: u64,
-        amount: u64,
-    ) -> Result<()> {
-        v2::pay_premium_onchain(ctx, series_ref_hash, period_index, amount)
+        surface::withdraw_pool_oracle_fee_sol(ctx, amount)
     }
 
     pub fn attest_premium_paid_offchain(
@@ -1051,7 +1029,7 @@ pub mod omegax_protocol {
         amount: u64,
         paid_at_ts: i64,
     ) -> Result<()> {
-        v2::attest_premium_paid_offchain(
+        surface::attest_premium_paid_offchain(
             ctx,
             member,
             series_ref_hash,
@@ -1070,7 +1048,7 @@ pub mod omegax_protocol {
         intent_hash: [u8; 32],
         event_hash: [u8; 32],
     ) -> Result<()> {
-        v2::submit_coverage_claim(ctx, member, series_ref_hash, intent_hash, event_hash)
+        surface::submit_coverage_claim(ctx, member, series_ref_hash, intent_hash, event_hash)
     }
 
     pub fn review_coverage_claim(
@@ -1082,7 +1060,7 @@ pub mod omegax_protocol {
         interop_profile_hash: [u8; 32],
         code_system_family_hash: [u8; 32],
     ) -> Result<()> {
-        v2::review_coverage_claim(
+        surface::review_coverage_claim(
             ctx,
             requested_amount,
             evidence_hash,
@@ -1102,7 +1080,7 @@ pub mod omegax_protocol {
         ai_role: u8,
         automation_mode: u8,
     ) -> Result<()> {
-        v2::attach_coverage_claim_decision_support(
+        surface::attach_coverage_claim_decision_support(
             ctx,
             ai_decision_hash,
             ai_policy_hash,
@@ -1119,7 +1097,7 @@ pub mod omegax_protocol {
         decision_reason_hash: [u8; 32],
         adjudication_ref_hash: [u8; 32],
     ) -> Result<()> {
-        v2::approve_coverage_claim(
+        surface::approve_coverage_claim(
             ctx,
             approved_amount,
             decision_reason_hash,
@@ -1132,18 +1110,26 @@ pub mod omegax_protocol {
         decision_reason_hash: [u8; 32],
         adjudication_ref_hash: [u8; 32],
     ) -> Result<()> {
-        v2::deny_coverage_claim(ctx, decision_reason_hash, adjudication_ref_hash)
+        surface::deny_coverage_claim(ctx, decision_reason_hash, adjudication_ref_hash)
     }
 
     pub fn pay_coverage_claim(ctx: Context<PayCoverageClaim>, payout_amount: u64) -> Result<()> {
-        v2::pay_coverage_claim(ctx, payout_amount)
+        surface::pay_coverage_claim(ctx, payout_amount)
+    }
+
+    /// Lets a claimant or active delegate pull an already approved coverage payout.
+    pub fn claim_approved_coverage_payout(
+        ctx: Context<ClaimApprovedCoveragePayout>,
+        payout_amount: u64,
+    ) -> Result<()> {
+        surface::claim_approved_coverage_payout(ctx, payout_amount)
     }
 
     pub fn close_coverage_claim(
         ctx: Context<CloseCoverageClaim>,
         recovery_amount: u64,
     ) -> Result<()> {
-        v2::close_coverage_claim(ctx, recovery_amount)
+        surface::close_coverage_claim(ctx, recovery_amount)
     }
 
     /// Finalizes a coverage claim payout from the pool treasury.
@@ -1151,6 +1137,6 @@ pub mod omegax_protocol {
         ctx: Context<SettleCoverageClaim>,
         payout_amount: u64,
     ) -> Result<()> {
-        v2::settle_coverage_claim(ctx, payout_amount)
+        surface::settle_coverage_claim(ctx, payout_amount)
     }
 }
