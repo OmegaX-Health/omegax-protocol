@@ -1,6 +1,5 @@
 # Public-safe Firebase App Hosting configuration for the protocol console.
-# Runtime-only service values are resolved from Secret Manager so this file can
-# stay in a public repository without exposing credentials.
+# The current public deployment uses browser-safe runtime values only.
 env:
   - variable: NEXT_PUBLIC_SOLANA_RPC_URL
     value: "https://api.devnet.solana.com"
@@ -54,46 +53,14 @@ env:
     value: "8sz6kowsPjiLtCrdgcva8mS1CMZdZ9ZBFNzgEfpLoJxf"
     availability: [BUILD, RUNTIME]
 
-  - variable: NEXT_PUBLIC_FAUCET_ENABLED
-    value: "true"
+  - variable: NEXT_PUBLIC_GOVERNANCE_PROGRAM_ID
+    value: "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
     availability: [BUILD, RUNTIME]
 
-  - variable: NEXT_PUBLIC_FAUCET_MINT
-    value: "FPiaHdzVPsbyKToNvpBhSJf8mHKeGjbHv4gE8psNCjAZ"
-    availability: [BUILD, RUNTIME]
-
-  - variable: NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    value: "0x4AAAAAACgt7ZOtAq1lrSvG"
+  - variable: NEXT_PUBLIC_GOVERNANCE_PROGRAM_VERSION
+    value: "3"
     availability: [BUILD, RUNTIME]
 
   - variable: NEXT_PUBLIC_SOURCE_REPO_URL
     value: "https://github.com/OmegaX-Health/omegax-protocol"
     availability: [BUILD, RUNTIME]
-
-  - variable: FAUCET_INTERNAL_BASE_URL
-    secret: protocolFaucetBaseUrl
-    availability: [RUNTIME]
-
-  - variable: FAUCET_INTERNAL_BASE_URL_V2
-    secret: protocolFaucetBaseUrlV2
-    availability: [RUNTIME]
-
-  - variable: FAUCET_INTERNAL_API_TOKEN
-    secret: protocolFaucetToken
-    availability: [RUNTIME]
-
-  - variable: FAUCET_INTERNAL_API_TOKEN_V2
-    secret: protocolFaucetTokenV2
-    availability: [RUNTIME]
-
-  - variable: FAUCET_CHALLENGE_SECRET
-    secret: protocolFaucetChallengeSecret
-    availability: [RUNTIME]
-
-  - variable: FAUCET_SKIP_CAPTCHA
-    value: "false"
-    availability: [RUNTIME]
-
-  - variable: TURNSTILE_SECRET_KEY
-    secret: turnstileSecretKey
-    availability: [RUNTIME]

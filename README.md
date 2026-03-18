@@ -26,11 +26,13 @@ That public story is now documented more clearly in the external docs hub, while
 
 ## Status
 
+- Release target: `0.2.0`
 - Repository license: `AGPL-3.0-or-later`
 - SDK license: `Apache-2.0` in the separate `omegax-sdk` repository
 - Repository stewardship: `OMEGAX HEALTH FZCO and contributors`
 - Names, logos, and official branding remain subject to [TRADEMARKS.md](./TRADEMARKS.md)
 - CI in this repository is verification-only and does not deploy infrastructure
+- Hosted frontend rollout is intentionally out of scope for the `0.2.0` release gate
 
 ## What belongs here
 
@@ -168,20 +170,22 @@ For public release candidates, add `npm run test:e2e:localnet` as a separate sig
 
 ## Environment and Hosting
 
-Use the checked-in templates only:
+Use the checked-in deployment config and templates only:
+- `firebase.json`
 - `frontend/.env.example`
 - `frontend/apphosting.yaml`
 
 Never commit:
+- `.firebaserc`
 - `frontend/.env.local`
 - `frontend/apphosting.local.yaml`
-- private keys, faucet secrets, service tokens, or local validator data
+- private keys, service tokens, or local validator data
 
 Important notes:
 - `NEXT_PUBLIC_*` values are public client configuration
-- `FAUCET_*` and `TURNSTILE_*` secrets must stay outside git
+- `.firebaserc` should stay local so this public repo never tracks Firebase project aliases
 - hosted deployments should keep the in-app source link pointed at the exact public repository or release being served
-- `frontend/apphosting.yaml` is safe to publish only because runtime-only values use Secret Manager references
+- `frontend/apphosting.yaml` is safe to publish because the current deployment only uses public runtime configuration
 
 ## Common Commands
 

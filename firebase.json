@@ -1,0 +1,9 @@
+{
+  "apphosting": [
+    {
+      "backendId": "omegax-health-protocol",
+      "rootDir": "frontend",
+      "alwaysDeployFromSource": true
+    }
+  ]
+}

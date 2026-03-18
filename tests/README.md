@@ -8,7 +8,7 @@ This directory contains the fast Node-based test suite for the public protocol r
 - generated contract parity
 - discovery and readiness helpers
 - schema and pool metadata handling
-- frontend faucet API behavior
+- frontend deployment wiring and public hosting config
 
 ## Run the fast suite
 

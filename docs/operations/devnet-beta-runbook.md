@@ -12,15 +12,19 @@ All of the following should be green before a public devnet beta event:
 - `npm run beta:consistency:check`
 - `npm run protocol:contract:check`
 - `npm run frontend:build`
-- `npm run devnet:beta:deploy` on a clean wallet set
+- rehearsal deploy/bootstrap/sign-off on a non-canonical devnet program id with fresh rehearsal wallets
+- canonical `npm run devnet:beta:deploy` only after rehearsal is clean
 - `npm run devnet:beta:observe` with no unexplained high-severity failures
+- `npm run devnet:governance:smoke:create-vote`, then `npm run devnet:governance:smoke:execute` after the shared DAO voting and hold-up windows expire
+- `npm run devnet:governance:ui:readonly` against the resulting proposal address
 
 ## Launch Sequence
 
-1. Internal dry run on devnet with a fresh governance signer and fresh member wallet.
-2. Limited partner dry run with issue triage and rollback time reserved.
-3. Single public launch event with the intended protocol surface enabled.
-4. Structured post-launch monitoring window for the first 24 hours.
+1. Rehearse on devnet with a non-canonical program id, fresh rehearsal wallets, and a fresh parity-pool bootstrap.
+2. Run the full frontend parity, governance smoke, readonly governance UI, and observability suite against that rehearsal deployment.
+3. Upgrade the canonical shared devnet only after the rehearsal matrix is clean.
+4. Rerun the same sign-off suite against the canonical shared devnet.
+5. Reserve rollback time and keep a structured post-launch monitoring window for the first 24 hours.
 
 ## Observability
 
@@ -49,7 +53,7 @@ OBSERVABILITY_OUTPUT_JSON=artifacts/devnet_observability.json npm run devnet:bet
 Trigger: governance authority cannot execute required safety actions.
 
 Steps:
-1. Confirm the current authority in `config_v2` and the expected Realms governance PDA.
+1. Confirm the current authority in `config` and the expected Realms governance PDA.
 2. If the protocol is not paused and governance is unavailable, use the emergency admin pause path through `set_protocol_params(..., emergency_paused=true)`.
 3. Rotate authority using `rotate_governance_authority` to the recovery governance signer or PDA.
 4. Validate with on-chain readback and execute a low-risk governance action.
@@ -65,18 +69,6 @@ Steps:
 3. Run an observability snapshot and collect affected signatures.
 4. Validate the remediation on a dry-run wallet set.
 5. Unpause only through an approved governance action.
-
-### Faucet abuse response
-
-Trigger: unusual faucet volume, sybil drain patterns, or captcha bypass.
-
-Steps:
-1. Disable faucet flags in the service environment:
-   - `OMEGAX_FAUCET_ENABLED=false`
-2. Rotate faucet authority if leakage is suspected.
-3. Raise cooldown and reduce amount before re-enabling.
-4. Enforce request-per-day and captcha gates before reopening.
-5. Record the abuse window and corrective controls.
 
 ### Failed proposal remediation
 

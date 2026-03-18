@@ -7,6 +7,8 @@ const repoRoot = process.cwd();
 
 const forbiddenPathMatchers = [
   { matcher: /^\.anchor(?:\/|$)/, reason: 'Anchor local state must not be published.' },
+  { matcher: /^\.firebaserc$/, reason: 'Firebase project aliases must stay local in the public repo.' },
+  { matcher: /^\.firebase(?:\/|$)/, reason: 'Firebase local state must not be published.' },
   { matcher: /^test-ledger(?:\/|$)/, reason: 'Local ledger artifacts must not be published.' },
   { matcher: /^tmp(?:\/|$)/, reason: 'Temporary local files must not be published.' },
   { matcher: /^output(?:\/|$)/, reason: 'Generated local output must not be published.' },

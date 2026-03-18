@@ -8,9 +8,24 @@ import { dirname, join, resolve } from 'node:path';
 
 import bs58 from 'bs58';
 
+import protocolModule from '../frontend/lib/protocol.ts';
+
+const {
+  getProgramId,
+} = protocolModule as unknown as typeof import('../frontend/lib/protocol.ts');
+
 type RunResult = {
   status: number | null;
   output: string;
+};
+
+type ProgramShowResult = {
+  authority?: string;
+  dataLen?: number;
+  lastDeploySlot?: number;
+  owner?: string;
+  programId?: string;
+  programdataAddress?: string;
 };
 
 function runCommand(cmd: string, args: string[], options?: {
@@ -81,15 +96,164 @@ function required(values: Record<string, string>, key: string): string {
   return value;
 }
 
+function canonicalProgramId(): string {
+  return getProgramId().toBase58();
+}
+
+function requireProgramBinary(repoRoot: string): string {
+  const programBinaryPath = resolve(repoRoot, 'target/deploy/omegax_protocol.so');
+  if (!existsSync(programBinaryPath)) {
+    throw new Error(`Missing built program binary at ${programBinaryPath}.`);
+  }
+  return programBinaryPath;
+}
+
+function readProgramShow(rpcUrl: string, programId: string): ProgramShowResult | null {
+  const result = runCommand('solana', [
+    'program',
+    'show',
+    programId,
+    '--url',
+    rpcUrl,
+    '--output',
+    'json-compact',
+  ], {
+    allowFailure: true,
+  });
+  if (result.status !== 0) {
+    return null;
+  }
+  return JSON.parse(result.output) as ProgramShowResult;
+}
+
+function ensureCanonicalDeployInputs(params: {
+  repoRoot: string;
+  canonicalProgramId: string;
+  configuredProgramId: string;
+}): void {
+  if (params.configuredProgramId !== params.canonicalProgramId) {
+    throw new Error(
+      `PROTOCOL_PROGRAM_ID=${params.configuredProgramId} does not match the canonical generated contract program id `
+      + `${params.canonicalProgramId}. Update the env or regenerate artifacts before redeploying.`,
+    );
+  }
+
+  const localProgramKeypairPath = resolve(params.repoRoot, 'target/deploy/omegax_protocol-keypair.json');
+  if (!existsSync(localProgramKeypairPath)) return;
+
+  const localProgramKey = keypairPubkey(localProgramKeypairPath);
+  if (localProgramKey !== params.canonicalProgramId) {
+    console.warn(
+      `[devnet-beta] warning: target/deploy/omegax_protocol-keypair.json resolves to ${localProgramKey}, `
+      + `but the canonical program id is ${params.canonicalProgramId}. `
+      + 'The deploy flow will ignore that stale keypair and upgrade the canonical program explicitly.',
+    );
+  }
+}
+
+function deployCanonicalProgram(params: {
+  repoRoot: string;
+  rpcUrl: string;
+  governancePath: string;
+  governancePubkey: string;
+  programId: string;
+}): void {
+  console.log('[devnet-beta] Building checked program artifacts...');
+  process.stdout.write(runCommand('npm', ['run', 'anchor:build:checked'], {
+    cwd: params.repoRoot,
+  }).output);
+  process.stdout.write(runCommand('npm', ['run', 'protocol:contract:check'], {
+    cwd: params.repoRoot,
+  }).output);
+
+  const programBinaryPath = requireProgramBinary(params.repoRoot);
+  const liveProgram = readProgramShow(params.rpcUrl, params.programId);
+
+  if (liveProgram?.programId) {
+    const liveAuthority = String(liveProgram.authority || '').trim();
+    if (liveAuthority && liveAuthority !== params.governancePubkey) {
+      throw new Error(
+        `Live program ${params.programId} is upgrade-controlled by ${liveAuthority}, `
+        + `but the configured governance wallet is ${params.governancePubkey}.`,
+      );
+    }
+
+    console.log(
+      `[devnet-beta] Upgrading canonical devnet program ${params.programId} `
+      + `(previous slot ${liveProgram.lastDeploySlot ?? 'unknown'})...`,
+    );
+    const upgrade = runCommand('solana', [
+      'program',
+      'deploy',
+      programBinaryPath,
+      '--program-id',
+      params.programId,
+      '--upgrade-authority',
+      params.governancePath,
+      '--keypair',
+      params.governancePath,
+      '--url',
+      params.rpcUrl,
+    ], {
+      cwd: params.repoRoot,
+    });
+    process.stdout.write(upgrade.output);
+    return;
+  }
+
+  const explicitProgramKeypairPath = resolve(
+    String(
+      process.env.PROTOCOL_PROGRAM_KEYPAIR_PATH
+      || resolve(params.repoRoot, 'target/deploy/omegax_protocol-keypair.json'),
+    ).trim(),
+  );
+  if (!existsSync(explicitProgramKeypairPath)) {
+    throw new Error(
+      `Program ${params.programId} is not deployed on devnet, and no matching program keypair was found at `
+      + `${explicitProgramKeypairPath}. Set PROTOCOL_PROGRAM_KEYPAIR_PATH to the canonical program keypair for initial deployment.`,
+    );
+  }
+
+  const programKeypairPubkey = keypairPubkey(explicitProgramKeypairPath);
+  if (programKeypairPubkey !== params.programId) {
+    throw new Error(
+      `Initial deploy requires a program keypair whose pubkey matches the canonical program id ${params.programId}. `
+      + `Configured keypair ${explicitProgramKeypairPath} resolves to ${programKeypairPubkey}.`,
+    );
+  }
+
+  console.log(`[devnet-beta] Deploying new canonical devnet program ${params.programId}...`);
+  const deploy = runCommand('solana', [
+    'program',
+    'deploy',
+    programBinaryPath,
+    '--program-id',
+    explicitProgramKeypairPath,
+    '--upgrade-authority',
+    params.governancePath,
+    '--keypair',
+    params.governancePath,
+    '--url',
+    params.rpcUrl,
+  ], {
+    cwd: params.repoRoot,
+  });
+  process.stdout.write(deploy.output);
+}
+
 function main() {
   const repoRoot = resolve(process.cwd());
   const configuredServicesRoot = String(process.env.PROTOCOL_ORACLE_SERVICE_ROOT || '').trim();
   const servicesRoot = configuredServicesRoot ? resolve(repoRoot, configuredServicesRoot) : '';
+  const existingFrontendEnvPath = resolve(repoRoot, 'frontend/.env.local');
 
   const rpcUrl = String(
-    process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+    process.env.SOLANA_RPC_URL
+      || readEnvValue(existingFrontendEnvPath, 'NEXT_PUBLIC_SOLANA_RPC_URL')
+      || readEnvValue(existingFrontendEnvPath, 'NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL')
+      || 'https://api.devnet.solana.com',
   ).trim();
-  const programId = String(process.env.PROTOCOL_PROGRAM_ID || 'Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B').trim();
+  const programId = String(process.env.PROTOCOL_PROGRAM_ID || canonicalProgramId()).trim();
   const schemaKey = String(process.env.SCHEMA_KEY || 'omegax.standard.health_outcomes').trim();
   const schemaVersion = String(process.env.SCHEMA_VERSION || '2').trim();
   const schemaMetadataUri = String(
@@ -102,11 +266,19 @@ function main() {
   ).trim();
   const governanceProgramVersion = String(process.env.GOVERNANCE_PROGRAM_VERSION || '3').trim();
   const internalApiToken = String(process.env.INTERNAL_API_TOKEN || randomBytes(24).toString('hex')).trim();
-  const faucetChallengeSecret = String(process.env.FAUCET_CHALLENGE_SECRET || randomBytes(32).toString('hex')).trim();
   const governancePath = resolve(String(process.env.GOVERNANCE_KEYPAIR_PATH || join(homedir(), '.config/solana/id.json')).trim());
   const oraclePath = resolve(String(process.env.ORACLE_KEYPAIR_PATH || join(repoRoot, '.keys/devnet-oracle.json')).trim());
   const memberPath = resolve(String(process.env.MEMBER_KEYPAIR_PATH || join(repoRoot, '.keys/devnet-member.json')).trim());
   const skipDeploy = ['1', 'true', 'yes'].includes(String(process.env.SKIP_DEPLOY || '').trim().toLowerCase());
+  const governanceRealmOverride = String(
+    process.env.GOVERNANCE_REALM || readEnvValue(existingFrontendEnvPath, 'NEXT_PUBLIC_GOVERNANCE_REALM'),
+  ).trim();
+  const governanceConfigOverride = String(
+    process.env.GOVERNANCE_CONFIG || readEnvValue(existingFrontendEnvPath, 'NEXT_PUBLIC_GOVERNANCE_CONFIG'),
+  ).trim();
+  const governanceTokenMintOverride = String(
+    process.env.GOVERNANCE_TOKEN_MINT || readEnvValue(existingFrontendEnvPath, 'NEXT_PUBLIC_GOVERNANCE_TOKEN_MINT'),
+  ).trim();
 
   ensureKeypairFile(oraclePath);
   ensureKeypairFile(memberPath);
@@ -116,20 +288,22 @@ function main() {
   const oracleSecret = keypairFileToBase58(oraclePath);
   const memberSecret = keypairFileToBase58(memberPath);
 
+  ensureCanonicalDeployInputs({
+    repoRoot,
+    canonicalProgramId: canonicalProgramId(),
+    configuredProgramId: programId,
+  });
+
   if (skipDeploy) {
     console.log('[devnet-beta] SKIP_DEPLOY=true, using existing devnet deployment.');
   } else {
-    console.log('[devnet-beta] Deploying program to devnet...');
-    const deploy = runCommand('anchor', [
-      'deploy',
-      '--provider.cluster',
-      'devnet',
-      '--provider.wallet',
+    deployCanonicalProgram({
+      repoRoot,
+      rpcUrl,
       governancePath,
-    ], {
-      cwd: repoRoot,
+      governancePubkey,
+      programId,
     });
-    process.stdout.write(deploy.output);
   }
 
   console.log('[devnet-beta] Bootstrapping Realms governance...');
@@ -141,6 +315,9 @@ function main() {
       PROTOCOL_PROGRAM_ID: programId,
       GOVERNANCE_SECRET_KEY_BASE58: governanceSecret,
       GOVERNANCE_PROGRAM_VERSION: governanceProgramVersion,
+      ...(governanceRealmOverride ? { GOVERNANCE_REALM: governanceRealmOverride } : {}),
+      ...(governanceConfigOverride ? { GOVERNANCE_CONFIG: governanceConfigOverride } : {}),
+      ...(governanceTokenMintOverride ? { GOVERNANCE_TOKEN_MINT: governanceTokenMintOverride } : {}),
     },
     allowFailure: true,
   });
@@ -177,15 +354,14 @@ function main() {
     allowFailure: true,
   });
   process.stdout.write(bootstrap.output);
-  if (bootstrap.status !== 0 && !bootstrap.output.includes('[bootstrap-v2] Complete')) {
+  if (bootstrap.status !== 0 && !bootstrap.output.includes('[bootstrap] Complete')) {
     throw new Error('Bootstrap failed before completion.');
   }
 
-  const values = parseTaggedValues(bootstrap.output, 'bootstrap-v2');
+  const values = parseTaggedValues(bootstrap.output, 'bootstrap');
   const poolAddress = required(values, 'pool_pda');
   const oracleAddress = required(values, 'oracle');
   const membershipMode = Number.parseInt(String(values.membership_mode || '').trim(), 10);
-  const existingFrontendEnvPath = resolve(repoRoot, 'frontend/.env.local');
   const tokenGateMint = values.token_gate_mint
     || String(process.env.TOKEN_GATE_MINT || '').trim()
     || readEnvValue(existingFrontendEnvPath, 'NEXT_PUBLIC_DEFAULT_TOKEN_GATE_MINT');
@@ -195,7 +371,6 @@ function main() {
   const governanceTokenMint = values.governance_token_mint
     || String(process.env.GOVERNANCE_TOKEN_MINT || '').trim()
     || governanceTokenMintFromRealm;
-  const faucetMint = governanceTokenMint;
   const ruleHashHex = required(values, 'rule_hash_hex');
   const schemaKeyHashHex = required(values, 'schema_key_hash_hex');
 
@@ -210,14 +385,6 @@ function main() {
     `NEXT_PUBLIC_GOVERNANCE_REALM=${governanceRealm}`,
     `NEXT_PUBLIC_GOVERNANCE_CONFIG=${governanceConfig}`,
     `NEXT_PUBLIC_GOVERNANCE_TOKEN_MINT=${governanceTokenMint}`,
-    'NEXT_PUBLIC_FAUCET_ENABLED=true',
-    `NEXT_PUBLIC_FAUCET_MINT=${faucetMint}`,
-    'NEXT_PUBLIC_TURNSTILE_SITE_KEY=',
-    'FAUCET_SKIP_CAPTCHA=true',
-    'FAUCET_INTERNAL_BASE_URL=http://localhost:8080',
-    `FAUCET_INTERNAL_API_TOKEN=${internalApiToken}`,
-    `FAUCET_CHALLENGE_SECRET=${faucetChallengeSecret}`,
-    'TURNSTILE_SECRET_KEY=',
     '',
   ].join('\n');
   writeFileSync(frontendEnvPath, frontendEnv);
@@ -251,13 +418,6 @@ function main() {
       '',
       'ORACLE_SIGNER_KEY_ID=oracle-dev-key',
       `ORACLE_SIGNER_SECRET_KEY_BASE58=${oracleSecret}`,
-      '',
-      'OMEGAX_FAUCET_ENABLED=true',
-      `OMEGAX_FAUCET_MINT=${faucetMint}`,
-      'OMEGAX_FAUCET_AMOUNT_RAW=5',
-      'OMEGAX_FAUCET_COOLDOWN_SECONDS=21600',
-      'OMEGAX_FAUCET_MAX_REQUESTS_PER_DAY=10',
-      `OMEGAX_FAUCET_AUTHORITY_SECRET_KEY_BASE58=${oracleSecret}`,
       '',
     ].join('\n');
     writeFileSync(serviceEnvPath, serviceEnv);

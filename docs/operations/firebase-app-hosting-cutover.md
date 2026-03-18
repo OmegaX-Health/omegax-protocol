@@ -1,85 +1,87 @@
 # Firebase App Hosting Cutover
 
-This runbook covers the safe way to connect the public `omegax-protocol` repo to Firebase App Hosting.
+This runbook covers the safe way to move the existing protocol App Hosting backend onto the public `omegax-protocol` repo.
 
 ## Goal
 
-Use a GitHub-connected App Hosting backend with a checked-in `frontend/apphosting.yaml` that contains only:
+Reuse the existing Firebase App Hosting backend `omegax-health-protocol` in project `omegax-health` while making this public repo the deployment source of truth.
 
-- public client configuration in `value:`
-- runtime-only provider secrets in `secret:`
+Use a checked-in repo-root `firebase.json` plus `frontend/apphosting.yaml` so that:
 
-Do not commit plaintext secrets, private override files, or deployment-only `.env` files.
+- local-source deployments can target the existing backend from this repo
+- the hosted app keeps pointing at the public GitHub source it was built from
+- no local Firebase project aliases or deployment-only overrides are committed
 
 ## Files
 
+- `firebase.json` is the checked-in App Hosting deployment map for this repo
 - `frontend/apphosting.yaml` is the public-safe config tracked in git
 - `frontend/.env.example` is the local developer template
 - `frontend/apphosting.local.yaml` is optional for private local experiments and must stay untracked
+- `.firebaserc` is local-only and must stay untracked
 
 ## What Is Safe To Commit
 
+- App Hosting backend IDs and `rootDir` values in `firebase.json`
 - Solana program IDs
 - public on-chain addresses
 - public explorer cluster and public repo URL
-- Cloudflare Turnstile site key
-- Secret Manager reference names such as `protocolFaucetToken`
 
 ## What Must Stay Outside Git
 
-- faucet service base URLs if you do not want them public
-- faucet internal tokens
-- challenge secrets
-- Turnstile secret key
+- `.firebaserc`
+- Firebase local state under `.firebase/`
 - any local or environment-specific private overrides
 
 ## Backend Strategy
 
-Do not try to repoint the existing backend that is still tied to the legacy repo.
+Use the existing backend and domain wiring instead of creating a parallel backend.
 
-Preferred flow:
+Firebase supports this in two stages:
 
-1. Keep the current backend serving traffic until the new repo is ready.
-2. Create a new App Hosting backend in the same Firebase project.
-3. Connect that backend to the `OmegaX-Health/omegax-protocol` GitHub repo.
-4. Set the app root directory to `frontend/`.
-5. Use manual rollouts first.
-6. Test the new backend URL before moving the canonical domain.
-7. Move the custom domain only after the new backend is verified.
+1. Use local-source deployment from this repo to roll out the existing backend.
+2. Reconnect the same backend’s Deployment settings to the public GitHub repo after the local rollout is verified.
 
-Temporary bridge:
+This avoids disturbing the backend ID, hosted URL, or custom domain binding during the cutover.
 
-- If you need to test before wiring GitHub, deploy local source from this repo to a staging or existing backend.
-- Treat that as temporary; the long-term canonical path should still be a GitHub-connected backend.
+## Current Deployment Shape
 
-## Secrets To Provision
+- Firebase project: `omegax-health`
+- Backend ID: `omegax-health-protocol`
+- App root directory: `frontend/`
+- Live branch after reconnect: `main`
 
-Create these Secret Manager entries for the backend before the first rollout:
+## Rollout Steps
 
-- `protocolFaucetBaseUrl`
-- `protocolFaucetBaseUrlV2`
-- `protocolFaucetToken`
-- `protocolFaucetTokenV2`
-- `protocolFaucetChallengeSecret`
-- `turnstileSecretKey`
+1. Confirm `frontend/apphosting.yaml` contains only public runtime configuration.
+2. Confirm `.firebaserc`, `.firebase/`, `frontend/.env.local`, and any `apphosting.local.yaml` files are ignored.
+3. Run the local-source rollout from the repo root:
 
-Recommended rule:
+   ```bash
+   firebase deploy --project omegax-health --only apphosting:omegax-health-protocol
+   ```
 
-- if a value is runtime-only and not intended for the browser, prefer `secret:`
+4. Verify both:
+   - `https://omegax-health-protocol--omegax-health.us-east4.hosted.app`
+   - `https://protocol.omegax.health`
+5. Confirm the live app footer points at `https://github.com/OmegaX-Health/omegax-protocol`.
+6. In Firebase console, open `omegax-health` -> App Hosting -> `omegax-health-protocol` -> `Settings` -> `Deployment`.
+7. Connect the backend to `OmegaX-Health/omegax-protocol`.
+8. Set the root directory to `frontend/`.
+9. Set the live branch to `main`.
+10. Leave automatic rollouts disabled until one manual GitHub rollout succeeds.
+11. Trigger a manual rollout from the backend’s Rollouts view and verify the same URLs again.
 
 ## Rollout Checklist
 
-1. Confirm `frontend/apphosting.yaml` contains no plaintext secret values.
-2. Confirm `frontend/.env.local` and any `apphosting.local.yaml` files are ignored.
-3. Provision or rotate all runtime secrets in Firebase / Google Secret Manager.
-4. Grant the new backend access to each required secret.
-5. Configure the new backend to use `frontend/` as the source root.
-6. Trigger a manual rollout and verify the hosted URL.
-7. Check faucet, captcha, governance, and protocol views in the deployed app.
-8. Move the custom domain only after the hosted URL is clean.
+1. The repo root contains `firebase.json` with `backendId: omegax-health-protocol` and `rootDir: frontend`.
+2. The deployed app loads without any faucet or captcha flow.
+3. Governance and core protocol views render successfully.
+4. The hosted footer/source links resolve to the public repo.
+5. The live backend is no longer dependent on the legacy private-repo deployment path.
 
 ## Notes
 
 - `NEXT_PUBLIC_*` values are browser-visible by design.
-- If a public RPC URL or public on-chain address appears in `apphosting.yaml`, that is expected.
-- If a value would be harmful when copied into a public issue or screenshot, it should not live in `value:`.
+- `frontend/apphosting.yaml` is the canonical public config for browser-safe runtime values.
+- If runtime-only server values are added in the future, use Secret Manager references in `apphosting.yaml` or backend settings instead of committing plaintext values.

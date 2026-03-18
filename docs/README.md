@@ -9,6 +9,7 @@ This directory contains the public documentation set for `omegax-protocol`.
 - [Repository Layout](./architecture/repository-layout.md)
 - [Solana Program Architecture](./architecture/solana-program-architecture.md)
 - [Solana Instruction Map](./architecture/solana-instruction-map.md)
+- [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md)
 - [Frontend Information Architecture](./architecture/frontend-information-architecture.md)
 
 ### Reviews
@@ -46,6 +47,7 @@ This directory contains the public documentation set for `omegax-protocol`.
 - Start with [Repository Layout](./architecture/repository-layout.md) if you are new to the repo.
 - Use [Solana Program Architecture](./architecture/solana-program-architecture.md) to understand the on-chain program layout and reviewer read order.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
+- Use [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) when you need the signer model, claim roles, and payout-path rules for reviewed coverage claims.
 - Use [Solana Public Readiness Review](./reviews/solana-public-readiness-review.md) for the scored audit, blockers, and cleanup backlog.
 - Use [Pool Metadata Schema](./reference/pool-metadata-schema.md) when integrating off-chain pool metadata.
 - Use [Protocol Surface Audit](./testing/protocol-surface-audit.md) when you need the heavier localnet proof for instruction coverage, error coverage, and release-candidate sign-off.
