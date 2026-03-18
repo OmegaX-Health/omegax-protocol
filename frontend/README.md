@@ -32,7 +32,7 @@ Start from:
 
 Rules:
 - `NEXT_PUBLIC_*` values are treated as public runtime configuration
-- repo-root `firebase.json` wires local App Hosting deploys to the existing protocol backend
+- repo-root `firebase.json` wires App Hosting deploys for this frontend
 - `.firebaserc` must stay local and untracked in this public repo
 - if runtime-only hosting values are added later, use Secret Manager references in `frontend/apphosting.yaml`
 - `NEXT_PUBLIC_SOURCE_REPO_URL` should point at the exact public source repository or release used by the hosted deployment
@@ -40,4 +40,4 @@ Rules:
 
 ## Deployment boundary
 
-This repo contains the public frontend source and checked-in App Hosting deployment wiring, but not local Firebase project aliases or deployment-only overrides. Use [docs/operations/firebase-app-hosting-cutover.md](../docs/operations/firebase-app-hosting-cutover.md) when wiring the existing Firebase App Hosting backend to this public repo.
+This repo contains the public frontend source and checked-in App Hosting deployment wiring, but not local Firebase project aliases or deployment-only overrides.

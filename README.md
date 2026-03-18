@@ -155,7 +155,6 @@ For public release candidates, add `npm run test:e2e:localnet` as a separate sig
 
 - [Devnet Beta Runbook](./docs/operations/devnet-beta-runbook.md)
 - [Public Release Gate](./docs/operations/public-release-gate.md)
-- [Firebase App Hosting Cutover](./docs/operations/firebase-app-hosting-cutover.md)
 
 ### Public Site
 

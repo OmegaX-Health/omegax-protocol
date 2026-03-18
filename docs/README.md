@@ -28,7 +28,6 @@ This directory contains the public documentation set for `omegax-protocol`.
 
 - [Devnet Beta Runbook](./operations/devnet-beta-runbook.md)
 - [Public Release Gate](./operations/public-release-gate.md)
-- [Firebase App Hosting Cutover](./operations/firebase-app-hosting-cutover.md)
 
 ### Public Site
 
@@ -53,7 +52,6 @@ This directory contains the public documentation set for `omegax-protocol`.
 - Use [Protocol Surface Audit](./testing/protocol-surface-audit.md) when you need the heavier localnet proof for instruction coverage, error coverage, and release-candidate sign-off.
 - Use [Devnet Beta Runbook](./operations/devnet-beta-runbook.md) for structured devnet beta operations.
 - Use [Public Release Gate](./operations/public-release-gate.md) for the repo-only verification baseline and release-candidate sign-off workflow.
-- Use [Firebase App Hosting Cutover](./operations/firebase-app-hosting-cutover.md) when preparing GitHub-connected hosting from this public repo.
 
 For directory-specific guidance, also see:
 - [../e2e/README.md](../e2e/README.md)
