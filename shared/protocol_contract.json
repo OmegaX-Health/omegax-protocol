@@ -1,5 +1,5 @@
 {
-  "sourceIdlPath": "target/idl/omegax_protocol.json",
+  "sourceIdlPath": "idl/omegax_protocol.json",
   "programId": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",
   "instructionSetVersion": 1,
   "instructions": [
@@ -7331,6 +7331,19 @@
           "name": "admin",
           "writable": true,
           "signer": true,
+          "optional": false
+        },
+        {
+          "name": "program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+        },
+        {
+          "name": "program_data",
+          "writable": false,
+          "signer": false,
           "optional": false
         },
         {

@@ -7052,6 +7052,13 @@
           "signer": true
         },
         {
+          "name": "program",
+          "address": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+        },
+        {
+          "name": "program_data"
+        },
+        {
           "name": "config",
           "writable": true,
           "pda": {

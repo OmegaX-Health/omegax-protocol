@@ -9,7 +9,12 @@ import {
   getAccount,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import { ComputeBudgetProgram, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  ComputeBudgetProgram,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from "@solana/web3.js";
 
 import protocolModule from "../frontend/lib/protocol.ts";
 import {
@@ -804,6 +809,22 @@ async function fundedSigner(harness: LocalnetHarness) {
   return harness.fundedKeypair();
 }
 
+async function configuredOriginalGovernanceSigner(
+  harness: LocalnetHarness,
+): Promise<Keypair> {
+  const raw = String(
+    process.env.OMEGAX_E2E_ORIGINAL_GOVERNANCE_SECRET_KEY_JSON ?? "",
+  ).trim();
+  if (!raw) {
+    return fundedSigner(harness);
+  }
+
+  const secretKey = JSON.parse(raw) as number[];
+  const signer = Keypair.fromSecretKey(Uint8Array.from(secretKey));
+  await harness.airdrop(signer.publicKey, 25n * BigInt(LAMPORTS_PER_SOL));
+  return signer;
+}
+
 function scenarioEnabled(harness: LocalnetHarness, name: ScenarioName) {
   return !harness.selectedScenario || harness.selectedScenario === name;
 }
@@ -875,7 +896,7 @@ async function createGlobalState(
     alternateMember,
     delegate,
   ] = await Promise.all([
-    fundedSigner(harness),
+    configuredOriginalGovernanceSigner(harness),
     fundedSigner(harness),
     fundedSigner(harness),
     fundedSigner(harness),

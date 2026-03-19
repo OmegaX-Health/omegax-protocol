@@ -48,7 +48,7 @@
     "frontend:dev:reset": "pkill -f \"[n]ext dev\" || true; rm -rf frontend/.next frontend/.next-dev-*; npm run frontend:dev",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:start": "npm --prefix frontend run start",
-    "test:node": "tsx --test tests/**/*.test.ts",
+    "test:node": "tsx --test $(find tests -type f -name '*.test.ts' | sort)",
     "test:e2e:localnet": "node scripts/run_localnet_e2e.mjs",
     "public:hygiene:check": "node scripts/check_public_repo_hygiene.mjs",
     "license:audit": "node scripts/check_dependency_licenses.mjs",
