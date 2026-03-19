@@ -39,6 +39,11 @@ jobs:
           missing=0
           while read -r commit; do
             [[ -z "${commit}" ]] && continue
+            parent_fields="$(git rev-list --parents -n 1 "${commit}")"
+            parent_count="$(wc -w <<< "${parent_fields}" | tr -d '[:space:]')"
+            if [[ "${parent_count}" -gt 2 ]]; then
+              continue
+            fi
             if ! git log -1 --pretty=%B "${commit}" | grep -qi '^Signed-off-by:'; then
               echo "Missing Signed-off-by trailer in commit ${commit}"
               missing=1
