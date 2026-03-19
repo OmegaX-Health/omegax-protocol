@@ -9,6 +9,14 @@ pub struct InitializeProtocol<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     #[account(
+        constraint = program.programdata_address()? == Some(program_data.key())
+    )]
+    pub program: Program<'info, crate::program::OmegaxProtocol>,
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(admin.key())
+    )]
+    pub program_data: Account<'info, ProgramData>,
+    #[account(
         init,
         payer = admin,
         space = ProtocolConfig::space(),

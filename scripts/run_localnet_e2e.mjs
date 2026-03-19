@@ -7,7 +7,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -239,6 +239,13 @@ async function main() {
   const summaryPath = join(artifactsRoot, `localnet-e2e-summary-${nowStamp()}.json`);
   await mkdir(ledgerDir, { recursive: true });
   const legacySchemaFixture = await createLegacySchemaFixture(tempRoot);
+  const programUpgradeAuthority = Keypair.generate();
+  const programUpgradeAuthorityPath = join(tempRoot, "program-upgrade-authority.json");
+  await writeFile(
+    programUpgradeAuthorityPath,
+    JSON.stringify(Array.from(programUpgradeAuthority.secretKey)),
+    "utf8",
+  );
 
   const validatorArgs = [
     "--reset",
@@ -255,9 +262,10 @@ async function main() {
     "--account",
     legacySchemaFixture.schemaAddress,
     legacySchemaFixture.dumpPath,
-    "--bpf-program",
+    "--upgradeable-program",
     programId,
     programSoPath,
+    programUpgradeAuthorityPath,
   ];
 
   const logStream = createWriteStream(logPath, { flags: "a" });
@@ -323,6 +331,9 @@ async function main() {
       OMEGAX_E2E_DYNAMIC_PORT_RANGE: `${dynamicPortStart}-${dynamicPortEnd}`,
       OMEGAX_E2E_LEGACY_SCHEMA_ADDRESS: legacySchemaFixture.schemaAddress,
       OMEGAX_E2E_LEGACY_SCHEMA_KEY_HASH_HEX: legacySchemaFixture.schemaKeyHashHex,
+      OMEGAX_E2E_ORIGINAL_GOVERNANCE_SECRET_KEY_JSON: JSON.stringify(
+        Array.from(programUpgradeAuthority.secretKey),
+      ),
     };
 
     await new Promise((resolveRun, rejectRun) => {

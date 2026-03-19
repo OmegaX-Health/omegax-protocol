@@ -64,6 +64,9 @@ const SEED_POOL_ORACLE_FEE_VAULT = "pool_oracle_fee_vault";
 
 export const ZERO_PUBKEY = "11111111111111111111111111111111";
 const ZERO_PUBKEY_KEY = new PublicKey(ZERO_PUBKEY);
+const BPF_UPGRADEABLE_LOADER_PROGRAM_ID = new PublicKey(
+  "BPFLoaderUpgradeab1e11111111111111111111111",
+);
 const MAX_POOL_ID_SEED_BYTES = 32;
 const MAX_ORACLE_SUPPORTED_SCHEMAS = 16;
 const TOKEN_PROGRAM_ID = new PublicKey(
@@ -542,6 +545,13 @@ export function deriveConfigPda(programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [new TextEncoder().encode(SEED_CONFIG)],
     programId,
+  )[0];
+}
+
+export function deriveProgramDataPda(programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [programId.toBuffer()],
+    BPF_UPGRADEABLE_LOADER_PROGRAM_ID,
   )[0];
 }
 
@@ -1290,6 +1300,7 @@ export function buildInitializeProtocolTx(params: {
   minOracleStake: bigint;
 }): Transaction {
   const programId = getProgramId();
+  const programData = deriveProgramDataPda(programId);
   const config = deriveConfigPda(programId);
   const defaultStakeMint = new PublicKey(params.defaultStakeMint);
   const data = concat([
@@ -1305,6 +1316,8 @@ export function buildInitializeProtocolTx(params: {
     programId,
     keys: [
       { pubkey: params.admin, isSigner: true, isWritable: true },
+      { pubkey: programId, isSigner: false, isWritable: false },
+      { pubkey: programData, isSigner: false, isWritable: false },
       { pubkey: config, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],

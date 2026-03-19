@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 3863e7cd9d153f0c141ad7096733747da801da1fa465c1cf422990cc7188a6ec
+// contract_sha256: 5a9bac6f2664281c047313a0301c5833b8a26f50fd73d7b97fe3cd9b161081b1
 
 export type ProtocolInstructionName =
   | "activate_cycle_with_quote_sol"
@@ -1009,6 +1009,8 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
   ],
   "initialize_protocol": [
       { name: "admin", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "program", writable: false, signer: false, optional: false, address: "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B", pdaSeeds: undefined },
+      { name: "program_data", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "config", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 110, 102, 105, 103] }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],

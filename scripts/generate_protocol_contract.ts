@@ -377,10 +377,7 @@ function main() {
   );
 
   const contract: ProtocolContract = {
-    sourceIdlPath:
-      sourceIdlPath === TARGET_IDL_PATH
-        ? 'target/idl/omegax_protocol.json'
-        : 'idl/omegax_protocol.json',
+    sourceIdlPath: 'idl/omegax_protocol.json',
     programId: idl.address,
     instructionSetVersion: 1,
     instructions,
