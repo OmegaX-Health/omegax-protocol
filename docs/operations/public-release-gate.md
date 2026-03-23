@@ -2,7 +2,7 @@
 
 Use this checklist before merging or publishing protocol-facing changes from the public repository.
 
-Current target release: `0.2.0`
+Current target release: `0.2.1`
 
 ## Baseline commands
 
@@ -47,7 +47,7 @@ Treat that command as an additional maintainer sign-off step, not as a per-PR or
 
 ## Devnet rollout sign-off
 
-For `0.2.0`, repo readiness ends at the public gate plus localnet sign-off. Hosted frontend deployment is intentionally out of scope.
+For `0.2.1`, repo readiness ends at the public gate plus localnet sign-off. Hosted frontend deployment is intentionally out of scope.
 
 Operational rollout still requires a two-step devnet sequence:
 

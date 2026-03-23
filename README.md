@@ -26,13 +26,13 @@ That public story is now documented more clearly in the external docs hub, while
 
 ## Status
 
-- Release target: `0.2.0`
+- Release target: `0.2.1`
 - Repository license: `AGPL-3.0-or-later`
 - SDK license: `Apache-2.0` in the separate `omegax-sdk` repository
 - Repository stewardship: `OMEGAX HEALTH FZCO and contributors`
 - Names, logos, and official branding remain subject to [TRADEMARKS.md](./TRADEMARKS.md)
 - CI in this repository is verification-only and does not deploy infrastructure
-- Hosted frontend rollout is intentionally out of scope for the `0.2.0` release gate
+- Hosted frontend rollout is intentionally out of scope for the `0.2.1` release gate
 
 ## What belongs here
 

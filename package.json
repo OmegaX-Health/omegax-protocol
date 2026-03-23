@@ -1,6 +1,6 @@
 {
   "name": "omegax-protocol",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Public OmegaX Solana protocol workspace with the on-chain program, frontend console, docs, and verification tooling.",
   "author": "OMEGAX HEALTH FZCO",
   "contributors": [
@@ -65,8 +65,8 @@
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
-    "@types/node": "^20.17.16",
-    "playwright": "^1.41.2",
+    "@types/node": "^20.19.37",
+    "playwright": "^1.58.2",
     "tsx": "^4.19.2"
   },
   "engines": {
