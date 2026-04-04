@@ -1,132 +1,105 @@
 # Solana Program Architecture
 
-This document explains how the on-chain OmegaX program is organized so a new reviewer can move from the public entrypoints to the state transitions without relying on tribal knowledge.
+This document explains the current OmegaX onchain architecture after the health-capital-markets rearchitecture.
 
-## Read order
+## Read Order
 
-Start in this order:
+Read in this order:
 
-1. [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs) for the Anchor entrypoint surface
-2. [`programs/omegax_protocol/src/core_accounts.rs`](../../programs/omegax_protocol/src/core_accounts.rs) for root account types shared across the protocol
-3. [`programs/omegax_protocol/src/surface.rs`](../../programs/omegax_protocol/src/surface.rs) for the current module index
-4. the relevant handler file for the lifecycle you care about
-5. the matching file under `src/surface/contexts/` for Anchor account validation
-6. [`programs/omegax_protocol/src/surface/state.rs`](../../programs/omegax_protocol/src/surface/state.rs) for current account storage
-7. the matching helper file under `src/surface/shared/` for reusable validation, quote, liquidity, treasury, or coverage logic
+1. [`docs/adr/0001-health-capital-markets-rearchitecture.md`](../adr/0001-health-capital-markets-rearchitecture.md)
+2. [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs)
+3. [`docs/architecture/solana-instruction-map.md`](./solana-instruction-map.md)
+4. [`docs/MIGRATION_MATRIX.md`](../MIGRATION_MATRIX.md)
 
-## Top-level layers
+## Canonical Layers
 
-### 1. Anchor entrypoints
+### 1. Governance and scoped controls
 
-- `src/lib.rs` is the public instruction surface.
-- Registry approval instructions still live inline there.
-- The rest of the program delegates immediately into the current domain handlers so the entrypoint file stays routing-focused.
+`ProtocolGovernance` holds protocol-wide upgrade and emergency authority.
 
-### 2. Root account types
+`ReserveDomain`, `HealthPlan`, `CapitalClass`, and `AllocationPosition` each expose scoped controls instead of one blunt global switch. The important invariant is that scoped control changes are auditable without rewriting liabilities or historical settlements.
 
-- `src/core_accounts.rs` holds the root accounts that multiple protocol areas depend on:
-  - `Pool`
-  - `OracleRegistryEntry`
-  - `OracleProfile`
-  - `PoolOracleApproval`
-  - `MembershipRecord`
-- It also keeps the `register_oracle` and `set_pool_oracle` account contexts close to the state they operate on.
+### 2. Reserve domains and custody truth
 
-### 3. Current Domain Surface
+`ReserveDomain` is the hard segregation boundary.
 
-- `src/surface.rs` is the current module index and shared import surface.
-- Handler files are grouped by lifecycle:
-  - `admin.rs` for governance and oracle administration
-  - `pools.rs` for pool creation, enrollment, and liquidity
-  - `rewards.rs` for attestation and reward claims
-  - `coverage.rs` for product and policy flows
-  - `cycles/activation.rs` and `cycles/settlement.rs` for quoted cycle lifecycles
-  - `treasury.rs` for treasury, premium, and payout flows
-- `events.rs` defines the stable wallet- and reporting-facing event payloads emitted across those handlers.
+Inside a domain:
 
-### 4. Account validation
+- actual tokens sit in `DomainAssetVault`
+- reserve attribution lives in `DomainAssetLedger`
+- health plans and liquidity pools can share the same settlement asset without losing attribution
 
-- `src/surface/contexts/` contains the Anchor `#[derive(Accounts)]` definitions grouped by protocol area.
-- The most complex validation surfaces today are:
-  - `contexts/pools.rs`
-  - `contexts/coverage.rs`
-  - `contexts/cycles.rs`
-  - `contexts/treasury.rs`
-- Each `UncheckedAccount` in those files is paired with an inline safety comment describing what the instruction validates manually.
+This is how the protocol supports shared capital without creating accounting soup.
 
-### 5. State and helpers
+### 3. Plan-side product and liability model
 
-- `src/surface/state.rs` contains the current account layouts and `space()` helpers.
-- `src/surface/shared/` contains helper logic grouped by protocol concern:
-  - `guards.rs` for paused/closed checks
-  - `compliance.rs` for action-level credential and rail gating
-  - `oracle.rs` for oracle profile and permission validation
-  - `risk.rs` for per-pool claim/redemption mode gates and impairment config bootstrap
-  - `rules.rs` for schema/rule binding checks
-  - `quotes.rs` for detached quote verification
-  - `liquidity.rs` for share math, class-aware reference-NAV snapshots, free-capital-aware redemption logic, and redemption-request state transitions
-  - `coverage.rs`, `premium.rs`, and `treasury.rs` for coverage, claim-case, and liability-ledger bookkeeping
+`HealthPlan` is the sponsor/member/liability root.
 
-## Main protocol lifecycles
+`PolicySeries` versions product semantics under a plan. Material economics are versioned by creating a new series, not by mutating the live one.
 
-### Governance and oracle lifecycle
+`FundingLine` records where plan-side money comes from:
 
-- Bootstrap with `initialize_protocol`.
-- Register and claim oracle identity with `register_oracle` and `claim_oracle`.
-- Update profile and metadata through the admin/oracle flows.
-- Stake, request unstake, finalize unstake, and slash through `admin.rs`.
+- sponsor budget
+- premiums
+- LP allocation
+- backstop
+- subsidy
 
-### Pool lifecycle
+`ClaimCase` and `Obligation` make economically material rights and liabilities explicit instead of letting them disappear into operator workflow.
 
-- Create the pool and its companion policy/terms accounts in `create_pool`.
-- Configure pool status, oracle policy, reserve floor, scoped risk controls, series metadata, compliance policy, delegated control authorities, automation policy, rules, and invite issuers in `pools.rs`.
-- Enroll members through open, token-gated, or invite-based flows.
-- Fund and manage liquidity through the same domain file today, including capital-class registration plus direct and queued redemption paths.
+### 4. Capital-side investor model
 
-### Reward lifecycle
+`LiquidityPool` is the LP-facing sleeve.
 
-- Oracles submit attestation votes in `rewards.rs`.
-- Cycle outcomes are finalized there as well, with optional challenge windows and dispute state.
-- Attestation votes can now anchor evidence, AI/automation metadata, execution-environment commitments, and external-attestation references without putting raw artifacts onchain.
-- Reward claims then read the finalized state, enforce claimable review status, and release the payout.
+`CapitalClass` carries class-specific redemption, restriction, and impairment semantics.
 
-### Coverage and cycle lifecycle
+`LPPosition` records the investor position.
 
-- Coverage products and payment options are defined in `coverage.rs`.
-- Cycle activation is quoted and verified in `cycles/activation.rs`.
-- Cycle settlement and cohort settlement roots live in `cycles/settlement.rs`.
-- Coverage claims and premium attestations settle treasury state in `treasury.rs`.
-- Coverage claims now support explicit review, approval, denial, partial payout, closure, appeal count, recovery bookkeeping, optional compliance gating, and AI decision-support commitments without storing raw external payloads onchain.
-- Coverage claim adjudication is delegated through pool-approved oracle keys with `ORACLE_PERMISSION_CLAIM_SETTLE`, while approved reimbursement claims can be pulled by the claimant or an active claim delegate instead of forcing governance or pool authority to push each payout.
-- `PoolTreasuryReserve` now acts as the beginning of a liability ledger, so liquidity and claim payouts reconcile against free capital instead of gross reserves alone.
-- `PoolRiskConfig` complements that ledger by letting the pool authority or governance pause claim intake, move redemptions to queue-only, or book an impairment amount without changing the pool’s broader lifecycle status.
-- The current share mint is now treated explicitly as a transitional compatibility path: `PoolCapitalClass` wraps that share mint with class mode, restriction, vintage, and queue metadata, while `shared/liquidity.rs` exposes reserve-aware reference NAV, utilization, available-redemption semantics, and redemption-request lifecycle semantics from the combined class, risk, and treasury state.
-- `PolicySeries`, `PoolCompliancePolicy`, `PoolControlAuthority`, and `PoolAutomationPolicy` give the kernel stable public comparability, regulated-mode, authority-boundary, and bounded-autonomy surfaces without replacing the pool root.
-- `frontend/lib/protocol.ts` now also exposes wallet-native position builders that separate member rights from capital exposure by combining membership, reward-claim, coverage-claim, and capital-metrics readers into one consumable view for apps and future SDK surfaces.
-- That same client surface now carries explicit integration-policy rules derived from `PoolCapitalClass`: reference NAV is the authoritative valuation surface, wrapper-only and restricted classes are called out distinctly, market price is treated as downstream rather than authoritative, and collateral or external-yield reuse remains disabled until a later phase makes it explicit.
+`AllocationPosition` is the bridge from a capital class into a plan funding line. This keeps investor exposure explicit and many-to-many.
 
-## Largest review hotspots
+### 5. Reserve kernel
 
-These are the first files to revisit when readability or modularity needs improvement:
+The reserve kernel is implemented as scoped ledgers rather than one giant monolithic account:
 
-- `src/lib.rs`
-- `src/surface/pools.rs`
-- `src/surface/cycles/activation.rs`
+- `DomainAssetLedger`
+- `PlanReserveLedger`
+- `SeriesReserveLedger`
+- `FundingLineLedger`
+- `PoolClassLedger`
+- `AllocationLedger`
 
-Those files are the current concentration points for routing, onboarding/lifecycle branching, and quote-driven cycle activation.
+Every economically meaningful transition updates the relevant ledgers atomically.
 
-## Generated versus hand-edited boundaries
+The key questions the kernel must always answer are:
 
-Hand-edited protocol source lives in:
+- what is funded
+- what is allocated
+- what is reserved
+- what is owed
+- what is claimable or payable
+- what is impaired
+- what is still free or redeemable capital
 
-- `programs/omegax_protocol/src/`
-- `docs/architecture/`
-- `docs/operations/`
+## File Reality
 
-Generated or synced artifacts live outside the program source tree:
+The canonical public surface is currently defined directly in [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs).
 
-- `idl/`
-- `shared/`
-- `android-native/protocol/`
+## Review Hotspots
 
-Review protocol logic in `src/` first, then use the generated artifacts to confirm the public surface stayed aligned.
+If you are reviewing protocol changes, start with these areas in `src/lib.rs`:
+
+- reserve-domain creation and control flows
+- plan and policy-series creation/versioning
+- funding-line, claim-case, and obligation state transitions
+- liquidity-pool, capital-class, and allocation flows
+- reserve-kernel helper functions near the bottom of the file
+
+## Generated Boundaries
+
+Generated public artifacts live in:
+
+- [`idl/`](../../idl/)
+- [`shared/`](../../shared/)
+- [`android-native/protocol/`](../../android-native/protocol/)
+
+Treat `src/lib.rs` as implementation truth, then confirm that the generated artifacts stay aligned.

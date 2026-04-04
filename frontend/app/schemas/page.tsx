@@ -1,45 +1,28 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Network } from "lucide-react";
-import Link from "next/link";
-
-import { Hero } from "@/components/hero";
-import { SchemaRegistryInspector } from "@/components/schema-registry-inspector";
-import { StandardSchemaRegistry } from "@/components/standard-schema-registry";
+import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
 
 export default function SchemasPage() {
   return (
-    <div className="space-y-6">
-      <Hero
-        title="Health Outcomes Registry"
-        subtitle="The canonical registry of health conditions, biometric goals, and actionable outcomes that can be incentivized or insured."
-        icon={Network}
-      />
-
-      <StandardSchemaRegistry />
-
-      <section className="surface-card space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">On-Chain Schema Explorer</h2>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            Browse all published schema entries and rule mappings from chain state, including governance-verified and draft versions.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3 pt-2">
-          <Link href="/pools" className="action-button inline-flex w-fit">
-            Create Health Plan
-          </Link>
-          <Link
-            className="secondary-button inline-flex w-fit items-center justify-center"
-            href="/governance"
-          >
-            Manage Schema Proposals
-          </Link>
-        </div>
+    <div className="space-y-8">
+      <section className="rounded-[2rem] border border-white/10 bg-slate-950/40 p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-lime-200/80">Schema and outcome bindings</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight">Comparability belongs at the PolicySeries layer.</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+          Series terms versioning and comparability keys make product economics legible across sponsor programs
+          without silently mutating live semantics.
+        </p>
       </section>
 
-      <SchemaRegistryInspector />
+      <div className="grid gap-4 lg:grid-cols-3">
+        {DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.map((series) => (
+          <article key={series.address} className="rounded-[1.8rem] border border-white/10 bg-white/5 p-5">
+            <p className="text-xs uppercase tracking-[0.22em] text-lime-200/70">{series.termsVersion}</p>
+            <h3 className="mt-2 text-xl font-semibold">{series.displayName}</h3>
+            <p className="mt-2 text-sm text-slate-400">{series.comparabilityKey}</p>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

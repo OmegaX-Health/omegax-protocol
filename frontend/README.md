@@ -1,19 +1,21 @@
 # Frontend
 
-This directory contains the Next.js protocol console for OmegaX Protocol.
+This directory contains the Next.js protocol console for the canonical OmegaX health-capital-markets model.
 
 ## Responsibilities
 
 - render the public protocol console
-- expose protocol state, pool operations, governance views, and operator workflows
+- expose sponsor, member, and capital read models against the canonical nouns
+- keep route language aligned with `HealthPlan`, `PolicySeries`, `FundingLine`, `LiquidityPool`, and `CapitalClass`
 - provide source and legal links for hosted AGPL deployments
 - keep client-visible configuration separated from runtime-only secrets
 
 ## Key directories
 
 - `app/` contains routes, layouts, and API handlers
-- `components/` contains reusable interface and workflow components
-- `lib/` contains protocol-facing helpers, metadata utilities, and server-side helpers
+- `lib/protocol.ts` contains PDA helpers, reserve math, and deterministic read models
+- `lib/devnet-fixtures.ts` contains stable canonical fixture ids and demo state
+- `lib/console-model.ts` builds the sponsor/member/capital views used by the console
 - `public/` contains static assets intended for redistribution
 
 ## Commands
@@ -36,7 +38,7 @@ Rules:
 - `.firebaserc` must stay local and untracked in this public repo
 - if runtime-only hosting values are added later, use Secret Manager references in `frontend/apphosting.yaml`
 - `NEXT_PUBLIC_SOURCE_REPO_URL` should point at the exact public source repository or release used by the hosted deployment
-- devnet parity bootstrap can also read ignored local override env files or a `DEVNET_FRONTEND_BOOTSTRAP_ENV_FILE` when operator-only values must stay out of tracked files
+- `npm run devnet:frontend:bootstrap` syncs the canonical fixture env values into `frontend/.env.local`
 
 ## Deployment boundary
 

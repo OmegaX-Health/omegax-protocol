@@ -18,7 +18,7 @@ This directory contains the public documentation set for `omegax-protocol`.
 
 ### Reference
 
-- [Pool Metadata Schema](./reference/pool-metadata-schema.md)
+- [Liquidity Pool Metadata Schema](./reference/liquidity-pool-metadata-schema.md)
 
 ### Testing
 
@@ -28,6 +28,7 @@ This directory contains the public documentation set for `omegax-protocol`.
 
 - [Devnet Beta Runbook](./operations/devnet-beta-runbook.md)
 - [Public Release Gate](./operations/public-release-gate.md)
+- [Release v0.3.0](./operations/release-v0.3.0.md)
 
 ### Public Site
 
@@ -48,8 +49,8 @@ This directory contains the public documentation set for `omegax-protocol`.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
 - Use [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) when you need the signer model, claim roles, and payout-path rules for reviewed coverage claims.
 - Use [Solana Public Readiness Review](./reviews/solana-public-readiness-review.md) for the scored audit, blockers, and cleanup backlog.
-- Use [Pool Metadata Schema](./reference/pool-metadata-schema.md) when integrating off-chain pool metadata.
-- Use [Protocol Surface Audit](./testing/protocol-surface-audit.md) when you need the heavier localnet proof for instruction coverage, error coverage, and release-candidate sign-off.
+- Use [Liquidity Pool Metadata Schema](./reference/liquidity-pool-metadata-schema.md) when integrating LP-facing off-chain APY metadata for a `LiquidityPool`.
+- Use [Protocol Surface Audit](./testing/protocol-surface-audit.md) when you need the heavier localnet proof for canonical instruction ownership, scenario coverage, and release-candidate sign-off.
 - Use [Devnet Beta Runbook](./operations/devnet-beta-runbook.md) for structured devnet beta operations.
 - Use [Public Release Gate](./operations/public-release-gate.md) for the repo-only verification baseline and release-candidate sign-off workflow.
 

@@ -2,6 +2,8 @@
 
 Date: March 10, 2026
 
+This review predates the health-capital-markets rearchitecture and remains as historical context rather than the current reviewer map.
+
 ## Verdict
 
 The repository is publishable from a fresh clone after this pass. The public release gate is now explicit, public CI checks the Rust baseline as well as the Node/frontend surface, and the Solana program has enough architecture guidance to be reviewable by external contributors.
@@ -13,7 +15,7 @@ The main remaining weakness is program modularity. The protocol surface is large
 | Dimension | Score | Evidence |
 | --- | --- | --- |
 | Boundary hygiene | `3/3` | public verification no longer depends on sibling repositories; maintainer-only workspace sync is documented separately |
-| Program modularity | `1/3` | `lib.rs`, `surface/pools.rs`, and `surface/cycles/activation.rs` remain the biggest concentration points |
+| Program modularity | `1/3` | the pre-rearchitecture entrypoint and legacy lifecycle modules remained the biggest concentration points at the time of review |
 | Code readability | `2/3` | module docs, root account docs, and handler grouping comments now exist; deeper handler flows still require file hopping |
 | Docs and onboarding | `3/3` | the repo now has a Solana architecture guide, instruction map, release gate, and a recorded readiness audit |
 | Verification discipline | `3/3` | public CI and `verify:public` include Rust format, Rust tests, Rust lint, contract parity, public hygiene, frontend build, and license checks |
@@ -35,8 +37,8 @@ The remaining concerns are high-priority cleanup items, not publish blockers.
 
 ## Structural refactors
 
-- Split `programs/omegax_protocol/src/surface/pools.rs` by lifecycle so pool configuration, enrollment, and liquidity are no longer mixed in one file.
-- Split `programs/omegax_protocol/src/surface/cycles/activation.rs` into quote verification vs fund movement / state-write stages.
+- Split the old lifecycle-heavy modules by concern so configuration, enrollment, liquidity, quote verification, and settlement state writes are easier to review.
+- Separate quote verification from fund movement and state-write stages in the heaviest activation paths.
 - Continue thinning `programs/omegax_protocol/src/lib.rs` so it remains an entrypoint facade rather than a second place to understand state layout.
 - Consider replacing mode/status `u8` constants with typed enums or tightly documented wrappers where Anchor compatibility allows it without changing the public wire shape.
 
@@ -49,4 +51,4 @@ The remaining concerns are high-priority cleanup items, not publish blockers.
 
 ## Next recommendation
 
-If only one deeper cleanup project is funded next, split `surface/pools.rs` first. That file currently mixes too many unrelated mental models for a first-time reviewer: pool bootstrap, schema/rule configuration, invite issuers, enrollment, funding, and liquidity.
+If only one deeper cleanup project is funded next, split the old lifecycle-heavy capital and enrollment modules first. At the time of review they mixed too many unrelated mental models for a first-time reviewer: bootstrap, schema and rule configuration, invite issuers, enrollment, funding, and liquidity.

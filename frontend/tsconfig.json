@@ -34,12 +34,24 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "lib/console-model.ts",
+    "lib/devnet-fixtures.ts",
+    "lib/protocol.ts",
+    "lib/generated/**/*.ts",
     ".next/types/**/*.ts",
     ".next-dev-*/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "components/**/*",
+    "lib/cycle-quote.ts",
+    "lib/governance.ts",
+    "lib/pool-defi-metrics.ts",
+    "lib/protocol-action.ts",
+    "lib/protocol-workspace-mappers.ts",
+    "lib/schema-metadata.ts",
+    "lib/ui-capabilities.ts"
   ]
 }

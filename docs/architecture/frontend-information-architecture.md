@@ -1,40 +1,45 @@
 # Frontend Information Architecture
 
-The protocol console is organized around a pool-scoped operating model.
+The public protocol console is now organized around the canonical health-capital-markets nouns instead of a single overloaded pool workspace.
 
-## Primary product primitives
+## Primary UI primitives
 
-The public UI should treat the following as first-order objects in navigation, state, and permissions:
+The public UI should treat these as first-order objects:
 
-1. `Pool`
-2. `Member`
-3. `Coverage Position`
-4. `Claim`
-5. `Oracle Operator`
-6. `Attestation`
-7. `Settlement`
-
-Everything else should be presented as configuration or metadata attached to one of those primitives.
+1. `HealthPlan`
+2. `PolicySeries`
+3. `ClaimCase`
+4. `Obligation`
+5. `LiquidityPool`
+6. `CapitalClass`
+7. `AllocationPosition`
+8. `ReserveDomain`
 
 ## Navigation model
 
-- `Pool` is the primary workspace root.
-- Member, claim, coverage, and settlement actions should appear in the context of a selected pool whenever possible.
-- Oracle-specific visibility should remain wallet-aware and only surface advanced controls when the connected wallet has the relevant protocol role.
-- Legacy direct routes may remain for deep links, but primary navigation should stay concise and operator-oriented.
+- `/plans` is the sponsor/operator view
+- `/capital` is the LP and capital-markets view
+- `/claims` is the liability and adjudication view
+- `/members` is the member-rights view
+- `/governance` is the scoped-control and authority view
+- `/oracles` explains the OmegaX Health event-production boundary
+- `/schemas` explains comparability and series versioning
 
-## Conceptual distinction
+Legacy `/pools/*` routes are retained only as redirects to avoid carrying pool-first concepts forward in the main UX.
 
-`Pool` and `Coverage Position` are related, but they are not interchangeable:
+## Naming rules
 
-- `Pool` is the shared capital, rule, and governance container.
-- `Coverage Position` represents a member's active participation inside a pool.
-- Reward and coverage flows can share pool rails without collapsing into the same user concept.
+- Use `HealthPlan` as the canonical protocol noun.
+- Sponsor-facing copy may say `Program` where it improves comprehension, but it should still map to `HealthPlan`.
+- Use `LiquidityPool` and `CapitalClass` explicitly for investor-facing surfaces.
+- Do not use one generic `pool` label for both sponsor programs and LP vaults.
 
-## Current implementation direction
+## Read-model rules
 
-The frontend currently reflects this model by:
-- using pool-scoped workspace routes
-- centering pool operations in the main navigation
-- gating oracle-staking visibility to applicable wallets
-- treating claims and coverage actions as pool-context operations rather than top-level app silos
+The frontend should answer different questions for different audiences:
+
+- sponsors need funded budget, remaining budget, accrued obligations, paid outcomes, and claim status
+- members need series rights, delegated rights, claim state, and payout history
+- capital providers need NAV, reserved liabilities, pending queue pressure, impairment state, and exposure mix
+
+Those views should be derived from the same canonical reserve kernel rather than from disconnected UI-specific math.

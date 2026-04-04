@@ -2,7 +2,7 @@
 
 Use this checklist before merging or publishing protocol-facing changes from the public repository.
 
-Current target release: `0.2.1`
+Current target release: `0.3.0`
 
 ## Baseline commands
 
@@ -22,6 +22,7 @@ This gate covers:
 - generated protocol contract parity
 - Node-based protocol and frontend API tests
 - frontend production build
+- canonical-surface semantic readiness
 - tracked-file hygiene
 - dependency license policy
 
@@ -43,11 +44,19 @@ For public release candidates, public tags, or other protocol-surface publicatio
 npm run test:e2e:localnet
 ```
 
-Treat that command as an additional maintainer sign-off step, not as a per-PR or public-CI requirement. Review the latest summary and exception policy in [`../testing/protocol-surface-audit.md`](../testing/protocol-surface-audit.md).
+Treat that command as an additional maintainer sign-off step, not as a per-PR or public-CI requirement. Review the latest scenario-ownership policy in [`../testing/protocol-surface-audit.md`](../testing/protocol-surface-audit.md).
 
 ## Devnet rollout sign-off
 
-For `0.2.1`, repo readiness ends at the public gate plus localnet sign-off. Hosted frontend deployment is intentionally out of scope.
+For `0.3.0`, repo readiness ends at the public gate plus localnet sign-off. This is the first publishable canonical health-capital-markets release and a hard-break devnet migration from the retired pool-first surface.
+
+Release notes to verify in the checked-in docs:
+
+- reserve domains and domain asset vaults are the hard settlement and custody boundary
+- health plans and policy series replace the overloaded pool/program root
+- funding lines separate sponsor budgets, premiums, LP allocations, backstops, and subsidies
+- obligations and claim cases reconcile reward and protection flows through one reserve kernel
+- liquidity pools, capital classes, and allocation positions carry LP-facing rights and attribution
 
 Operational rollout still requires a two-step devnet sequence:
 
@@ -81,10 +90,11 @@ If you changed instructions, account layouts, PDA seeds, required account metas,
 
 From the checked-in docs alone, a reviewer should be able to find:
 
-- where `create_pool` is routed and which accounts it creates
-- where cycle activation verifies quotes and moves funds
-- where cycle settlement finalizes outcomes and treasury effects
-- where coverage claims are submitted and settled
+- where reserve domains and domain asset vaults are created
+- where health plans and policy series are created or versioned
+- where funding lines are opened, funded, and reserved against obligations
+- where claim cases are opened, adjudicated, and settled
+- where liquidity pools, capital classes, allocations, and redemption queues are handled
 
 If that path is hard to follow, update docs or module comments as part of the same change.
 

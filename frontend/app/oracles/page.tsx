@@ -1,23 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Suspense } from "react";
-import { Eye } from "lucide-react";
-
-import { Hero } from "@/components/hero";
-import { OracleRegistryVerificationPanel } from "@/components/oracle-registry-verification-panel";
-
 export default function OraclesPage() {
   return (
-    <div className="space-y-5">
-      <Hero
-        title="Oracle Registry & Verification"
-        subtitle="Register or update oracle profiles with a simple default flow, then claim signer activation and run readiness checks when needed."
-        icon={Eye}
-      />
-
-      <Suspense fallback={<div className="surface-card text-sm text-[var(--muted-foreground)]">Loading oracle workspace...</div>}>
-        <OracleRegistryVerificationPanel />
-      </Suspense>
+    <div className="space-y-8">
+      <section className="rounded-[2rem] border border-white/10 bg-slate-950/40 p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-200/80">OmegaX Health</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight">Oracle operators produce attestations. They do not get arbitrary money-moving power.</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+          Onchain state stores evidence references, permissions, and settlement consequences. Raw health data and raw
+          claim packets remain offchain.
+        </p>
+      </section>
     </div>
   );
 }

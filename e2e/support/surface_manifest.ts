@@ -1,341 +1,150 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 export const SCENARIO_ORDER = [
-  "protocol-governance-oracle-lifecycle",
-  "pool-schema-member-lifecycle",
-  "direct-liquidity-lifecycle",
-  "queued-liquidity-lifecycle",
-  "reward-attestation-dispute-lifecycle",
-  "coverage-product-policy-premium-lifecycle",
-  "quoted-cycle-activation-settlement-cohort-lifecycle",
-  "treasury-withdrawal-and-coverage-claim-lifecycle",
+  "governance_and_scoped_controls",
+  "reserve_domain_and_vault_setup",
+  "sponsor_funded_plan_lifecycle",
+  "reward_obligation_lifecycle",
+  "protection_claim_lifecycle",
+  "liquidity_pool_and_capital_class_lifecycle",
+  "allocation_and_deallocation_lifecycle",
+  "impairment_and_redemption_queue_lifecycle",
 ] as const;
 
 export type ScenarioName = (typeof SCENARIO_ORDER)[number];
 
-export const SCENARIO_INSTRUCTIONS: Record<ScenarioName, string[]> = {
-  "protocol-governance-oracle-lifecycle": [
-    "initialize_protocol",
-    "set_protocol_params",
-    "rotate_governance_authority",
-    "register_oracle",
-    "claim_oracle",
-    "update_oracle_profile",
-    "update_oracle_metadata",
-    "stake_oracle",
-    "request_unstake",
-    "finalize_unstake",
-    "slash_oracle",
-  ],
-  "pool-schema-member-lifecycle": [
-    "create_pool",
-    "set_pool_status",
-    "set_pool_oracle",
-    "set_pool_oracle_policy",
-    "set_pool_coverage_reserve_floor",
-    "set_pool_risk_controls",
-    "set_pool_compliance_policy",
-    "set_pool_control_authorities",
-    "set_pool_automation_policy",
-    "set_pool_oracle_permissions",
-    "set_pool_terms_hash",
-    "register_outcome_schema",
-    "verify_outcome_schema",
-    "backfill_schema_dependency_ledger",
-    "close_outcome_schema",
-    "set_policy_series_outcome_rule",
-    "register_invite_issuer",
-    "enroll_member_open",
-    "enroll_member_token_gate",
-    "enroll_member_invite_permit",
-    "set_claim_delegate",
-    "fund_pool_sol",
-    "fund_pool_spl",
-  ],
-  "direct-liquidity-lifecycle": [
-    "initialize_pool_liquidity_sol",
-    "initialize_pool_liquidity_spl",
-    "set_pool_liquidity_enabled",
-    "register_pool_capital_class",
-    "deposit_pool_liquidity_sol",
-    "deposit_pool_liquidity_spl",
-    "redeem_pool_liquidity_sol",
-    "redeem_pool_liquidity_spl",
-  ],
-  "queued-liquidity-lifecycle": [
-    "request_pool_liquidity_redemption",
-    "schedule_pool_liquidity_redemption",
-    "cancel_pool_liquidity_redemption",
-    "fail_pool_liquidity_redemption",
-    "fulfill_pool_liquidity_redemption_sol",
-    "fulfill_pool_liquidity_redemption_spl",
-  ],
-  "reward-attestation-dispute-lifecycle": [
-    "submit_outcome_attestation_vote",
-    "finalize_cycle_outcome",
-    "open_cycle_outcome_dispute",
-    "resolve_cycle_outcome_dispute",
-    "submit_reward_claim",
-  ],
-  "coverage-product-policy-premium-lifecycle": [
-    "create_policy_series",
-    "update_policy_series",
-    "upsert_policy_series_payment_option",
-    "subscribe_policy_series",
-    "issue_policy_position",
-    "mint_policy_nft",
-    "pay_premium_spl",
-    "pay_premium_sol",
-  ],
-  "quoted-cycle-activation-settlement-cohort-lifecycle": [
-    "activate_cycle_with_quote_sol",
-    "activate_cycle_with_quote_spl",
-    "settle_cycle_commitment",
-    "settle_cycle_commitment_sol",
-    "finalize_cohort_settlement_root",
-  ],
-  "treasury-withdrawal-and-coverage-claim-lifecycle": [
-    "withdraw_pool_treasury_spl",
-    "withdraw_pool_treasury_sol",
-    "withdraw_protocol_fee_spl",
-    "withdraw_protocol_fee_sol",
-    "withdraw_pool_oracle_fee_spl",
-    "withdraw_pool_oracle_fee_sol",
-    "attest_premium_paid_offchain",
-    "submit_coverage_claim",
-    "review_coverage_claim",
-    "attach_coverage_claim_decision_support",
-    "approve_coverage_claim",
-    "deny_coverage_claim",
-    "claim_approved_coverage_payout",
-    "pay_coverage_claim",
-    "close_coverage_claim",
-    "settle_coverage_claim",
-  ],
+export type ScenarioDefinition = {
+  title: string;
+  focus: string;
+  instructions: readonly string[];
+};
+
+export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
+  governance_and_scoped_controls: {
+    title: "Governance and Scoped Controls",
+    focus: "Protocol-wide, domain-scoped, plan-scoped, and class-scoped safety controls stay explicit and local.",
+    instructions: [
+      "initialize_protocol_governance",
+      "set_protocol_emergency_pause",
+      "update_reserve_domain_controls",
+      "update_health_plan_controls",
+      "update_capital_class_controls",
+    ],
+  },
+  reserve_domain_and_vault_setup: {
+    title: "Reserve Domain and Vault Setup",
+    focus: "Settlement segregation, custody mapping, and domain ledgers remain explicit per [reserve_domain, asset_mint].",
+    instructions: [
+      "create_reserve_domain",
+      "create_domain_asset_vault",
+    ],
+  },
+  sponsor_funded_plan_lifecycle: {
+    title: "Sponsor-Funded Plan Lifecycle",
+    focus: "Sponsors create plans, version product lanes, enroll members, and fund plan-side lines without minting LP exposure.",
+    instructions: [
+      "create_health_plan",
+      "create_policy_series",
+      "version_policy_series",
+      "open_member_position",
+      "update_member_eligibility",
+      "open_funding_line",
+      "fund_sponsor_budget",
+    ],
+  },
+  reward_obligation_lifecycle: {
+    title: "Reward Obligation Lifecycle",
+    focus: "Rewards reconcile through the same obligation and reserve kernel used by protection products.",
+    instructions: [
+      "create_obligation",
+      "reserve_obligation",
+      "settle_obligation",
+      "release_reserve",
+    ],
+  },
+  protection_claim_lifecycle: {
+    title: "Protection Claim Lifecycle",
+    focus: "Protection flows record premium income, explicit claim cases, adjudication, and settlement consequences.",
+    instructions: [
+      "record_premium_payment",
+      "open_claim_case",
+      "attach_claim_evidence_ref",
+      "adjudicate_claim_case",
+      "settle_claim_case",
+    ],
+  },
+  liquidity_pool_and_capital_class_lifecycle: {
+    title: "Liquidity Pool and Capital Class Lifecycle",
+    focus: "LP capital enters through explicit pools, classes, and LP positions rather than plan-side sponsor budgets.",
+    instructions: [
+      "create_liquidity_pool",
+      "create_capital_class",
+      "deposit_into_capital_class",
+      "request_redemption",
+      "process_redemption_queue",
+    ],
+  },
+  allocation_and_deallocation_lifecycle: {
+    title: "Allocation and Deallocation Lifecycle",
+    focus: "Capital exposure into plans and series is explicit, many-to-many, and bounded by allocation policy.",
+    instructions: [
+      "create_allocation_position",
+      "update_allocation_caps",
+      "allocate_capital",
+      "deallocate_capital",
+    ],
+  },
+  impairment_and_redemption_queue_lifecycle: {
+    title: "Impairment and Redemption Queue Lifecycle",
+    focus: "Impairment, restricted capital, and redemption queue pressure remain visible in class and allocation ledgers.",
+    instructions: [
+      "mark_impairment",
+    ],
+  },
 };
 
 export const INSTRUCTION_EXCEPTION_REASONS: Partial<Record<string, string>> = {};
 
-export const KNOWN_ERROR_NAMES = [
-  "InvalidProtocolFee",
-  "InvalidOracleFee",
-  "ProtocolPaused",
-  "PoolIdTooLong",
-  "InvalidAmount",
-  "MathOverflow",
-  "InvalidStakeMint",
-  "InvalidStakePosition",
-  "StakeVaultMismatch",
-  "OracleInsufficientStake",
-  "InsufficientStakeBalance",
-  "NoPendingUnstake",
-  "UnstakeCooldownNotMet",
-  "InvalidCooldown",
-  "GovernanceUnauthorized",
-  "InvalidGovernanceAuthority",
-  "InvalidGovernanceRealm",
-  "InvalidGovernanceConfig",
-  "InvalidGovernanceRecoveryTarget",
-  "MetadataUriTooLong",
-  "InvalidPoolType",
-  "InvalidQuorum",
-  "SchemaKeyTooLong",
-  "RuleIdTooLong",
-  "InviteIssuerNotActive",
-  "InviteIssuerMismatch",
-  "PermitExpired",
-  "PoolNotOpenForEnrollment",
-  "InvalidMembershipMode",
-  "InvalidMembershipConfiguration",
-  "TokenGateOwnerMismatch",
-  "TokenGateMintMismatch",
-  "TokenGateBalanceTooLow",
-  "PoolNotActive",
-  "OracleNotApprovedForPool",
-  "OracleRegistryNotActive",
-  "MembershipMemberMismatch",
-  "MembershipNotActive",
-  "RuleDisabled",
-  "SchemaUnverified",
-  "RuleHashMismatch",
-  "OutcomeAlreadyFinalized",
-  "OracleVoteWindowClosed",
-  "OracleQuorumNotMet",
-  "OutcomeDidNotPass",
-  "AlreadyClaimed",
-  "CycleHashMismatch",
-  "DelegateNotAuthorized",
-  "RecipientMismatch",
-  "PayoutAssetNotConfigured",
-  "PayoutMintMismatch",
-  "PayoutAmountMismatch",
-  "MissingAssetVault",
-  "VaultTokenAccountMismatch",
-  "AccountPoolMismatch",
-  "MissingTokenAccount",
-  "InsufficientPoolBalance",
-  "InsufficientPoolRentReserve",
-  "TokenAccountOwnerMismatch",
-  "InvalidCoverageWindow",
-  "InvalidPremiumSchedule",
-  "PolicySeriesNameTooLong",
-  "PolicySeriesMetadataUriTooLong",
-  "PolicySeriesDurationInvalid",
-  "PolicySeriesPremiumScheduleInvalid",
-  "PolicySeriesInactive",
-  "PolicySeriesIdMismatch",
-  "PolicySeriesAdminUnauthorized",
-  "PolicySeriesPaymentOptionInvalid",
-  "PolicySeriesPaymentOptionInactive",
-  "PolicySeriesPolicyMismatch",
-  "InvalidPremiumPeriodIndex",
-  "CoverageNotActive",
-  "PremiumDelinquent",
-  "CoverageClaimNotSubmitted",
-  "ClaimantMismatch",
-  "InvalidOracleType",
-  "OracleDisplayNameTooLong",
-  "OracleLegalNameTooLong",
-  "OracleUrlTooLong",
-  "OracleLogoUriTooLong",
-  "OracleWebhookUrlTooLong",
-  "OracleSupportedSchemaLimitExceeded",
-  "OracleProfileUnauthorized",
-  "OracleKeyMismatch",
-  "InvalidPoolStatus",
-  "PoolClosed",
-  "LiquidityDepositsDisabled",
-  "LiquidityConfigMismatch",
-  "ShareMintMismatch",
-  "ZeroSharesSupply",
-  "ZeroReserves",
-  "InsufficientSharesOut",
-  "SlippageExceeded",
-  "PoolLiquidityRequiresZeroTvl",
-  "InvalidPayoutAssetForLiquidity",
-  "SchemaCloseRequiresUnverified",
-  "SchemaCloseDisabled",
-  "OraclePermissionDenied",
-  "InvalidQuoteSignatureInstruction",
-  "InvalidInstructionSysvar",
-  "MissingQuoteSignature",
-  "QuoteMessageMismatch",
-  "InsufficientUnreservedTreasuryBalance",
-  "MemberPayerMismatch",
-  "QuoteAmountExceedsConfiguredBase",
-  "InvalidCycleQuote",
-  "QuoteExpired",
-  "MemberCycleAlreadyExists",
-  "MemberCycleAlreadySettled",
-  "CycleCommitmentNotEnabled",
-  "ShieldNotAvailable",
-  "InsufficientReservedRefundBalance",
-  "InsufficientReservedRewardBalance",
-  "InsufficientReservedRedistributionBalance",
-  "InsufficientReservedCoverageClaimBalance",
-  "CohortSettlementAlreadyFinalized",
-  "CohortSettlementNotFinalized",
-  "InvalidCohortSettlementRoot",
-  "CohortHashMismatch",
-  "OutcomeThresholdScoreMismatch",
-  "HealthAlphaOutcomeMismatch",
-  "HealthAlphaScoreRequired",
-  "RedistributionAmountMismatch",
-  "CohortClaimCountExceeded",
-  "InvalidProgramAccountData",
-  "OrganizationRefTooLong",
-  "InvalidPoolRedemptionMode",
-  "InvalidPoolClaimMode",
-  "PoolRiskControlUnauthorized",
-  "PoolClaimIntakePaused",
-  "PoolRedemptionsPaused",
-  "PoolRedemptionsQueueOnly",
-  "AttestationEvidenceMismatch",
-  "AttestationExternalReferenceMismatch",
-  "InvalidCoverageClaimStateTransition",
-  "InvalidCoverageClaimFamily",
-  "CoverageClaimPayoutExceedsReservedAmount",
-  "CoverageClaimRecoveryExceedsPaidAmount",
-  "CoverageClaimAlreadyClosed",
-  "InvalidCapitalClassMode",
-  "InvalidCapitalTransferMode",
-  "InvalidSchemaFamily",
-  "InvalidSchemaVisibility",
-  "InvalidPlanMode",
-  "InvalidSponsorMode",
-  "InvalidComplianceBindingMode",
-  "InvalidComplianceProviderMode",
-  "InvalidRailMode",
-  "ComplianceBindingRequired",
-  "ComplianceRailRestriction",
-  "CompliancePolicyUnauthorized",
-  "ControlAuthorityUnauthorized",
-  "InvalidAutomationMode",
-  "InvalidAiRole",
-  "InvalidOracleRole",
-  "AutomationPolicyUnauthorized",
-  "AutomationNotPermitted",
-  "OutcomeChallengeWindowActive",
-  "OutcomeUnderDispute",
-  "OutcomeDisputeWindowClosed",
-  "OutcomeDisputeAlreadyOpen",
-  "OutcomeDisputeNotOpen",
-  "InvalidOutcomeReviewState",
-  "InvalidRedemptionRequestState",
-  "RedemptionRequestUnauthorized",
-  "RedemptionRequestNotMatured",
-  "SchemaRuleReferencesOutstanding",
+export const RETIRED_LEGACY_INSTRUCTIONS = [
+  "create_pool",
+  "set_pool_status",
+  "fund_pool_sol",
+  "fund_pool_spl",
+  "initialize_pool_liquidity_sol",
+  "initialize_pool_liquidity_spl",
+  "request_pool_liquidity_redemption",
+  "submit_reward_claim",
+  "submit_coverage_claim",
+  "settle_coverage_claim",
 ] as const;
 
-export type KnownErrorName = (typeof KNOWN_ERROR_NAMES)[number];
-
-export const COVERED_ERROR_CASES: Partial<Record<KnownErrorName, string>> = {
-  GovernanceUnauthorized: "governance-unauthorized-update",
-  SchemaRuleReferencesOutstanding: "schema-close-active-rule-reference",
-  OraclePermissionDenied: "oracle-permission-denied-attestation",
-  InvalidQuoteSignatureInstruction: "quote-invalid-signature-layout",
-  QuoteExpired: "quote-expired-sol",
-  PoolRedemptionsPaused: "paused-direct-redemption",
-  InvalidRedemptionRequestState: "redemption-invalid-state-double-schedule",
-  OutcomeChallengeWindowActive: "reward-claim-before-challenge-window-clears",
-  OutcomeDisputeNotOpen: "resolve-outcome-without-dispute",
-  InvalidCoverageClaimStateTransition: "coverage-claim-close-before-decision",
-};
-
-const ERROR_EXCEPTION_OVERRIDES: Partial<Record<KnownErrorName, string>> = {
-  MemberCycleAlreadyExists:
-    "The live activation flow currently fails earlier at account initialization boundaries instead of surfacing MemberCycleAlreadyExists from the handler, so this IDL error remains exception-listed until the program emits it directly.",
-  SchemaCloseDisabled:
-    "The legacy SchemaCloseDisabled code is retained for compatibility but is no longer emitted by the live close_outcome_schema handler after dependency tracking was implemented.",
-};
-
-export const ERROR_EXCEPTION_REASONS: Record<KnownErrorName, string> = Object.fromEntries(
-  KNOWN_ERROR_NAMES.map((name) => [
-    name,
-    ERROR_EXCEPTION_OVERRIDES[name]
-    ?? `Exception-listed in the localnet matrix until a dedicated failure fixture is added for ${name}.`,
-  ]),
-) as Record<KnownErrorName, string>;
-
-export function manifestCoveredErrorCases(): Array<{ errorName: KnownErrorName; caseId: string }> {
-  return Object.entries(COVERED_ERROR_CASES)
-    .filter((entry): entry is [KnownErrorName, string] => typeof entry[1] === "string" && entry[1].length > 0)
-    .map(([errorName, caseId]) => ({ errorName, caseId }));
+export function scenarioNames(): ScenarioName[] {
+  return [...SCENARIO_ORDER];
 }
 
-export function manifestInstructionAssignments(): string[] {
-  return SCENARIO_ORDER.flatMap((scenario) => SCENARIO_INSTRUCTIONS[scenario]);
+export function instructionsForScenario(name: ScenarioName): string[] {
+  return [...SCENARIO_DEFINITIONS[name].instructions];
 }
 
-export function manifestInstructionExceptions(): Array<{ instruction: string; reason: string }> {
+export function allOwnedInstructions(): string[] {
+  return SCENARIO_ORDER.flatMap((name) => SCENARIO_DEFINITIONS[name].instructions);
+}
+
+export function blankInstructionExceptionReasons(): string[] {
   return Object.entries(INSTRUCTION_EXCEPTION_REASONS)
-    .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0)
-    .map(([instruction, reason]) => ({ instruction, reason }));
+    .filter(([, reason]) => !reason || !reason.trim())
+    .map(([instruction]) => instruction)
+    .sort((left, right) => left.localeCompare(right));
 }
 
-export function manifestErrorExceptions(): Array<{ errorName: KnownErrorName; reason: string }> {
-  return KNOWN_ERROR_NAMES.filter((name) => !(name in COVERED_ERROR_CASES)).map((name) => ({
-    errorName: name,
-    reason: ERROR_EXCEPTION_REASONS[name],
-  }));
+export function duplicateOwnedInstructions(): string[] {
+  const counts = new Map<string, number>();
+  for (const instruction of allOwnedInstructions()) {
+    counts.set(instruction, (counts.get(instruction) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([instruction]) => instruction)
+    .sort((left, right) => left.localeCompare(right));
 }

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
 import { createWriteStream, existsSync, mkdirSync, rmSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -15,7 +14,6 @@ const programId = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B";
 const programSoPath = resolve(repoRoot, "target/deploy/omegax_protocol.so");
 const keepArtifacts = process.env.OMEGAX_E2E_KEEP_ARTIFACTS === "1";
 const skipBuild = process.env.OMEGAX_E2E_SKIP_BUILD === "1";
-const zeroPubkey = new PublicKey("11111111111111111111111111111111");
 
 function nowStamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
@@ -123,68 +121,6 @@ function runCommand(cmd, args, options = {}) {
   });
 }
 
-function accountDiscriminator(name) {
-  return createHash("sha256").update(`account:${name}`).digest().subarray(0, 8);
-}
-
-function encodeU16(value) {
-  const encoded = Buffer.alloc(2);
-  encoded.writeUInt16LE(value);
-  return encoded;
-}
-
-function encodeString(value) {
-  const encoded = Buffer.from(value, "utf8");
-  const length = Buffer.alloc(4);
-  length.writeUInt32LE(encoded.length);
-  return Buffer.concat([length, encoded]);
-}
-
-async function createLegacySchemaFixture(tempRoot) {
-  const schemaKeyHashHex = createHash("sha256")
-    .update("legacy-schema-without-dependency-ledger")
-    .digest("hex");
-  const schemaKeyHash = Buffer.from(schemaKeyHashHex, "hex");
-  const [schemaAddress, schemaBump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("schema"), schemaKeyHash],
-    new PublicKey(programId),
-  );
-  const schemaData = Buffer.concat([
-    accountDiscriminator("OutcomeSchemaRegistryEntry"),
-    schemaKeyHash,
-    encodeString("legacy.schema"),
-    encodeU16(1),
-    createHash("sha256").update("legacy-schema-payload").digest(),
-    zeroPubkey.toBuffer(),
-    Buffer.from([0]),
-    Buffer.from([0]),
-    Buffer.from([0]),
-    createHash("sha256").update("legacy-schema-interop").digest(),
-    createHash("sha256").update("legacy-schema-codes").digest(),
-    encodeU16(0),
-    encodeString("https://legacy.schema.local/migrated"),
-    Buffer.from([schemaBump]),
-  ]);
-  const dumpPath = join(tempRoot, "legacy-schema-account.json");
-  const dump = {
-    pubkey: schemaAddress.toBase58(),
-    account: {
-      lamports: 1_000_000_000,
-      data: [schemaData.toString("base64"), "base64"],
-      owner: programId,
-      executable: false,
-      rentEpoch: 0,
-      space: schemaData.length,
-    },
-  };
-  await writeFile(dumpPath, JSON.stringify(dump), "utf8");
-  return {
-    dumpPath,
-    schemaAddress: schemaAddress.toBase58(),
-    schemaKeyHashHex,
-  };
-}
-
 async function waitForRpc(rpcUrl, timeoutMs) {
   const startedAt = Date.now();
   let lastError = "validator did not answer";
@@ -238,7 +174,6 @@ async function main() {
   const logPath = join(tempRoot, "validator.log");
   const summaryPath = join(artifactsRoot, `localnet-e2e-summary-${nowStamp()}.json`);
   await mkdir(ledgerDir, { recursive: true });
-  const legacySchemaFixture = await createLegacySchemaFixture(tempRoot);
   const programUpgradeAuthority = Keypair.generate();
   const programUpgradeAuthorityPath = join(tempRoot, "program-upgrade-authority.json");
   await writeFile(
@@ -259,9 +194,6 @@ async function main() {
     String(faucetPort),
     "--dynamic-port-range",
     `${dynamicPortStart}-${dynamicPortEnd}`,
-    "--account",
-    legacySchemaFixture.schemaAddress,
-    legacySchemaFixture.dumpPath,
     "--upgradeable-program",
     programId,
     programSoPath,
@@ -329,8 +261,6 @@ async function main() {
       OMEGAX_E2E_WS_URL: `ws://127.0.0.1:${wsPort}`,
       OMEGAX_E2E_FAUCET_PORT: String(faucetPort),
       OMEGAX_E2E_DYNAMIC_PORT_RANGE: `${dynamicPortStart}-${dynamicPortEnd}`,
-      OMEGAX_E2E_LEGACY_SCHEMA_ADDRESS: legacySchemaFixture.schemaAddress,
-      OMEGAX_E2E_LEGACY_SCHEMA_KEY_HASH_HEX: legacySchemaFixture.schemaKeyHashHex,
       OMEGAX_E2E_ORIGINAL_GOVERNANCE_SECRET_KEY_JSON: JSON.stringify(
         Array.from(programUpgradeAuthority.secretKey),
       ),

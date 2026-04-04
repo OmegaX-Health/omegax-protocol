@@ -2,110 +2,94 @@
 
 # Protocol Surface Audit
 
-Audit date: 2026-03-14
+This note describes the current heavy localnet audit for the canonical OmegaX health-capital-markets surface.
 
 ## Scope
 
-- Public instruction surface: `85` entrypoints from `programs/omegax_protocol/src/lib.rs`
-- Surface definitions cross-checked against:
-  - `docs/architecture/solana-instruction-map.md`
-  - `shared/protocol_contract.json`
-  - `idl/omegax_protocol.json`
-- Heavy localnet harness:
-  - `scripts/run_localnet_e2e.mjs`
-  - `e2e/localnet_protocol_surface.test.ts`
-  - `e2e/support/surface_manifest.ts`
+The localnet audit is the heavier release-candidate proof that sits above `npm run verify:public`.
 
-## Commands Executed
+It validates three things against the checked-in contract and canonical fixture state:
 
-- `npm run anchor:build:checked`
-- `cp target/idl/omegax_protocol.json idl/omegax_protocol.json`
-- `npm run protocol:contract`
-- `npm run protocol:contract:check`
-- `npm run test:node`
-- `OMEGAX_E2E_SCENARIO=reward-attestation-dispute-lifecycle npm run test:e2e:localnet`
-- `OMEGAX_E2E_KEEP_ARTIFACTS=1 OMEGAX_E2E_SKIP_BUILD=1 npm run test:e2e:localnet`
+- the live instruction surface is fully owned by the canonical scenario manifest
+- retired pool-era instructions do not reappear in the live contract
+- deterministic reserve, plan, claim, and capital fixtures still line up with the current public model
 
-## Verified Result
+## Source of truth
 
-- The full localnet protocol-surface matrix passed on March 14, 2026.
-- The latest summary artifact is `artifacts/localnet-e2e-summary-2026-03-14T07-33-23-745Z.json`.
-- The harness executed `9` fixed-order scenario suites against a fresh local validator.
-- Instruction coverage summary from that artifact:
-  - `expectedTotal=85`
-  - `covered=85`
-  - `missing=0`
-  - `instruction exceptions=0`
-- `backfill_schema_dependency_ledger` is now part of the public surface and is exercised against a genuinely legacy schema account that is preloaded into the local validator without a dependency ledger.
-- `close_outcome_schema` is now executable on localnet for both:
-  - modern post-upgrade schemas after active rules are disabled
-  - preloaded legacy schemas after governance backfills the dependency ledger
-- Error coverage summary from that artifact:
-  - expected custom error cases: `10`
-  - observed custom error cases: `10`
-  - missing expected custom error cases: `0`
-  - explicit error exceptions: `158`
-- The suite enforces completeness rules:
-  - a new public instruction fails the run unless it is assigned to a scenario or exception-listed with a reason
-  - a new surfaced custom error fails the run unless it is observed or exception-listed with a reason
-  - any expected-success instruction that never confirms fails the run
-  - any expected-failure case that returns the wrong custom error fails the run
+The heavy audit is defined by:
 
-## Harness Behavior
+- `scripts/run_localnet_e2e.mjs`
+- `e2e/localnet_protocol_surface.test.ts`
+- `e2e/support/surface.ts`
+- `e2e/support/surface_manifest.ts`
 
-- `npm run test:e2e:localnet` runs `anchor:build:checked` unless `OMEGAX_E2E_SKIP_BUILD=1`.
-- It boots a fresh `solana-test-validator` on dynamic ports, preloading `target/deploy/omegax_protocol.so` at the local program id.
-- It also preloads one legacy `OutcomeSchemaRegistryEntry` account without a `SchemaDependencyLedger` so the migration path is proven during the matrix run.
-- It exports validator RPC and program-id environment variables to the test process.
-- It runs one sequential Node test file with `node --import tsx --test --test-concurrency=1`.
-- It writes a timestamped JSON summary under `artifacts/`.
-- With `OMEGAX_E2E_KEEP_ARTIFACTS=1`, it preserves both the runner log and the validator ledger log under `artifacts/localnet-e2e-*/`.
-- Without `OMEGAX_E2E_KEEP_ARTIFACTS=1`, it removes the temporary ledger and validator logs after the run.
+The live public instruction set comes from:
 
-## Scenario Matrix
+- `shared/protocol_contract.json`
+- `idl/omegax_protocol.json`
 
-- `protocol-governance-oracle-lifecycle`
-- `pool-schema-member-lifecycle`
-- `direct-liquidity-lifecycle`
-- `queued-liquidity-lifecycle`
-- `reward-attestation-dispute-lifecycle`
-- `coverage-product-policy-premium-lifecycle`
-- `quoted-cycle-activation-settlement-cohort-lifecycle`
-- `treasury-withdrawal-and-coverage-claim-lifecycle`
+## Canonical scenario families
 
-Each scenario uses fresh pools, mints, and signers so mutually exclusive or terminal flows do not poison later coverage.
+The current manifest assigns every live instruction to one scenario family:
 
-## Key Fixes Landed
+- governance and scoped controls
+- reserve domain and vault setup
+- sponsor-funded plan lifecycle
+- reward obligation lifecycle
+- protection claim lifecycle
+- liquidity pool and capital class lifecycle
+- allocation and deallocation lifecycle
+- impairment and redemption queue lifecycle
 
-- Added the dedicated localnet runner at `scripts/run_localnet_e2e.mjs`.
-- Added the sequential master suite at `e2e/localnet_protocol_surface.test.ts` with support modules under `e2e/support/`.
-- Added surface-manifest enforcement so instruction coverage and error coverage are checked against tracked expectations.
-- Tightened the harness so manifest-declared negative cases must actually be observed; the suite now fails if an expected custom-error fixture never runs.
-- Implemented schema dependency tracking so `close_outcome_schema` can succeed safely when no enabled rule still references the schema.
-- Added `backfill_schema_dependency_ledger` as the explicit governance migration path for legacy schemas that predate schema dependency tracking.
-- Added transaction-log and event decoding, account snapshot assertions, quote-signature composition, and validator-summary export to the harness.
-- Updated governance operator tooling so `governance_schema_state_update.ts` can backfill legacy schema dependency ledgers and refuses close proposals when enabled rules still reference the target schema.
-- Fixed stale builder/account-surface bugs that blocked localnet execution, including:
-  - missing optional-account placeholders in shared builders
-  - reward-claim sentinel account alignment for `member_cycle`
-  - cohort settlement-root bump handling in the on-chain settlement flow
-  - schema close being permanently hard-disabled despite being exposed as a public instruction
+Each family owns a specific subset of instruction names and a matching deterministic fixture assertion path.
 
-## Runtime Expectations
+## What the audit enforces
 
-- Full localnet runtime is materially heavier than `test:node`; the passing run on March 14, 2026 completed in about three minutes.
-- The heavy matrix remains separate from `test:node`, `anchor:test`, and public CI so the fast verification path stays stable.
-- `OMEGAX_E2E_SCENARIO=<name>` reruns one scenario family against a fresh validator for targeted debugging.
+The heavy audit fails if:
 
-## Exception Policy
+- a live canonical instruction is missing from the scenario manifest
+- the manifest names an instruction that is not present in the live contract
+- one instruction is assigned to multiple scenario families
+- an exception entry is present without a concrete reason
+- a retired legacy instruction name appears in the live contract
+- the canonical fixture state no longer supports the scenario-family assertions
 
-- Instruction exceptions live in `e2e/support/surface_manifest.ts` and must include a concrete reason.
-- Error exceptions also live in `e2e/support/surface_manifest.ts` and must include a concrete reason.
-- Exception-listing is allowed only for intentionally unreachable, intentionally disabled, or not-yet-modeled surfaces. It is not allowed as a silent bypass for missing test ownership.
+This keeps the repo honest without pretending that sponsors, claims, and LP capital are still one pool-shaped surface.
 
-## Remaining Honest Limitations
+## Running it
 
-- The matrix now proves the full public instruction surface on localnet, but it does not claim that every custom error is currently observed in a concrete fixture; most error names are still exception-listed rather than actively exercised.
-- Legacy schema migration still depends on governance supplying the complete set of enabled historical `PoolOutcomeRule` accounts to `backfill_schema_dependency_ledger`; the governance helper discovers those accounts off-chain, but the on-chain program cannot independently prove that an operator omitted none.
-- Devnet observability remains a smoke/inspection surface, not the source of completeness proof.
-- Quoted cycle activation still depends on caller-supplied detached quote-signature material; the harness builds and verifies those signatures for localnet tests, while the shared builders only compose the transaction shape.
+From the repository root:
+
+```bash
+npm run test:e2e:localnet
+```
+
+Useful environment variables:
+
+- `OMEGAX_E2E_SKIP_BUILD=1` reuses the current checked build
+- `OMEGAX_E2E_KEEP_ARTIFACTS=1` preserves validator logs and the JSON summary
+- `OMEGAX_E2E_SCENARIO=<scenario_name>` reruns one canonical scenario family
+
+The runner writes a timestamped summary under `artifacts/`.
+
+## Summary output
+
+The JSON summary includes:
+
+- selected scenario, if any
+- scenario-family metadata
+- live vs owned instruction counts
+- missing, duplicate, or unexpected ownership entries
+- any retired legacy instructions that reappeared
+- canonical fixture counts for domains, plans, series, pools, classes, obligations, and claims
+
+## Relationship to the fast gate
+
+`npm run verify:public` remains the fast repository gate.
+
+Use the heavy localnet audit when:
+
+- preparing release candidates or publication points
+- changing public instruction ownership or canonical scenario mapping
+- changing deterministic devnet fixture structure
+- changing reserve, claim, or capital semantics that deserve a stronger proof than unit and Node tests alone

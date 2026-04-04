@@ -1,0 +1,526 @@
+{
+  "generatedAt": "2026-04-03T07:30:55.736Z",
+  "programId": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",
+  "migrationMode": "hard_break_devnet",
+  "retiredLegacySeedsToIgnore": [
+    "pool",
+    "pool_terms",
+    "pool_liquidity_config",
+    "pool_capital_class",
+    "pool_treasury_reserve",
+    "pool_oracle_policy",
+    "pool_control_authority",
+    "pool_automation_policy"
+  ],
+  "steps": [
+    "Ignore or archive legacy pool-first devnet accounts by retired seed prefix.",
+    "Create reserve domains before any plan, pool, or liability state.",
+    "Create domain asset vaults and ledgers per [reserve_domain, asset_mint].",
+    "Create health plans and policy series with immutable live economic semantics.",
+    "Open funding lines for sponsor budgets, premiums, and liquidity allocations.",
+    "Create liquidity pools, capital classes, and allocation positions.",
+    "Use the fixture ids below as stable demo and smoke-test anchors."
+  ],
+  "reserveDomains": [
+    {
+      "address": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "domainId": "open-health-usdc",
+      "displayName": "Open onchain reserve domain",
+      "settlementMode": 0,
+      "active": true,
+      "pauseFlags": 0
+    },
+    {
+      "address": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "domainId": "wrapper-health-rwa",
+      "displayName": "Wrapper-mediated reserve domain",
+      "settlementMode": 1,
+      "active": true,
+      "pauseFlags": 0
+    }
+  ],
+  "domainAssetVaults": [
+    {
+      "address": "A4uTKuQrZgEGU6qDtDNwga1qPpVYhKaGYSX7HYC9Pirj",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "sheet": {
+        "funded": "2050000"
+      }
+    },
+    {
+      "address": "EU1JUYmnYHZp3T9MjLNNFKb7Jz4cn2pUfGYUgAmAZvkt",
+      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "assetMint": "11111111111111111111111111111111",
+      "sheet": {
+        "funded": "400000",
+        "restricted": "400000"
+      }
+    }
+  ],
+  "domainAssetLedgers": [
+    {
+      "address": "CdoTERBUvjBXFJSWzF3LT1DqMDrcKFwwGwXeLzGyVDiL",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "sheet": {
+        "funded": "2050000",
+        "allocated": "1150000",
+        "reserved": "230000",
+        "claimable": "8000",
+        "payable": "50000",
+        "settled": "72000"
+      }
+    },
+    {
+      "address": "46GwGoG2E1d18JU1TgmCsdrFqR7FH8SYKKyT2KnnQ3LS",
+      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "assetMint": "11111111111111111111111111111111",
+      "sheet": {
+        "funded": "400000",
+        "reserved": "60000",
+        "restricted": "400000"
+      }
+    }
+  ],
+  "healthPlans": [
+    {
+      "address": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "planId": "nexus-seeker-rewards",
+      "displayName": "Nexus Seeker Rewards",
+      "sponsorLabel": "Seeker Sponsor",
+      "planAdmin": "11111111111111111111111111111111",
+      "sponsorOperator": "11111111111111111111111111111111",
+      "claimsOperator": "11111111111111111111111111111111",
+      "membershipModel": "sponsor-invite",
+      "pauseFlags": 0,
+      "active": true
+    },
+    {
+      "address": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "planId": "nexus-protect-plus",
+      "displayName": "Nexus Protect Plus",
+      "sponsorLabel": "Protect Plus Sponsor",
+      "planAdmin": "11111111111111111111111111111111",
+      "sponsorOperator": "11111111111111111111111111111111",
+      "claimsOperator": "11111111111111111111111111111111",
+      "membershipModel": "open-with-claims-operator",
+      "pauseFlags": 0,
+      "active": true
+    }
+  ],
+  "policySeries": [
+    {
+      "address": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
+      "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
+      "seriesId": "daily-activity-rewards",
+      "displayName": "Daily Activity Rewards",
+      "mode": 0,
+      "status": 1,
+      "assetMint": "11111111111111111111111111111111",
+      "termsVersion": "v2026.1",
+      "comparabilityKey": "activity-rewards-core"
+    },
+    {
+      "address": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "seriesId": "preventive-adherence-rewards",
+      "displayName": "Preventive Adherence Rewards",
+      "mode": 0,
+      "status": 1,
+      "assetMint": "11111111111111111111111111111111",
+      "termsVersion": "v2026.1",
+      "comparabilityKey": "preventive-adherence"
+    },
+    {
+      "address": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "seriesId": "catastrophic-protection-2026",
+      "displayName": "Catastrophic Protection",
+      "mode": 1,
+      "status": 1,
+      "assetMint": "11111111111111111111111111111111",
+      "termsVersion": "v2026.1",
+      "comparabilityKey": "catastrophic-protection"
+    }
+  ],
+  "fundingLines": [
+    {
+      "address": "E9W366V3JEDjx2ksvJEV1sMR14DNVxwndEGRxGGvyZUG",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
+      "policySeries": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
+      "assetMint": "11111111111111111111111111111111",
+      "lineId": "seeker-sponsor-budget",
+      "displayName": "Seeker sponsor budget",
+      "lineType": 0,
+      "fundingPriority": 0,
+      "fundedAmount": "250000",
+      "reservedAmount": "14000",
+      "spentAmount": "28000",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "250000",
+        "reserved": "14000",
+        "claimable": "8000",
+        "settled": "20000",
+        "owed": "22000"
+      }
+    },
+    {
+      "address": "HRvCiWLtCuZ2bMDum3UNw2CkrYmzD7uXNa8sF5xKduTJ",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
+      "assetMint": "11111111111111111111111111111111",
+      "lineId": "blended-sponsor-budget",
+      "displayName": "Blended sponsor budget",
+      "lineType": 0,
+      "fundingPriority": 0,
+      "fundedAmount": "120000",
+      "reservedAmount": "6000",
+      "spentAmount": "12000",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "120000",
+        "reserved": "6000",
+        "settled": "12000",
+        "owed": "6000"
+      }
+    },
+    {
+      "address": "8bwxqfMZGqF5W2QGYEXs1J9kaz5tMiJr7xLhqY5f8kgU",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "assetMint": "11111111111111111111111111111111",
+      "lineId": "blended-member-premiums",
+      "displayName": "Blended member premiums",
+      "lineType": 1,
+      "fundingPriority": 1,
+      "fundedAmount": "480000",
+      "reservedAmount": "35000",
+      "spentAmount": "25000",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "480000",
+        "reserved": "35000",
+        "settled": "25000",
+        "owed": "35000"
+      }
+    },
+    {
+      "address": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "assetMint": "11111111111111111111111111111111",
+      "lineId": "blended-protection-liquidity",
+      "displayName": "Protection liquidity line",
+      "lineType": 2,
+      "fundingPriority": 2,
+      "fundedAmount": "1000000",
+      "reservedAmount": "210000",
+      "spentAmount": "40000",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "1000000",
+        "allocated": "1000000",
+        "reserved": "210000",
+        "payable": "50000",
+        "settled": "40000",
+        "owed": "260000"
+      }
+    },
+    {
+      "address": "Hwiou5pNRkm9Ng8BqML5HWfdWH3jsvkMGo9XbT1owA7r",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
+      "assetMint": "11111111111111111111111111111111",
+      "lineId": "blended-reward-liquidity",
+      "displayName": "Reward liquidity line",
+      "lineType": 2,
+      "fundingPriority": 3,
+      "fundedAmount": "150000",
+      "reservedAmount": "20000",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "150000",
+        "allocated": "150000",
+        "reserved": "20000",
+        "owed": "20000"
+      }
+    }
+  ],
+  "liquidityPools": [
+    {
+      "address": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "poolId": "omega-health-income",
+      "displayName": "Omega Health Income Pool",
+      "depositAssetMint": "11111111111111111111111111111111",
+      "strategyThesis": "Diversified health liability sleeve across sponsor-supported rewards and protection reserves.",
+      "redemptionPolicy": 1,
+      "totalValueLocked": "1900000",
+      "totalAllocated": "1150000",
+      "totalPendingRedemptions": "120000",
+      "active": true
+    }
+  ],
+  "capitalClasses": [
+    {
+      "address": "GLPbDxcWpTKmQk5GPn91hiXau3wqhPMcGA5MQ1Exk63V",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "classId": "open-usdc-class",
+      "displayName": "Open USDC Class",
+      "priority": 0,
+      "restrictionMode": 0,
+      "totalShares": "1500000",
+      "navAssets": "1500000",
+      "allocatedAssets": "900000",
+      "pendingRedemptions": "120000",
+      "minLockupSeconds": 604800,
+      "queueOnlyRedemptions": true,
+      "active": true
+    },
+    {
+      "address": "3qpF1nCdY6x4nH27g6CB99MoSVVXhvviHV9CN96RDFYv",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "classId": "wrapper-usdc-class",
+      "displayName": "Wrapper-mediated USDC Class",
+      "priority": 1,
+      "restrictionMode": 2,
+      "totalShares": "400000",
+      "navAssets": "400000",
+      "allocatedAssets": "250000",
+      "pendingRedemptions": "0",
+      "minLockupSeconds": 2592000,
+      "queueOnlyRedemptions": true,
+      "active": true
+    }
+  ],
+  "allocationPositions": [
+    {
+      "address": "HJo5TC8SpTCMSA271AqGiwzjG11c8TmDt4iEn9V6zKMF",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "capitalClass": "GLPbDxcWpTKmQk5GPn91hiXau3wqhPMcGA5MQ1Exk63V",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
+      "fundingLine": "Hwiou5pNRkm9Ng8BqML5HWfdWH3jsvkMGo9XbT1owA7r",
+      "capAmount": "200000",
+      "weightBps": 1500,
+      "allocatedAmount": "150000",
+      "utilizedAmount": "20000",
+      "reservedCapacity": "20000",
+      "realizedPnl": "6000",
+      "impairedAmount": "0",
+      "deallocationOnly": false,
+      "active": true
+    },
+    {
+      "address": "Ewuf2Sey2EHwedVLbjNY4mwjg5aa6vSSGdPmh2dpD1Bg",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "capitalClass": "GLPbDxcWpTKmQk5GPn91hiXau3wqhPMcGA5MQ1Exk63V",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "capAmount": "900000",
+      "weightBps": 7500,
+      "allocatedAmount": "750000",
+      "utilizedAmount": "160000",
+      "reservedCapacity": "160000",
+      "realizedPnl": "18000",
+      "impairedAmount": "8000",
+      "deallocationOnly": false,
+      "active": true
+    },
+    {
+      "address": "GPFDnZjW4R5VpKVWc8CSoKKTnZbnAPQtZ2mYUrrCNA1v",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "capitalClass": "3qpF1nCdY6x4nH27g6CB99MoSVVXhvviHV9CN96RDFYv",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "capAmount": "300000",
+      "weightBps": 2500,
+      "allocatedAmount": "250000",
+      "utilizedAmount": "60000",
+      "reservedCapacity": "60000",
+      "realizedPnl": "14000",
+      "impairedAmount": "0",
+      "deallocationOnly": false,
+      "active": true
+    }
+  ],
+  "obligations": [
+    {
+      "address": "4qLRdkjrqQ19vXK7PdaEAfLnYtHU1N1EeRWvTqzruqpy",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
+      "policySeries": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
+      "memberWallet": "11111111111111111111111111111111",
+      "beneficiary": "11111111111111111111111111111111",
+      "fundingLine": "E9W366V3JEDjx2ksvJEV1sMR14DNVxwndEGRxGGvyZUG",
+      "obligationId": "reward-obligation-001",
+      "status": 3,
+      "deliveryMode": 0,
+      "principalAmount": "20000",
+      "outstandingAmount": "0",
+      "reservedAmount": "0",
+      "claimableAmount": "0",
+      "payableAmount": "0",
+      "settledAmount": "20000",
+      "impairedAmount": "0",
+      "recoveredAmount": "0"
+    },
+    {
+      "address": "5p9qFYMkkUTk8AYZKq38WcKwwpJbDMTvCdrPTDy5YWp",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
+      "policySeries": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
+      "memberWallet": "11111111111111111111111111111111",
+      "beneficiary": "11111111111111111111111111111111",
+      "fundingLine": "E9W366V3JEDjx2ksvJEV1sMR14DNVxwndEGRxGGvyZUG",
+      "obligationId": "reward-obligation-002",
+      "status": 2,
+      "deliveryMode": 0,
+      "principalAmount": "8000",
+      "outstandingAmount": "8000",
+      "reservedAmount": "0",
+      "claimableAmount": "8000",
+      "payableAmount": "0",
+      "settledAmount": "0",
+      "impairedAmount": "0",
+      "recoveredAmount": "0"
+    },
+    {
+      "address": "75FbyYaJwS3Sc1PgHoDrPVMPTr9TwWPPcxAWexm9Fwcd",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
+      "memberWallet": "11111111111111111111111111111111",
+      "beneficiary": "11111111111111111111111111111111",
+      "fundingLine": "HRvCiWLtCuZ2bMDum3UNw2CkrYmzD7uXNa8sF5xKduTJ",
+      "obligationId": "blended-reward-obligation-001",
+      "status": 1,
+      "deliveryMode": 0,
+      "principalAmount": "6000",
+      "outstandingAmount": "6000",
+      "reservedAmount": "6000",
+      "claimableAmount": "0",
+      "payableAmount": "0",
+      "settledAmount": "0",
+      "impairedAmount": "0",
+      "recoveredAmount": "0"
+    },
+    {
+      "address": "DJjckJbXeZkuDeFmSbMDaZ9kn68yKUggrKCWRQNttAYv",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "memberWallet": "11111111111111111111111111111111",
+      "beneficiary": "11111111111111111111111111111111",
+      "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "claimCase": "Ee4954iBkBGAHg43M7hoNkARdcS9QmbskDmbeZ3fRbGf",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "capitalClass": "GLPbDxcWpTKmQk5GPn91hiXau3wqhPMcGA5MQ1Exk63V",
+      "allocationPosition": "Ewuf2Sey2EHwedVLbjNY4mwjg5aa6vSSGdPmh2dpD1Bg",
+      "obligationId": "protection-obligation-001",
+      "status": 2,
+      "deliveryMode": 1,
+      "principalAmount": "90000",
+      "outstandingAmount": "50000",
+      "reservedAmount": "0",
+      "claimableAmount": "0",
+      "payableAmount": "50000",
+      "settledAmount": "40000",
+      "impairedAmount": "0",
+      "recoveredAmount": "0"
+    },
+    {
+      "address": "Fgfx66ewvDW4RtiVCeMLM9peQfkBBMdWrpLnXskvF7u4",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "11111111111111111111111111111111",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "memberWallet": "11111111111111111111111111111111",
+      "beneficiary": "11111111111111111111111111111111",
+      "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "claimCase": "79Vf43kak4WvFn84Pcy9U2STPFjAjSxsLhE1yQAQnNg3",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "capitalClass": "3qpF1nCdY6x4nH27g6CB99MoSVVXhvviHV9CN96RDFYv",
+      "allocationPosition": "GPFDnZjW4R5VpKVWc8CSoKKTnZbnAPQtZ2mYUrrCNA1v",
+      "obligationId": "protection-obligation-002",
+      "status": 3,
+      "deliveryMode": 1,
+      "principalAmount": "25000",
+      "outstandingAmount": "0",
+      "reservedAmount": "0",
+      "claimableAmount": "0",
+      "payableAmount": "0",
+      "settledAmount": "25000",
+      "impairedAmount": "0",
+      "recoveredAmount": "0"
+    }
+  ],
+  "claimCases": [
+    {
+      "address": "Ee4954iBkBGAHg43M7hoNkARdcS9QmbskDmbeZ3fRbGf",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "memberPosition": "AyNWmWGtknPW1YDRsjWHRXdGcfh2W7vvZptykkR2tWjF",
+      "claimant": "11111111111111111111111111111111",
+      "claimId": "claim-protect-001",
+      "intakeStatus": 2,
+      "approvedAmount": "90000",
+      "deniedAmount": "0",
+      "paidAmount": "40000",
+      "reservedAmount": "50000",
+      "linkedObligation": "DJjckJbXeZkuDeFmSbMDaZ9kn68yKUggrKCWRQNttAYv"
+    },
+    {
+      "address": "79Vf43kak4WvFn84Pcy9U2STPFjAjSxsLhE1yQAQnNg3",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
+      "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
+      "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
+      "memberPosition": "AyNWmWGtknPW1YDRsjWHRXdGcfh2W7vvZptykkR2tWjF",
+      "claimant": "11111111111111111111111111111111",
+      "claimId": "claim-protect-002",
+      "intakeStatus": 4,
+      "approvedAmount": "25000",
+      "deniedAmount": "0",
+      "paidAmount": "25000",
+      "reservedAmount": "0",
+      "linkedObligation": "Fgfx66ewvDW4RtiVCeMLM9peQfkBBMdWrpLnXskvF7u4"
+    }
+  ],
+  "legacyArtifactsRetired": [
+    "legacy pool accounts are no longer the sponsor/member/liability root",
+    "pool_type fixtures are retired in favor of HealthPlan + PolicySeries + FundingLine",
+    "old redemption request fixtures remain ignored for the hard-break devnet migration"
+  ]
+}
