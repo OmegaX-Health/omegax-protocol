@@ -107,7 +107,7 @@ export function MemberClaimsPanel({
   const [statusTone, setStatusTone] = useState<"ok" | "error" | null>(null);
   const [txSig, setTxSig] = useState("");
 
-  const selectedAggregate = useMemo(
+  const selectedAggregateRecord = useMemo(
     () => aggregates.find((row) => row.address === selectedAggregateAddress) ?? null,
     [aggregates, selectedAggregateAddress],
   );
@@ -119,6 +119,10 @@ export function MemberClaimsPanel({
     () => (showAllRewardAggregates ? aggregates : actionableAggregates),
     [actionableAggregates, aggregates, showAllRewardAggregates],
   );
+  const selectedAggregateInScope = useMemo(
+    () => visibleAggregates.find((row) => row.address === selectedAggregateAddress) ?? null,
+    [selectedAggregateAddress, visibleAggregates],
+  );
 
   const effectiveMember = normalize(memberAddress) || publicKey?.toBase58() || "";
   const effectiveRecipient = normalize(recipientAddress) || publicKey?.toBase58() || "";
@@ -129,11 +133,15 @@ export function MemberClaimsPanel({
       : selectedPoolAddress || manualPoolAddress || (poolLocked ? normalizedInitialPoolAddress : ""),
   );
   const effectiveCycleHash = normalize(
-    effectiveOverrideEnabled ? manualCycleHashHex : selectedAggregate?.cycleHashHex || manualCycleHashHex,
+    effectiveOverrideEnabled ? manualCycleHashHex : selectedAggregateInScope?.cycleHashHex || manualCycleHashHex,
   );
   const effectiveRuleHash = normalize(
-    effectiveOverrideEnabled ? manualRuleHashHex : selectedAggregate?.ruleHashHex || manualRuleHashHex,
+    effectiveOverrideEnabled ? manualRuleHashHex : selectedAggregateInScope?.ruleHashHex || manualRuleHashHex,
   );
+  const handlePoolChange = useCallback((nextPoolAddress: string) => {
+    setSelectedPoolAddress(nextPoolAddress);
+    setSelectedAggregateAddress("");
+  }, []);
 
   const payoutSol = Number(normalize(payoutAmount) || "0") / 1_000_000_000;
   const selectedPool = useMemo(
@@ -154,12 +162,10 @@ export function MemberClaimsPanel({
           ? normalizedInitialPoolAddress
           : effectiveOverrideEnabled
             ? manualPoolAddress
-            : selectedPoolAddress || nextPools[0]?.address || "",
+            : selectedPoolAddress,
       );
       if (poolLocked) {
         setSelectedPoolAddress(normalizedInitialPoolAddress);
-      } else if (!effectiveOverrideEnabled && !selectedPoolAddress && resolvedPoolAddress) {
-        setSelectedPoolAddress(resolvedPoolAddress);
       }
 
       if (resolvedPoolAddress) {
@@ -171,9 +177,6 @@ export function MemberClaimsPanel({
           search: search.aggregates || null,
         });
         setAggregates(nextAggregates);
-        if (!selectedAggregateAddress && nextAggregates.length > 0) {
-          setSelectedAggregateAddress(nextAggregates[0]!.address);
-        }
       } else {
         setAggregates([]);
       }
@@ -196,7 +199,6 @@ export function MemberClaimsPanel({
     poolLocked,
     search.aggregates,
     search.pools,
-    selectedAggregateAddress,
     selectedPoolAddress,
   ]);
 
@@ -209,18 +211,8 @@ export function MemberClaimsPanel({
     setOverrideEnabled(false);
     setSelectedPoolAddress(normalizedInitialPoolAddress);
     setManualPoolAddress(normalizedInitialPoolAddress);
+    setSelectedAggregateAddress("");
   }, [normalizedInitialPoolAddress, poolLocked]);
-
-  useEffect(() => {
-    if (claimType !== "reward" || effectiveOverrideEnabled) return;
-    if (visibleAggregates.length === 0) {
-      setSelectedAggregateAddress("");
-      return;
-    }
-    if (!visibleAggregates.some((aggregate) => aggregate.address === selectedAggregateAddress)) {
-      setSelectedAggregateAddress(visibleAggregates[0]!.address);
-    }
-  }, [claimType, effectiveOverrideEnabled, selectedAggregateAddress, visibleAggregates]);
 
   useEffect(() => {
     if (!publicKey) return;
@@ -248,13 +240,16 @@ export function MemberClaimsPanel({
       if (selectedPool && parsedPayoutAmount !== null && parsedPayoutAmount !== selectedPool.payoutLamportsPerPass) {
         return `Payout amount must match pool payout (${selectedPool.payoutLamportsPerPass.toString()} lamports).`;
       }
-      if (!effectiveOverrideEnabled && !selectedAggregate) {
+      if (!effectiveOverrideEnabled && selectedAggregateAddress && !selectedAggregateInScope) {
+        return "Selected aggregate is not available in the current filter. Choose another aggregate or show all finalized.";
+      }
+      if (!effectiveOverrideEnabled && !selectedAggregateInScope) {
         return "Select a finalized passed aggregate, or switch to manual inputs if you need an exact cycle/rule hash.";
       }
-      if (!effectiveOverrideEnabled && selectedAggregate?.claimed) {
+      if (!effectiveOverrideEnabled && selectedAggregateInScope?.claimed) {
         return "Selected aggregate is already claimed.";
       }
-      if (!effectiveOverrideEnabled && selectedAggregate && !selectedAggregate.passed) {
+      if (!effectiveOverrideEnabled && selectedAggregateInScope && !selectedAggregateInScope.passed) {
         return "Selected aggregate did not pass oracle quorum.";
       }
       if (!isHex32(effectiveCycleHash)) return "Cycle hash must be 32-byte hex.";
@@ -276,14 +271,15 @@ export function MemberClaimsPanel({
     effectiveOverrideEnabled,
     payoutAmount,
     parsedPayoutAmount,
-    selectedAggregate,
+    selectedAggregateAddress,
+    selectedAggregateInScope,
     selectedPool,
   ]);
 
   const contextReady = isPubkey(effectivePoolAddress);
   const recordReady =
     claimType === "reward"
-      ? Boolean(selectedAggregate && selectedAggregate.passed && !selectedAggregate.claimed) || effectiveOverrideEnabled
+      ? Boolean(selectedAggregateInScope && selectedAggregateInScope.passed && !selectedAggregateInScope.claimed) || effectiveOverrideEnabled
       : true;
   const payloadReady =
     claimType === "reward"
@@ -329,7 +325,7 @@ export function MemberClaimsPanel({
       label: claimType === "reward" ? "Select passed aggregate" : "Set claim hashes",
       done:
         claimType === "reward"
-          ? Boolean(selectedAggregate && selectedAggregate.passed && !selectedAggregate.claimed) || effectiveOverrideEnabled
+          ? Boolean(selectedAggregateInScope && selectedAggregateInScope.passed && !selectedAggregateInScope.claimed) || effectiveOverrideEnabled
           : isHex32(intentHashHex) && isHex32(eventHashHex),
     },
     { label: "Submit claim", done: Boolean(txSig) },
@@ -381,7 +377,7 @@ export function MemberClaimsPanel({
     <section className={embedded ? "space-y-4" : "surface-card space-y-4"}>
       {!embedded ? <h2 className="hero-title">Claim Builder</h2> : null}
       {!embedded ? (
-        <p className="hero-copy">Choose pool and finalized aggregate records from chain instead of typing cycle/rule hashes.</p>
+        <p className="hero-copy">Choose a pool, then explicitly select a finalized aggregate for reward claims instead of guessing cycle or rule hashes.</p>
       ) : null}
 
       {selectorError ? <p className="field-error">{selectorError}</p> : null}
@@ -473,7 +469,7 @@ export function MemberClaimsPanel({
                   label: `${pool.poolId} (${shortAddress(pool.address)})`,
                   hint: `${pool.organizationRef} | Mint ${shortAddress(pool.tokenGateMint)}`,
                 }))}
-                onChange={setSelectedPoolAddress}
+                onChange={handlePoolChange}
                 searchValue={search.pools}
                 onSearchChange={(value) => setSearch((prev) => ({ ...prev, pools: value }))}
                 loading={selectorLoading}
@@ -546,6 +542,14 @@ export function MemberClaimsPanel({
                       : "No actionable aggregates (passed + unclaimed) found. Use 'Show all finalized' to inspect others."
                   }
                 />
+                {selectedAggregateAddress && !selectedAggregateInScope ? (
+                  <p className="field-error">
+                    Selected aggregate is outside the current filter. Switch to "Show all finalized" or choose another aggregate.
+                  </p>
+                ) : null}
+                {!selectedAggregateAddress ? (
+                  <p className="field-help">Pick the finalized aggregate you want to claim against. We will not auto-select one for you.</p>
+                ) : null}
               </div>
             ) : (
               <p className="field-help">Coverage claim skips aggregate selection and uses provided intent/event hashes.</p>
@@ -561,7 +565,14 @@ export function MemberClaimsPanel({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="field-label">
                     Pool address override
-                    <input className="field-input" value={manualPoolAddress} onChange={(event) => setManualPoolAddress(event.target.value)} />
+                    <input
+                      className="field-input"
+                      value={manualPoolAddress}
+                      onChange={(event) => {
+                        setManualPoolAddress(event.target.value);
+                        setSelectedAggregateAddress("");
+                      }}
+                    />
                   </label>
                   <label className="field-label">
                     Cycle hash override
@@ -693,14 +704,17 @@ export function MemberClaimsPanel({
               </button>
             </div>
 
-            {claimType === "reward" && selectedAggregate ? (
+            {claimType === "reward" && selectedAggregateInScope ? (
               <div className="surface-card-soft space-y-1">
                 <p className="metric-label">Selected aggregate status</p>
-                <p className="field-help">Pass votes: {selectedAggregate.passVotes}</p>
-                <p className="field-help">Quorum M/N: {selectedAggregate.quorumM}/{selectedAggregate.quorumN}</p>
-                <p className="field-help">Outcome: {selectedAggregate.passed ? "passed" : "not passed"}</p>
-                <p className="field-help">Claimed: {selectedAggregate.claimed ? "yes" : "no"}</p>
+                <p className="field-help">Pass votes: {selectedAggregateInScope.passVotes}</p>
+                <p className="field-help">Quorum M/N: {selectedAggregateInScope.quorumM}/{selectedAggregateInScope.quorumN}</p>
+                <p className="field-help">Outcome: {selectedAggregateInScope.passed ? "passed" : "not passed"}</p>
+                <p className="field-help">Claimed: {selectedAggregateInScope.claimed ? "yes" : "no"}</p>
               </div>
+            ) : null}
+            {claimType === "reward" && selectedAggregateAddress && !selectedAggregateInScope ? (
+              <p className="field-help">Selected aggregate is not available in the current filter. The reward form will not submit until it is back in scope.</p>
             ) : null}
 
             <details className="surface-card-soft p-3 sm:p-3.5">
@@ -745,7 +759,7 @@ export function MemberClaimsPanel({
               onClick={() =>
                 void submit(claimType, async () => {
                   if (!publicKey) return;
-                  const seriesRefHashHex = selectedAggregate?.seriesRefHashHex
+                  const seriesRefHashHex = selectedAggregateRecord?.seriesRefHashHex
                     || await hashStringTo32Hex(`${effectivePoolAddress}:${claimType}:series`);
                   if (claimType === "reward") {
                     const memberPubkey = new PublicKey(effectiveMember);

@@ -21,6 +21,8 @@ import {
 } from "@/lib/workbench";
 import {
   describeCapitalRestriction,
+  describeLpQueueStatus,
+  hasPendingRedemptionQueue,
   shortenAddress,
 } from "@/lib/protocol";
 
@@ -52,19 +54,23 @@ export function CapitalWorkbench() {
   }, [allPools, poolSearch]);
 
   const queryPool = searchParams.get("pool")?.trim() ?? "";
-  const selectedPool = useMemo(
-    () => allPools.find((pool) => pool.address === queryPool) ?? filteredPools[0] ?? allPools[0] ?? null,
-    [allPools, filteredPools, queryPool],
-  );
+  const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
+  const hasInvalidPool = Boolean(queryPool) && !matchedPool;
+  const selectedPool = useMemo(() => {
+    if (hasInvalidPool) return null;
+    return matchedPool ?? filteredPools[0] ?? allPools[0] ?? null;
+  }, [allPools, filteredPools, hasInvalidPool, matchedPool]);
   const poolClasses = useMemo(
     () => DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.filter((capitalClass) => capitalClass.liquidityPool === selectedPool?.address),
     [selectedPool],
   );
   const queryClass = searchParams.get("class")?.trim() ?? "";
-  const selectedClass = useMemo(
-    () => poolClasses.find((capitalClass) => capitalClass.address === queryClass) ?? poolClasses[0] ?? null,
-    [poolClasses, queryClass],
-  );
+  const matchedClass = useMemo(() => poolClasses.find((capitalClass) => capitalClass.address === queryClass) ?? null, [poolClasses, queryClass]);
+  const hasInvalidClass = Boolean(queryClass) && !matchedClass;
+  const selectedClass = useMemo(() => {
+    if (hasInvalidClass) return null;
+    return matchedClass ?? poolClasses[0] ?? null;
+  }, [hasInvalidClass, matchedClass, poolClasses]);
   const capitalView = useMemo(
     () => consoleState.capital.find((entry) => entry.liquidityPoolAddress === selectedPool?.address) ?? null,
     [consoleState.capital, selectedPool],
@@ -75,7 +81,9 @@ export function CapitalWorkbench() {
   );
   const queueRows = useMemo(() => {
     const classAddresses = new Set(poolClasses.map((capitalClass) => capitalClass.address));
-    return DEVNET_PROTOCOL_FIXTURE_STATE.lpPositions.filter((position) => classAddresses.has(position.capitalClass));
+    return DEVNET_PROTOCOL_FIXTURE_STATE.lpPositions.filter(
+      (position) => classAddresses.has(position.capitalClass) && hasPendingRedemptionQueue(position),
+    );
   }, [poolClasses]);
 
   const updateParams = useCallback(
@@ -91,12 +99,13 @@ export function CapitalWorkbench() {
   );
 
   useEffect(() => {
+    if (hasInvalidPool || hasInvalidClass) return;
     const nextUpdates: Record<string, string> = {};
     if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
     if (selectedPool && queryPool !== selectedPool.address) nextUpdates.pool = selectedPool.address;
     if (selectedClass && queryClass !== selectedClass.address) nextUpdates.class = selectedClass.address;
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
-  }, [activeTab, queryClass, queryPool, requestedTab, selectedClass, selectedPool, updateParams]);
+  }, [activeTab, hasInvalidClass, hasInvalidPool, queryClass, queryPool, requestedTab, selectedClass, selectedPool, updateParams]);
 
   const linkedPlanContext = linkedContextForPool(selectedPool?.address);
   const linkedPlans = useMemo(() => {
@@ -111,44 +120,91 @@ export function CapitalWorkbench() {
     }),
     [selectedClass, selectedPool],
   );
+  const selectionToolbar = (
+    <div className="workbench-toolbar workbench-toolbar-compact">
+      <SearchableSelect
+        label="Liquidity pool"
+        value={selectedPool?.address ?? ""}
+        options={filteredPools.map((pool) => ({
+          value: pool.address,
+          label: `${pool.displayName} (${pool.poolId})`,
+          hint: pool.strategyThesis,
+        }))}
+        onChange={(value) => updateParams({ pool: value, class: null })}
+        searchValue={poolSearch}
+        onSearchChange={setPoolSearch}
+        placeholder="Choose pool"
+        error={hasInvalidPool ? "Requested liquidity pool was not found in the current fixture set." : null}
+        showOptionCount={false}
+        showSelectedHint={false}
+      />
+
+      <SearchableSelect
+        label="Capital class"
+        value={selectedClass?.address ?? ""}
+        options={poolClasses.map((capitalClass) => ({
+          value: capitalClass.address,
+          label: `${capitalClass.displayName} (${capitalClass.classId})`,
+          hint: `${describeCapitalRestriction(capitalClass.restrictionMode)} // priority ${capitalClass.priority}`,
+        }))}
+        onChange={(value) => updateParams({ class: value })}
+        searchValue=""
+        onSearchChange={() => {}}
+        placeholder="Choose capital class"
+        disabled={!selectedPool}
+        disabledHint="Choose a valid liquidity pool before selecting a capital class."
+        error={hasInvalidClass ? "Requested capital class is not linked to the selected pool." : null}
+        emptyMessage="No capital classes are linked to this pool."
+        showOptionCount={false}
+        showSelectedHint={false}
+      />
+    </div>
+  );
+  const invalidSelection = hasInvalidPool
+    ? {
+        title: "Pool not found",
+        copy: "The requested liquidity pool is not present in the current fixture set. Choose another pool to continue.",
+      }
+    : hasInvalidClass
+      ? {
+          title: "Capital class not found",
+          copy: "The requested capital class is not linked to the selected pool. Choose another class or clear the class filter.",
+        }
+      : null;
+
+  if (invalidSelection) {
+    return (
+      <div className="workbench-page">
+        <section className="workbench-main-column">
+          {selectionToolbar}
+
+          <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+            <div className="workbench-panel-head">
+              <div>
+                <p className="workbench-panel-eyebrow">Capital workspace</p>
+                <h2 className="workbench-panel-title">{invalidSelection.title}</h2>
+                <p className="workbench-body-copy">This deep link does not match the current visible capital context.</p>
+              </div>
+              <span className="workbench-card-meta">INVALID</span>
+            </div>
+
+            <WorkbenchEmptyState title={invalidSelection.title} copy={invalidSelection.copy} />
+          </section>
+        </section>
+
+        <aside className="workbench-rail">
+          <WorkbenchRailCard title="Selection status" meta="INVALID">
+            <WorkbenchEmptyState title={invalidSelection.title} copy="Use the selectors above to restore a valid capital view." />
+          </WorkbenchRailCard>
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="workbench-page">
       <section className="workbench-main-column">
-        <div className="workbench-toolbar workbench-toolbar-compact">
-          <SearchableSelect
-            label="Liquidity pool"
-            value={selectedPool?.address ?? ""}
-            options={filteredPools.map((pool) => ({
-              value: pool.address,
-              label: `${pool.displayName} (${pool.poolId})`,
-              hint: pool.strategyThesis,
-            }))}
-            onChange={(value) => updateParams({ pool: value, class: null })}
-            searchValue={poolSearch}
-            onSearchChange={setPoolSearch}
-            placeholder="Choose pool"
-            showOptionCount={false}
-            showSelectedHint={false}
-          />
-
-          <SearchableSelect
-            label="Capital class"
-            value={selectedClass?.address ?? ""}
-            options={poolClasses.map((capitalClass) => ({
-              value: capitalClass.address,
-              label: `${capitalClass.displayName} (${capitalClass.classId})`,
-              hint: `${describeCapitalRestriction(capitalClass.restrictionMode)} // priority ${capitalClass.priority}`,
-            }))}
-            onChange={(value) => updateParams({ class: value })}
-            searchValue=""
-            onSearchChange={() => {}}
-            placeholder="Choose capital class"
-            emptyMessage="No capital classes are linked to this pool."
-            showOptionCount={false}
-            showSelectedHint={false}
-          />
-        </div>
+        {selectionToolbar}
 
         <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
           <div className="workbench-panel-head">
@@ -312,33 +368,37 @@ export function CapitalWorkbench() {
           ) : null}
 
           {activeTab === "queue" ? (
-            <div className="workbench-table-card">
-              <table className="workbench-table">
-                <thead>
-                  <tr>
-                    <th>Owner</th>
-                    <th>Class</th>
-                    <th>Shares</th>
-                    <th>Pending redemption</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {queueRows.map((position) => {
-                    const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find((entry) => entry.address === position.capitalClass);
-                    return (
-                      <tr key={position.address}>
-                        <td data-label="Owner">{shortenAddress(position.owner, 6)}</td>
-                        <td data-label="Class">{capitalClass?.displayName ?? shortenAddress(position.capitalClass, 6)}</td>
-                        <td data-label="Shares">{formatAmount(position.shares)}</td>
-                        <td data-label="Pending redemption">{formatAmount(position.pendingRedemptionShares)}</td>
-                        <td data-label="Status">{position.queueStatus === 1 ? "pending" : "clear"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            queueRows.length > 0 ? (
+              <div className="workbench-table-card">
+                <table className="workbench-table">
+                  <thead>
+                    <tr>
+                      <th>Owner</th>
+                      <th>Class</th>
+                      <th>Shares</th>
+                      <th>Pending redemption</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {queueRows.map((position) => {
+                      const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find((entry) => entry.address === position.capitalClass);
+                      return (
+                        <tr key={position.address}>
+                          <td data-label="Owner">{shortenAddress(position.owner, 6)}</td>
+                          <td data-label="Class">{capitalClass?.displayName ?? shortenAddress(position.capitalClass, 6)}</td>
+                          <td data-label="Shares">{formatAmount(position.shares)}</td>
+                          <td data-label="Pending redemption">{formatAmount(position.pendingRedemptionShares)}</td>
+                          <td data-label="Status">{describeLpQueueStatus(position)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <WorkbenchEmptyState title="No queue records" copy="No LP positions currently need redemption queue review." />
+            )
           ) : null}
 
           {activeTab === "linked-plans" ? (

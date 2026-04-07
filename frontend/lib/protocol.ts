@@ -910,6 +910,28 @@ export function hasObligationImpairment(
   return obligation.status === OBLIGATION_STATUS_IMPAIRED || toBigIntAmount(obligation.impairedAmount) > 0n;
 }
 
+export function hasPendingRedemptionQueue(
+  position: Pick<LPPositionSnapshot, "queueStatus" | "pendingRedemptionShares">,
+): boolean {
+  return position.queueStatus === LP_QUEUE_STATUS_PENDING || toBigIntAmount(position.pendingRedemptionShares) > 0n;
+}
+
+export function describeLpQueueStatus(
+  position: Pick<LPPositionSnapshot, "queueStatus" | "pendingRedemptionShares">,
+): string {
+  if (position.queueStatus === LP_QUEUE_STATUS_PENDING) return "pending";
+  if (toBigIntAmount(position.pendingRedemptionShares) > 0n) return "requested";
+  return "clear";
+}
+
+export function isObligationOnDisputeWatch(
+  obligation: Pick<ObligationSnapshot, "status" | "impairedAmount">,
+): boolean {
+  return obligation.status === OBLIGATION_STATUS_RESERVED
+    || obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE
+    || hasObligationImpairment(obligation);
+}
+
 export function describeCapitalRestriction(restrictionMode: number): string {
   switch (restrictionMode) {
     case CAPITAL_CLASS_RESTRICTION_OPEN:

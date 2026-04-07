@@ -106,10 +106,10 @@ const AUTOMATION_MODE_OPTIONS = [
 const READINESS_ACTIONS: Record<ReadinessRow["id"], { label: string; resolveHref: (poolAddress: string) => string }> = {
   poolExists: {
     label: "Open setup wizard",
-    resolveHref: () => "/plans",
+    resolveHref: () => "/pools/create",
   },
   poolTermsConfigured: {
-    label: "Open plan controls",
+    label: "Open pool controls",
     resolveHref: (poolAddress) => buildCanonicalPoolHref(poolAddress, { section: "settings" }),
   },
   poolOraclePolicyConfigured: {
@@ -151,8 +151,8 @@ function toReadinessRows(readiness: ProtocolReadiness | null): ReadinessRow[] {
     return [];
   }
   return [
-    { id: "poolExists", label: "Plan account exists", value: readiness.poolExists },
-    { id: "poolTermsConfigured", label: "Plan terms configured", value: readiness.poolTermsConfigured },
+    { id: "poolExists", label: "Pool account exists", value: readiness.poolExists },
+    { id: "poolTermsConfigured", label: "Pool terms configured", value: readiness.poolTermsConfigured },
     { id: "poolOraclePolicyConfigured", label: "Oracle policy configured", value: readiness.poolOraclePolicyConfigured },
     { id: "poolAssetVaultConfigured", label: "Asset vault configured", value: readiness.poolAssetVaultConfigured },
     { id: "coveragePolicyExists", label: "Coverage policy exists", value: readiness.coveragePolicyExists },
@@ -251,7 +251,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
     } catch (cause) {
       setError(
         formatRpcError(cause, {
-          fallback: "Failed to load plan settings readiness.",
+          fallback: "Failed to load pool settings readiness.",
           rpcEndpoint: connection.rpcEndpoint,
         }),
       );
@@ -445,8 +445,8 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
     <section className={embedded ? "space-y-4" : "surface-card space-y-4"}>
       {!embedded ? (
         <div className="space-y-1">
-          <h2 className="hero-title">Health Plan Settings</h2>
-          <p className="hero-copy">Control lifecycle actions and policy configuration for this plan.</p>
+          <h2 className="hero-title">Pool Settings</h2>
+          <p className="hero-copy">Control lifecycle actions and policy configuration for this pool.</p>
         </div>
       ) : null}
 
@@ -454,7 +454,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-[var(--accent-strong)]" />
-            <p className="metric-label">Health plan settings</p>
+            <p className="metric-label">Pool settings</p>
           </div>
           <button
             type="button"
@@ -484,7 +484,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
       {resolvedPanel === "readiness" ? (
         <section className="surface-card-soft space-y-3">
           <div className="operator-task-head">
-            <h3 className="operator-task-title">Plan readiness checklist</h3>
+            <h3 className="operator-task-title">Pool readiness checklist</h3>
             <p className="operator-task-copy">
               Use this checklist to see which setup areas still need attention, then jump straight to the matching tool.
             </p>
@@ -523,7 +523,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
             })}
           </div>
 
-          <Link href="/plans" className="secondary-button inline-flex w-fit">
+          <Link href="/pools/create" className="secondary-button inline-flex w-fit">
             Open create wizard
           </Link>
           {error ? <p className="field-error">{error}</p> : null}
@@ -536,7 +536,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
           <div className="grid gap-4 xl:grid-cols-2">
             <article className="operator-task-card">
               <div className="operator-task-head">
-                <h3 className="operator-task-title">Public plan details</h3>
+                <h3 className="operator-task-title">Public pool details</h3>
                 <p className="operator-task-copy">Keep the operator-facing metadata and public terms entrypoint easy to understand.</p>
               </div>
               <div className="operator-summary-row">
@@ -548,7 +548,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
                 <input className="field-input" value={metadataUriInput} onChange={(event) => setMetadataUriInput(event.target.value)} />
               </label>
               <button type="button" className="action-button" onClick={() => void onSaveTermsHash()} disabled={Boolean(busyAction) || Boolean(settingsActionGuard)}>
-                {busyAction === "Set pool terms hash" ? "Saving..." : "Save public plan details"}
+                {busyAction === "Set pool terms hash" ? "Saving..." : "Save public pool details"}
               </button>
               <ProtocolDetailDisclosure
                 title="Manual protocol terms"
@@ -575,7 +575,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
             <article className="operator-task-card">
               <div className="operator-task-head">
                 <h3 className="operator-task-title">Reserve target</h3>
-                <p className="operator-task-copy">Set the reserve floor used to protect coverage obligations for this plan.</p>
+                <p className="operator-task-copy">Set the reserve floor used to protect coverage obligations for this pool.</p>
               </div>
               <div className="operator-summary-row">
                 <span>Payout asset</span>
@@ -594,7 +594,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
             <article className="operator-task-card">
               <div className="operator-task-head">
                 <h3 className="operator-task-title">Delegated authorities</h3>
-                <p className="operator-task-copy">Assign the operator and oversight wallets that can act on behalf of the plan.</p>
+                <p className="operator-task-copy">Assign the operator and oversight wallets that can act on behalf of the pool.</p>
               </div>
               <label className="space-y-1">
                 <span className="metric-label">Operator authority</span>
@@ -700,7 +700,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
             <article className="operator-task-card xl:col-span-2">
               <div className="operator-task-head">
                 <h3 className="operator-task-title">Automation controls</h3>
-                <p className="operator-task-copy">Choose how much automation the plan allows for oracle and claim workflows.</p>
+                <p className="operator-task-copy">Choose how much automation the pool allows for oracle and claim workflows.</p>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <label className="space-y-1">
@@ -743,7 +743,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
                 </div>
               </ProtocolDetailDisclosure>
               {allowedAiRolesMaskInput !== String(AI_ROLE_ALL_MASK) ? (
-                <p className="field-help">This plan is using a restricted AI role mask instead of the default all-roles setting.</p>
+                <p className="field-help">This pool is using a restricted AI role mask instead of the default all-roles setting.</p>
               ) : null}
               {settingsActionGuard ? <p className="field-help">{settingsActionGuard}</p> : null}
             </article>

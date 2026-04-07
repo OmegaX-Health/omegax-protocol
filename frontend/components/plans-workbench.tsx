@@ -72,10 +72,12 @@ export function PlansWorkbench() {
   }, [allPlans, planSearch]);
 
   const queryPlan = searchParams.get("plan")?.trim() ?? "";
-  const selectedPlan = useMemo(
-    () => allPlans.find((plan) => plan.address === queryPlan) ?? filteredPlans[0] ?? allPlans[0] ?? null,
-    [allPlans, filteredPlans, queryPlan],
-  );
+  const matchedPlan = useMemo(() => allPlans.find((plan) => plan.address === queryPlan) ?? null, [allPlans, queryPlan]);
+  const hasInvalidPlan = Boolean(queryPlan) && !matchedPlan;
+  const selectedPlan = useMemo(() => {
+    if (hasInvalidPlan) return null;
+    return matchedPlan ?? filteredPlans[0] ?? allPlans[0] ?? null;
+  }, [allPlans, filteredPlans, hasInvalidPlan, matchedPlan]);
 
   const planSeries = useMemo(() => {
     if (!selectedPlan) return [];
@@ -92,15 +94,14 @@ export function PlansWorkbench() {
   }, [planSeries, seriesSearch]);
   const querySeries = searchParams.get("series")?.trim() ?? "";
   const seriesSelectionOptional = SERIES_OPTIONAL_TABS.has(activeTab);
-  const selectedSeries = useMemo(
-    () => {
-      const explicitSeries = planSeries.find((series) => series.address === querySeries) ?? null;
-      if (explicitSeries) return explicitSeries;
-      if (seriesSelectionOptional) return null;
-      return filteredSeries[0] ?? planSeries[0] ?? null;
-    },
-    [filteredSeries, planSeries, querySeries, seriesSelectionOptional],
-  );
+  const matchedSeries = useMemo(() => planSeries.find((series) => series.address === querySeries) ?? null, [planSeries, querySeries]);
+  const hasInvalidSeries = Boolean(querySeries) && !matchedSeries;
+  const selectedSeries = useMemo(() => {
+    if (hasInvalidSeries) return null;
+    if (matchedSeries) return matchedSeries;
+    if (seriesSelectionOptional) return null;
+    return filteredSeries[0] ?? planSeries[0] ?? null;
+  }, [filteredSeries, hasInvalidSeries, matchedSeries, planSeries, seriesSelectionOptional]);
 
   const sponsorView = useMemo(
     () => consoleState.sponsors.find((entry) => entry.healthPlanAddress === selectedPlan?.address) ?? null,
@@ -156,13 +157,14 @@ export function PlansWorkbench() {
   );
 
   useEffect(() => {
+    if (hasInvalidPlan || hasInvalidSeries) return;
     const nextUpdates: Record<string, string | null> = {};
     if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
     if (selectedPlan && queryPlan !== selectedPlan.address) nextUpdates.plan = selectedPlan.address;
     if (selectedSeries && querySeries !== selectedSeries.address) nextUpdates.series = selectedSeries.address;
     if (!selectedSeries && querySeries) nextUpdates.series = null;
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
-  }, [activeTab, queryPlan, querySeries, requestedTab, selectedPlan, selectedSeries, updateParams]);
+  }, [activeTab, hasInvalidPlan, hasInvalidSeries, queryPlan, querySeries, requestedTab, selectedPlan, selectedSeries, updateParams]);
 
   const planClaimCount = sponsorView?.activeClaimCount ?? 0;
   const primaryActionLabel =
@@ -171,44 +173,91 @@ export function PlansWorkbench() {
       : effectivePersona === "governance"
         ? "Review operational history before approving new controls."
         : "Manage the full plan lifecycle here.";
+  const selectionToolbar = (
+    <div className="workbench-toolbar workbench-toolbar-compact">
+      <SearchableSelect
+        label="Health plan"
+        value={selectedPlan?.address ?? ""}
+        options={filteredPlans.map((plan) => ({
+          value: plan.address,
+          label: `${plan.displayName} (${plan.planId})`,
+          hint: `${plan.sponsorLabel} // ${plan.membershipModel}`,
+        }))}
+        onChange={(value) => updateParams({ plan: value, series: null })}
+        searchValue={planSearch}
+        onSearchChange={setPlanSearch}
+        placeholder="Choose plan"
+        error={hasInvalidPlan ? "Requested health plan was not found in the current fixture set." : null}
+        showOptionCount={false}
+        showSelectedHint={false}
+      />
+
+      <SearchableSelect
+        label="Policy series"
+        value={selectedSeries?.address ?? ""}
+        options={filteredSeries.map((series) => ({
+          value: series.address,
+          label: `${series.displayName} (${series.seriesId})`,
+          hint: `${series.termsVersion} // ${describeSeriesMode(series.mode)}`,
+        }))}
+        onChange={(value) => updateParams({ series: value })}
+        searchValue={seriesSearch}
+        onSearchChange={setSeriesSearch}
+        placeholder="Choose series"
+        disabled={!selectedPlan}
+        disabledHint="Choose a valid health plan before selecting a policy series."
+        error={hasInvalidSeries ? "Requested policy series is not linked to the selected plan." : null}
+        emptyMessage="No policy series match this plan filter."
+        showOptionCount={false}
+        showSelectedHint={false}
+      />
+    </div>
+  );
+  const invalidSelection = hasInvalidPlan
+    ? {
+        title: "Plan not found",
+        copy: "The requested health plan is not present in the current fixture set. Choose another plan to continue.",
+      }
+    : hasInvalidSeries
+      ? {
+          title: "Series not found",
+          copy: "The requested policy series is not linked to the selected plan. Choose another series or clear the series filter.",
+        }
+      : null;
+
+  if (invalidSelection) {
+    return (
+      <div className="workbench-page">
+        <section className="workbench-main-column">
+          {selectionToolbar}
+
+          <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+            <div className="workbench-panel-head">
+              <div>
+                <p className="workbench-panel-eyebrow">Plan workspace</p>
+                <h2 className="workbench-panel-title">{invalidSelection.title}</h2>
+                <p className="workbench-body-copy">This deep link does not match the current visible plans context.</p>
+              </div>
+              <span className="workbench-card-meta">INVALID</span>
+            </div>
+
+            <WorkbenchEmptyState title={invalidSelection.title} copy={invalidSelection.copy} />
+          </section>
+        </section>
+
+        <aside className="workbench-rail">
+          <WorkbenchRailCard title="Selection status" meta="INVALID">
+            <WorkbenchEmptyState title={invalidSelection.title} copy="Use the selectors above to restore a valid plans view." />
+          </WorkbenchRailCard>
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="workbench-page">
       <section className="workbench-main-column">
-        <div className="workbench-toolbar workbench-toolbar-compact">
-          <SearchableSelect
-            label="Health plan"
-            value={selectedPlan?.address ?? ""}
-            options={filteredPlans.map((plan) => ({
-              value: plan.address,
-              label: `${plan.displayName} (${plan.planId})`,
-              hint: `${plan.sponsorLabel} // ${plan.membershipModel}`,
-            }))}
-            onChange={(value) => updateParams({ plan: value, series: null })}
-            searchValue={planSearch}
-            onSearchChange={setPlanSearch}
-            placeholder="Choose plan"
-            showOptionCount={false}
-            showSelectedHint={false}
-          />
-
-          <SearchableSelect
-            label="Policy series"
-            value={selectedSeries?.address ?? ""}
-            options={filteredSeries.map((series) => ({
-              value: series.address,
-              label: `${series.displayName} (${series.seriesId})`,
-              hint: `${series.termsVersion} // ${describeSeriesMode(series.mode)}`,
-            }))}
-            onChange={(value) => updateParams({ series: value })}
-            searchValue={seriesSearch}
-            onSearchChange={setSeriesSearch}
-            placeholder="Choose series"
-            emptyMessage="No policy series match this plan filter."
-            showOptionCount={false}
-            showSelectedHint={false}
-          />
-        </div>
+        {selectionToolbar}
 
         <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
           <div className="workbench-panel-head">

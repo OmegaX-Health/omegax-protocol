@@ -102,8 +102,8 @@ export function PoolLifecyclePanel({ poolAddress }: PoolLifecyclePanelProps) {
     if (!publicKey || !pool || !isAuthority) return;
 
     const confirmCopy = action === "close"
-      ? "Close this health plan? This is a soft-close status update (archive-style), not account deletion."
-      : "Reopen this health plan and return it to Active status?";
+      ? "Close this pool? This is a soft-close status update (archive-style), not account deletion."
+      : "Reopen this pool and return it to Active status?";
     if (!window.confirm(confirmCopy)) {
       return;
     }
@@ -136,7 +136,7 @@ export function PoolLifecyclePanel({ poolAddress }: PoolLifecyclePanelProps) {
 
       setTxSig(signature);
       setStatusTone("ok");
-      setStatus(action === "close" ? "Plan closed successfully." : "Plan reopened and set to Active.");
+      setStatus(action === "close" ? "Pool closed successfully." : "Pool reopened and set to Active.");
 
       clearProtocolDiscoveryCache();
       await refresh();
@@ -144,7 +144,7 @@ export function PoolLifecyclePanel({ poolAddress }: PoolLifecyclePanelProps) {
       setStatusTone("error");
       setStatus(
         formatRpcError(cause, {
-          fallback: action === "close" ? "Close plan failed." : "Reopen plan failed.",
+          fallback: action === "close" ? "Close pool failed." : "Reopen pool failed.",
           rpcEndpoint: connection.rpcEndpoint,
         }),
       );
@@ -158,7 +158,7 @@ export function PoolLifecyclePanel({ poolAddress }: PoolLifecyclePanelProps) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-[var(--accent-strong)]" />
-          <p className="metric-label">Plan lifecycle (soft close)</p>
+          <p className="metric-label">Pool lifecycle (soft close)</p>
         </div>
         <button type="button" className="secondary-button inline-flex items-center gap-1.5" onClick={() => void refresh()} disabled={loading || Boolean(busy)}>
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -186,7 +186,7 @@ export function PoolLifecyclePanel({ poolAddress }: PoolLifecyclePanelProps) {
                 onClick={() => void submitStatus(POOL_STATUS_ACTIVE, "reopen")}
                 disabled={Boolean(busy)}
               >
-                {busy === "reopen" ? "Reopening..." : "Reopen plan"}
+                {busy === "reopen" ? "Reopening..." : "Reopen pool"}
               </button>
             ) : (
               <button
@@ -195,13 +195,13 @@ export function PoolLifecyclePanel({ poolAddress }: PoolLifecyclePanelProps) {
                 onClick={() => void submitStatus(POOL_STATUS_CLOSED, "close")}
                 disabled={Boolean(busy)}
               >
-                {busy === "close" ? "Closing..." : "Close plan"}
+                {busy === "close" ? "Closing..." : "Close pool"}
               </button>
             )}
           </div>
         ) : (
           <p className="field-help">
-            Read-only lifecycle view. Connect the pool authority wallet to close or reopen this plan.
+            Read-only lifecycle view. Connect the pool authority wallet to close or reopen this pool.
           </p>
         )
       ) : (

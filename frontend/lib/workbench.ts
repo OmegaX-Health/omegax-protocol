@@ -4,7 +4,6 @@ import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureRole } from "./devnet-
 import {
   availableFundingLineBalance,
   CLAIM_INTAKE_APPROVED,
-  LP_QUEUE_STATUS_PENDING,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   REDEMPTION_POLICY_QUEUE_ONLY,
@@ -13,7 +12,9 @@ import {
   describeObligationStatus,
   describeSeriesMode,
   describeSeriesStatus,
+  hasPendingRedemptionQueue,
   isActiveClaimStatus,
+  isObligationOnDisputeWatch,
   toBigIntAmount,
 } from "./protocol";
 
@@ -433,10 +434,7 @@ export function buildGovernanceQueue(proposals: GovernanceProposalSummary[] = []
 
 export function computeWorkbenchMetrics() {
   const activeClaims = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => isActiveClaimStatus(claim.intakeStatus)).length;
-  const pendingRedemptions = DEVNET_PROTOCOL_FIXTURE_STATE.lpPositions.filter(
-    (position) =>
-      position.queueStatus === LP_QUEUE_STATUS_PENDING || toBigIntAmount(position.pendingRedemptionShares) > 0n,
-  ).length;
+  const pendingRedemptions = DEVNET_PROTOCOL_FIXTURE_STATE.lpPositions.filter(hasPendingRedemptionQueue).length;
   const reservedObligations = DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter(
     (obligation) =>
       obligation.status === OBLIGATION_STATUS_RESERVED || obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
@@ -760,11 +758,7 @@ function buildOraclesAuditTrail(poolAddress?: string | null, seriesAddress?: str
       ? obligation.policySeries === selectedSeries.address
       : obligation.liquidityPool === pool.address,
   );
-  const watchlistObligations = scopedObligations.filter((obligation) =>
-    obligation.status === OBLIGATION_STATUS_RESERVED
-    || obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE
-    || toBigIntAmount(obligation.impairedAmount) > 0n,
-  );
+  const watchlistObligations = scopedObligations.filter(isObligationOnDisputeWatch);
   const watchlistAmount = watchlistObligations.reduce(
     (sum, obligation) =>
       sum + toBigIntAmount(obligation.reservedAmount) + toBigIntAmount(obligation.payableAmount) + toBigIntAmount(obligation.impairedAmount),

@@ -72,6 +72,7 @@ export function SearchableSelect({
           className="field-input"
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
+          aria-label={`Filter ${label.toLowerCase()}`}
           placeholder={`Filter ${label.toLowerCase()} (optional)`}
           disabled={blocked}
         />

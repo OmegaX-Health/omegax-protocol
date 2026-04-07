@@ -28,27 +28,56 @@ type FocusRow = {
   href: string;
 };
 
-function quickActionsForPersona(persona: string) {
+function quickActionsForPersona(persona: string, selectedRow: FocusRow | null, sponsorClaimsHref: string) {
+  const selectedAddress = selectedRow?.id ? encodeURIComponent(selectedRow.id) : "";
   switch (persona) {
     case "capital":
+      if (selectedAddress) {
+        return [
+          { href: `/capital?pool=${selectedAddress}&tab=queue`, label: "Review queue posture" },
+          { href: `/capital?pool=${selectedAddress}&tab=allocations`, label: "Inspect allocations" },
+          { href: `/oracles?pool=${selectedAddress}&tab=bindings`, label: "Check settlement bindings" },
+        ];
+      }
       return [
         { href: "/capital?tab=queue", label: "Review queue posture" },
         { href: "/capital?tab=allocations", label: "Inspect allocations" },
         { href: "/oracles?tab=bindings", label: "Check settlement bindings" },
       ];
     case "governance":
+      if (selectedRow) {
+        return [
+          { href: selectedRow.href, label: "Open proposal queue" },
+          { href: "/governance?tab=templates", label: "Review templates" },
+          { href: "/oracles?tab=attestations", label: "Watch attestation feed" },
+        ];
+      }
       return [
         { href: "/governance?tab=queue", label: "Open proposal queue" },
         { href: "/governance?tab=templates", label: "Review templates" },
         { href: "/oracles?tab=attestations", label: "Watch attestation feed" },
       ];
     case "sponsor":
+      if (selectedAddress) {
+        return [
+          { href: `/plans?plan=${selectedAddress}&tab=claims`, label: "Resolve active claims" },
+          { href: `/plans?plan=${selectedAddress}&tab=funding`, label: "Review funding lines" },
+          { href: `/plans?plan=${selectedAddress}&tab=series`, label: "Inspect policy series" },
+        ];
+      }
       return [
-        { href: "/plans?tab=claims", label: "Resolve active claims" },
+        { href: sponsorClaimsHref, label: "Resolve active claims" },
         { href: "/plans?tab=funding", label: "Review funding lines" },
         { href: "/plans?tab=series", label: "Inspect policy series" },
       ];
     default:
+      if (selectedRow) {
+        return [
+          { href: selectedRow.href, label: "Open plans" },
+          { href: "/capital", label: "Open capital" },
+          { href: "/governance", label: "Open governance" },
+        ];
+      }
       return [
         { href: "/plans", label: "Open plans" },
         { href: "/capital", label: "Open capital" },
@@ -127,6 +156,22 @@ export function OverviewWorkbench() {
   }, [consoleState.sponsors, effectivePersona, governanceQueue, governanceQueueStatus]);
 
   const [selectedFocus, setSelectedFocus] = useState<string>("");
+  const sponsorClaimsPlanAddress = useMemo(
+    () =>
+      consoleState.sponsors.find((entry) => entry.activeClaimCount > 0)?.healthPlanAddress
+      ?? DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]?.address
+      ?? "",
+    [consoleState.sponsors],
+  );
+  const sponsorClaimsHref = sponsorClaimsPlanAddress
+    ? `/plans?plan=${encodeURIComponent(sponsorClaimsPlanAddress)}&tab=claims`
+    : "/plans?tab=claims";
+  const preferredFocusId = useMemo(() => {
+    if ((effectivePersona === "sponsor" || effectivePersona === "observer") && sponsorClaimsPlanAddress) {
+      return sponsorClaimsPlanAddress;
+    }
+    return focusRows[0]?.id ?? "";
+  }, [effectivePersona, focusRows, sponsorClaimsPlanAddress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,13 +203,23 @@ export function OverviewWorkbench() {
   }, [connection]);
 
   useEffect(() => {
-    if (!focusRows.some((row) => row.id === selectedFocus)) {
-      setSelectedFocus(focusRows[0]?.id ?? "");
+    if (focusRows.length === 0) {
+      if (selectedFocus) {
+        setSelectedFocus("");
+      }
+      return;
     }
-  }, [focusRows, selectedFocus]);
+    if (!selectedFocus || !focusRows.some((row) => row.id === selectedFocus)) {
+      setSelectedFocus(preferredFocusId);
+    }
+  }, [focusRows, preferredFocusId, selectedFocus]);
 
-  const selectedRow = focusRows.find((row) => row.id === selectedFocus) ?? focusRows[0] ?? null;
-  const quickActions = quickActionsForPersona(effectivePersona);
+  const selectedRow =
+    focusRows.find((row) => row.id === selectedFocus)
+    ?? focusRows.find((row) => row.id === preferredFocusId)
+    ?? focusRows[0]
+    ?? null;
+  const quickActions = quickActionsForPersona(effectivePersona, selectedRow, sponsorClaimsHref);
   return (
     <div className="workbench-page">
       <section className="workbench-main-column">

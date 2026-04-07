@@ -102,15 +102,15 @@ function resolvePoolStatus(readiness: ProtocolReadiness | null, protocolConfig: 
 }
 
 const SECTION_LEADS: Record<PoolWorkspaceSection, string> = {
-  members: "Manage enrollment and delegation for people participating in this plan.",
-  coverage: "Review coverage tracks, cycle state, and payout setup for this plan.",
+  members: "Manage enrollment and delegation for people participating in this pool.",
+  coverage: "Review coverage tracks, cycle state, and payout setup for this pool.",
   claims: "Track submitted claims and the operator actions that can move them forward.",
   liquidity: "Manage capital setup, direct liquidity flows, and queued redemptions.",
   oracles: "Review oracle approvals, staking, attestations, settlements, and disputes.",
-  schemas: "Review schema coverage for this plan and run registry maintenance only when needed.",
+  schemas: "Review schema coverage for this pool and run registry maintenance only when needed.",
   treasury: "Monitor reserve rails, fee balances, and authorized treasury withdrawals.",
   governance: "Review DAO activity and submit governance actions for protocol-level changes.",
-  settings: "Update plan controls, delegated authorities, readiness items, and lifecycle actions.",
+  settings: "Update pool controls, delegated authorities, readiness items, and lifecycle actions.",
 };
 
 export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShellProps) {
@@ -122,7 +122,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
   const businessEntry = useMemo(() => getBusinessEntryContext(searchParams), [searchParams]);
   const requiredBusinessOracle = businessEntry.requiredOracleResolved;
 
-  const [sectionSearch, setSectionSearch] = useState("");
+  const [poolSearch, setPoolSearch] = useState("");
   const [activeSection, setActiveSection] = useState<PoolWorkspaceSection>(
     parseWorkspaceSection(searchParams.get("section")),
   );
@@ -160,6 +160,21 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     () => buildBusinessContextHref("/pools", businessEntry),
     [businessEntry],
   );
+
+  const visiblePools = useMemo(() => {
+    const normalizedSearch = poolSearch.trim().toLowerCase();
+    if (!normalizedSearch) return pools;
+    const filteredPools = pools.filter((row) =>
+      [row.poolId, row.address, row.organizationRef, row.authority].some((value) =>
+        value.toLowerCase().includes(normalizedSearch),
+      ),
+    );
+    const selectedPool = pools.find((row) => row.address === (poolSummary?.address ?? poolAddress));
+    if (selectedPool && !filteredPools.some((row) => row.address === selectedPool.address)) {
+      return [selectedPool, ...filteredPools];
+    }
+    return filteredPools;
+  }, [poolAddress, poolSearch, poolSummary?.address, pools]);
 
   const walletCapitalPosition = useMemo<WalletPoolPositionSummary | null>(() => {
     if (!walletAddress) return null;
@@ -226,19 +241,19 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
 
   const capabilityNote = useMemo(() => {
     if (!capabilities.isConnected) {
-      return "Connect a wallet to unlock the participant or operator actions that apply to this plan.";
+      return "Connect a wallet to unlock the participant or operator actions that apply to this pool.";
     }
     if (capabilities.isGovernanceAuthority || capabilities.isProtocolAdmin) {
       return "This wallet can manage governance, emergency controls, and protocol-level treasury actions.";
     }
     if (capabilities.isPoolAuthority) {
-      return "This wallet controls the plan and can run pool setup, treasury, and policy actions.";
+      return "This wallet controls the pool and can run setup, treasury, and policy actions.";
     }
     if (capabilities.isPoolOperator || capabilities.isRiskManager || capabilities.isComplianceAuthority || capabilities.isGuardian) {
-      return "This wallet has delegated operator controls for the plan.";
+      return "This wallet has delegated operator controls for the pool.";
     }
     if (capabilities.isRegisteredOracle && capabilities.isRegisteredMember) {
-      return "This wallet participates as both an oracle and a member in this plan.";
+      return "This wallet participates as both an oracle and a member in this pool.";
     }
     if (capabilities.isClaimDelegate) {
       return "This wallet can act as a claim delegate for enrolled members.";
@@ -247,12 +262,12 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
       return "This wallet has capital-provider context and can monitor redemption exposure.";
     }
     if (capabilities.isRegisteredMember) {
-      return "This wallet is enrolled in the plan and can use participant actions.";
+      return "This wallet is enrolled in the pool and can use participant actions.";
     }
     if (capabilities.isRegisteredOracle) {
       return "This wallet is a registered verifier and can use oracle operations.";
     }
-    return "This wallet is in observer mode for the plan. Shared state stays visible, while gated actions stay hidden or disabled.";
+    return "This wallet is in observer mode for the pool. Shared state stays visible, while gated actions stay hidden or disabled.";
   }, [capabilities]);
 
   const sectionBlockers = useMemo(
@@ -356,7 +371,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
         nextRedemptionRequests,
       ] = await Promise.all([
         listProtocolConfig({ connection }),
-        listPools({ connection, search: sectionSearch || null }),
+        listPools({ connection, search: null }),
         listOracles({ connection, activeOnly: false }),
         listMemberships({ connection, poolAddress, activeOnly: true }),
         listOutcomeAggregates({ connection, poolAddress, finalizedOnly: true }),
@@ -368,16 +383,6 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
 
       let nextPools = poolsResult;
       let resolvedPool = nextPools.find((row) => row.address === poolAddress) ?? null;
-      if (!resolvedPool && sectionSearch.trim().length > 0) {
-        const fallbackPools = await listPools({ connection, search: null });
-        resolvedPool = fallbackPools.find((row) => row.address === poolAddress) ?? null;
-        if (resolvedPool) {
-          const resolvedPoolAddress = resolvedPool.address;
-          if (!nextPools.some((row) => row.address === resolvedPoolAddress)) {
-            nextPools = [resolvedPool, ...nextPools];
-          }
-        }
-      }
 
       setPools(nextPools);
       setProtocolConfig(protocolConfigs[0] ?? null);
@@ -429,7 +434,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
           });
           if (approvals.length === 0) {
             setBusinessOracleWarning(
-              `Business policy warning: required oracle ${shortAddress(requiredBusinessOracle)} is not approved for this plan. Access remains available.`,
+              `Business policy warning: required oracle ${shortAddress(requiredBusinessOracle)} is not approved for this pool. Access remains available.`,
             );
           } else {
             setBusinessOracleWarning(null);
@@ -455,7 +460,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
     } finally {
       setLoading(false);
     }
-  }, [businessEntry.isBusinessOrigin, connection, poolAddress, requiredBusinessOracle, sectionSearch, walletAddress]);
+  }, [businessEntry.isBusinessOrigin, connection, poolAddress, requiredBusinessOracle, walletAddress]);
 
   useEffect(() => {
     void refreshWorkspace();
@@ -528,7 +533,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
   const onCopyPoolAddress = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(selectedPoolAddress);
-      setTransientHeaderNotice("Plan address copied.");
+      setTransientHeaderNotice("Pool address copied.");
     } catch {
       setTransientHeaderNotice("Copy failed. Clipboard is unavailable.");
     }
@@ -565,7 +570,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
       <div className="workspace-root space-y-5">
         <section className="workspace-header-band">
           <div className="workspace-header-copy">
-            <p className="workspace-eyebrow">Health Plan Workspace</p>
+            <p className="workspace-eyebrow">Pool Workspace</p>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="workspace-title">
                 {poolSummary ? poolSummary.poolId : shortAddress(poolAddress)}
@@ -620,7 +625,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
             <div className="workspace-header-actions">
               <Link href={backToPoolsHref} className="secondary-button inline-flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to capital
+                Back to pools
               </Link>
               <button type="button" className="secondary-button" onClick={() => void refreshWorkspace()} disabled={loading}>
                 {loading ? "Refreshing..." : "Refresh workspace"}
@@ -632,7 +637,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
 
             <details className="surface-card-soft">
               <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-                Plan details
+                Pool details
               </summary>
               <div className="mt-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
@@ -654,15 +659,16 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
                 </div>
 
                 <SearchableSelect
-                  label="Quick switch plan"
+                  label="Quick switch pool"
                   value={selectedPoolAddress}
-                  options={pools.map((row) => ({
+                  options={visiblePools.map((row) => ({
                     value: row.address,
                     label: `${row.poolId} (${shortAddress(row.address)})`,
                     hint: `Org ${row.organizationRef} | Authority ${shortAddress(row.authority)}`,
                   }))}
                   onChange={(value) => {
                     if (!value) return;
+                    setPoolSearch("");
                     router.push(
                       buildBusinessContextHref(
                         buildCanonicalPoolHref(value, {
@@ -674,14 +680,14 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
                       ),
                     );
                   }}
-                  searchValue={sectionSearch}
-                  onSearchChange={setSectionSearch}
+                  searchValue={poolSearch}
+                  onSearchChange={setPoolSearch}
                   loading={loading}
-                  placeholder="Select plan"
+                  placeholder="Select pool"
                 />
 
                 <div className="flex flex-wrap gap-2">
-                  <span className="status-pill status-off">Plan {shortAddress(selectedPoolAddress)}</span>
+                  <span className="status-pill status-off">Pool {shortAddress(selectedPoolAddress)}</span>
                   <span className="status-pill status-off">
                     Wallet {walletAddress ? shortAddress(walletAddress) : "not connected"}
                   </span>

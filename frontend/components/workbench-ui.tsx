@@ -53,13 +53,11 @@ export function WorkbenchTabs({
   onChange: (tab: string) => void;
 }) {
   return (
-    <div className="workbench-tabs" role="tablist" aria-label="Workbench tabs">
+    <div className="workbench-tabs">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
-          role="tab"
-          aria-selected={active === tab.id}
           className={cn("workbench-tab", active === tab.id && "workbench-tab-active")}
           onClick={() => onChange(tab.id)}
         >
@@ -84,4 +82,3 @@ export function WorkbenchEmptyState({
     </div>
   );
 }
-

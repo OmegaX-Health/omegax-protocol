@@ -134,6 +134,27 @@ export function MemberActionsPanel({
   const activeTokenGateAccount = normalize(
     effectiveOverrideEnabled ? manualTokenGateAccount : selectedTokenGateAccount || manualTokenGateAccount,
   );
+  const clearSensitiveTargets = useCallback(() => {
+    setSelectedIssuerAddress("");
+    setSelectedTokenGateAccount("");
+    setManualIssuerAddress("");
+    setManualTokenGateAccount("");
+    setTokenAccounts([]);
+  }, []);
+  const handlePoolChange = useCallback(
+    (nextPoolAddress: string) => {
+      setSelectedPoolAddress(nextPoolAddress);
+      clearSensitiveTargets();
+    },
+    [clearSensitiveTargets],
+  );
+  const handleManualPoolChange = useCallback(
+    (nextPoolAddress: string) => {
+      setManualPoolAddress(nextPoolAddress);
+      clearSensitiveTargets();
+    },
+    [clearSensitiveTargets],
+  );
 
   const refreshSelectors = useCallback(async () => {
     setLoadingSelectors(true);
@@ -149,11 +170,6 @@ export function MemberActionsPanel({
 
       if (poolLocked) {
         setSelectedPoolAddress(normalizedInitialPoolAddress);
-      } else if (!selectedPoolAddress && nextPools.length > 0) {
-        setSelectedPoolAddress(nextPools[0]!.address);
-      }
-      if (!selectedIssuerAddress && nextIssuers.length > 0) {
-        setSelectedIssuerAddress(nextIssuers[0]!.issuer);
       }
 
       if (publicKey && selectedPool?.tokenGateMint && mode === "token_gate") {
@@ -164,9 +180,6 @@ export function MemberActionsPanel({
           search: search.tokenAccounts || null,
         });
         setTokenAccounts(nextTokenAccounts);
-        if (!selectedTokenGateAccount && nextTokenAccounts.length > 0) {
-          setSelectedTokenGateAccount(nextTokenAccounts[0]!.address);
-        }
       } else {
         setTokenAccounts([]);
       }
@@ -189,10 +202,7 @@ export function MemberActionsPanel({
     search.tokenAccounts,
     normalizedInitialPoolAddress,
     poolLocked,
-    selectedIssuerAddress,
     selectedPool,
-    selectedPoolAddress,
-    selectedTokenGateAccount,
   ]);
 
   useEffect(() => {
@@ -204,7 +214,8 @@ export function MemberActionsPanel({
     setOverrideEnabled(false);
     setSelectedPoolAddress(normalizedInitialPoolAddress);
     setManualPoolAddress(normalizedInitialPoolAddress);
-  }, [normalizedInitialPoolAddress, poolLocked]);
+    clearSensitiveTargets();
+  }, [clearSensitiveTargets, normalizedInitialPoolAddress, poolLocked]);
 
   const baseGuard = useMemo(() => {
     if (!connected || !publicKey) return "Connect your wallet first.";
@@ -289,8 +300,8 @@ export function MemberActionsPanel({
     mode === "open"
       ? "Open mode enrolls directly with member signer."
       : mode === "token_gate"
-        ? "Token gate mode requires a wallet-owned token account matching the pool mint."
-        : "Invite mode requires issuer signer and permit hash inputs.";
+        ? "Token gate mode requires you to explicitly choose a wallet-owned token account matching the pool mint."
+        : "Invite mode requires you to explicitly choose an issuer and provide permit hash inputs.";
 
   const modeReady =
     mode === "open"
@@ -342,7 +353,7 @@ export function MemberActionsPanel({
     <section className={embedded ? "space-y-4" : "surface-card space-y-4"}>
       {!embedded ? <h2 className="hero-title">Enrollment + Delegation</h2> : null}
       {!embedded ? (
-        <p className="hero-copy">Enrollment defaults to chain-discovered pool, issuer, and token account selectors.</p>
+        <p className="hero-copy">Enrollment starts with a pool, then you explicitly choose token gate or invite targets when those modes require them.</p>
       ) : null}
 
       {selectorError ? <p className="field-error">{selectorError}</p> : null}
@@ -388,7 +399,9 @@ export function MemberActionsPanel({
         </div>
         {!stepPoolOpen ? (
           <p className="field-help">
-            {poolLocked ? "Pool context is locked by workspace." : "Choose pool from chain, or switch to manual inputs if discovery is incomplete."}
+            {poolLocked
+              ? "Pool context is locked by workspace."
+              : "Choose pool from chain, or switch to manual inputs if discovery is incomplete. Sensitive targets stay blank until you pick them."}
           </p>
         ) : null}
         {stepPoolOpen ? (
@@ -408,7 +421,7 @@ export function MemberActionsPanel({
                     label: `${pool.poolId} (${shortAddress(pool.address)})`,
                     hint: `Mint ${shortAddress(pool.tokenGateMint)} | Org ${pool.organizationRef}`,
                   }))}
-                  onChange={setSelectedPoolAddress}
+                  onChange={handlePoolChange}
                   searchValue={search.pools}
                   onSearchChange={(value) => setSearch((prev) => ({ ...prev, pools: value }))}
                   loading={loadingSelectors}
@@ -426,7 +439,11 @@ export function MemberActionsPanel({
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="field-label">
                       Pool address override
-                      <input className="field-input" value={manualPoolAddress} onChange={(event) => setManualPoolAddress(event.target.value)} />
+                      <input
+                        className="field-input"
+                        value={manualPoolAddress}
+                        onChange={(event) => handleManualPoolChange(event.target.value)}
+                      />
                     </label>
                     <label className="field-label">
                       Token gate account override
@@ -506,10 +523,11 @@ export function MemberActionsPanel({
                 placeholder="Select token account"
                 emptyMessage={
                   selectedPool?.tokenGateMint
-                    ? "No wallet-owned token accounts found for this pool mint."
+                    ? "No wallet-owned token accounts found for this pool mint. We will not auto-pick one."
                     : "Select a pool first to load token accounts."
                 }
               />
+              <p className="field-help">Choose a token account explicitly before submitting a token gate enrollment.</p>
             ) : null}
 
             {mode === "invite" ? (
@@ -530,6 +548,7 @@ export function MemberActionsPanel({
                   disabledHint="Selector is disabled while manual inputs are active."
                   placeholder="Select invite issuer"
                 />
+                <p className="field-help">Choose an invite issuer explicitly before submitting an invite enrollment.</p>
 
                 <label className="field-label">
                   Expires at (unix ts)

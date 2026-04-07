@@ -423,6 +423,21 @@ export function describeObligationStatus(status) {
 export function hasObligationImpairment(obligation) {
     return obligation.status === OBLIGATION_STATUS_IMPAIRED || toBigIntAmount(obligation.impairedAmount) > 0n;
 }
+export function hasPendingRedemptionQueue(position) {
+    return position.queueStatus === LP_QUEUE_STATUS_PENDING || toBigIntAmount(position.pendingRedemptionShares) > 0n;
+}
+export function describeLpQueueStatus(position) {
+    if (position.queueStatus === LP_QUEUE_STATUS_PENDING)
+        return "pending";
+    if (toBigIntAmount(position.pendingRedemptionShares) > 0n)
+        return "requested";
+    return "clear";
+}
+export function isObligationOnDisputeWatch(obligation) {
+    return obligation.status === OBLIGATION_STATUS_RESERVED
+        || obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE
+        || hasObligationImpairment(obligation);
+}
 export function describeCapitalRestriction(restrictionMode) {
     switch (restrictionMode) {
         case CAPITAL_CLASS_RESTRICTION_OPEN:

@@ -11,7 +11,14 @@ import { useWorkspacePersona } from "@/components/workspace-persona";
 import { claimCasesForOracleContext, formatAmount, seriesForPool } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { buildAuditTrail, defaultTabForPersona, ORACLE_TABS, type OracleTabId } from "@/lib/workbench";
-import { describeClaimStatus, describeSeriesMode, hasObligationImpairment, shortenAddress } from "@/lib/protocol";
+import {
+  describeClaimStatus,
+  describeObligationStatus,
+  describeSeriesMode,
+  isObligationOnDisputeWatch,
+  shortenAddress,
+  toBigIntAmount,
+} from "@/lib/protocol";
 
 type OracleAttestation = {
   id: string;
@@ -44,16 +51,20 @@ export function OraclesWorkbench() {
   }, [allPools, poolSearch]);
 
   const queryPool = searchParams.get("pool")?.trim() ?? "";
-  const selectedPool = useMemo(
-    () => allPools.find((pool) => pool.address === queryPool) ?? filteredPools[0] ?? allPools[0] ?? null,
-    [allPools, filteredPools, queryPool],
-  );
-  const boundSeries = useMemo(() => seriesForPool(selectedPool?.address), [selectedPool]);
+  const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
+  const hasInvalidPool = Boolean(queryPool) && !matchedPool;
+  const selectedPool = useMemo(() => {
+    if (hasInvalidPool) return null;
+    return matchedPool ?? filteredPools[0] ?? allPools[0] ?? null;
+  }, [allPools, filteredPools, hasInvalidPool, matchedPool]);
+  const boundSeries = useMemo(() => (selectedPool ? seriesForPool(selectedPool.address) : []), [selectedPool]);
   const querySeries = searchParams.get("series")?.trim() ?? "";
-  const selectedSeries = useMemo(
-    () => boundSeries.find((series) => series.address === querySeries) ?? boundSeries[0] ?? null,
-    [boundSeries, querySeries],
-  );
+  const matchedSeries = useMemo(() => boundSeries.find((series) => series.address === querySeries) ?? null, [boundSeries, querySeries]);
+  const hasInvalidSeries = Boolean(querySeries) && !matchedSeries;
+  const selectedSeries = useMemo(() => {
+    if (hasInvalidSeries) return null;
+    return matchedSeries ?? boundSeries[0] ?? null;
+  }, [boundSeries, hasInvalidSeries, matchedSeries]);
   const auditTrail = useMemo(
     () => buildAuditTrail({
       section: "oracles",
@@ -67,7 +78,7 @@ export function OraclesWorkbench() {
     (wallet) => wallet.role === "oracle_operator" || wallet.role === "claims_operator",
   );
   const scopedClaimCases = useMemo(
-    () => claimCasesForOracleContext(selectedPool?.address, selectedSeries?.address),
+    () => (selectedPool ? claimCasesForOracleContext(selectedPool.address, selectedSeries?.address) : []),
     [selectedPool, selectedSeries],
   );
   const attestations = useMemo<OracleAttestation[]>(() => {
@@ -85,10 +96,15 @@ export function OraclesWorkbench() {
   }, [operatorWallets, scopedClaimCases]);
   const attestationScopeLabel = selectedSeries?.displayName ?? selectedPool?.displayName ?? "the selected context";
 
-  const disputes = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter(hasObligationImpairment),
-    [],
+  const scopedObligations = useMemo(
+    () => DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) =>
+      selectedSeries
+        ? obligation.policySeries === selectedSeries.address
+        : obligation.liquidityPool === selectedPool?.address,
+    ),
+    [selectedPool, selectedSeries],
   );
+  const disputes = useMemo(() => scopedObligations.filter(isObligationOnDisputeWatch), [scopedObligations]);
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -103,50 +119,99 @@ export function OraclesWorkbench() {
   );
 
   useEffect(() => {
+    if (hasInvalidPool || hasInvalidSeries) return;
     const nextUpdates: Record<string, string> = {};
     if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
     if (selectedPool && queryPool !== selectedPool.address) nextUpdates.pool = selectedPool.address;
     if (selectedSeries && querySeries !== selectedSeries.address) nextUpdates.series = selectedSeries.address;
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
-  }, [activeTab, queryPool, querySeries, requestedTab, selectedPool, selectedSeries, updateParams]);
+  }, [activeTab, hasInvalidPool, hasInvalidSeries, queryPool, querySeries, requestedTab, selectedPool, selectedSeries, updateParams]);
+
+  const selectionToolbar = (
+    <div className="workbench-toolbar workbench-toolbar-compact">
+      <SearchableSelect
+        label="Pool context"
+        value={selectedPool?.address ?? ""}
+        options={filteredPools.map((pool) => ({
+          value: pool.address,
+          label: `${pool.displayName} (${pool.poolId})`,
+          hint: pool.strategyThesis,
+        }))}
+        onChange={(value) => updateParams({ pool: value, series: null })}
+        searchValue={poolSearch}
+        onSearchChange={setPoolSearch}
+        placeholder="Choose pool"
+        error={hasInvalidPool ? "Requested pool context was not found in the current fixture set." : null}
+        showOptionCount={false}
+        showSelectedHint={false}
+      />
+
+      <SearchableSelect
+        label="Policy series"
+        value={selectedSeries?.address ?? ""}
+        options={boundSeries.map((series) => ({
+          value: series.address,
+          label: `${series.displayName} (${series.seriesId})`,
+          hint: `${series.termsVersion} // ${describeSeriesMode(series.mode)}`,
+        }))}
+        onChange={(value) => updateParams({ series: value })}
+        searchValue=""
+        onSearchChange={() => {}}
+        placeholder="Choose series"
+        disabled={!selectedPool}
+        disabledHint="Choose a valid pool context before selecting a policy series."
+        error={hasInvalidSeries ? "Requested policy series is not bound to the selected pool." : null}
+        emptyMessage="No bound series are linked to this pool."
+        showOptionCount={false}
+        showSelectedHint={false}
+      />
+    </div>
+  );
+  const invalidSelection = hasInvalidPool
+    ? {
+        title: "Pool not found",
+        copy: "The requested pool context is not present in the current fixture set. Choose another pool to continue.",
+      }
+    : hasInvalidSeries
+      ? {
+          title: "Series not found",
+          copy: "The requested policy series is not bound to the selected pool. Choose another series or clear the series filter.",
+        }
+      : null;
+
+  if (invalidSelection) {
+    return (
+      <div className="workbench-page">
+        <section className="workbench-main-column">
+          {selectionToolbar}
+
+          <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+            <div className="workbench-panel-head">
+              <div>
+                <p className="workbench-panel-eyebrow">Oracle workspace</p>
+                <h2 className="workbench-panel-title">{invalidSelection.title}</h2>
+                <p className="workbench-body-copy">This deep link does not match the current visible oracle context.</p>
+              </div>
+              <span className="workbench-card-meta">INVALID</span>
+            </div>
+
+            <WorkbenchEmptyState title={invalidSelection.title} copy={invalidSelection.copy} />
+          </section>
+        </section>
+
+        <aside className="workbench-rail">
+          <WorkbenchRailCard title="Selection status" meta="INVALID">
+            <WorkbenchEmptyState title={invalidSelection.title} copy="Use the selectors above to restore a valid oracle view." />
+          </WorkbenchRailCard>
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="workbench-page">
       <section className="workbench-main-column">
-        <div className="workbench-toolbar workbench-toolbar-compact">
-          <SearchableSelect
-            label="Pool context"
-            value={selectedPool?.address ?? ""}
-            options={filteredPools.map((pool) => ({
-              value: pool.address,
-              label: `${pool.displayName} (${pool.poolId})`,
-              hint: pool.strategyThesis,
-            }))}
-            onChange={(value) => updateParams({ pool: value, series: null })}
-            searchValue={poolSearch}
-            onSearchChange={setPoolSearch}
-            placeholder="Choose pool"
-            showOptionCount={false}
-            showSelectedHint={false}
-          />
-
-          <SearchableSelect
-            label="Policy series"
-            value={selectedSeries?.address ?? ""}
-            options={boundSeries.map((series) => ({
-              value: series.address,
-              label: `${series.displayName} (${series.seriesId})`,
-              hint: `${series.termsVersion} // ${describeSeriesMode(series.mode)}`,
-            }))}
-            onChange={(value) => updateParams({ series: value })}
-            searchValue=""
-            onSearchChange={() => {}}
-            placeholder="Choose series"
-            emptyMessage="No bound series are linked to this pool."
-            showOptionCount={false}
-            showSelectedHint={false}
-          />
-        </div>
+        {selectionToolbar}
 
         <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
           <div className="workbench-panel-head">
@@ -270,8 +335,8 @@ export function OraclesWorkbench() {
                   <thead>
                     <tr>
                       <th>Obligation</th>
-                      <th>Reserved</th>
-                      <th>Impaired</th>
+                      <th>Status</th>
+                      <th>Watch amount</th>
                       <th>Series</th>
                     </tr>
                   </thead>
@@ -281,8 +346,14 @@ export function OraclesWorkbench() {
                       return (
                         <tr key={obligation.address}>
                           <td data-label="Obligation">{obligation.obligationId}</td>
-                          <td data-label="Reserved">{formatAmount(obligation.reservedAmount)}</td>
-                          <td data-label="Impaired">{formatAmount(obligation.impairedAmount)}</td>
+                          <td data-label="Status">{describeObligationStatus(obligation.status)}</td>
+                          <td data-label="Watch amount">
+                            {formatAmount(
+                              toBigIntAmount(obligation.reservedAmount)
+                              + toBigIntAmount(obligation.payableAmount)
+                              + toBigIntAmount(obligation.impairedAmount),
+                            )}
+                          </td>
                           <td data-label="Series">{series?.displayName ?? "Pool-wide"}</td>
                         </tr>
                       );
@@ -291,7 +362,7 @@ export function OraclesWorkbench() {
                 </table>
               </div>
             ) : (
-              <WorkbenchEmptyState title="No disputes" copy="No current obligations are currently carrying recorded impairment." />
+              <WorkbenchEmptyState title="No disputes" copy="No bound obligations currently need dispute or settlement escalation." />
             )
           ) : null}
 
