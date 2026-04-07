@@ -260,15 +260,15 @@ export function CapitalWorkbench() {
                   <tbody>
                     {poolClasses.map((capitalClass) => (
                       <tr key={capitalClass.address}>
-                        <td>
+                        <td data-label="Class">
                           <button type="button" className="workbench-inline-button" onClick={() => updateParams({ class: capitalClass.address })}>
                             {capitalClass.displayName}
                           </button>
                         </td>
-                        <td>{describeCapitalRestriction(capitalClass.restrictionMode)}</td>
-                        <td>{formatAmount(capitalClass.navAssets)}</td>
-                        <td>{formatAmount(capitalClass.pendingRedemptions)}</td>
-                        <td>{capitalClass.minLockupSeconds ? `${Math.round(capitalClass.minLockupSeconds / 86400)}d` : "n/a"}</td>
+                        <td data-label="Restriction">{describeCapitalRestriction(capitalClass.restrictionMode)}</td>
+                        <td data-label="NAV">{formatAmount(capitalClass.navAssets)}</td>
+                        <td data-label="Pending">{formatAmount(capitalClass.pendingRedemptions)}</td>
+                        <td data-label="Lockup">{capitalClass.minLockupSeconds ? `${Math.round(capitalClass.minLockupSeconds / 86400)}d` : "n/a"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -298,11 +298,11 @@ export function CapitalWorkbench() {
                     const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find((entry) => entry.address === allocation.capitalClass);
                     return (
                       <tr key={allocation.address}>
-                        <td>{plan?.displayName ?? shortenAddress(allocation.healthPlan, 6)}</td>
-                        <td>{series?.displayName ?? "Pool-wide"}</td>
-                        <td>{capitalClass?.classId ?? shortenAddress(allocation.capitalClass, 6)}</td>
-                        <td>{formatAmount(allocation.allocatedAmount)}</td>
-                        <td>{formatAmount(allocation.reservedCapacity)}</td>
+                        <td data-label="Plan">{plan?.displayName ?? shortenAddress(allocation.healthPlan, 6)}</td>
+                        <td data-label="Series">{series?.displayName ?? "Pool-wide"}</td>
+                        <td data-label="Class">{capitalClass?.classId ?? shortenAddress(allocation.capitalClass, 6)}</td>
+                        <td data-label="Allocated">{formatAmount(allocation.allocatedAmount)}</td>
+                        <td data-label="Reserved">{formatAmount(allocation.reservedCapacity)}</td>
                       </tr>
                     );
                   })}
@@ -328,11 +328,11 @@ export function CapitalWorkbench() {
                     const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find((entry) => entry.address === position.capitalClass);
                     return (
                       <tr key={position.address}>
-                        <td>{shortenAddress(position.owner, 6)}</td>
-                        <td>{capitalClass?.displayName ?? shortenAddress(position.capitalClass, 6)}</td>
-                        <td>{formatAmount(position.shares)}</td>
-                        <td>{formatAmount(position.pendingRedemptionShares)}</td>
-                        <td>{position.queueStatus === 1 ? "pending" : "clear"}</td>
+                        <td data-label="Owner">{shortenAddress(position.owner, 6)}</td>
+                        <td data-label="Class">{capitalClass?.displayName ?? shortenAddress(position.capitalClass, 6)}</td>
+                        <td data-label="Shares">{formatAmount(position.shares)}</td>
+                        <td data-label="Pending redemption">{formatAmount(position.pendingRedemptionShares)}</td>
+                        <td data-label="Status">{position.queueStatus === 1 ? "pending" : "clear"}</td>
                       </tr>
                     );
                   })}
@@ -356,10 +356,10 @@ export function CapitalWorkbench() {
                   <tbody>
                     {linkedPlans.map((plan) => (
                       <tr key={plan.address}>
-                        <td>{plan.displayName}</td>
-                        <td>{plan.planId}</td>
-                        <td>{DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === plan.address).length}</td>
-                        <td>
+                        <td data-label="Plan">{plan.displayName}</td>
+                        <td data-label="Plan id">{plan.planId}</td>
+                        <td data-label="Series lanes">{DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === plan.address).length}</td>
+                        <td data-label="Open">
                           <Link href={`/plans?plan=${encodeURIComponent(plan.address)}&tab=overview`} className="workbench-inline-link">
                             Open plan
                           </Link>

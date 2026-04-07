@@ -6,6 +6,7 @@ import { createServer } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 
 const SIDEBAR_ID = "protocol-workbench-sidebar";
+const FRAME_SELECTOR = ".protocol-workbench-frame";
 const VIEWPORT = { width: 390, height: 844 };
 const DEV_SERVER_PORT_CANDIDATES = [3001, 3000] as const;
 
@@ -198,6 +199,20 @@ async function readSidebarState(
   }, SIDEBAR_ID);
 }
 
+async function readWorkbenchFrameState(
+  page: {
+    evaluate<Result, Arg>(pageFunction: (arg: Arg) => Result, arg: Arg): Promise<Result>;
+  },
+): Promise<{ ariaHidden: string | null; inert: boolean }> {
+  return await page.evaluate((selector) => {
+    const frame = document.querySelector(selector) as (HTMLElement & { inert?: boolean }) | null;
+    return {
+      ariaHidden: frame?.getAttribute("aria-hidden") ?? null,
+      inert: Boolean(frame?.inert),
+    };
+  }, FRAME_SELECTOR);
+}
+
 async function tabFromDocumentStart(page: {
   evaluate<Result>(pageFunction: () => Result): Promise<Result>;
   keyboard: { press(key: string): Promise<void> };
@@ -210,26 +225,13 @@ async function tabFromDocumentStart(page: {
   return await readFocusSnapshot(page);
 }
 
-async function reverseTabIntoSidebar(
+async function tabFromCurrentFocus(
   page: {
     keyboard: { press(key: string): Promise<void> };
   },
-  toggle: {
-    focus(): Promise<void>;
-  },
 ): Promise<FocusSnapshot> {
-  await toggle.focus();
-
-  let focus = await readFocusSnapshot(page);
-  for (let step = 0; step < 3; step += 1) {
-    await page.keyboard.press("Shift+Tab");
-    focus = await readFocusSnapshot(page);
-    if (focus.insideSidebar) {
-      return focus;
-    }
-  }
-
-  return focus;
+  await page.keyboard.press("Tab");
+  return await readFocusSnapshot(page);
 }
 
 function assertSidebarState(
@@ -248,6 +250,18 @@ function assertSidebarState(
 function assertFocusLocation(focus: FocusSnapshot, shouldBeInsideSidebar: boolean, message: string): void {
   if (focus.insideSidebar !== shouldBeInsideSidebar) {
     throw new Error(`${message}. focus=${JSON.stringify(focus)}`);
+  }
+}
+
+function assertWorkbenchFrameState(
+  state: { ariaHidden: string | null; inert: boolean },
+  expectedInert: boolean,
+): void {
+  const expectedAriaHidden = expectedInert ? "true" : null;
+  if (state.ariaHidden !== expectedAriaHidden || state.inert !== expectedInert) {
+    throw new Error(
+      `Unexpected workbench frame state. expected_inert=${expectedInert} actual=${JSON.stringify(state)}`,
+    );
   }
 }
 
@@ -291,6 +305,7 @@ async function main(): Promise<void> {
 
     const hiddenState = await readSidebarState(page);
     assertSidebarState(hiddenState, true);
+    assertWorkbenchFrameState(await readWorkbenchFrameState(page), false);
 
     const closedFocus = await tabFromDocumentStart(page);
     assertFocusLocation(closedFocus, false, "Closed mobile drawer remained tabbable");
@@ -303,10 +318,15 @@ async function main(): Promise<void> {
     await page.keyboard.press("Space");
     await page.waitForFunction((sidebarId) => {
       const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
+      const frame = document.querySelector(".protocol-workbench-frame") as (HTMLElement & { inert?: boolean }) | null;
+      const activeElement = document.activeElement as HTMLElement | null;
       return (
         sidebar?.getAttribute("aria-hidden") === "false"
         && sidebar?.getAttribute("data-mobile-hidden") === "false"
         && sidebar?.inert === false
+        && frame?.getAttribute("aria-hidden") === "true"
+        && frame?.inert === true
+        && Boolean(activeElement && sidebar?.contains(activeElement))
       );
     }, SIDEBAR_ID);
 
@@ -314,22 +334,37 @@ async function main(): Promise<void> {
       throw new Error("Expected the mobile drawer toggle to report aria-expanded=true after opening.");
     }
 
-    const openFocus = await reverseTabIntoSidebar(page, toggle);
-    assertFocusLocation(openFocus, true, "Opened mobile drawer did not restore sidebar tab order");
+    assertWorkbenchFrameState(await readWorkbenchFrameState(page), true);
 
-    await toggle.focus();
-    await page.keyboard.press("Space");
+    const openInitialFocus = await readFocusSnapshot(page);
+    assertFocusLocation(openInitialFocus, true, "Opening the mobile drawer did not move focus into the sidebar");
+
+    const openTabFocus = await tabFromCurrentFocus(page);
+    assertFocusLocation(openTabFocus, true, "Tab escaped the open mobile drawer");
+
+    await page.keyboard.press("Escape");
     await page.waitForFunction((sidebarId) => {
       const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
+      const frame = document.querySelector(".protocol-workbench-frame") as (HTMLElement & { inert?: boolean }) | null;
+      const activeElement = document.activeElement as HTMLElement | null;
       return (
         sidebar?.getAttribute("aria-hidden") === "true"
         && sidebar?.getAttribute("data-mobile-hidden") === "true"
         && sidebar?.inert === true
+        && !frame?.hasAttribute("aria-hidden")
+        && frame?.inert === false
+        && activeElement?.getAttribute("aria-label") === "Open sidebar"
       );
     }, SIDEBAR_ID);
 
     const rehiddenState = await readSidebarState(page);
     assertSidebarState(rehiddenState, true);
+    assertWorkbenchFrameState(await readWorkbenchFrameState(page), false);
+
+    const restoredFocus = await readFocusSnapshot(page);
+    if (restoredFocus.ariaLabel !== "Open sidebar") {
+      throw new Error(`Expected focus to return to the drawer toggle after closing. focus=${JSON.stringify(restoredFocus)}`);
+    }
 
     const reopenedFocus = await tabFromDocumentStart(page);
     assertFocusLocation(reopenedFocus, false, "Closed mobile drawer re-entered tab order after being reopened");
@@ -337,7 +372,8 @@ async function main(): Promise<void> {
     console.log(`[workbench-mobile-sidebar-smoke] base_url=${server.baseUrl}`);
     console.log(`[workbench-mobile-sidebar-smoke] viewport=${VIEWPORT.width}x${VIEWPORT.height}`);
     console.log(`[workbench-mobile-sidebar-smoke] closed_focus=${JSON.stringify(closedFocus)}`);
-    console.log(`[workbench-mobile-sidebar-smoke] open_focus=${JSON.stringify(openFocus)}`);
+    console.log(`[workbench-mobile-sidebar-smoke] open_initial_focus=${JSON.stringify(openInitialFocus)}`);
+    console.log(`[workbench-mobile-sidebar-smoke] open_tab_focus=${JSON.stringify(openTabFocus)}`);
     console.log(`[workbench-mobile-sidebar-smoke] status=passed`);
 
     await context.close();

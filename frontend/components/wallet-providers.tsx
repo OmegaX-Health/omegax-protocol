@@ -25,12 +25,16 @@ function middleTruncate(value: string, start = 6, end = 4): string {
 export function WalletProviders({ children }: { children: React.ReactNode }) {
   const { selectedNetwork } = useNetworkContext();
   const sharedEndpoint = (process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "").trim();
+  const keyedDevnetEndpoint = (process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL_WITH_KEY || "").trim();
+  const keyedMainnetEndpoint = (process.env.NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL_WITH_KEY || "").trim();
   const devnetEndpoint =
     (process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL || "").trim()
+    || keyedDevnetEndpoint
     || sharedEndpoint
     || DEFAULT_DEVNET_RPC_URL;
   const mainnetEndpoint =
     (process.env.NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL || "").trim()
+    || keyedMainnetEndpoint
     || sharedEndpoint
     || DEFAULT_MAINNET_RPC_URL;
   const endpoint = selectedNetwork === "mainnet-beta" ? mainnetEndpoint : devnetEndpoint;

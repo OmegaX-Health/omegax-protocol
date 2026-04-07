@@ -118,6 +118,15 @@ export type GovernanceQueueItem = {
   stage: string;
 };
 
+export type GovernanceQueueStatusCopy = {
+  emptyDetail: string;
+  emptyMessage: string;
+  emptyMeta: string;
+  emptyTitle: string;
+  metricAriaLabel: string;
+  metricValue: string;
+};
+
 export type WorkbenchAuditItem = {
   id: string;
   tone: "verified" | "pending" | "signal";
@@ -177,6 +186,47 @@ function templateLabelForProposal(descriptionLink: string): string {
     return "External description";
   }
   return "External description";
+}
+
+export function describeGovernanceQueueStatus(input: {
+  count: number;
+  failed: boolean;
+  failureDetail?: string | null;
+  loaded: boolean;
+}): GovernanceQueueStatusCopy {
+  if (!input.loaded) {
+    return {
+      emptyDetail: "Loading live governance proposals from SPL Governance.",
+      emptyMessage: "Loading live governance proposals...",
+      emptyMeta: "Fetching",
+      emptyTitle: "Loading governance queue",
+      metricAriaLabel: "Fetching live governance proposals.",
+      metricValue: "Fetching",
+    };
+  }
+
+  if (input.failed) {
+    const failureDetail = input.failureDetail?.trim()
+      || "Live governance proposals could not be loaded from SPL Governance. Check the RPC connection and try again.";
+    return {
+      emptyDetail: failureDetail,
+      emptyMessage: failureDetail,
+      emptyMeta: "RPC failed",
+      emptyTitle: "Governance queue unavailable",
+      metricAriaLabel: "Live governance proposal fetch failed.",
+      metricValue: "RPC failed",
+    };
+  }
+
+  const proposalLabel = input.count === 1 ? "proposal" : "proposals";
+  return {
+    emptyDetail: "No live governance proposals are available for the configured realm.",
+    emptyMessage: "No live governance proposals are available for the configured realm.",
+    emptyMeta: "No proposals",
+    emptyTitle: "Live governance queue",
+    metricAriaLabel: `${input.count} live governance ${proposalLabel}.`,
+    metricValue: input.count.toString(),
+  };
 }
 
 function authorityLabelForProposal(proposal: GovernanceProposalSummary): string {

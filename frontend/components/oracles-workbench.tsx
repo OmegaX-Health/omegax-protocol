@@ -192,9 +192,9 @@ export function OraclesWorkbench() {
                 <tbody>
                   {operatorWallets.map((wallet) => (
                     <tr key={devnetFixtureWalletKey(wallet)}>
-                      <td>{wallet.role}</td>
-                      <td>{wallet.label}</td>
-                      <td>{shortenAddress(wallet.address, 8)}</td>
+                      <td data-label="Role">{wallet.role}</td>
+                      <td data-label="Operator">{wallet.label}</td>
+                      <td data-label="Address">{shortenAddress(wallet.address, 8)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -217,10 +217,10 @@ export function OraclesWorkbench() {
                   <tbody>
                     {boundSeries.map((series) => (
                       <tr key={series.address}>
-                        <td>{series.displayName}</td>
-                        <td>{describeSeriesMode(series.mode)}</td>
-                        <td>{series.termsVersion}</td>
-                        <td>{shortenAddress(series.address, 8)}</td>
+                        <td data-label="Series">{series.displayName}</td>
+                        <td data-label="Mode">{describeSeriesMode(series.mode)}</td>
+                        <td data-label="Version">{series.termsVersion}</td>
+                        <td data-label="Address">{shortenAddress(series.address, 8)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -246,10 +246,10 @@ export function OraclesWorkbench() {
                   <tbody>
                     {attestations.map((attestation) => (
                       <tr key={attestation.id}>
-                        <td>{attestation.series}</td>
-                        <td>{attestation.operator}</td>
-                        <td>{attestation.status}</td>
-                        <td>{attestation.reference}</td>
+                        <td data-label="Series">{attestation.series}</td>
+                        <td data-label="Operator">{attestation.operator}</td>
+                        <td data-label="Status">{attestation.status}</td>
+                        <td data-label="Reference">{attestation.reference}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -280,10 +280,10 @@ export function OraclesWorkbench() {
                       const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((entry) => entry.address === obligation.policySeries);
                       return (
                         <tr key={obligation.address}>
-                          <td>{obligation.obligationId}</td>
-                          <td>{formatAmount(obligation.reservedAmount)}</td>
-                          <td>{formatAmount(obligation.impairedAmount)}</td>
-                          <td>{series?.displayName ?? "Pool-wide"}</td>
+                          <td data-label="Obligation">{obligation.obligationId}</td>
+                          <td data-label="Reserved">{formatAmount(obligation.reservedAmount)}</td>
+                          <td data-label="Impaired">{formatAmount(obligation.impairedAmount)}</td>
+                          <td data-label="Series">{series?.displayName ?? "Pool-wide"}</td>
                         </tr>
                       );
                     })}

@@ -4,14 +4,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 import { WorkbenchRailCard } from "@/components/workbench-ui";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
-import { loadGovernanceDashboard } from "@/lib/governance-readonly";
-import { buildAuditTrail, buildGovernanceQueue, computeWorkbenchMetrics } from "@/lib/workbench";
+import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
+import { formatRpcError } from "@/lib/rpc-errors";
+import {
+  buildAuditTrail,
+  buildGovernanceQueue,
+  computeWorkbenchMetrics,
+  describeGovernanceQueueStatus,
+} from "@/lib/workbench";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 
 type FocusRow = {
@@ -53,13 +59,22 @@ function quickActionsForPersona(persona: string) {
 
 export function OverviewWorkbench() {
   const { connection } = useConnection();
-  const { publicKey } = useWallet();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
   const metrics = useMemo(() => computeWorkbenchMetrics(), []);
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [governanceQueueLoaded, setGovernanceQueueLoaded] = useState(false);
+  const [governanceQueueError, setGovernanceQueueError] = useState<string | null>(null);
   const governanceQueue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
+  const governanceQueueStatus = useMemo(
+    () => describeGovernanceQueueStatus({
+      count: governanceQueue.length,
+      failed: Boolean(governanceQueueError),
+      failureDetail: governanceQueueError,
+      loaded: governanceQueueLoaded,
+    }),
+    [governanceQueue.length, governanceQueueError, governanceQueueLoaded],
+  );
   const auditTrail = useMemo(
     () => buildAuditTrail({ section: "overview", persona: effectivePersona, queue: governanceQueue }),
     [effectivePersona, governanceQueue],
@@ -81,11 +96,9 @@ export function OverviewWorkbench() {
         return [
           {
             id: "governance-live-queue",
-            title: governanceQueueLoaded ? "Live governance queue" : "Loading governance queue",
-            meta: governanceQueueLoaded ? "No proposals" : "Fetching",
-            detail: governanceQueueLoaded
-              ? "No live governance proposals are available for the configured realm."
-              : "Loading live governance proposals from SPL Governance.",
+            title: governanceQueueStatus.emptyTitle,
+            meta: governanceQueueStatus.emptyMeta,
+            detail: governanceQueueStatus.emptyDetail,
             href: "/governance?tab=queue",
           },
         ];
@@ -111,7 +124,7 @@ export function OverviewWorkbench() {
         href: `/plans?plan=${encodeURIComponent(plan.address)}&tab=overview`,
       };
     });
-  }, [consoleState.sponsors, effectivePersona, governanceQueue, governanceQueueLoaded]);
+  }, [consoleState.sponsors, effectivePersona, governanceQueue, governanceQueueStatus]);
 
   const [selectedFocus, setSelectedFocus] = useState<string>("");
 
@@ -120,16 +133,17 @@ export function OverviewWorkbench() {
 
     async function loadProposalQueue() {
       setGovernanceQueueLoaded(false);
+      setGovernanceQueueError(null);
       try {
-        const dashboard = await loadGovernanceDashboard({
-          connection,
-          walletAddress: publicKey ?? null,
-        });
+        const proposals = await loadGovernanceProposalQueue({ connection });
         if (cancelled) return;
-        setGovernanceProposalRows(dashboard?.proposals ?? []);
-      } catch {
+        setGovernanceProposalRows(proposals ?? []);
+      } catch (cause) {
         if (cancelled) return;
-        setGovernanceProposalRows([]);
+        setGovernanceQueueError(formatRpcError(cause, {
+          fallback: "Failed to load the governance queue.",
+          rpcEndpoint: connection.rpcEndpoint,
+        }));
       } finally {
         if (!cancelled) {
           setGovernanceQueueLoaded(true);
@@ -141,7 +155,7 @@ export function OverviewWorkbench() {
     return () => {
       cancelled = true;
     };
-  }, [connection, publicKey]);
+  }, [connection]);
 
   useEffect(() => {
     if (!focusRows.some((row) => row.id === selectedFocus)) {
@@ -175,7 +189,7 @@ export function OverviewWorkbench() {
             </div>
             <div className="workbench-summary-metric">
               <span>Governance queue</span>
-              <strong>{governanceQueue.length}</strong>
+              <strong aria-live="polite" aria-label={governanceQueueStatus.metricAriaLabel}>{governanceQueueStatus.metricValue}</strong>
             </div>
           </div>
 

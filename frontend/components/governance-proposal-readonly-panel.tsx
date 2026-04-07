@@ -47,7 +47,6 @@ export function GovernanceProposalReadonlyPanel({
         fallback: "Failed to load proposal details.",
         rpcEndpoint: connection.rpcEndpoint,
       }));
-      setDetail(null);
     } finally {
       setLoading(false);
     }
@@ -60,7 +59,7 @@ export function GovernanceProposalReadonlyPanel({
   const decimals = detail?.tokenDecimals ?? 0;
   const primaryOption = useMemo(() => detail?.proposal.options[0] ?? null, [detail]);
 
-  if (loading) {
+  if (loading && !detail) {
     return (
       <section className="surface-card space-y-3">
         <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">

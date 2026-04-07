@@ -28,10 +28,32 @@ import { computeWorkbenchMetrics, sectionChrome, sectionFromPathname, WORKBENCH_
 
 const MOBILE_SIDEBAR_MEDIA_QUERY = "(max-width: 899px)";
 const WORKBENCH_SIDEBAR_ID = "protocol-workbench-sidebar";
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
 
 type InertHTMLElement = HTMLElement & {
   inert: boolean;
 };
+
+function canReceiveFocus(element: HTMLElement | null | undefined): element is HTMLElement {
+  return Boolean(
+    element
+    && element.isConnected
+    && !(element as InertHTMLElement).inert
+    && element.getAttribute("aria-hidden") !== "true"
+    && element.getClientRects().length > 0,
+  );
+}
+
+function getFocusableElements(container: HTMLElement) {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(canReceiveFocus);
+}
 
 function iconForNav(icon: (typeof WORKBENCH_NAV)[number]["icon"]) {
   switch (icon) {
@@ -89,6 +111,11 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+  const wasMobileDrawerModalOpenRef = useRef(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [epoch, setEpoch] = useState("--");
@@ -102,6 +129,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const metrics = computeWorkbenchMetrics();
   const rpcStatus = isLive ? "RPC reachable" : "RPC unavailable";
   const ThemeIcon = mounted && theme === "dark" ? SunMedium : MoonStar;
+  const isMobileDrawerModalOpen = isMobileViewport && isSidebarOpen;
   const isMobileDrawerHidden = isMobileViewport && !isSidebarOpen;
 
   useEffect(() => {
@@ -150,6 +178,88 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   }, [isMobileDrawerHidden]);
 
   useEffect(() => {
+    const frame = frameRef.current as InertHTMLElement | null;
+    if (!frame) return;
+
+    frame.inert = isMobileDrawerModalOpen;
+    if (isMobileDrawerModalOpen) {
+      frame.setAttribute("aria-hidden", "true");
+    } else {
+      frame.removeAttribute("aria-hidden");
+    }
+
+    return () => {
+      frame.inert = false;
+      frame.removeAttribute("aria-hidden");
+    };
+  }, [isMobileDrawerModalOpen]);
+
+  useEffect(() => {
+    const wasOpen = wasMobileDrawerModalOpenRef.current;
+
+    if (isMobileDrawerModalOpen && !wasOpen) {
+      lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const sidebar = sidebarRef.current;
+      const focusTarget = mobileCloseButtonRef.current ?? (sidebar ? getFocusableElements(sidebar)[0] : null) ?? sidebar;
+      focusTarget?.focus();
+    }
+
+    if (!isMobileDrawerModalOpen && wasOpen) {
+      const restoreTarget = [lastFocusedElementRef.current, mobileMenuButtonRef.current].find(canReceiveFocus);
+      restoreTarget?.focus();
+      lastFocusedElementRef.current = null;
+    }
+
+    wasMobileDrawerModalOpenRef.current = isMobileDrawerModalOpen;
+  }, [isMobileDrawerModalOpen]);
+
+  useEffect(() => {
+    if (!isMobileDrawerModalOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsSidebarOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const sidebar = sidebarRef.current;
+      if (!sidebar) return;
+
+      const focusableElements = getFocusableElements(sidebar);
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        sidebar.focus();
+        return;
+      }
+
+      const [firstFocusable] = focusableElements;
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (!activeElement || activeElement === firstFocusable || !sidebar.contains(activeElement)) {
+          event.preventDefault();
+          lastFocusable.focus();
+        }
+        return;
+      }
+
+      if (!activeElement || activeElement === lastFocusable || !sidebar.contains(activeElement)) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileDrawerModalOpen]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function refreshStatus() {
@@ -188,14 +298,29 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
       <aside
         ref={sidebarRef}
         id={WORKBENCH_SIDEBAR_ID}
+        role={isMobileViewport ? "dialog" : undefined}
+        aria-label={isMobileViewport ? "Workbench navigation" : undefined}
+        aria-modal={isMobileDrawerModalOpen || undefined}
         aria-hidden={isMobileDrawerHidden}
         data-mobile-hidden={isMobileDrawerHidden ? "true" : "false"}
+        tabIndex={-1}
         className={cn("protocol-sidebar liquid-glass z-10", isSidebarOpen && "protocol-sidebar-open")}
       >
         <div className="protocol-sidebar-brand">
           <Link href="/overview" className="protocol-sidebar-wordmark" aria-label="OmegaX workbench home">
             OmegaX
           </Link>
+          {isMobileViewport ? (
+            <button
+              ref={mobileCloseButtonRef}
+              type="button"
+              className="protocol-mobile-close-button"
+              onClick={() => setIsSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <X className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
 
         <nav className="protocol-sidebar-nav" aria-label="Primary navigation">
@@ -241,19 +366,19 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
       </aside>
 
       {isMobileViewport && isSidebarOpen ? (
-        <button
-          type="button"
+        <div
           className="protocol-sidebar-scrim"
-          aria-label="Close navigation"
+          aria-hidden="true"
           onClick={() => setIsSidebarOpen(false)}
         />
       ) : null}
 
-      <div className="protocol-workbench-frame">
+      <div ref={frameRef} className="protocol-workbench-frame">
         <header className="protocol-workbench-header">
           <div className="protocol-workbench-header-main liquid-glass">
             <div className="protocol-workbench-header-title">
               <button
+                ref={mobileMenuButtonRef}
                 type="button"
                 className="protocol-mobile-menu-button"
                 aria-controls={WORKBENCH_SIDEBAR_ID}

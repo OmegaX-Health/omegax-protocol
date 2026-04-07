@@ -263,10 +263,10 @@ export function PlansWorkbench() {
                   <tbody>
                     {(sponsorView?.perSeriesPerformance ?? []).map((series) => (
                       <tr key={series.policySeries}>
-                        <td>{series.seriesId}</td>
-                        <td>{series.mode}</td>
-                        <td>{series.claimCount}</td>
-                        <td>{formatAmount(series.reserved)}</td>
+                        <td data-label="Series">{series.seriesId}</td>
+                        <td data-label="Mode">{series.mode}</td>
+                        <td data-label="Claims">{series.claimCount}</td>
+                        <td data-label="Reserved">{formatAmount(series.reserved)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -290,15 +290,15 @@ export function PlansWorkbench() {
                 <tbody>
                   {planSeries.map((series) => (
                     <tr key={series.address}>
-                      <td>
+                      <td data-label="Series">
                         <button type="button" className="workbench-inline-button" onClick={() => updateParams({ series: series.address })}>
                           {series.displayName}
                         </button>
                       </td>
-                      <td>{series.termsVersion}</td>
-                      <td>{series.comparabilityKey}</td>
-                      <td>{formatAmount(seriesOutcomeCount(series.address))}</td>
-                      <td>{describeSeriesStatus(series.status)}</td>
+                      <td data-label="Version">{series.termsVersion}</td>
+                      <td data-label="Comparability">{series.comparabilityKey}</td>
+                      <td data-label="Outcomes">{formatAmount(seriesOutcomeCount(series.address))}</td>
+                      <td data-label="Status">{describeSeriesStatus(series.status)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -321,10 +321,10 @@ export function PlansWorkbench() {
                   <tbody>
                     {filteredMembers.map((member) => (
                       <tr key={member.address}>
-                        <td>{shortenAddress(member.wallet, 6)}</td>
-                        <td>{describeEligibilityStatus(member.eligibilityStatus)}</td>
-                        <td>{member.delegatedRights.join(", ") || "None"}</td>
-                        <td>{shortenAddress(member.address, 6)}</td>
+                        <td data-label="Wallet">{shortenAddress(member.wallet, 6)}</td>
+                        <td data-label="Eligibility">{describeEligibilityStatus(member.eligibilityStatus)}</td>
+                        <td data-label="Delegated rights">{member.delegatedRights.join(", ") || "None"}</td>
+                        <td data-label="Position">{shortenAddress(member.address, 6)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -359,10 +359,10 @@ export function PlansWorkbench() {
                   <tbody>
                     {filteredClaims.map((claim) => (
                       <tr key={claim.address}>
-                        <td>{claim.claimId}</td>
-                        <td>{describeClaimStatus(claim.intakeStatus)}</td>
-                        <td>{formatAmount(claim.approvedAmount)}</td>
-                        <td>{formatAmount(claim.reservedAmount)}</td>
+                        <td data-label="Claim">{claim.claimId}</td>
+                        <td data-label="Status">{describeClaimStatus(claim.intakeStatus)}</td>
+                        <td data-label="Approved">{formatAmount(claim.approvedAmount)}</td>
+                        <td data-label="Reserved">{formatAmount(claim.reservedAmount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -388,10 +388,10 @@ export function PlansWorkbench() {
                   <tbody>
                     {filteredObligations.map((obligation) => (
                       <tr key={obligation.address}>
-                        <td>{obligation.obligationId}</td>
-                        <td>{describeObligationStatus(obligation.status)}</td>
-                        <td>{formatAmount(obligation.principalAmount)}</td>
-                        <td>{formatAmount(obligation.outstandingAmount)}</td>
+                        <td data-label="Obligation">{obligation.obligationId}</td>
+                        <td data-label="Status">{describeObligationStatus(obligation.status)}</td>
+                        <td data-label="Principal">{formatAmount(obligation.principalAmount)}</td>
+                        <td data-label="Outstanding">{formatAmount(obligation.outstandingAmount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -439,10 +439,10 @@ export function PlansWorkbench() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{selectedSeries.seriesId}</td>
-                        <td>{describeSeriesMode(selectedSeries.mode)}</td>
-                        <td>{selectedSeries.termsVersion}</td>
-                        <td>{shortenAddress(selectedSeries.address, 8)}</td>
+                        <td data-label="Series id">{selectedSeries.seriesId}</td>
+                        <td data-label="Mode">{describeSeriesMode(selectedSeries.mode)}</td>
+                        <td data-label="Terms version">{selectedSeries.termsVersion}</td>
+                        <td data-label="Address">{shortenAddress(selectedSeries.address, 8)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -468,11 +468,11 @@ export function PlansWorkbench() {
                 <tbody>
                   {planFundingLines.map((line) => (
                     <tr key={line.address}>
-                      <td>{line.displayName}</td>
-                      <td>{describeFundingLineType(line.lineType)}</td>
-                      <td>{formatAmount(line.fundedAmount)}</td>
-                      <td>{formatAmount(line.reservedAmount)}</td>
-                      <td>{line.status === 0 ? "open" : "managed"}</td>
+                      <td data-label="Funding line">{line.displayName}</td>
+                      <td data-label="Type">{describeFundingLineType(line.lineType)}</td>
+                      <td data-label="Funded">{formatAmount(line.fundedAmount)}</td>
+                      <td data-label="Reserved">{formatAmount(line.reservedAmount)}</td>
+                      <td data-label="Status">{line.status === 0 ? "open" : "managed"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -495,20 +495,20 @@ export function PlansWorkbench() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td>Reserve domain</td>
-                      <td>{shortenAddress(selectedPlan?.reserveDomain ?? "", 6)}</td>
+                      <td data-label="Control lane">Reserve domain</td>
+                      <td data-label="Address">{shortenAddress(selectedPlan?.reserveDomain ?? "", 6)}</td>
                     </tr>
                     <tr>
-                      <td>Plan admin</td>
-                      <td>{shortenAddress(selectedPlan?.planAdmin ?? "", 6)}</td>
+                      <td data-label="Control lane">Plan admin</td>
+                      <td data-label="Address">{shortenAddress(selectedPlan?.planAdmin ?? "", 6)}</td>
                     </tr>
                     <tr>
-                      <td>Sponsor operator</td>
-                      <td>{shortenAddress(selectedPlan?.sponsorOperator ?? "", 6)}</td>
+                      <td data-label="Control lane">Sponsor operator</td>
+                      <td data-label="Address">{shortenAddress(selectedPlan?.sponsorOperator ?? "", 6)}</td>
                     </tr>
                     <tr>
-                      <td>Claims operator</td>
-                      <td>{shortenAddress(selectedPlan?.claimsOperator ?? "", 6)}</td>
+                      <td data-label="Control lane">Claims operator</td>
+                      <td data-label="Address">{shortenAddress(selectedPlan?.claimsOperator ?? "", 6)}</td>
                     </tr>
                   </tbody>
                 </table>

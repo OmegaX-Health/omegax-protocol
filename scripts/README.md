@@ -10,7 +10,7 @@ This directory contains the repository's command-line helpers.
 - `check_semantic_readiness.mjs` blocks retired pool-era language from active protocol, audit, script, and documentation surfaces
 - `check_dependency_licenses.mjs` audits npm and Cargo dependency licenses
 - `check_protocol_contract.mjs` verifies that generated protocol artifacts are in sync
-- `protocol_workbench_mobile_sidebar_smoke.ts` boots the local frontend and verifies the closed mobile workbench drawer stays out of tab order and assistive-tech exposure
+- `protocol_workbench_mobile_sidebar_smoke.ts` boots the local frontend and verifies the closed mobile workbench drawer stays out of tab order while the open drawer traps focus and makes the workbench frame inert
 - `check_beta_consistency.mjs` and `check_mvp_consistency.mjs` validate protocol consistency assumptions
 - `doctor.mjs` runs local environment sanity checks
 

@@ -2222,6 +2222,10 @@
   }
 
   .protocol-sidebar-brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
     padding: 0.95rem 1rem 1.25rem;
     border-bottom: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   }
@@ -2495,6 +2499,7 @@
   .protocol-header-select select,
   .protocol-icon-button,
   .protocol-wallet-pill,
+  .protocol-mobile-close-button,
   .protocol-mobile-menu-button {
     min-height: 2.5rem;
     border-radius: 999px;
@@ -2506,6 +2511,7 @@
   .dark .protocol-header-select select,
   .dark .protocol-icon-button,
   .dark .protocol-wallet-pill,
+  .dark .protocol-mobile-close-button,
   .dark .protocol-mobile-menu-button {
     background: color-mix(in oklab, var(--surface-elevated) 88%, rgba(255, 255, 255, 0.04));
   }
@@ -2517,6 +2523,7 @@
   }
 
   .protocol-icon-button,
+  .protocol-mobile-close-button,
   .protocol-mobile-menu-button {
     width: 2.5rem;
     display: inline-flex;
@@ -2547,6 +2554,11 @@
     font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.18em;
+  }
+
+  .protocol-mobile-close-button {
+    display: none;
+    flex-shrink: 0;
   }
 
   .protocol-mobile-menu-button {
@@ -2925,6 +2937,8 @@
     border-radius: 1.55rem;
     border: none;
     background: transparent;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .workbench-table-card-embedded {
@@ -3218,6 +3232,10 @@
       flex-shrink: 0;
     }
 
+    .protocol-mobile-close-button {
+      display: inline-flex;
+    }
+
     .protocol-workbench-header-main,
     .protocol-workbench-footer {
       margin-left: 0;
@@ -3257,6 +3275,10 @@
       overflow: visible;
       padding-right: 0;
     }
+
+    .workbench-table-card > .workbench-table:not(.overview-register-table) {
+      min-width: 40rem;
+    }
   }
 
   @media (max-width: 767px) {
@@ -3279,6 +3301,11 @@
       border-right: none;
     }
 
+    .protocol-header-select {
+      flex: 1 1 12rem;
+      min-width: min(100%, 12rem);
+    }
+
     .protocol-header-select select,
     .protocol-wallet-pill {
       min-width: 0;
@@ -3286,14 +3313,22 @@
     }
 
     .protocol-workbench-controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-wrap: wrap;
       width: 100%;
     }
 
+    .protocol-header-pill-cluster,
+    .protocol-wallet-pill {
+      flex: 1 1 100%;
+    }
+
     .protocol-header-pill-cluster {
-      grid-column: 1 / -1;
       flex-wrap: wrap;
+    }
+
+    .protocol-icon-button {
+      flex: 0 0 auto;
     }
 
     .workbench-kpi-grid,
@@ -3320,6 +3355,67 @@
 
     .workbench-summary-metric:first-child {
       border-top: none;
+    }
+
+    .workbench-table-card {
+      overflow: visible;
+      padding: 0.65rem 0.75rem 0.75rem;
+    }
+
+    .workbench-table:not(.overview-register-table) {
+      min-width: 0;
+      display: block;
+    }
+
+    .workbench-table:not(.overview-register-table) thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .workbench-table:not(.overview-register-table) tbody {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .workbench-table:not(.overview-register-table) tr {
+      display: grid;
+      gap: 0.7rem;
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+      background: color-mix(in oklab, var(--surface-elevated) 92%, white 8%);
+    }
+
+    .workbench-table:not(.overview-register-table) .workbench-table-row-active {
+      border-color: color-mix(in oklab, var(--accent) 24%, var(--border) 76%);
+      background: color-mix(in oklab, var(--status-surface) 88%, white 12%);
+    }
+
+    .workbench-table:not(.overview-register-table) td {
+      display: grid;
+      gap: 0.32rem;
+      padding: 0;
+      border-bottom: none;
+      white-space: normal;
+    }
+
+    .workbench-table:not(.overview-register-table) .workbench-table-row-active td {
+      background: transparent;
+    }
+
+    .workbench-table:not(.overview-register-table) td[data-label]::before {
+      content: attr(data-label);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted-foreground);
     }
 
     .overview-register-table-card {

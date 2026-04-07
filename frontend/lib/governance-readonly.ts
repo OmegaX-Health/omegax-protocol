@@ -30,9 +30,13 @@ import {
 } from "@solana/spl-token";
 import { Connection, PublicKey } from "@solana/web3.js";
 
+import { createShortLivedPromiseCache } from "@/lib/short-lived-promise-cache";
+
 export const DEFAULT_GOVERNANCE_PROGRAM_ID = "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw";
 const DEFAULT_CLUSTER = "devnet";
 const ZERO_PUBKEY = "11111111111111111111111111111111";
+const READONLY_GOVERNANCE_CACHE_TTL_MS = 15_000;
+const READONLY_GOVERNANCE_ERROR_TTL_MS = 5_000;
 
 export type GovernanceProposalGroup = "active" | "executable" | "completed" | "failed";
 export type GovernanceVoteChoice = "yes" | "no";
@@ -164,6 +168,41 @@ export type GovernanceDashboardSummary = {
   tokenSupplyRaw: bigint;
   wallet: GovernanceWalletSummary | null;
 };
+
+type GovernanceBaseLoadResult = {
+  governance: { pubkey: PublicKey; account: Governance };
+  governanceAddress: PublicKey;
+  governanceProgramId: PublicKey;
+  governanceProgramVersion: number;
+  governanceTokenMint: PublicKey;
+  members: GovernanceMemberSummary[];
+  nativeTreasuryAddress: PublicKey;
+  nativeTreasuryLamports: bigint;
+  ownerRecordToWallet: Map<string, string>;
+  realm: Awaited<ReturnType<typeof getRealm>>;
+  tokenDecimals: number;
+  tokenSupplyRaw: bigint;
+} | null;
+
+const governanceBaseCache = createShortLivedPromiseCache<GovernanceBaseLoadResult>({
+  errorTtlMs: READONLY_GOVERNANCE_ERROR_TTL_MS,
+  ttlMs: READONLY_GOVERNANCE_CACHE_TTL_MS,
+});
+
+const governanceProposalQueueCache = createShortLivedPromiseCache<GovernanceProposalSummary[] | null>({
+  errorTtlMs: READONLY_GOVERNANCE_ERROR_TTL_MS,
+  ttlMs: READONLY_GOVERNANCE_CACHE_TTL_MS,
+});
+
+const governanceDashboardCache = createShortLivedPromiseCache<GovernanceDashboardSummary | null>({
+  errorTtlMs: READONLY_GOVERNANCE_ERROR_TTL_MS,
+  ttlMs: READONLY_GOVERNANCE_CACHE_TTL_MS,
+});
+
+const governanceProposalDetailCache = createShortLivedPromiseCache<GovernanceProposalDetailSummary | null>({
+  errorTtlMs: READONLY_GOVERNANCE_ERROR_TTL_MS,
+  ttlMs: READONLY_GOVERNANCE_CACHE_TTL_MS,
+});
 
 function asBigInt(value: BN | bigint | number | null | undefined): bigint | null {
   if (value == null) return null;
@@ -316,6 +355,50 @@ export function getGovernanceRuntimeConfig(): GovernanceRuntimeConfig {
   };
 }
 
+function connectionCacheKey(connection: Connection): string {
+  return connection.rpcEndpoint.trim() || "unknown-rpc-endpoint";
+}
+
+function governanceRuntimeCacheKey(runtime: GovernanceRuntimeConfig): string {
+  return [
+    runtime.cluster,
+    runtime.programId,
+    runtime.realmAddress ?? ZERO_PUBKEY,
+    runtime.governanceAddress ?? ZERO_PUBKEY,
+    runtime.governanceTokenMint ?? ZERO_PUBKEY,
+    runtime.programVersionOverride ?? "auto",
+  ].join("|");
+}
+
+function readonlyGovernanceCacheKey(params: {
+  connection: Connection;
+  includeMembers?: boolean;
+  proposalAddress?: PublicKey;
+  walletAddress?: PublicKey | null;
+  scope: "base" | "dashboard" | "proposal-detail" | "proposal-queue";
+}): string {
+  const runtime = getGovernanceRuntimeConfig();
+  const keyParts = [
+    params.scope,
+    connectionCacheKey(params.connection),
+    governanceRuntimeCacheKey(runtime),
+  ];
+
+  if (params.scope === "base") {
+    keyParts.push(params.includeMembers === false ? "members=0" : "members=1");
+  }
+
+  if (params.proposalAddress) {
+    keyParts.push(`proposal=${params.proposalAddress.toBase58()}`);
+  }
+
+  if (params.scope !== "proposal-queue") {
+    keyParts.push(`wallet=${params.walletAddress?.toBase58() ?? "none"}`);
+  }
+
+  return keyParts.join("|");
+}
+
 function normalizeGovernanceProgramVersion(params: {
   detectedVersion: number;
   overrideVersion?: number | null;
@@ -434,164 +517,199 @@ async function loadWalletGovernanceState(params: {
 async function loadGovernanceBase(params: {
   connection: Connection;
   includeMembers?: boolean;
-}): Promise<{
-  governance: { pubkey: PublicKey; account: Governance };
-  governanceAddress: PublicKey;
-  governanceProgramId: PublicKey;
-  governanceProgramVersion: number;
-  governanceTokenMint: PublicKey;
-  members: GovernanceMemberSummary[];
-  nativeTreasuryAddress: PublicKey;
-  nativeTreasuryLamports: bigint;
-  ownerRecordToWallet: Map<string, string>;
-  realm: Awaited<ReturnType<typeof getRealm>>;
-  tokenDecimals: number;
-  tokenSupplyRaw: bigint;
-} | null> {
-  const runtime = getGovernanceRuntimeConfig();
-  if (!runtime.realmAddress || !runtime.governanceAddress || !runtime.governanceTokenMint) {
-    return null;
-  }
-
-  const governanceProgramId = new PublicKey(runtime.programId);
-  const governanceAddress = new PublicKey(runtime.governanceAddress);
-  const governanceTokenMint = new PublicKey(runtime.governanceTokenMint);
-  const realmAddress = new PublicKey(runtime.realmAddress);
-  const governanceProgramVersion = await resolveGovernanceProgramVersion({
-    cluster: runtime.cluster,
-    connection: params.connection,
-    overrideVersion: runtime.programVersionOverride,
-    programId: governanceProgramId,
-  });
-
-  const [realm, governance, nativeTreasuryAddress, nativeTreasuryLamports, mint, memberAccounts] = await Promise.all([
-    getRealm(params.connection, realmAddress),
-    getGovernance(params.connection, governanceAddress),
-    getNativeTreasuryAddress(governanceProgramId, governanceAddress),
-    getNativeTreasuryAddress(governanceProgramId, governanceAddress).then((address) =>
-      params.connection.getBalance(address, "confirmed").then((lamports) => BigInt(lamports)),
-    ),
-    getMint(params.connection, governanceTokenMint),
-    params.includeMembers === false
-      ? Promise.resolve([])
-      : getAllTokenOwnerRecords(params.connection, governanceProgramId, realmAddress),
-  ]);
-
-  const ownerRecordToWallet = new Map<string, string>();
-  const members = memberAccounts
-    .filter((record) => record.account.governingTokenMint.equals(governanceTokenMint))
-    .map((record) => {
-      ownerRecordToWallet.set(record.pubkey.toBase58(), record.account.governingTokenOwner.toBase58());
-      return {
-        address: record.pubkey.toBase58(),
-        delegatedTo: record.account.governanceDelegate?.toBase58() ?? null,
-        governingTokenMint: record.account.governingTokenMint.toBase58(),
-        governingTokenOwner: record.account.governingTokenOwner.toBase58(),
-        depositedVotesRaw: BigInt(record.account.governingTokenDepositAmount.toString(10)),
-        outstandingProposalCount: record.account.outstandingProposalCount,
-        totalVotesCount: record.account.totalVotesCount,
-        unrelinquishedVotesCount: record.account.unrelinquishedVotesCount,
-      };
-    })
-    .sort((left, right) => {
-      if (left.depositedVotesRaw === right.depositedVotesRaw) {
-        return left.governingTokenOwner.localeCompare(right.governingTokenOwner);
+}): Promise<GovernanceBaseLoadResult> {
+  return governanceBaseCache.getOrLoad(
+    readonlyGovernanceCacheKey({
+      connection: params.connection,
+      includeMembers: params.includeMembers,
+      scope: "base",
+    }),
+    async () => {
+      const runtime = getGovernanceRuntimeConfig();
+      if (!runtime.realmAddress || !runtime.governanceAddress || !runtime.governanceTokenMint) {
+        return null;
       }
-      return left.depositedVotesRaw > right.depositedVotesRaw ? -1 : 1;
-    });
 
-  return {
-    governance,
-    governanceAddress,
-    governanceProgramId,
-    governanceProgramVersion,
-    governanceTokenMint,
-    members,
-    nativeTreasuryAddress,
-    nativeTreasuryLamports,
-    ownerRecordToWallet,
-    realm,
-    tokenDecimals: mint.decimals,
-    tokenSupplyRaw: BigInt(mint.supply.toString()),
-  };
+      const governanceProgramId = new PublicKey(runtime.programId);
+      const governanceAddress = new PublicKey(runtime.governanceAddress);
+      const governanceTokenMint = new PublicKey(runtime.governanceTokenMint);
+      const realmAddress = new PublicKey(runtime.realmAddress);
+      const governanceProgramVersion = await resolveGovernanceProgramVersion({
+        cluster: runtime.cluster,
+        connection: params.connection,
+        overrideVersion: runtime.programVersionOverride,
+        programId: governanceProgramId,
+      });
+
+      const nativeTreasuryAddressPromise = getNativeTreasuryAddress(governanceProgramId, governanceAddress);
+      const [realm, governance, nativeTreasuryAddress, nativeTreasuryLamports, mint, memberAccounts] = await Promise.all([
+        getRealm(params.connection, realmAddress),
+        getGovernance(params.connection, governanceAddress),
+        nativeTreasuryAddressPromise,
+        nativeTreasuryAddressPromise.then((address) =>
+          params.connection.getBalance(address, "confirmed").then((lamports) => BigInt(lamports)),
+        ),
+        getMint(params.connection, governanceTokenMint),
+        params.includeMembers === false
+          ? Promise.resolve([])
+          : getAllTokenOwnerRecords(params.connection, governanceProgramId, realmAddress),
+      ]);
+
+      const ownerRecordToWallet = new Map<string, string>();
+      const members = memberAccounts
+        .filter((record) => record.account.governingTokenMint.equals(governanceTokenMint))
+        .map((record) => {
+          ownerRecordToWallet.set(record.pubkey.toBase58(), record.account.governingTokenOwner.toBase58());
+          return {
+            address: record.pubkey.toBase58(),
+            delegatedTo: record.account.governanceDelegate?.toBase58() ?? null,
+            governingTokenMint: record.account.governingTokenMint.toBase58(),
+            governingTokenOwner: record.account.governingTokenOwner.toBase58(),
+            depositedVotesRaw: BigInt(record.account.governingTokenDepositAmount.toString(10)),
+            outstandingProposalCount: record.account.outstandingProposalCount,
+            totalVotesCount: record.account.totalVotesCount,
+            unrelinquishedVotesCount: record.account.unrelinquishedVotesCount,
+          };
+        })
+        .sort((left, right) => {
+          if (left.depositedVotesRaw === right.depositedVotesRaw) {
+            return left.governingTokenOwner.localeCompare(right.governingTokenOwner);
+          }
+          return left.depositedVotesRaw > right.depositedVotesRaw ? -1 : 1;
+        });
+
+      return {
+        governance,
+        governanceAddress,
+        governanceProgramId,
+        governanceProgramVersion,
+        governanceTokenMint,
+        members,
+        nativeTreasuryAddress,
+        nativeTreasuryLamports,
+        ownerRecordToWallet,
+        realm,
+        tokenDecimals: mint.decimals,
+        tokenSupplyRaw: BigInt(mint.supply.toString()),
+      };
+    },
+  );
+}
+
+export async function loadGovernanceProposalQueue(params: {
+  connection: Connection;
+}): Promise<GovernanceProposalSummary[] | null> {
+  return governanceProposalQueueCache.getOrLoad(
+    readonlyGovernanceCacheKey({
+      connection: params.connection,
+      scope: "proposal-queue",
+    }),
+    async () => {
+      const runtime = getGovernanceRuntimeConfig();
+      if (!runtime.governanceAddress) {
+        return null;
+      }
+
+      const governanceProgramId = new PublicKey(runtime.programId);
+      const governanceAddress = new PublicKey(runtime.governanceAddress);
+      const proposals = await getProposalsByGovernance(
+        params.connection,
+        governanceProgramId,
+        governanceAddress,
+      );
+
+      return proposals
+        .map((proposal) => toProposalSummary(proposal, new Map<string, string>(), new Map<string, GovernanceVoteSummary>()))
+        .sort((left, right) => right.address.localeCompare(left.address));
+    },
+  );
 }
 
 export async function loadGovernanceDashboard(params: {
   connection: Connection;
   walletAddress?: PublicKey | null;
 }): Promise<GovernanceDashboardSummary | null> {
-  const base = await loadGovernanceBase({ connection: params.connection, includeMembers: true });
-  if (!base) return null;
-
-  const [realmConfig, proposals] = await Promise.all([
-    tryGetRealmConfig(params.connection, base.governanceProgramId, base.realm.pubkey),
-    getProposalsByGovernance(params.connection, base.governanceProgramId, base.governanceAddress),
-  ]);
-
-  const proposalAddresses = new Set(proposals.map((proposal) => proposal.pubkey.toBase58()));
-  const walletState = params.walletAddress
-    ? await loadWalletGovernanceState({
-        connection: params.connection,
-        governanceTokenMint: base.governanceTokenMint,
-        programId: base.governanceProgramId,
-        proposalAddresses,
-        realmAddress: base.realm.pubkey,
-        walletAddress: params.walletAddress,
-      })
-    : null;
-
-  const walletVotes = walletState?.voteMap ?? new Map<string, GovernanceVoteSummary>();
-  const normalizedProposals = proposals
-    .map((proposal) => toProposalSummary(proposal, base.ownerRecordToWallet, walletVotes))
-    .sort((left, right) => right.address.localeCompare(left.address));
-
-  const proposalCounts = normalizedProposals.reduce<Record<GovernanceProposalGroup, number>>(
-    (counts, proposal) => ({
-      ...counts,
-      [proposal.group]: counts[proposal.group] + 1,
+  return governanceDashboardCache.getOrLoad(
+    readonlyGovernanceCacheKey({
+      connection: params.connection,
+      scope: "dashboard",
+      walletAddress: params.walletAddress ?? null,
     }),
-    { active: 0, executable: 0, completed: 0, failed: 0 },
-  );
+    async () => {
+      const base = await loadGovernanceBase({ connection: params.connection, includeMembers: true });
+      if (!base) return null;
 
-  return {
-    governanceAddress: base.governanceAddress.toBase58(),
-    governanceProgramId: base.governanceProgramId.toBase58(),
-    governanceProgramVersion: base.governanceProgramVersion,
-    governedAccountAddress: base.governance.account.governedAccount.toBase58(),
-    memberCount: base.members.length,
-    members: base.members,
-    nativeTreasuryAddress: base.nativeTreasuryAddress.toBase58(),
-    nativeTreasuryLamports: base.nativeTreasuryLamports,
-    proposalCounts,
-    proposals: normalizedProposals,
-    realmAddress: base.realm.pubkey.toBase58(),
-    realmAuthorityAddress: base.realm.account.authority?.toBase58() ?? null,
-    realmName: base.realm.account.name,
-    rules: {
-      baseVotingTimeSeconds: base.governance.account.config.baseVotingTime,
-      communityVoteThresholdPct:
-        base.governance.account.config.communityVoteThreshold.type === VoteThresholdType.YesVotePercentage
-          ? base.governance.account.config.communityVoteThreshold.value ?? null
-          : null,
-      instructionHoldUpTimeSeconds: base.governance.account.config.minInstructionHoldUpTime,
-      minCommunityTokensToCreateGovernanceRaw: BigInt(
-        base.realm.account.config.minCommunityTokensToCreateGovernance.toString(10),
-      ),
-      minCommunityTokensToCreateProposalRaw: BigInt(
-        base.governance.account.config.minCommunityTokensToCreateProposal.toString(10),
-      ),
-      pluginEnabled:
-        base.realm.account.config.useCommunityVoterWeightAddin
-        || base.realm.account.config.useMaxCommunityVoterWeightAddin
-        || Boolean(realmConfig?.account.communityTokenConfig.voterWeightAddin)
-        || Boolean(realmConfig?.account.communityTokenConfig.maxVoterWeightAddin),
-      votingCoolOffTimeSeconds: base.governance.account.config.votingCoolOffTime,
+      const [realmConfig, proposals] = await Promise.all([
+        tryGetRealmConfig(params.connection, base.governanceProgramId, base.realm.pubkey),
+        getProposalsByGovernance(params.connection, base.governanceProgramId, base.governanceAddress),
+      ]);
+
+      const proposalAddresses = new Set(proposals.map((proposal) => proposal.pubkey.toBase58()));
+      const walletState = params.walletAddress
+        ? await loadWalletGovernanceState({
+            connection: params.connection,
+            governanceTokenMint: base.governanceTokenMint,
+            programId: base.governanceProgramId,
+            proposalAddresses,
+            realmAddress: base.realm.pubkey,
+            walletAddress: params.walletAddress,
+          })
+        : null;
+
+      const walletVotes = walletState?.voteMap ?? new Map<string, GovernanceVoteSummary>();
+      const normalizedProposals = proposals
+        .map((proposal) => toProposalSummary(proposal, base.ownerRecordToWallet, walletVotes))
+        .sort((left, right) => right.address.localeCompare(left.address));
+
+      const proposalCounts = normalizedProposals.reduce<Record<GovernanceProposalGroup, number>>(
+        (counts, proposal) => ({
+          ...counts,
+          [proposal.group]: counts[proposal.group] + 1,
+        }),
+        { active: 0, executable: 0, completed: 0, failed: 0 },
+      );
+
+      return {
+        governanceAddress: base.governanceAddress.toBase58(),
+        governanceProgramId: base.governanceProgramId.toBase58(),
+        governanceProgramVersion: base.governanceProgramVersion,
+        governedAccountAddress: base.governance.account.governedAccount.toBase58(),
+        memberCount: base.members.length,
+        members: base.members,
+        nativeTreasuryAddress: base.nativeTreasuryAddress.toBase58(),
+        nativeTreasuryLamports: base.nativeTreasuryLamports,
+        proposalCounts,
+        proposals: normalizedProposals,
+        realmAddress: base.realm.pubkey.toBase58(),
+        realmAuthorityAddress: base.realm.account.authority?.toBase58() ?? null,
+        realmName: base.realm.account.name,
+        rules: {
+          baseVotingTimeSeconds: base.governance.account.config.baseVotingTime,
+          communityVoteThresholdPct:
+            base.governance.account.config.communityVoteThreshold.type === VoteThresholdType.YesVotePercentage
+              ? base.governance.account.config.communityVoteThreshold.value ?? null
+              : null,
+          instructionHoldUpTimeSeconds: base.governance.account.config.minInstructionHoldUpTime,
+          minCommunityTokensToCreateGovernanceRaw: BigInt(
+            base.realm.account.config.minCommunityTokensToCreateGovernance.toString(10),
+          ),
+          minCommunityTokensToCreateProposalRaw: BigInt(
+            base.governance.account.config.minCommunityTokensToCreateProposal.toString(10),
+          ),
+          pluginEnabled:
+            base.realm.account.config.useCommunityVoterWeightAddin
+            || base.realm.account.config.useMaxCommunityVoterWeightAddin
+            || Boolean(realmConfig?.account.communityTokenConfig.voterWeightAddin)
+            || Boolean(realmConfig?.account.communityTokenConfig.maxVoterWeightAddin),
+          votingCoolOffTimeSeconds: base.governance.account.config.votingCoolOffTime,
+        },
+        tokenDecimals: base.tokenDecimals,
+        tokenMintAddress: base.governanceTokenMint.toBase58(),
+        tokenSupplyRaw: base.tokenSupplyRaw,
+        wallet: walletState?.wallet ?? null,
+      };
     },
-    tokenDecimals: base.tokenDecimals,
-    tokenMintAddress: base.governanceTokenMint.toBase58(),
-    tokenSupplyRaw: base.tokenSupplyRaw,
-    wallet: walletState?.wallet ?? null,
-  };
+  );
 }
 
 export async function loadGovernanceProposalDetail(params: {
@@ -599,79 +717,89 @@ export async function loadGovernanceProposalDetail(params: {
   proposalAddress: PublicKey;
   walletAddress?: PublicKey | null;
 }): Promise<GovernanceProposalDetailSummary | null> {
-  const base = await loadGovernanceBase({ connection: params.connection, includeMembers: false });
-  if (!base) return null;
+  return governanceProposalDetailCache.getOrLoad(
+    readonlyGovernanceCacheKey({
+      connection: params.connection,
+      proposalAddress: params.proposalAddress,
+      scope: "proposal-detail",
+      walletAddress: params.walletAddress ?? null,
+    }),
+    async () => {
+      const base = await loadGovernanceBase({ connection: params.connection, includeMembers: false });
+      if (!base) return null;
 
-  const proposal = await getProposal(params.connection, params.proposalAddress);
-  const walletState = params.walletAddress
-    ? await loadWalletGovernanceState({
-        connection: params.connection,
-        governanceTokenMint: base.governanceTokenMint,
-        programId: base.governanceProgramId,
-        proposalAddresses: new Set([params.proposalAddress.toBase58()]),
-        realmAddress: base.realm.pubkey,
-        walletAddress: params.walletAddress,
-      })
-    : null;
+      const proposal = await getProposal(params.connection, params.proposalAddress);
+      const walletState = params.walletAddress
+        ? await loadWalletGovernanceState({
+            connection: params.connection,
+            governanceTokenMint: base.governanceTokenMint,
+            programId: base.governanceProgramId,
+            proposalAddresses: new Set([params.proposalAddress.toBase58()]),
+            realmAddress: base.realm.pubkey,
+            walletAddress: params.walletAddress,
+          })
+        : null;
 
-  const proposalTransactions = (await getGovernanceAccounts(
-    params.connection,
-    base.governanceProgramId,
-    ProposalTransaction,
-  )).filter((row) => row.account.proposal.equals(params.proposalAddress));
+      const proposalTransactions = (await getGovernanceAccounts(
+        params.connection,
+        base.governanceProgramId,
+        ProposalTransaction,
+      )).filter((row) => row.account.proposal.equals(params.proposalAddress));
 
-  const proposalOwnerRecord = await getTokenOwnerRecord(
-    params.connection,
-    proposal.account.tokenOwnerRecord,
-  ).catch(() => null);
-  const ownerRecordToWallet = new Map<string, string>();
-  if (proposalOwnerRecord) {
-    ownerRecordToWallet.set(
-      proposalOwnerRecord.pubkey.toBase58(),
-      proposalOwnerRecord.account.governingTokenOwner.toBase58(),
-    );
-  }
-  const currentWalletVoteMap = walletState?.voteMap ?? new Map<string, GovernanceVoteSummary>();
-  const proposalSummary = toProposalSummary(proposal, ownerRecordToWallet, currentWalletVoteMap);
+      const proposalOwnerRecord = await getTokenOwnerRecord(
+        params.connection,
+        proposal.account.tokenOwnerRecord,
+      ).catch(() => null);
+      const ownerRecordToWallet = new Map<string, string>();
+      if (proposalOwnerRecord) {
+        ownerRecordToWallet.set(
+          proposalOwnerRecord.pubkey.toBase58(),
+          proposalOwnerRecord.account.governingTokenOwner.toBase58(),
+        );
+      }
+      const currentWalletVoteMap = walletState?.voteMap ?? new Map<string, GovernanceVoteSummary>();
+      const proposalSummary = toProposalSummary(proposal, ownerRecordToWallet, currentWalletVoteMap);
 
-  return {
-    governanceAddress: base.governanceAddress.toBase58(),
-    nativeTreasuryAddress: base.nativeTreasuryAddress.toBase58(),
-    proposal: proposalSummary,
-    proposalOwnerRecord: proposalOwnerRecord
-      ? {
-          address: proposalOwnerRecord.pubkey.toBase58(),
-          delegatedTo: proposalOwnerRecord.account.governanceDelegate?.toBase58() ?? null,
-          governingTokenMint: proposalOwnerRecord.account.governingTokenMint.toBase58(),
-          governingTokenOwner: proposalOwnerRecord.account.governingTokenOwner.toBase58(),
-          depositedVotesRaw: BigInt(proposalOwnerRecord.account.governingTokenDepositAmount.toString(10)),
-          outstandingProposalCount: proposalOwnerRecord.account.outstandingProposalCount,
-          totalVotesCount: proposalOwnerRecord.account.totalVotesCount,
-          unrelinquishedVotesCount: proposalOwnerRecord.account.unrelinquishedVotesCount,
-        }
-      : null,
-    proposalTransactions: proposalTransactions
-      .sort((left, right) => {
-        if (left.account.optionIndex === right.account.optionIndex) {
-          return left.account.instructionIndex - right.account.instructionIndex;
-        }
-        return left.account.optionIndex - right.account.optionIndex;
-      })
-      .map((row) => ({
-        address: row.pubkey.toBase58(),
-        executedAtIso: toIsoTimestamp(row.account.executedAt),
-        executionStatus: row.account.executionStatus,
-        executionStatusLabel: toExecutionStatusLabel(row.account.executionStatus),
-        holdUpTimeSeconds: row.account.holdUpTime,
-        instructionIndex: row.account.instructionIndex,
-        instructions: row.account.getAllInstructions().map((instruction) => ({
-          accountCount: instruction.accounts.length,
-          dataLength: instruction.data.length,
-          programId: instruction.programId.toBase58(),
-        })),
-        optionIndex: row.account.optionIndex,
-      })),
-    realmAddress: base.realm.pubkey.toBase58(),
-    tokenDecimals: base.tokenDecimals,
-  };
+      return {
+        governanceAddress: base.governanceAddress.toBase58(),
+        nativeTreasuryAddress: base.nativeTreasuryAddress.toBase58(),
+        proposal: proposalSummary,
+        proposalOwnerRecord: proposalOwnerRecord
+          ? {
+              address: proposalOwnerRecord.pubkey.toBase58(),
+              delegatedTo: proposalOwnerRecord.account.governanceDelegate?.toBase58() ?? null,
+              governingTokenMint: proposalOwnerRecord.account.governingTokenMint.toBase58(),
+              governingTokenOwner: proposalOwnerRecord.account.governingTokenOwner.toBase58(),
+              depositedVotesRaw: BigInt(proposalOwnerRecord.account.governingTokenDepositAmount.toString(10)),
+              outstandingProposalCount: proposalOwnerRecord.account.outstandingProposalCount,
+              totalVotesCount: proposalOwnerRecord.account.totalVotesCount,
+              unrelinquishedVotesCount: proposalOwnerRecord.account.unrelinquishedVotesCount,
+            }
+          : null,
+        proposalTransactions: proposalTransactions
+          .sort((left, right) => {
+            if (left.account.optionIndex === right.account.optionIndex) {
+              return left.account.instructionIndex - right.account.instructionIndex;
+            }
+            return left.account.optionIndex - right.account.optionIndex;
+          })
+          .map((row) => ({
+            address: row.pubkey.toBase58(),
+            executedAtIso: toIsoTimestamp(row.account.executedAt),
+            executionStatus: row.account.executionStatus,
+            executionStatusLabel: toExecutionStatusLabel(row.account.executionStatus),
+            holdUpTimeSeconds: row.account.holdUpTime,
+            instructionIndex: row.account.instructionIndex,
+            instructions: row.account.getAllInstructions().map((instruction) => ({
+              accountCount: instruction.accounts.length,
+              dataLength: instruction.data.length,
+              programId: instruction.programId.toBase58(),
+            })),
+            optionIndex: row.account.optionIndex,
+          })),
+        realmAddress: base.realm.pubkey.toBase58(),
+        tokenDecimals: base.tokenDecimals,
+      };
+    },
+  );
 }
