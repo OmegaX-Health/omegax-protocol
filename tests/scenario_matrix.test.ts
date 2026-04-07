@@ -11,16 +11,21 @@ const {
   CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY,
   FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
   FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+  OBLIGATION_STATUS_IMPAIRED,
+  OBLIGATION_STATUS_RESERVED,
   OBLIGATION_STATUS_SETTLED,
   PAUSE_FLAG_ALLOCATION_FREEZE,
   PAUSE_FLAG_CLAIM_INTAKE,
   SERIES_MODE_PROTECTION,
   SERIES_MODE_REWARD,
+  availableFundingLineBalance,
   buildCapitalReadModel,
   describeCapitalRestriction,
   deriveCapitalClassPda,
   deriveLiquidityPoolPda,
+  hasObligationImpairment,
   recomputeReserveBalanceSheet,
+  toBigIntAmount,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 const consoleState = buildCanonicalConsoleState();
@@ -29,15 +34,26 @@ test("1. sponsor-only reward plan works without LP capital", () => {
   const seekerPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) => plan.planId === "nexus-seeker-rewards");
   const sponsorModel = consoleState.sponsors.find((plan) => plan.planId === "nexus-seeker-rewards");
   const planLines = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.filter((line) => line.healthPlan === seekerPlan?.address);
+  const sponsorLine = planLines[0];
   const planObligations = DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) => obligation.healthPlan === seekerPlan?.address);
 
   assert(seekerPlan);
   assert(sponsorModel);
+  assert(sponsorLine);
   assert.equal(planLines.length, 1);
-  assert.equal(planLines[0]?.lineType, FUNDING_LINE_TYPE_SPONSOR_BUDGET);
+  assert.equal(sponsorLine.lineType, FUNDING_LINE_TYPE_SPONSOR_BUDGET);
   assert(planObligations.every((obligation) => !obligation.liquidityPool));
   assert(sponsorModel.fundedSponsorBudget > 0n);
   assert(sponsorModel.remainingSponsorBudget > 0n);
+  assert.equal(availableFundingLineBalance(sponsorLine), 228_000n);
+  assert.equal(
+    sponsorModel.remainingSponsorBudget,
+    availableFundingLineBalance(sponsorLine),
+  );
+  assert.equal(
+    toBigIntAmount(sponsorLine.fundedAmount) - toBigIntAmount(sponsorLine.spentAmount),
+    222_000n,
+  );
 });
 
 test("2. one LP pool funds one protection series with reserve-aware capital math", () => {
@@ -192,4 +208,16 @@ test("10. migration smoke test retires old pool semantics and ships canonical fi
   assert.equal(consoleState.capital.length, DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.length);
   assert(legacyArtifacts.includes("pool_type"));
   assert(hasLiquidityFundingLine);
+});
+
+test("11. oracle disputes ignore ordinary reserved obligations", () => {
+  const reservedFixtureObligation = DEVNET_PROTOCOL_FIXTURE_STATE.obligations.find(
+    (obligation) => obligation.obligationId === "blended-reward-obligation-001",
+  )!;
+
+  assert.equal(reservedFixtureObligation.status, OBLIGATION_STATUS_RESERVED);
+  assert.equal(toBigIntAmount(reservedFixtureObligation.impairedAmount), 0n);
+  assert.equal(hasObligationImpairment(reservedFixtureObligation), false);
+  assert.equal(hasObligationImpairment({ status: OBLIGATION_STATUS_IMPAIRED, impairedAmount: 0n }), true);
+  assert.equal(hasObligationImpairment({ status: OBLIGATION_STATUS_RESERVED, impairedAmount: 1n }), true);
 });

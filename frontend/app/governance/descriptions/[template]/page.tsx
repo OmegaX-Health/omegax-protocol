@@ -295,10 +295,10 @@ export default function GovernanceDescriptionTemplatePage({
                 Back to governance
               </Link>
               <Link
-                href={`/governance/proposals/${encodeURIComponent(ownerWallet.address)}`}
+                href="/governance?tab=queue"
                 className="action-button inline-flex"
               >
-                Open linked route
+                Open live queue
               </Link>
             </div>
             <div className="protocol-metric-band">
@@ -444,14 +444,14 @@ export default function GovernanceDescriptionTemplatePage({
                 </div>
                 <div className="protocol-data-row">
                   <div>
-                    <strong>Linked proposal route</strong>
-                    <p className="protocol-section-copy">Review how the template reads when surfaced as a proposal detail route.</p>
+                    <strong>Live proposal queue</strong>
+                    <p className="protocol-section-copy">Open the live governance queue before drilling into a real proposal account.</p>
                   </div>
                   <Link
-                    href={`/governance/proposals/${encodeURIComponent(ownerWallet.address)}`}
+                    href="/governance?tab=queue"
                     className="secondary-button inline-flex w-fit"
                   >
-                    Inspect
+                    Open
                   </Link>
                 </div>
               </div>

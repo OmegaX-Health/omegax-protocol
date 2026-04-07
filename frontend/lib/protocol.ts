@@ -788,6 +788,15 @@ export function sumReserveBalanceSheets(
   return recomputeReserveBalanceSheet(total);
 }
 
+// Funding-line availability should come from the reserve sheet when present,
+// so read models and UI surfaces don't drift onto incompatible "remaining" math.
+export function availableFundingLineBalance(
+  line: Pick<FundingLineSnapshot, "sheet" | "fundedAmount" | "spentAmount">,
+): bigint {
+  if (line.sheet) return recomputeReserveBalanceSheet(line.sheet).free;
+  return toBigIntAmount(line.fundedAmount) - toBigIntAmount(line.spentAmount);
+}
+
 export function describeSeriesMode(mode: number): string {
   switch (mode) {
     case SERIES_MODE_REWARD:
@@ -890,6 +899,12 @@ export function describeObligationStatus(status: number): string {
   }
 }
 
+export function hasObligationImpairment(
+  obligation: Pick<ObligationSnapshot, "status" | "impairedAmount">,
+): boolean {
+  return obligation.status === OBLIGATION_STATUS_IMPAIRED || toBigIntAmount(obligation.impairedAmount) > 0n;
+}
+
 export function describeCapitalRestriction(restrictionMode: number): string {
   switch (restrictionMode) {
     case CAPITAL_CLASS_RESTRICTION_OPEN:
@@ -929,10 +944,10 @@ export function buildSponsorReadModel(params: {
     (sum, line) => sum + toBigIntAmount(line.fundedAmount),
     0n,
   );
-  const remainingSponsorBudget = sponsorLines.reduce((sum, line) => {
-    const lineSheet = recomputeReserveBalanceSheet(line.sheet);
-    return sum + (line.sheet ? lineSheet.free : toBigIntAmount(line.fundedAmount) - toBigIntAmount(line.spentAmount));
-  }, 0n);
+  const remainingSponsorBudget = sponsorLines.reduce(
+    (sum, line) => sum + availableFundingLineBalance(line),
+    0n,
+  );
 
   const accruedRewards = planObligations
     .filter((obligation) => {

@@ -1,0 +1,28 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import contractModule from "../frontend/lib/generated/protocol-contract.ts";
+const { PROTOCOL_ACCOUNT_DISCRIMINATORS, PROTOCOL_INSTRUCTION_ACCOUNTS, PROTOCOL_INSTRUCTION_DISCRIMINATORS, } = contractModule;
+test("canonical contract exposes the health-capital-markets surface", () => {
+    const instructionNames = Object.keys(PROTOCOL_INSTRUCTION_DISCRIMINATORS);
+    const accountNames = Object.keys(PROTOCOL_ACCOUNT_DISCRIMINATORS);
+    const serializedAccounts = JSON.stringify(PROTOCOL_INSTRUCTION_ACCOUNTS);
+    assert(instructionNames.includes("create_reserve_domain"));
+    assert(instructionNames.includes("create_health_plan"));
+    assert(instructionNames.includes("create_policy_series"));
+    assert(instructionNames.includes("open_funding_line"));
+    assert(instructionNames.includes("create_liquidity_pool"));
+    assert(instructionNames.includes("create_capital_class"));
+    assert(instructionNames.includes("create_allocation_position"));
+    assert(instructionNames.includes("mark_impairment"));
+    assert(accountNames.includes("ReserveDomain"));
+    assert(accountNames.includes("HealthPlan"));
+    assert(accountNames.includes("PolicySeries"));
+    assert(accountNames.includes("FundingLine"));
+    assert(accountNames.includes("LiquidityPool"));
+    assert(accountNames.includes("CapitalClass"));
+    assert(accountNames.includes("AllocationPosition"));
+    assert(accountNames.includes("Obligation"));
+    assert(!instructionNames.includes("create_pool"));
+    assert(!instructionNames.includes("set_pool_status"));
+    assert(!serializedAccounts.includes("pool_type"));
+});

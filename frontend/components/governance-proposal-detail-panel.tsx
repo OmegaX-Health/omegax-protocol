@@ -236,12 +236,14 @@ export function GovernanceProposalDetailPanel({
             Explorer
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
-          <Link
-            href={`/governance/proposals/${detail.proposal.address}`}
-            className="secondary-button inline-flex w-fit"
-          >
-            Open page
-          </Link>
+          {sectionMode === "inline" ? (
+            <Link
+              href={`/governance/proposals/${detail.proposal.address}`}
+              className="secondary-button inline-flex w-fit"
+            >
+              Open page
+            </Link>
+          ) : null}
         </div>
       </div>
 

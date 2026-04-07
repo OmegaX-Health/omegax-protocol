@@ -4,11 +4,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { WorkbenchRailCard } from "@/components/workbench-ui";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { loadGovernanceDashboard } from "@/lib/governance";
 import { buildAuditTrail, buildGovernanceQueue, computeWorkbenchMetrics } from "@/lib/workbench";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 
@@ -50,11 +52,15 @@ function quickActionsForPersona(persona: string) {
 }
 
 export function OverviewWorkbench() {
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
   const metrics = useMemo(() => computeWorkbenchMetrics(), []);
-  const governanceQueue = useMemo(() => buildGovernanceQueue(), []);
-  const auditTrail = useMemo(() => buildAuditTrail(), []);
+  const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
+  const [governanceQueueLoaded, setGovernanceQueueLoaded] = useState(false);
+  const governanceQueue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
+  const auditTrail = useMemo(() => buildAuditTrail(governanceQueue), [governanceQueue]);
 
   const focusRows = useMemo<FocusRow[]>(() => {
     if (effectivePersona === "capital") {
@@ -68,6 +74,20 @@ export function OverviewWorkbench() {
     }
 
     if (effectivePersona === "governance") {
+      if (governanceQueue.length === 0) {
+        return [
+          {
+            id: "governance-live-queue",
+            title: governanceQueueLoaded ? "Live governance queue" : "Loading governance queue",
+            meta: governanceQueueLoaded ? "No proposals" : "Fetching",
+            detail: governanceQueueLoaded
+              ? "No live governance proposals are available for the configured realm."
+              : "Loading live governance proposals from SPL Governance.",
+            href: "/governance?tab=queue",
+          },
+        ];
+      }
+
       return governanceQueue.map((proposal) => ({
         id: proposal.proposal,
         title: proposal.title,
@@ -88,9 +108,37 @@ export function OverviewWorkbench() {
         href: `/plans?plan=${encodeURIComponent(plan.address)}&tab=overview`,
       };
     });
-  }, [consoleState.sponsors, effectivePersona, governanceQueue]);
+  }, [consoleState.sponsors, effectivePersona, governanceQueue, governanceQueueLoaded]);
 
   const [selectedFocus, setSelectedFocus] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProposalQueue() {
+      setGovernanceQueueLoaded(false);
+      try {
+        const dashboard = await loadGovernanceDashboard({
+          connection,
+          walletAddress: publicKey ?? null,
+        });
+        if (cancelled) return;
+        setGovernanceProposalRows(dashboard?.proposals ?? []);
+      } catch {
+        if (cancelled) return;
+        setGovernanceProposalRows([]);
+      } finally {
+        if (!cancelled) {
+          setGovernanceQueueLoaded(true);
+        }
+      }
+    }
+
+    void loadProposalQueue();
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, publicKey]);
 
   useEffect(() => {
     if (!focusRows.some((row) => row.id === selectedFocus)) {

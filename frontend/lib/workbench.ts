@@ -2,14 +2,22 @@
 
 import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureRole } from "./devnet-fixtures";
 import {
+  availableFundingLineBalance,
   CLAIM_INTAKE_APPROVED,
   CLAIM_INTAKE_SETTLED,
   LP_QUEUE_STATUS_PENDING,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   REDEMPTION_POLICY_QUEUE_ONLY,
+  describeClaimStatus,
+  describeFundingLineType,
+  describeObligationStatus,
+  describeSeriesMode,
+  describeSeriesStatus,
   toBigIntAmount,
 } from "./protocol";
+
+import type { GovernanceProposalSummary } from "@/lib/governance";
 
 export type WorkbenchSection = "overview" | "plans" | "capital" | "governance" | "oracles";
 
@@ -104,11 +112,107 @@ export const GOVERNANCE_TEMPLATE_ROWS = [
 export type GovernanceQueueItem = {
   proposal: string;
   title: string;
-  template: (typeof GOVERNANCE_TEMPLATE_ROWS)[number]["id"];
+  template: string;
   authority: string;
-  status: "Review" | "Ready" | "Queued" | "Executing";
+  status: string;
   stage: string;
 };
+
+export type WorkbenchAuditItem = {
+  id: string;
+  tone: "verified" | "pending" | "signal";
+  label: string;
+  timestamp: string;
+  detail: string;
+};
+
+type BuildAuditTrailInput =
+  | {
+    section?: "overview";
+    persona?: WorkbenchPersona;
+    queue?: GovernanceQueueItem[];
+  }
+  | {
+    section: "capital";
+    poolAddress?: string | null;
+    classAddress?: string | null;
+  }
+  | {
+    section: "plans";
+    planAddress?: string | null;
+    seriesAddress?: string | null;
+  }
+  | {
+    section: "oracles";
+    poolAddress?: string | null;
+    seriesAddress?: string | null;
+  }
+  | {
+    section: "governance";
+    queue?: GovernanceQueueItem[];
+    proposal?: GovernanceQueueItem | null;
+  };
+
+function humanizeTokenLabel(value: string): string {
+  return value
+    .split("-")
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+function shortenGovernanceAddress(value: string): string {
+  if (value.length < 12) return value;
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function templateLabelForProposal(descriptionLink: string): string {
+  if (!descriptionLink) return "No description";
+  try {
+    const parsed = new URL(descriptionLink, "https://protocol.omegax.health");
+    const match = parsed.pathname.match(/^\/governance\/descriptions\/([^/]+)$/);
+    if (match?.[1]) {
+      return humanizeTokenLabel(decodeURIComponent(match[1]));
+    }
+  } catch {
+    return "External description";
+  }
+  return "External description";
+}
+
+function authorityLabelForProposal(proposal: GovernanceProposalSummary): string {
+  if (proposal.ownerWalletAddress) return shortenGovernanceAddress(proposal.ownerWalletAddress);
+  if (proposal.ownerRecordAddress) return `Record ${shortenGovernanceAddress(proposal.ownerRecordAddress)}`;
+  return "Unavailable";
+}
+
+function stageLabelForProposal(proposal: GovernanceProposalSummary): string {
+  const instructionProgress = proposal.instructionCount > 0
+    ? `${proposal.instructionExecutedCount}/${proposal.instructionCount} instructions`
+    : "No instructions";
+
+  switch (proposal.stateLabel) {
+    case "Draft":
+      return "Draft lane";
+    case "Signing off":
+      return "Sign-off lane";
+    case "Voting":
+      return "Voting window";
+    case "Succeeded":
+      return `Ready to execute · ${instructionProgress}`;
+    case "Executing":
+      return `Execution in flight · ${instructionProgress}`;
+    case "Completed":
+      return `Execution complete · ${instructionProgress}`;
+    case "Executing with errors":
+      return `Execution errors · ${instructionProgress}`;
+    case "Cancelled":
+    case "Defeated":
+    case "Vetoed":
+      return "Closed without execution";
+    default:
+      return proposal.stateLabel;
+  }
+}
 
 export function sectionFromPathname(pathname: string): WorkbenchSection {
   if (pathname.startsWith("/capital")) return "capital";
@@ -228,21 +332,14 @@ export function planAddressForSeries(seriesAddress?: string | null): string | nu
   );
 }
 
-export function buildGovernanceQueue(): GovernanceQueueItem[] {
-  const seeds = [
-    DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]?.address,
-    DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[1]?.address,
-    DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]?.address,
-    DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[1]?.address,
-  ].filter((value): value is string => Boolean(value));
-
-  return GOVERNANCE_TEMPLATE_ROWS.map((template, index) => ({
-    proposal: seeds[index] ?? `${template.id}-proposal`,
-    title: `${template.label} posture update`,
-    template: template.id,
-    authority: template.authority,
-    status: index === 0 ? "Ready" : index === 1 ? "Queued" : index === 2 ? "Review" : "Executing",
-    stage: index === 0 ? "Signoff lane" : index === 1 ? "Timelock queue" : index === 2 ? "Authority review" : "Executor window",
+export function buildGovernanceQueue(proposals: GovernanceProposalSummary[] = []): GovernanceQueueItem[] {
+  return proposals.map((proposal) => ({
+    proposal: proposal.address,
+    title: proposal.name,
+    template: templateLabelForProposal(proposal.descriptionLink),
+    authority: authorityLabelForProposal(proposal),
+    status: proposal.stateLabel,
+    stage: stageLabelForProposal(proposal),
   }));
 }
 
@@ -274,9 +371,8 @@ export function computeWorkbenchMetrics() {
   };
 }
 
-export function buildAuditTrail() {
+export function buildAuditTrail(queue: GovernanceQueueItem[] = []) {
   const metrics = computeWorkbenchMetrics();
-  const queue = buildGovernanceQueue();
 
   return [
     {
@@ -298,7 +394,9 @@ export function buildAuditTrail() {
       tone: "signal" as const,
       label: queue[0]?.status ?? "Review",
       timestamp: "14:15:22",
-      detail: `${queue[0]?.title ?? "Proposal queue"} is the lead governance item for the current workbench.`,
+      detail: queue[0]
+        ? `${queue[0].title} is the lead governance item for the current workbench.`
+        : "No live governance proposals are currently loaded into the workbench queue.",
     },
   ];
 }

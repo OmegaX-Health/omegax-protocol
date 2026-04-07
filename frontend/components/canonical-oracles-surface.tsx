@@ -11,7 +11,7 @@ import { SearchableSelect } from "@/components/searchable-select";
 import { WalletButton } from "@/components/wallet-providers";
 import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import { poolAddressForSeries, seriesForPool, walletFixtureFor } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { describeSeriesMode, shortenAddress } from "@/lib/protocol";
 
 const ORACLE_PANELS = [
@@ -144,7 +144,7 @@ export function CanonicalOraclesSurface() {
             {operatorWallets.map((wallet) => {
               const actions = DEVNET_PROTOCOL_FIXTURE_STATE.roleMatrix.find((row) => row.role === wallet.role)?.actions ?? [];
               return (
-                <article key={wallet.address} className="protocol-data-card">
+                <article key={devnetFixtureWalletKey(wallet)} className="protocol-data-card">
                   <div className="protocol-data-row">
                     <div>
                       <p className="protocol-metric-label">{wallet.role}</p>

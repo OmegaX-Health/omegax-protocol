@@ -19,6 +19,7 @@ import {
   type PlanTabId,
 } from "@/lib/workbench";
 import {
+  availableFundingLineBalance,
   describeClaimStatus,
   describeEligibilityStatus,
   describeFundingLineType,
@@ -26,7 +27,6 @@ import {
   describeSeriesMode,
   describeSeriesStatus,
   shortenAddress,
-  toBigIntAmount,
 } from "@/lib/protocol";
 
 export function PlansWorkbench() {
@@ -187,7 +187,7 @@ export function PlansWorkbench() {
 
           <div className="workbench-summary-strip">
             <div className="workbench-summary-metric">
-              <span>Sponsor budget</span>
+              <span>Available sponsor budget</span>
               <strong>{formatAmount(sponsorView?.remainingSponsorBudget ?? 0)}</strong>
             </div>
             <div className="workbench-summary-metric">
@@ -517,7 +517,7 @@ export function PlansWorkbench() {
             <strong>{selectedPlan?.displayName ?? "Awaiting selection"}</strong>
             <p>{selectedPlan?.sponsorLabel ?? "Choose a health plan to inspect sponsor posture."}</p>
             <div className="workbench-mini-stat">
-              <span>Budget burn</span>
+              <span>Budget committed</span>
               <strong>{formatAmount(sponsorView?.budgetBurn ?? 0)}</strong>
             </div>
             <div className="workbench-mini-stat">
@@ -527,12 +527,12 @@ export function PlansWorkbench() {
           </div>
         </WorkbenchRailCard>
 
-        <WorkbenchRailCard title="Funding posture" meta="PLAN">
+        <WorkbenchRailCard title="Available funding" meta="PLAN">
           <div className="workbench-stack">
             {planFundingLines.map((line) => (
               <div key={line.address} className="workbench-mini-stat">
                 <span>{line.displayName}</span>
-                <strong>{formatAmount(toBigIntAmount(line.fundedAmount) - toBigIntAmount(line.spentAmount))}</strong>
+                <strong>{formatAmount(availableFundingLineBalance(line))}</strong>
               </div>
             ))}
           </div>

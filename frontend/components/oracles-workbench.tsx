@@ -9,9 +9,9 @@ import { SearchableSelect } from "@/components/searchable-select";
 import { WorkbenchEmptyState, WorkbenchRailCard, WorkbenchTabs } from "@/components/workbench-ui";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { formatAmount, seriesForPool } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { buildAuditTrail, defaultTabForPersona, ORACLE_TABS, type OracleTabId } from "@/lib/workbench";
-import { describeClaimStatus, describeSeriesMode, shortenAddress } from "@/lib/protocol";
+import { describeClaimStatus, describeSeriesMode, hasObligationImpairment, shortenAddress } from "@/lib/protocol";
 
 type OracleAttestation = {
   id: string;
@@ -59,8 +59,22 @@ export function OraclesWorkbench() {
   const operatorWallets = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter(
     (wallet) => wallet.role === "oracle_operator" || wallet.role === "claims_operator",
   );
+  const scopedClaimCases = useMemo(() => {
+    if (selectedSeries) {
+      return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => claim.policySeries === selectedSeries.address);
+    }
+
+    if (!selectedPool) return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases;
+
+    const boundSeriesAddresses = new Set(boundSeries.map((series) => series.address));
+    if (boundSeriesAddresses.size === 0) return [];
+
+    return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) =>
+      claim.policySeries ? boundSeriesAddresses.has(claim.policySeries) : false,
+    );
+  }, [boundSeries, selectedPool, selectedSeries]);
   const attestations = useMemo<OracleAttestation[]>(() => {
-    return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.slice(0, 4).map((claim, index) => {
+    return scopedClaimCases.map((claim, index) => {
       const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((entry) => entry.address === claim.policySeries);
       const operator = operatorWallets[index % operatorWallets.length];
       return {
@@ -71,9 +85,13 @@ export function OraclesWorkbench() {
         reference: claim.claimId,
       };
     });
-  }, [operatorWallets]);
+  }, [operatorWallets, scopedClaimCases]);
+  const attestationScopeLabel = selectedSeries?.displayName ?? selectedPool?.displayName ?? "the selected context";
 
-  const disputes = DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) => obligation.impairedAmount || obligation.reservedAmount);
+  const disputes = useMemo(
+    () => DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter(hasObligationImpairment),
+    [],
+  );
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -176,7 +194,7 @@ export function OraclesWorkbench() {
                 </thead>
                 <tbody>
                   {operatorWallets.map((wallet) => (
-                    <tr key={wallet.address}>
+                    <tr key={devnetFixtureWalletKey(wallet)}>
                       <td>{wallet.role}</td>
                       <td>{wallet.label}</td>
                       <td>{shortenAddress(wallet.address, 8)}</td>
@@ -217,28 +235,35 @@ export function OraclesWorkbench() {
           ) : null}
 
           {activeTab === "attestations" ? (
-            <div className="workbench-table-card">
-              <table className="workbench-table">
-                <thead>
-                  <tr>
-                    <th>Series</th>
-                    <th>Operator</th>
-                    <th>Status</th>
-                    <th>Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attestations.map((attestation) => (
-                    <tr key={attestation.id}>
-                      <td>{attestation.series}</td>
-                      <td>{attestation.operator}</td>
-                      <td>{attestation.status}</td>
-                      <td>{attestation.reference}</td>
+            attestations.length > 0 ? (
+              <div className="workbench-table-card">
+                <table className="workbench-table">
+                  <thead>
+                    <tr>
+                      <th>Series</th>
+                      <th>Operator</th>
+                      <th>Status</th>
+                      <th>Reference</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {attestations.map((attestation) => (
+                      <tr key={attestation.id}>
+                        <td>{attestation.series}</td>
+                        <td>{attestation.operator}</td>
+                        <td>{attestation.status}</td>
+                        <td>{attestation.reference}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <WorkbenchEmptyState
+                title="No live attestations"
+                copy={`No claim attestations are currently scoped to ${attestationScopeLabel}.`}
+              />
+            )
           ) : null}
 
           {activeTab === "disputes" ? (
@@ -269,7 +294,7 @@ export function OraclesWorkbench() {
                 </table>
               </div>
             ) : (
-              <WorkbenchEmptyState title="No disputes" copy="No current obligations are flagged as dispute or impairment-sensitive." />
+              <WorkbenchEmptyState title="No disputes" copy="No current obligations are currently carrying recorded impairment." />
             )
           ) : null}
 
@@ -323,14 +348,21 @@ export function OraclesWorkbench() {
         </WorkbenchRailCard>
 
         <WorkbenchRailCard title="Attestation feed" meta="LIVE">
-          <div className="workbench-stack">
-            {attestations.slice(0, 3).map((attestation) => (
-              <div key={attestation.id} className="workbench-mini-stat">
-                <span>{attestation.series}</span>
-                <strong>{attestation.status}</strong>
-              </div>
-            ))}
-          </div>
+          {attestations.length > 0 ? (
+            <div className="workbench-stack">
+              {attestations.slice(0, 3).map((attestation) => (
+                <div key={attestation.id} className="workbench-mini-stat">
+                  <span>{attestation.series}</span>
+                  <strong>{attestation.status}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <WorkbenchEmptyState
+              title="No live attestations"
+              copy={`No feed items are currently available for ${attestationScopeLabel}.`}
+            />
+          )}
         </WorkbenchRailCard>
 
         <WorkbenchRailCard title="Audit trail" meta="AUDIT">

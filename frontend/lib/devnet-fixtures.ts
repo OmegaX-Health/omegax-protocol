@@ -975,6 +975,11 @@ export function configuredDevnetWallets(): DevnetFixtureWallet[] {
   return DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((wallet) => wallet.address !== UNSET);
 }
 
+export function devnetFixtureWalletKey(wallet: Pick<DevnetFixtureWallet, "role" | "envVar" | "address">): string {
+  const source = wallet.envVar?.trim() || wallet.role;
+  return `${source}:${wallet.address}`;
+}
+
 export function configuredDevnetPaymentRails(): DevnetFixtureAsset[] {
   return DEVNET_PROTOCOL_FIXTURE_STATE.paymentRails.filter((rail) => rail.mint !== UNSET);
 }

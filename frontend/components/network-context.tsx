@@ -24,6 +24,7 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
   const [selectedNetwork, setSelectedNetworkState] = useState<NetworkMode>(() =>
     normalizeExplorerCluster(process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER),
   );
+  const [isStorageHydrated, setIsStorageHydrated] = useState(false);
 
   const canSelectNetwork = (network: NetworkMode): boolean =>
     NETWORK_OPTIONS.some((option) => option.id === network && option.isAvailable);
@@ -38,11 +39,13 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
     if (storedNetwork === "devnet" || storedNetwork === "mainnet-beta") {
       setSelectedNetworkState(storedNetwork);
     }
+    setIsStorageHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!isStorageHydrated) return;
     window.localStorage.setItem(NETWORK_STORAGE_KEY, selectedNetwork);
-  }, [selectedNetwork]);
+  }, [isStorageHydrated, selectedNetwork]);
 
   const value = useMemo(
     () => ({

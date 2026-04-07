@@ -8,7 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { walletFixtureFor } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { shortenAddress } from "@/lib/protocol";
 
 const GOVERNANCE_PANELS = [
@@ -68,7 +68,6 @@ export function CanonicalGovernanceSurface() {
     const candidate = searchParams.get("panel");
     return candidate === "authority" || candidate === "templates" ? candidate : "controls";
   }, [searchParams]);
-  const proposalRouteTarget = publicKey?.toBase58() ?? DEVNET_PROTOCOL_FIXTURE_STATE.wallets[0]?.address ?? "protocol";
 
   const updatePanel = useCallback(
     (panel: GovernancePanel) => {
@@ -162,14 +161,14 @@ export function CanonicalGovernanceSurface() {
                   ))}
                   <div className="protocol-data-row">
                     <div>
-                      <strong>Proposal route</strong>
-                      <p className="protocol-section-copy">Inspect the current route-level governance record.</p>
+                      <strong>Live proposal queue</strong>
+                      <p className="protocol-section-copy">Open the current SPL Governance proposal queue.</p>
                     </div>
                     <Link
                       className="secondary-button inline-flex w-fit"
-                      href={`/governance/proposals/${encodeURIComponent(proposalRouteTarget)}`}
+                      href="/governance?tab=queue"
                     >
-                      Inspect
+                      Open
                     </Link>
                   </div>
                 </div>
@@ -181,7 +180,7 @@ export function CanonicalGovernanceSurface() {
         {activePanel === "authority" ? (
           <div className="protocol-data-list">
             {DEVNET_PROTOCOL_FIXTURE_STATE.wallets.map((wallet) => (
-              <article key={wallet.address} className="protocol-data-card">
+              <article key={devnetFixtureWalletKey(wallet)} className="protocol-data-card">
                 <div className="protocol-data-row">
                   <div>
                     <p className="protocol-metric-label">{wallet.role}</p>
@@ -219,9 +218,9 @@ export function CanonicalGovernanceSurface() {
                   </Link>
                   <Link
                     className="secondary-button inline-flex w-fit"
-                    href={`/governance/proposals/${encodeURIComponent(proposalRouteTarget)}`}
+                    href="/governance?tab=queue"
                   >
-                    Proposal
+                    Queue
                   </Link>
                 </div>
               </article>

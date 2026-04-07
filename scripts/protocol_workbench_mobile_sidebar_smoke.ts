@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const SIDEBAR_ID = "protocol-workbench-sidebar";
 const VIEWPORT = { width: 390, height: 844 };
+const DEV_SERVER_PORT_CANDIDATES = [3001, 3000] as const;
 
 type FocusSnapshot = {
   ariaLabel: string | null;
@@ -23,27 +24,33 @@ function usage(): string {
   ].join("\n");
 }
 
-async function findOpenPort(): Promise<number> {
-  return await new Promise((resolve, reject) => {
+async function isPortAvailable(port: number): Promise<boolean> {
+  return await new Promise((resolve) => {
     const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (!address || typeof address === "string") {
-        server.close(() => reject(new Error("Failed to allocate a local port for the mobile sidebar smoke.")));
-        return;
-      }
-
+    server.once("error", () => resolve(false));
+    server.listen(port, "127.0.0.1", () => {
       server.close((error) => {
         if (error) {
-          reject(error);
+          resolve(false);
           return;
         }
 
-        resolve(address.port);
+        resolve(true);
       });
     });
   });
+}
+
+async function findReusablePort(): Promise<number> {
+  for (const port of DEV_SERVER_PORT_CANDIDATES) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+
+  throw new Error(
+    `Unable to start the mobile sidebar smoke because ports ${DEV_SERVER_PORT_CANDIDATES.join(" and ")} are in use.`,
+  );
 }
 
 async function waitForHttpReady(url: string, timeoutMs = 120_000): Promise<void> {
@@ -136,14 +143,14 @@ async function waitForWorkbenchReady(
   page: {
     goto(url: string, options?: { waitUntil?: "domcontentloaded" }): Promise<unknown>;
     locator(selector: string): {
-      waitFor(options?: { state?: "visible"; timeout?: number }): Promise<void>;
+      waitFor(options?: { state?: "attached" | "visible"; timeout?: number }): Promise<void>;
       innerText(): Promise<string>;
     };
   },
   baseUrl: string,
 ): Promise<void> {
   await page.goto(`${baseUrl}/overview`, { waitUntil: "domcontentloaded" });
-  await page.locator(`#${SIDEBAR_ID}`).waitFor({ state: "visible", timeout: 90_000 });
+  await page.locator(`#${SIDEBAR_ID}`).waitFor({ state: "attached", timeout: 90_000 });
   await page.locator(`button[aria-controls="${SIDEBAR_ID}"]`).waitFor({ state: "visible", timeout: 90_000 });
 
   const deadline = Date.now() + 90_000;
@@ -203,6 +210,28 @@ async function tabFromDocumentStart(page: {
   return await readFocusSnapshot(page);
 }
 
+async function reverseTabIntoSidebar(
+  page: {
+    keyboard: { press(key: string): Promise<void> };
+  },
+  toggle: {
+    focus(): Promise<void>;
+  },
+): Promise<FocusSnapshot> {
+  await toggle.focus();
+
+  let focus = await readFocusSnapshot(page);
+  for (let step = 0; step < 3; step += 1) {
+    await page.keyboard.press("Shift+Tab");
+    focus = await readFocusSnapshot(page);
+    if (focus.insideSidebar) {
+      return focus;
+    }
+  }
+
+  return focus;
+}
+
 function assertSidebarState(
   state: { ariaHidden: string | null; dataMobileHidden: string | null; inert: boolean },
   expectedHidden: boolean,
@@ -229,7 +258,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const port = await findOpenPort();
+  const port = await findReusablePort();
   const server = await startFrontendDevServer(port);
 
   let browser: import("playwright").Browser | null = null;
@@ -250,6 +279,16 @@ async function main(): Promise<void> {
     await waitForWorkbenchReady(page, server.baseUrl);
 
     const toggle = page.locator(`button[aria-controls="${SIDEBAR_ID}"]`);
+    const closeNavigation = page.locator('button[aria-label="Close navigation"]');
+
+    await page.waitForFunction((sidebarId) => {
+      const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
+      return (
+        sidebar?.getAttribute("aria-hidden") === "true"
+        && sidebar?.getAttribute("data-mobile-hidden") === "true"
+        && sidebar?.inert === true
+      );
+    }, SIDEBAR_ID);
 
     const hiddenState = await readSidebarState(page);
     assertSidebarState(hiddenState, true);
@@ -261,7 +300,7 @@ async function main(): Promise<void> {
       throw new Error("Expected the mobile drawer toggle to report aria-expanded=false before opening.");
     }
 
-    await toggle.click();
+    await closeNavigation.click();
     await page.waitForFunction((sidebarId) => {
       const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
       return (
@@ -275,7 +314,7 @@ async function main(): Promise<void> {
       throw new Error("Expected the mobile drawer toggle to report aria-expanded=true after opening.");
     }
 
-    const openFocus = await tabFromDocumentStart(page);
+    const openFocus = await reverseTabIntoSidebar(page, toggle);
     assertFocusLocation(openFocus, true, "Opened mobile drawer did not restore sidebar tab order");
 
     await toggle.click();

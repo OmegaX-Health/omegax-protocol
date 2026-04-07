@@ -2,29 +2,38 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { WorkbenchRailCard, WorkbenchTabs } from "@/components/workbench-ui";
+import { loadGovernanceDashboard } from "@/lib/governance";
 import { buildAuditTrail, buildGovernanceQueue, defaultTabForPersona, GOVERNANCE_TABS, GOVERNANCE_TEMPLATE_ROWS, type GovernanceTabId } from "@/lib/workbench";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { shortenAddress } from "@/lib/protocol";
 
 export function GovernanceWorkbench() {
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
-  const auditTrail = useMemo(() => buildAuditTrail(), []);
-  const queue = useMemo(() => buildGovernanceQueue(), []);
+  const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
+  const [proposalQueueLoaded, setProposalQueueLoaded] = useState(false);
+  const queue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
+  const auditTrail = useMemo(() => buildAuditTrail(queue), [queue]);
 
   const requestedTab = searchParams.get("tab");
   const activeTab = (GOVERNANCE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("governance", effectivePersona)) as GovernanceTabId;
   const queryProposal = searchParams.get("proposal")?.trim() ?? "";
   const selectedProposal = queue.find((proposal) => proposal.proposal === queryProposal) ?? queue[0] ?? null;
+  const queueEmptyMessage = proposalQueueLoaded
+    ? "No live governance proposals are available for the configured realm."
+    : "Loading live governance proposals...";
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -37,6 +46,34 @@ export function GovernanceWorkbench() {
     },
     [pathname, router, searchParams],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProposalQueue() {
+      setProposalQueueLoaded(false);
+      try {
+        const dashboard = await loadGovernanceDashboard({
+          connection,
+          walletAddress: publicKey ?? null,
+        });
+        if (cancelled) return;
+        setGovernanceProposalRows(dashboard?.proposals ?? []);
+      } catch {
+        if (cancelled) return;
+        setGovernanceProposalRows([]);
+      } finally {
+        if (!cancelled) {
+          setProposalQueueLoaded(true);
+        }
+      }
+    }
+
+    void loadProposalQueue();
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, publicKey]);
 
   useEffect(() => {
     const nextUpdates: Record<string, string> = {};
@@ -110,7 +147,7 @@ export function GovernanceWorkbench() {
                   </div>
                 </div>
                 <div className="workbench-list">
-                  {queue.map((proposal) => (
+                  {queue.length > 0 ? queue.map((proposal) => (
                     <button
                       key={proposal.proposal}
                       type="button"
@@ -125,7 +162,9 @@ export function GovernanceWorkbench() {
                         <span>{proposal.status}</span>
                       </div>
                     </button>
-                  ))}
+                  )) : (
+                    <p className="workbench-body-copy">{queueEmptyMessage}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -144,7 +183,7 @@ export function GovernanceWorkbench() {
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.map((proposal) => (
+                  {queue.length > 0 ? queue.map((proposal) => (
                     <tr key={proposal.proposal}>
                       <td>
                         <button type="button" className="workbench-inline-button" onClick={() => updateParams({ proposal: proposal.proposal })}>
@@ -160,7 +199,11 @@ export function GovernanceWorkbench() {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={5}>{queueEmptyMessage}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -181,7 +224,7 @@ export function GovernanceWorkbench() {
                   {wallets.map((wallet) => {
                     const actions = authorities.find((row) => row.role === wallet.role)?.actions ?? [];
                     return (
-                      <tr key={wallet.address}>
+                      <tr key={devnetFixtureWalletKey(wallet)}>
                         <td>{wallet.role}</td>
                         <td>{wallet.label}</td>
                         <td>{shortenAddress(wallet.address, 8)}</td>
@@ -270,7 +313,9 @@ export function GovernanceWorkbench() {
                 Open standalone detail
               </Link>
             </div>
-          ) : null}
+          ) : (
+            <p>{queueEmptyMessage}</p>
+          )}
         </WorkbenchRailCard>
 
         <WorkbenchRailCard title="Authority alerts" meta="CONTROL">
