@@ -23,6 +23,11 @@ function applyTheme(theme: ThemeMode) {
   document.documentElement.dataset.theme = theme;
 }
 
+function resolveSystemTheme(): ThemeMode {
+  if (typeof window === "undefined") return "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
@@ -32,11 +37,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const nextTheme =
       storedTheme === "dark" || storedTheme === "light"
         ? storedTheme
-        : "light";
+        : resolveSystemTheme();
 
     applyTheme(nextTheme);
     setThemeState(nextTheme);
     setMounted(true);
+
+    if (storedTheme === "dark" || storedTheme === "light") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      if (window.localStorage.getItem(THEME_STORAGE_KEY)) return;
+      const resolvedTheme = resolveSystemTheme();
+      applyTheme(resolvedTheme);
+      setThemeState(resolvedTheme);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
   }, []);
 
   function setTheme(nextTheme: ThemeMode) {

@@ -9,6 +9,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { RefreshCw, Settings2 } from "lucide-react";
 
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import { OperatorVisibilityPanel } from "@/components/operator-visibility-panel";
 import { PoolLifecyclePanel } from "@/components/pool-lifecycle-panel";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
@@ -105,27 +106,27 @@ const AUTOMATION_MODE_OPTIONS = [
 const READINESS_ACTIONS: Record<ReadinessRow["id"], { label: string; resolveHref: (poolAddress: string) => string }> = {
   poolExists: {
     label: "Open setup wizard",
-    resolveHref: () => "/pools/create",
+    resolveHref: () => "/plans",
   },
   poolTermsConfigured: {
     label: "Open plan controls",
-    resolveHref: (poolAddress) => `/pools/${poolAddress}?section=settings&panel=controls`,
+    resolveHref: (poolAddress) => buildCanonicalPoolHref(poolAddress, { section: "settings" }),
   },
   poolOraclePolicyConfigured: {
     label: "Open oracle policy",
-    resolveHref: (poolAddress) => `/pools/${poolAddress}?section=oracles&panel=policy`,
+    resolveHref: (poolAddress) => buildCanonicalPoolHref(poolAddress, { section: "oracles", panel: "registry" }),
   },
   poolAssetVaultConfigured: {
     label: "Open treasury rails",
-    resolveHref: (poolAddress) => `/pools/${poolAddress}?section=treasury&panel=vaults`,
+    resolveHref: (poolAddress) => buildCanonicalPoolHref(poolAddress, { section: "treasury", panel: "queue" }),
   },
   coveragePolicyExists: {
     label: "Open coverage",
-    resolveHref: (poolAddress) => `/pools/${poolAddress}?section=coverage`,
+    resolveHref: (poolAddress) => buildCanonicalPoolHref(poolAddress, { section: "coverage" }),
   },
   premiumLedgerTracked: {
     label: "Open coverage payments",
-    resolveHref: (poolAddress) => `/pools/${poolAddress}?section=coverage&panel=payments`,
+    resolveHref: (poolAddress) => buildCanonicalPoolHref(poolAddress, { section: "coverage" }),
   },
 };
 
@@ -522,7 +523,7 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
             })}
           </div>
 
-          <Link href="/pools/create" className="secondary-button inline-flex w-fit">
+          <Link href="/plans" className="secondary-button inline-flex w-fit">
             Open create wizard
           </Link>
           {error ? <p className="field-error">{error}</p> : null}

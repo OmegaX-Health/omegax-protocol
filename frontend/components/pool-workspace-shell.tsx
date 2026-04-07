@@ -8,11 +8,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
-import { PoolOverviewPanel } from "@/components/pool-overview-panel";
 import { PoolWorkspaceProvider } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
 import { cn } from "@/lib/cn";
 import { buildBusinessContextHref, getBusinessEntryContext } from "@/lib/business-entry-context";
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import {
   fetchProtocolReadiness,
   listClaimDelegateAuthorizations,
@@ -102,7 +102,6 @@ function resolvePoolStatus(readiness: ProtocolReadiness | null, protocolConfig: 
 }
 
 const SECTION_LEADS: Record<PoolWorkspaceSection, string> = {
-  overview: "Review plan health, key risks, and the next action for this wallet.",
   members: "Manage enrollment and delegation for people participating in this plan.",
   coverage: "Review coverage tracks, cycle state, and payout setup for this plan.",
   claims: "Track submitted claims and the operator actions that can move them forward.",
@@ -258,7 +257,6 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
 
   const sectionBlockers = useMemo(
     () => ({
-      overview: null,
       members: capabilities.isConnected ? null : "Connect a wallet to run enrollment or delegation actions.",
       coverage: capabilities.canManageCoverage ? null : "Coverage tools are viewable, but actions require a member, delegate, or operator wallet.",
       claims: capabilities.canSubmitClaims || capabilities.canManageClaims
@@ -538,34 +536,23 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
 
   const onCopySectionLink = useCallback(async () => {
     try {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("section", activeSection);
       const activePanel = searchParams.get("panel");
-      if (activePanel) {
-        params.set("panel", activePanel);
-      }
-      const shareUrl = `${window.location.origin}/pools/${encodeURIComponent(selectedPoolAddress)}?${params.toString()}`;
-      await navigator.clipboard.writeText(shareUrl);
+      const shareUrl = new URL(
+        buildCanonicalPoolHref(selectedPoolAddress, {
+          section: activeSection,
+          panel: activePanel,
+        }),
+        window.location.origin,
+      );
+      shareUrl.searchParams.set("section", activeSection);
+      await navigator.clipboard.writeText(shareUrl.toString());
       setTransientHeaderNotice("Section link copied.");
     } catch {
       setTransientHeaderNotice("Copy failed. Clipboard is unavailable.");
     }
   }, [activeSection, searchParams, selectedPoolAddress, setTransientHeaderNotice]);
 
-  const selectedSectionNode = activeSection === "overview" ? (
-    <PoolOverviewPanel
-      poolAddress={selectedPoolAddress}
-      readiness={readiness}
-      protocolConfig={protocolConfig}
-      poolControlAuthority={poolControlAuthority}
-      walletClaimDelegate={walletClaimDelegate}
-      walletCapitalPosition={walletCapitalPosition}
-      capabilities={capabilities}
-      dashboard={dashboard}
-      lastUpdatedAt={lastUpdatedAt}
-      onOpenSection={applySection}
-    />
-  ) : sections[activeSection] ?? (
+  const selectedSectionNode = sections[activeSection] ?? (
     <section className="workspace-section-shell">
       <p className="field-help">This section is not configured yet.</p>
     </section>
@@ -608,7 +595,7 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
           </div>
 
           <div className="workspace-header-meta">
-            <article className="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface)] p-4 space-y-2">
+            <article className="workspace-next-action-card">
               <p className="metric-label">Next action</p>
               {dashboard.nextAction ? (
                 <>
@@ -630,16 +617,16 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
               )}
             </article>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="workspace-header-actions">
               <Link href={backToPoolsHref} className="secondary-button inline-flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to pools
+                Back to capital
               </Link>
               <button type="button" className="secondary-button" onClick={() => void refreshWorkspace()} disabled={loading}>
                 {loading ? "Refreshing..." : "Refresh workspace"}
               </button>
-              <Link href="/pools/create" className="action-button inline-flex">
-                Create new plan
+              <Link href="/plans" className="action-button inline-flex">
+                Open plans
               </Link>
             </div>
 
@@ -678,12 +665,12 @@ export function PoolWorkspaceShell({ poolAddress, sections }: PoolWorkspaceShell
                     if (!value) return;
                     router.push(
                       buildBusinessContextHref(
-                        `/pools/${value}`,
-                        businessEntry,
-                        {
+                        buildCanonicalPoolHref(value, {
                           section: activeSection,
                           panel: searchParams.get("panel") ?? undefined,
-                        },
+                        }),
+                        businessEntry,
+                        {},
                       ),
                     );
                   }}

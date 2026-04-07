@@ -3,5 +3,5 @@
 import { redirect } from "next/navigation";
 
 export default function LegacyPoolsPage() {
-  redirect("/capital");
+  redirect("/capital?tab=overview");
 }

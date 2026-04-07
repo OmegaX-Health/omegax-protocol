@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import { FieldHint } from "@/components/field-hint";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 
@@ -131,10 +132,10 @@ export function StepFundingReview({
 }: StepFundingReviewProps) {
   const requiresCoveragePathway = planType === "insurance" || planType === "hybrid";
   const workspaceHref = activePoolAddress
-    ? (buildPoolHref ? buildPoolHref(activePoolAddress) : `/pools/${activePoolAddress}`)
+    ? (buildPoolHref ? buildPoolHref(activePoolAddress) : buildCanonicalPoolHref(activePoolAddress))
     : "";
   const coverageHref = activePoolAddress
-    ? (buildPoolHref ? buildPoolHref(activePoolAddress, "coverage") : `/pools/${activePoolAddress}?section=coverage`)
+    ? (buildPoolHref ? buildPoolHref(activePoolAddress, "coverage") : buildCanonicalPoolHref(activePoolAddress, { section: "coverage" }))
     : "";
 
   return (

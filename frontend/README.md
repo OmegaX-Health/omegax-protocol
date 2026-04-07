@@ -18,6 +18,12 @@ This directory contains the Next.js protocol console for the canonical OmegaX he
 - `lib/console-model.ts` builds the sponsor/member/capital views used by the console
 - `public/` contains static assets intended for redistribution
 
+## Design references
+
+- Keep the frontend aligned with the OmegaX design system rather than generic SaaS admin patterns.
+- For AI-assisted editing in Codex, load the `omegax-design` skill first.
+- Follow the shared design tokens and the protocol frontend surface guidance in the OmegaX design system before large UI changes or route rewrites.
+
 ## Commands
 
 ```bash

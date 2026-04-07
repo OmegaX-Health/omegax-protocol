@@ -2,7 +2,7 @@
 
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { NETWORK_OPTIONS, normalizeExplorerCluster, type NetworkMode } from "@/lib/network-config";
 
@@ -13,6 +13,8 @@ export type NetworkContextValue = {
 };
 
 export const NetworkContext = createContext<NetworkContextValue | undefined>(undefined);
+
+const NETWORK_STORAGE_KEY = "omegax-network";
 
 type NetworkProviderProps = {
   children: ReactNode;
@@ -30,6 +32,17 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
     if (!canSelectNetwork(network)) return;
     setSelectedNetworkState(network);
   };
+
+  useEffect(() => {
+    const storedNetwork = window.localStorage.getItem(NETWORK_STORAGE_KEY);
+    if (storedNetwork === "devnet" || storedNetwork === "mainnet-beta") {
+      setSelectedNetworkState(storedNetwork);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(NETWORK_STORAGE_KEY, selectedNetwork);
+  }, [selectedNetwork]);
 
   const value = useMemo(
     () => ({
@@ -50,4 +63,3 @@ export function useNetworkContext(): NetworkContextValue {
   }
   return context;
 }
-

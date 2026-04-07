@@ -43,6 +43,8 @@ import { parseWorkspacePanel, visibleWorkspacePanels, type PoolWorkspacePanel } 
 
 type PoolLiquidityConsoleProps = {
   poolAddress: string;
+  syncSectionParam?: boolean;
+  visiblePanelsOverride?: ReadonlyArray<PoolWorkspacePanel>;
 };
 
 const LIQUIDITY_PANELS: ReadonlyArray<{ value: PoolWorkspacePanel; label: string }> = [
@@ -62,7 +64,11 @@ function parseDaysToSeconds(value: string): bigint {
   return BigInt(Math.round(parsed * 86_400));
 }
 
-export function PoolLiquidityConsole({ poolAddress }: PoolLiquidityConsoleProps) {
+export function PoolLiquidityConsole({
+  poolAddress,
+  syncSectionParam = true,
+  visiblePanelsOverride,
+}: PoolLiquidityConsoleProps) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const { capabilities } = usePoolWorkspaceContext();
@@ -104,8 +110,8 @@ export function PoolLiquidityConsole({ poolAddress }: PoolLiquidityConsoleProps)
   const [selectedRedeemerTokenAccount, setSelectedRedeemerTokenAccount] = useState("");
 
   const visiblePanels = useMemo(
-    () => visibleWorkspacePanels("liquidity", capabilities),
-    [capabilities],
+    () => visiblePanelsOverride ?? visibleWorkspacePanels("liquidity", capabilities),
+    [capabilities, visiblePanelsOverride],
   );
   const activePanel = useMemo<PoolWorkspacePanel>(
     () => (requestedPanel && visiblePanels.includes(requestedPanel) ? requestedPanel : visiblePanels[0] ?? "direct"),
@@ -141,10 +147,14 @@ export function PoolLiquidityConsole({ poolAddress }: PoolLiquidityConsoleProps)
 
   const setPanel = useCallback((nextPanel: PoolWorkspacePanel) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("section", "liquidity");
+    if (syncSectionParam) {
+      params.set("section", "liquidity");
+    } else {
+      params.delete("section");
+    }
     params.set("panel", nextPanel);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [pathname, router, searchParams]);
+  }, [pathname, router, searchParams, syncSectionParam]);
 
   useEffect(() => {
     if (requestedPanel === activePanel) return;

@@ -14,6 +14,7 @@ import {
 } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import { cn } from "@/lib/cn";
 import {
   buildBusinessContextHref,
@@ -326,7 +327,7 @@ export function CreateHealthPlanWizard() {
   const [poolId, setPoolId] = useState("omegax-wellness-pool");
   const [organizationRef, setOrganizationRef] = useState("Corporate-HR-XYZ");
   const [metadataUri, setMetadataUri] = useState(
-    "https://protocol.omegax.health/pools/holder",
+    "https://protocol.omegax.health/plans/holder",
   );
   const [payoutAssetMode, setPayoutAssetMode] =
     useState<PayoutAssetMode>("spl");
@@ -430,9 +431,8 @@ export function CreateHealthPlanWizard() {
   const buildPoolHref = useCallback(
     (poolAddress: string, section?: string) =>
       buildBusinessContextHref(
-        `/pools/${poolAddress}`,
+        buildCanonicalPoolHref(poolAddress, { section: (section as "coverage" | null) ?? null }),
         businessEntry,
-        section ? { section } : undefined,
       ),
     [businessEntry],
   );

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import {
   ORACLE_TYPE_HEALTH_APP,
   ORACLE_TYPE_HOSPITAL_CLINIC,
@@ -1335,8 +1336,8 @@ export function OracleRegistryVerificationPanel() {
               {verificationBusy ? "Running..." : "Run readiness check"}
             </button>
             {verificationPoolAddress ? (
-              <Link href={`/pools/${verificationPoolAddress}?section=oracles&panel=policy`} className="secondary-button inline-flex items-center gap-1.5 text-sm">
-                Open pool workspace <ExternalLink className="h-3.5 w-3.5" />
+              <Link href={buildCanonicalPoolHref(verificationPoolAddress, { section: "oracles", panel: "staking" })} className="secondary-button inline-flex items-center gap-1.5 text-sm">
+                Open oracle route <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             ) : null}
           </div>

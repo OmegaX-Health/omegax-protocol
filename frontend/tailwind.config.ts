@@ -19,9 +19,9 @@ const config: Config = {
         accent: "var(--accent)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "DM Sans", "sans-serif"],
-        display: ["var(--font-display)", "Plus Jakarta Sans", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "Menlo", "Consolas", "monospace"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
         surface: "var(--surface-shadow)",

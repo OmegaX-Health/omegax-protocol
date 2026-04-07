@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 
 import { SearchableSelect } from "@/components/searchable-select";
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import { listPools, type PoolSummary } from "@/lib/protocol";
 import { formatRpcError } from "@/lib/rpc-errors";
 import type { PoolWorkspacePanel, PoolWorkspaceSection } from "@/lib/ui-capabilities";
@@ -96,11 +97,10 @@ export function PoolWorkspaceLauncher({
         </button>
         {selectedPoolAddress ? (
           <Link
-            href={`/pools/${selectedPoolAddress}${
-              targetSection
-                ? `?section=${encodeURIComponent(targetSection)}${targetPanel ? `&panel=${encodeURIComponent(targetPanel)}` : ""}`
-                : ""
-            }`}
+            href={buildCanonicalPoolHref(selectedPoolAddress, {
+              section: (targetSection as Parameters<typeof buildCanonicalPoolHref>[1]["section"]) ?? null,
+              panel: targetPanel,
+            })}
             className="action-button inline-flex"
           >
             {actionLabel}

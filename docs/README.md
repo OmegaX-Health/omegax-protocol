@@ -11,6 +11,7 @@ This directory contains the public documentation set for `omegax-protocol`.
 - [Solana Instruction Map](./architecture/solana-instruction-map.md)
 - [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md)
 - [Frontend Information Architecture](./architecture/frontend-information-architecture.md)
+- [Protocol Console Functional Specification](./architecture/protocol-console-functional-spec.md)
 
 ### Reviews
 
@@ -48,6 +49,7 @@ This directory contains the public documentation set for `omegax-protocol`.
 - Use [Solana Program Architecture](./architecture/solana-program-architecture.md) to understand the on-chain program layout and reviewer read order.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
 - Use [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) when you need the signer model, claim roles, and payout-path rules for reviewed coverage claims.
+- Use [Protocol Console Functional Specification](./architecture/protocol-console-functional-spec.md) when you need the target-state screen-by-screen functional brief for the public protocol console.
 - Use [Solana Public Readiness Review](./reviews/solana-public-readiness-review.md) for the scored audit, blockers, and cleanup backlog.
 - Use [Liquidity Pool Metadata Schema](./reference/liquidity-pool-metadata-schema.md) when integrating LP-facing off-chain APY metadata for a `LiquidityPool`.
 - Use [Protocol Surface Audit](./testing/protocol-surface-audit.md) when you need the heavier localnet proof for canonical instruction ownership, scenario coverage, and release-candidate sign-off.

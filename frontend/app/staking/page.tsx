@@ -3,5 +3,5 @@
 import { redirect } from "next/navigation";
 
 export default function LegacyStakingPage() {
-  redirect("/oracles");
+  redirect("/oracles?tab=staking");
 }

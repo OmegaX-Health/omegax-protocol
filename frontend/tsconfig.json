@@ -41,7 +41,9 @@
     "lib/protocol.ts",
     "lib/generated/**/*.ts",
     ".next/types/**/*.ts",
-    ".next-dev-*/types/**/*.ts"
+    ".next-dev-*/types/**/*.ts",
+    ".next-dev-3000/types/**/*.ts",
+    ".next-dev-3001/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -15,7 +15,11 @@ function shortAddress(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-export function OracleStakingAccessPanel() {
+type OracleStakingAccessPanelProps = {
+  initialPoolAddress?: string;
+};
+
+export function OracleStakingAccessPanel({ initialPoolAddress }: OracleStakingAccessPanelProps) {
   const { connection } = useConnection();
   const { connected, publicKey } = useWallet();
   const [oracles, setOracles] = useState<OracleSummary[]>([]);
@@ -91,6 +95,7 @@ export function OracleStakingAccessPanel() {
       </section>
       <OperatorVisibilityPanel
         lens="oracles"
+        initialPoolAddress={initialPoolAddress}
         initialOracleAddress={walletAddress}
         lockOracleSelection
       />

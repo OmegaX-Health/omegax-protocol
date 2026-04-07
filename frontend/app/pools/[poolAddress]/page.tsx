@@ -2,6 +2,10 @@
 
 import { redirect } from "next/navigation";
 
-export default function LegacyPoolWorkspacePage() {
-  redirect("/capital");
+type LegacyPoolWorkspacePageProps = {
+  params: { poolAddress: string };
+};
+
+export default function LegacyPoolWorkspacePage({ params }: LegacyPoolWorkspacePageProps) {
+  redirect(`/capital?pool=${encodeURIComponent(params.poolAddress)}&tab=overview`);
 }

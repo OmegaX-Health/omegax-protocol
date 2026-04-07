@@ -6,13 +6,6 @@ const nextConfig = {
   reactStrictMode: true,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   ...(isDevelopment ? { distDir: `.next-dev-${devPort}` } : {}),
-  async redirects() {
-    return [
-      { source: "/members", destination: "/pools", permanent: false },
-      { source: "/claims", destination: "/pools", permanent: false },
-      { source: "/staking", destination: "/pools", permanent: false },
-    ];
-  },
 };
 
 export default nextConfig;

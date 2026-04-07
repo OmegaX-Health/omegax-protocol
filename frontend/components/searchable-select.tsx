@@ -23,6 +23,8 @@ type SearchableSelectProps = {
   disabledHint?: string;
   error?: string | null;
   emptyMessage?: string;
+  showOptionCount?: boolean;
+  showSelectedHint?: boolean;
 };
 
 export function SearchableSelect({
@@ -38,6 +40,8 @@ export function SearchableSelect({
   disabledHint,
   error,
   emptyMessage,
+  showOptionCount = true,
+  showSelectedHint = true,
 }: SearchableSelectProps) {
   const selected = useMemo(() => options.find((option) => option.value === value) ?? null, [options, value]);
   const blocked = Boolean(disabled);
@@ -74,12 +78,12 @@ export function SearchableSelect({
       ) : null}
 
       {loading ? <p className="field-help">Loading options from chain...</p> : null}
-      {!loading ? <p className="field-help">{options.length} option{options.length === 1 ? "" : "s"} loaded.</p> : null}
+      {!loading && showOptionCount ? <p className="field-help">{options.length} option{options.length === 1 ? "" : "s"} loaded.</p> : null}
       {!loading && options.length === 0 ? (
         <p className="field-help">{emptyMessage ?? "No matching options found on chain."}</p>
       ) : null}
       {blocked && disabledHint ? <p className="field-help">{disabledHint}</p> : null}
-      {selected?.hint ? <p className="field-help">{selected.hint}</p> : null}
+      {showSelectedHint && selected?.hint ? <p className="field-help">{selected.hint}</p> : null}
       {selectedMissing ? <p className="field-error">Selected value is not present in current selector results.</p> : null}
       {error ? <p className="field-error">{error}</p> : null}
     </div>

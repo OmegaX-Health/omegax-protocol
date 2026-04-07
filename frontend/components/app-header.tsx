@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MoonStar, SunMedium } from "lucide-react";
+import { ChevronDown, Menu, MoonStar, SunMedium, X } from "lucide-react";
 
+import { ProtocolStatusBar } from "@/components/protocol-status-bar";
 import { useTheme } from "@/components/theme-provider";
 import { WalletButton } from "@/components/wallet-providers";
 import { useNetworkContext } from "@/components/network-context";
@@ -21,14 +22,21 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/pools", label: "Health Plans" },
-  { href: "/oracles", label: "Verification" },
-  { href: "/schemas", label: "Outcomes" },
+  { href: "/plans", label: "Plans" },
+  { href: "/capital", label: "Capital" },
+  { href: "/claims", label: "Claims" },
+  { href: "/members", label: "Members" },
   { href: "/governance", label: "Governance" },
+  { href: "/oracles", label: "Oracles" },
+  { href: "/schemas", label: "Schemas" },
   { href: "https://docs.omegax.health", label: "Docs", isExternal: true },
 ];
 
-const MAX_VISIBLE_TABS = 5;
+function getMaxVisibleTabs(width: number): number {
+  if (width >= 1500) return 7;
+  if (width >= 1320) return 6;
+  return 5;
+}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") {
@@ -42,19 +50,20 @@ export default function AppHeader() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isNetworkOpen, setIsNetworkOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const headerRef = useRef<HTMLElement>(null);
+  const [maxVisibleTabs, setMaxVisibleTabs] = useState(5);
+  const headerRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const networkMenuRef = useRef<HTMLDivElement>(null);
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { mounted, theme, toggleTheme } = useTheme();
   const activeNetwork = NETWORK_OPTIONS.find((item) => item.id === selectedNetwork)?.label ?? "Devnet";
   const isDarkTheme = mounted && theme === "dark";
-  const themeLabel = mounted ? (isDarkTheme ? "Dark" : "Light") : "Theme";
+  const themeLabel = mounted ? (isDarkTheme ? "Dark" : "Light") : "System";
   const nextThemeLabel = isDarkTheme ? "light" : "dark";
-  const themeActionLabel = isDarkTheme ? "Use light" : "Use dark";
+  const themeActionLabel = isDarkTheme ? "Switch to light" : "Switch to dark";
   const ThemeIcon = isDarkTheme ? SunMedium : MoonStar;
-  const primaryNavItems = navItems.slice(0, MAX_VISIBLE_TABS);
-  const overflowNavItems = navItems.slice(MAX_VISIBLE_TABS);
+  const primaryNavItems = navItems.slice(0, maxVisibleTabs);
+  const overflowNavItems = navItems.slice(maxVisibleTabs);
   const overflowHasActiveTab = overflowNavItems.some((item) => !item.isExternal && isActive(pathname, item.href));
 
   useEffect(() => {
@@ -68,6 +77,8 @@ export default function AppHeader() {
       if (window.innerWidth >= 768) {
         setIsMobileMenuOpen(false);
       }
+
+      setMaxVisibleTabs(getMaxVisibleTabs(window.innerWidth));
     }
 
     handleResize();
@@ -126,189 +137,169 @@ export default function AppHeader() {
   }, [isMobileMenuOpen, isMoreOpen, isNetworkOpen]);
 
   return (
-    <header
-      ref={headerRef}
-      className="topbar-shell"
-    >
-      <div className="flex h-16 w-full items-center gap-2 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
-        <Link href="/" className="brand-logo-shell shrink-0" aria-label="OmegaX Protocol home">
-          <Image src="/favicon.svg" alt="Protocol icon" width={162} height={116} className="brand-logo" priority />
-        </Link>
+    <div ref={headerRef} className="topbar-shell">
+      <header>
+        <div className="topbar-row">
+          <Link href="/plans" className="brand-wordmark-shell shrink-0" aria-label="OmegaX Protocol home">
+            <Image
+              src="/brand/logo-mark.svg"
+              alt="OmegaX"
+              width={40}
+              height={40}
+              className="brand-wordmark"
+              priority
+            />
+          </Link>
 
-        <nav className="hidden min-w-0 flex-1 md:block" aria-label="Primary navigation">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="topbar-tabs no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-              {primaryNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  target={item.isExternal ? "_blank" : undefined}
-                  rel={item.isExternal ? "noopener noreferrer" : undefined}
-                  aria-current={!item.isExternal && isActive(pathname, item.href) ? "page" : undefined}
-                  className={cn("nav-link", !item.isExternal && isActive(pathname, item.href) && "nav-link-active")}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-
-            {overflowNavItems.length > 0 ? (
-              <div ref={moreMenuRef} className="relative shrink-0">
-                <button
-                  type="button"
-                  aria-haspopup="menu"
-                  aria-expanded={isMoreOpen}
-                  onClick={() => setIsMoreOpen((prev) => !prev)}
-                  className={cn("nav-link inline-flex items-center gap-1.5", overflowHasActiveTab && "nav-link-active")}
-                >
-                  More
-                  <svg
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    aria-hidden="true"
-                    className={cn("h-3.5 w-3.5 transition-transform", isMoreOpen && "rotate-180")}
+          <nav className="hidden min-w-0 flex-1 md:block" aria-label="Primary navigation">
+            <div className="flex min-w-0 items-center">
+              <div className="topbar-tabs no-scrollbar flex min-w-0 flex-1 items-center overflow-x-auto">
+                {primaryNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    target={item.isExternal ? "_blank" : undefined}
+                    rel={item.isExternal ? "noopener noreferrer" : undefined}
+                    aria-current={!item.isExternal && isActive(pathname, item.href) ? "page" : undefined}
+                    className={cn("nav-link", !item.isExternal && isActive(pathname, item.href) && "nav-link-active")}
                   >
-                    <path d="m5.5 7.5 4.5 5 4.5-5" />
-                  </svg>
-                </button>
+                    {item.label}
+                  </Link>
+                ))}
 
-                {isMoreOpen ? (
-                  <div className="topbar-more-menu" role="menu" aria-label="More navigation">
-                    {overflowNavItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        target={item.isExternal ? "_blank" : undefined}
-                        rel={item.isExternal ? "noopener noreferrer" : undefined}
-                        role="menuitem"
-                        aria-current={!item.isExternal && isActive(pathname, item.href) ? "page" : undefined}
-                        onClick={() => {
-                          setIsMoreOpen(false);
-                        }}
-                        className={cn(
-                          "topbar-more-link",
-                          !item.isExternal && isActive(pathname, item.href) && "topbar-more-link-active",
-                          item.isExternal && "flex items-center justify-between"
-                        )}
-                      >
-                        {item.label}
-                        {item.isExternal && (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 opacity-50"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        )}
-                      </Link>
-                    ))}
+                {overflowNavItems.length > 0 ? (
+                  <div ref={moreMenuRef} className="relative shrink-0">
+                    <button
+                      type="button"
+                      aria-haspopup="menu"
+                      aria-expanded={isMoreOpen}
+                      onClick={() => setIsMoreOpen((prev) => !prev)}
+                      className={cn("nav-link inline-flex items-center gap-1.5", overflowHasActiveTab && "nav-link-active")}
+                    >
+                      More
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isMoreOpen && "rotate-180")} strokeWidth={1.8} />
+                    </button>
+
+                    {isMoreOpen ? (
+                      <div className="topbar-more-menu" role="menu" aria-label="More navigation">
+                        {overflowNavItems.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            target={item.isExternal ? "_blank" : undefined}
+                            rel={item.isExternal ? "noopener noreferrer" : undefined}
+                            role="menuitem"
+                            aria-current={!item.isExternal && isActive(pathname, item.href) ? "page" : undefined}
+                            onClick={() => {
+                              setIsMoreOpen(false);
+                            }}
+                            className={cn(
+                              "topbar-more-link",
+                              !item.isExternal && isActive(pathname, item.href) && "topbar-more-link-active",
+                              item.isExternal && "flex items-center justify-between"
+                            )}
+                          >
+                            {item.label}
+                            {item.isExternal ? (
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 opacity-50"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            ) : null}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
-            ) : null}
-          </div>
-        </nav>
+            </div>
+          </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="topbar-control topbar-theme-toggle hidden md:inline-flex"
-            aria-label={`Switch to ${nextThemeLabel} mode`}
-            title={`Switch to ${nextThemeLabel} mode`}
-          >
-            <span className="topbar-theme-toggle-icon" aria-hidden="true">
-              <ThemeIcon className="topbar-theme-toggle-glyph" strokeWidth={1.9} />
-            </span>
-            <span className="hidden lg:inline topbar-control-label" suppressHydrationWarning>
-              {themeLabel}
-            </span>
-          </button>
-
-          <div ref={networkMenuRef} className="relative hidden md:inline-flex">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <button
               type="button"
-              aria-haspopup="menu"
-              aria-expanded={isNetworkOpen}
-              onClick={() => setIsNetworkOpen((prev) => !prev)}
-              className="topbar-network-trigger topbar-control pr-2"
-              aria-label={`Active network ${activeNetwork}`}
-              title="Select network"
+              onClick={toggleTheme}
+              className="topbar-icon-button hidden md:inline-flex"
+              aria-label={`Switch to ${nextThemeLabel} mode`}
+              title={`Switch to ${nextThemeLabel} mode`}
             >
-              <span className="topbar-control-label">{activeNetwork}</span>
-              <svg
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden="true"
-                className={cn("topbar-network-chevron", isNetworkOpen && "rotate-180")}
-              >
-                <path d="m5.5 7.5 4.5 5 4.5-5" />
-              </svg>
+              <ThemeIcon className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.9} aria-hidden="true" />
             </button>
 
-            {isNetworkOpen ? (
-              <div className="topbar-network-menu topbar-more-menu" role="menu" aria-label="Network selection">
-                {NETWORK_OPTIONS.map((network) => {
-                  const isCurrent = network.id === selectedNetwork;
-                  const canSelect = canSelectNetwork(network.id);
+            <div ref={networkMenuRef} className="relative hidden md:block">
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={isNetworkOpen}
+                onClick={() => setIsNetworkOpen((prev) => !prev)}
+                className="topbar-network-trigger"
+                aria-label={`Active network ${activeNetwork}`}
+                title="Select network"
+              >
+                <span className="topbar-network-dot" aria-hidden="true" />
+                <span className="topbar-network-label">{activeNetwork}</span>
+                <ChevronDown
+                  className={cn("topbar-network-chevron", isNetworkOpen && "rotate-180")}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </button>
 
-                  return (
-                    <button
-                      key={network.id}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={isCurrent}
-                      aria-disabled={!canSelect}
-                      disabled={!canSelect}
-                      onClick={() => {
-                        if (!canSelect) return;
-                        setSelectedNetwork(network.id);
-                        setIsNetworkOpen(false);
-                      }}
-                      className={cn(
-                        "topbar-network-option",
-                        isCurrent && "topbar-network-option-active",
-                        !canSelect && "topbar-network-option-disabled",
-                      )}
-                    >
-                      <span>{network.label}</span>
-                      {!canSelect && <span className="topbar-network-option-badge">Coming soon</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-          <WalletButton className="wallet-button-compact wallet-button-topbar wallet-button-mobile" />
-          <button
-            type="button"
-            aria-controls="mobile-primary-menu"
-            aria-expanded={isMobileMenuOpen}
-            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-            onClick={() => {
-              setIsMoreOpen(false);
-              setIsNetworkOpen(false);
-              setIsMobileMenuOpen((prev) => !prev);
-            }}
-            className="topbar-control inline-flex h-9 w-9 items-center justify-center p-0 md:hidden"
-          >
-            <svg
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              aria-hidden="true"
-              className="h-[1.125rem] w-[1.125rem]"
+              {isNetworkOpen ? (
+                <div className="topbar-network-menu topbar-more-menu" role="menu" aria-label="Network selection">
+                  {NETWORK_OPTIONS.map((network) => {
+                    const isCurrent = network.id === selectedNetwork;
+                    const canSelect = canSelectNetwork(network.id);
+
+                    return (
+                      <button
+                        key={network.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isCurrent}
+                        aria-disabled={!canSelect}
+                        disabled={!canSelect}
+                        onClick={() => {
+                          if (!canSelect) return;
+                          setSelectedNetwork(network.id);
+                          setIsNetworkOpen(false);
+                        }}
+                        className={cn(
+                          "topbar-network-option",
+                          isCurrent && "topbar-network-option-active",
+                          !canSelect && "topbar-network-option-disabled",
+                        )}
+                      >
+                        <span>{network.label}</span>
+                        {!canSelect ? <span className="topbar-network-option-badge">Coming soon</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+            <WalletButton className="topbar-wallet hidden md:flex" />
+            <button
+              type="button"
+              aria-controls="mobile-primary-menu"
+              aria-expanded={isMobileMenuOpen}
+              aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              onClick={() => {
+                setIsMoreOpen(false);
+                setIsNetworkOpen(false);
+                setIsMobileMenuOpen((prev) => !prev);
+              }}
+              className="topbar-icon-button inline-flex md:hidden"
             >
               {isMobileMenuOpen ? (
-                <path d="M5.75 5.75 14.25 14.25M14.25 5.75l-8.5 8.5" />
+                <X className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.9} aria-hidden="true" />
               ) : (
-                <path d="M4.75 6.5h10.5M4.75 10h10.5M4.75 13.5h10.5" />
+                <Menu className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.9} aria-hidden="true" />
               )}
-            </svg>
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
+
+      <ProtocolStatusBar />
 
       {isMobileMenuOpen ? (
         <div
@@ -353,39 +344,44 @@ export default function AppHeader() {
             ))}
           </nav>
 
-          <div className="mt-4 grid gap-4">
-            <div className="surface-card rounded-[1.8rem] p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="topbar-mobile-sections">
+            <div className="topbar-mobile-section">
+              <div className="topbar-mobile-section-head">
                 <div>
                   <p className="topbar-mobile-eyebrow">Appearance</p>
-                  <p className="text-sm font-semibold text-[var(--foreground)]" suppressHydrationWarning>
-                    {themeLabel} mode
-                  </p>
+                  <p className="topbar-mobile-copy" suppressHydrationWarning>{themeLabel} theme active</p>
                 </div>
-
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="topbar-control topbar-theme-toggle topbar-theme-toggle-mobile"
+                  className="topbar-mobile-action"
                   aria-label={`Switch to ${nextThemeLabel} mode`}
                   title={`Switch to ${nextThemeLabel} mode`}
                 >
-                  <span className="topbar-theme-toggle-icon" aria-hidden="true">
-                    <ThemeIcon className="topbar-theme-toggle-glyph" strokeWidth={1.9} />
-                  </span>
-                  <span className="topbar-control-label">{themeActionLabel}</span>
+                  <ThemeIcon className="h-[0.95rem] w-[0.95rem]" strokeWidth={1.9} aria-hidden="true" />
+                  <span>{themeActionLabel}</span>
                 </button>
               </div>
             </div>
 
-            <div className="surface-card space-y-4 rounded-[1.8rem] p-4">
+            <div className="topbar-mobile-section">
+              <div className="grid gap-3">
+                <div>
+                  <p className="topbar-mobile-eyebrow">Wallet</p>
+                  <p className="topbar-mobile-copy">Connect to unlock wallet-aware protocol actions.</p>
+                </div>
+                <WalletButton className="w-full" />
+              </div>
+            </div>
+
+            <div className="topbar-mobile-section">
               <div className="grid gap-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="topbar-mobile-eyebrow">Network</p>
-                    <p className="text-sm font-semibold text-[var(--foreground)]">{activeNetwork}</p>
+                    <p className="topbar-mobile-copy">{activeNetwork}</p>
                   </div>
-                  <span className="text-[11px] font-medium text-[var(--muted-foreground)]">Select cluster</span>
+                  <span className="topbar-mobile-meta">Select cluster</span>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -421,6 +417,6 @@ export default function AppHeader() {
           </div>
         </div>
       ) : null}
-    </header>
+    </div>
   );
 }

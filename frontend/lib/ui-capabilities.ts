@@ -15,7 +15,6 @@ import type {
 } from "@/lib/protocol";
 
 export type PoolWorkspaceSection =
-  | "overview"
   | "members"
   | "coverage"
   | "claims"
@@ -27,7 +26,6 @@ export type PoolWorkspaceSection =
   | "settings";
 
 export const POOL_WORKSPACE_SECTIONS: ReadonlyArray<PoolWorkspaceSection> = [
-  "overview",
   "members",
   "coverage",
   "claims",
@@ -42,7 +40,6 @@ export const POOL_WORKSPACE_SECTIONS: ReadonlyArray<PoolWorkspaceSection> = [
 export type WorkspaceSectionGroup = "primary" | "protocol-tools";
 
 export type PoolWorkspacePanel =
-  | "summary"
   | "enrollment"
   | "delegation"
   | "series"
@@ -69,7 +66,6 @@ export type PoolWorkspacePanel =
 export type WorkspacePanelPresentation = "wizard" | "list-detail" | "form" | "details-only";
 
 export const WORKSPACE_SECTION_PANELS: Readonly<Record<PoolWorkspaceSection, ReadonlyArray<PoolWorkspacePanel>>> = {
-  overview: ["summary"],
   members: ["enrollment", "delegation"],
   coverage: ["series", "positions", "payments", "activation"],
   claims: ["member", "operator"],
@@ -104,13 +100,6 @@ export type WorkspaceSectionMeta = {
 };
 
 export const POOL_WORKSPACE_SECTION_META: Readonly<Record<PoolWorkspaceSection, WorkspaceSectionMeta>> = {
-  overview: {
-    label: "Overview",
-    group: "primary",
-    defaultPanel: "summary",
-    allowedRoles: ["observer"],
-    showInNav: true,
-  },
   members: {
     label: "Members",
     group: "protocol-tools",
@@ -243,7 +232,6 @@ export const PROTOCOL_TOOL_WORKSPACE_SECTIONS: ReadonlyArray<PoolWorkspaceSectio
 );
 
 export const WORKSPACE_PANEL_META: Readonly<Record<PoolWorkspacePanel, { presentation: WorkspacePanelPresentation }>> = {
-  summary: { presentation: "details-only" },
   enrollment: { presentation: "form" },
   delegation: { presentation: "form" },
   series: { presentation: "list-detail" },
@@ -384,7 +372,10 @@ export function parseWorkspaceSection(value: string | null | undefined): PoolWor
   if (normalized === "oracle") {
     return "oracles";
   }
-  return (POOL_WORKSPACE_SECTIONS.find((section) => section === normalized) ?? "overview") as PoolWorkspaceSection;
+  if (normalized === "overview") {
+    return "coverage";
+  }
+  return (POOL_WORKSPACE_SECTIONS.find((section) => section === normalized) ?? "coverage") as PoolWorkspaceSection;
 }
 
 export function defaultWorkspacePanel(section: PoolWorkspaceSection): PoolWorkspacePanel | null {
@@ -707,19 +698,19 @@ export function buildPoolDashboardSnapshot(input: DashboardSnapshotInput): PoolD
             priority: "low",
           }
         : {
-            id: "overview-review",
-            title: "Review plan workspace",
-            detail: "Use the shared workspace to check current status and available actions for this wallet.",
-            section: "overview",
-            panel: "summary",
+            id: "coverage-observer-review",
+            title: "Review coverage state",
+            detail: "Use the plan workspace to inspect current coverage positions and available actions for this wallet.",
+            section: "coverage",
+            panel: "positions",
             priority: "low",
           }
       : {
           id: "connect-wallet",
           title: "Connect a wallet",
           detail: "Connecting a wallet reveals the participant or operator actions that are valid for this plan.",
-          section: "overview",
-          panel: "summary",
+          section: "coverage",
+          panel: "positions",
           priority: "low",
         }
   );

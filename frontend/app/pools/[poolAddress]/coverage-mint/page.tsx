@@ -2,6 +2,19 @@
 
 import { redirect } from "next/navigation";
 
-export default function LegacyCoverageMintPage() {
-  redirect("/claims");
+import { linkedContextForPool } from "@/lib/workbench";
+
+type LegacyCoverageMintPageProps = {
+  params: { poolAddress: string };
+};
+
+export default function LegacyCoverageMintPage({ params }: LegacyCoverageMintPageProps) {
+  const linked = linkedContextForPool(params.poolAddress);
+  const nextParams = new URLSearchParams({
+    tab: "schemas",
+  });
+  if (linked.plan) nextParams.set("plan", linked.plan);
+  if (linked.series) nextParams.set("series", linked.series);
+
+  redirect(`/plans?${nextParams.toString()}`);
 }
