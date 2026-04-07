@@ -35,7 +35,6 @@ export function PlansWorkbench() {
   const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
-  const auditTrail = useMemo(() => buildAuditTrail(), []);
   const [planSearch, setPlanSearch] = useState("");
   const [seriesSearch, setSeriesSearch] = useState("");
 
@@ -108,6 +107,14 @@ export function PlansWorkbench() {
       return true;
     });
   }, [selectedPlan, selectedSeries]);
+  const auditTrail = useMemo(
+    () => buildAuditTrail({
+      section: "plans",
+      planAddress: selectedPlan?.address,
+      seriesAddress: selectedSeries?.address,
+    }),
+    [selectedPlan, selectedSeries],
+  );
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -129,7 +136,7 @@ export function PlansWorkbench() {
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
   }, [activeTab, queryPlan, querySeries, requestedTab, selectedPlan, selectedSeries, updateParams]);
 
-  const planClaimCount = Object.values(sponsorView?.claimCounts ?? {}).reduce((sum, count) => sum + count, 0);
+  const planClaimCount = sponsorView?.activeClaimCount ?? 0;
   const primaryActionLabel =
     effectivePersona === "capital"
       ? "Inspect how pool allocations support this plan."
@@ -518,7 +525,7 @@ export function PlansWorkbench() {
             <p>{selectedPlan?.sponsorLabel ?? "Choose a health plan to inspect sponsor posture."}</p>
             <div className="workbench-mini-stat">
               <span>Budget committed</span>
-              <strong>{formatAmount(sponsorView?.budgetBurn ?? 0)}</strong>
+              <strong>{formatAmount(sponsorView?.committedSponsorBudget ?? 0)}</strong>
             </div>
             <div className="workbench-mini-stat">
               <span>Reserve coverage</span>

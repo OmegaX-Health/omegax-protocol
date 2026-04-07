@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { GovernanceProposalDetailPanel } from "@/components/governance-proposal-detail-panel";
+import { GovernanceProposalReadonlyPanel } from "@/components/governance-proposal-readonly-panel";
 import { shortenAddress } from "@/lib/protocol";
 
 export default function GovernanceProposalPage({
@@ -39,10 +39,7 @@ export default function GovernanceProposalPage({
       </section>
 
       <section className="protocol-section">
-        <GovernanceProposalDetailPanel
-          proposalAddress={params.proposalAddress}
-          sectionMode="page"
-        />
+        <GovernanceProposalReadonlyPanel proposalAddress={params.proposalAddress} />
       </section>
     </div>
   );

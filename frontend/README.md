@@ -45,6 +45,7 @@ Rules:
 - if runtime-only hosting values are added later, use Secret Manager references in `frontend/apphosting.yaml`
 - `NEXT_PUBLIC_SOURCE_REPO_URL` should point at the exact public source repository or release used by the hosted deployment
 - `npm run devnet:frontend:bootstrap` syncs the canonical fixture env values into `frontend/.env.local`
+- prefer the canonical `NEXT_PUBLIC_DEVNET_*_WALLET` names from `frontend/.env.example` when editing local fixture wallets; `lib/devnet-fixtures.ts` still accepts the older pool-first aliases for local compatibility until `.env.local` is refreshed
 
 ## Deployment boundary
 

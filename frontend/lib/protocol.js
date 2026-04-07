@@ -397,6 +397,9 @@ export function describeClaimStatus(status) {
             return `unknown(${status})`;
     }
 }
+export function isActiveClaimStatus(status) {
+    return status === CLAIM_INTAKE_OPEN || status === CLAIM_INTAKE_UNDER_REVIEW || status === CLAIM_INTAKE_APPROVED;
+}
 export function describeObligationStatus(status) {
     switch (status) {
         case OBLIGATION_STATUS_PROPOSED:
@@ -445,6 +448,7 @@ export function buildSponsorReadModel(params) {
     const planLedger = recomputeReserveBalanceSheet(params.planLedger);
     const fundedSponsorBudget = sponsorLines.reduce((sum, line) => sum + toBigIntAmount(line.fundedAmount), 0n);
     const remainingSponsorBudget = sponsorLines.reduce((sum, line) => sum + availableFundingLineBalance(line), 0n);
+    const committedSponsorBudget = fundedSponsorBudget - remainingSponsorBudget;
     const accruedRewards = planObligations
         .filter((obligation) => {
         const series = planSeries.find((candidate) => candidate.address === obligation.policySeries);
@@ -465,6 +469,7 @@ export function buildSponsorReadModel(params) {
         accumulator[label] = (accumulator[label] ?? 0) + 1;
         return accumulator;
     }, {});
+    const activeClaimCount = planClaims.filter((claimCase) => isActiveClaimStatus(claimCase.intakeStatus)).length;
     const perSeriesPerformance = planSeries.map((series) => {
         const obligations = planObligations.filter((obligation) => obligation.policySeries === series.address);
         const claims = planClaims.filter((claimCase) => claimCase.policySeries === series.address);
@@ -495,7 +500,8 @@ export function buildSponsorReadModel(params) {
         paidRewards,
         reserveCoverageBps: bpsRatio(planLedger.funded, planLedger.reserved + planLedger.claimable + planLedger.payable),
         claimCounts,
-        budgetBurn: fundedSponsorBudget - remainingSponsorBudget,
+        activeClaimCount,
+        committedSponsorBudget,
         perSeriesPerformance,
     };
 }
@@ -569,5 +575,18 @@ export function shortenAddress(address, size = 4) {
     if (!address || address.length <= size * 2 + 1)
         return address;
     return `${address.slice(0, size)}...${address.slice(-size)}`;
+}
+function explorerClusterSuffix(cluster) {
+    const normalized = (cluster?.trim()
+        || process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER?.trim()
+        || process.env.NEXT_PUBLIC_REALMS_CLUSTER?.trim()
+        || "devnet");
+    return normalized === "mainnet-beta" ? "" : `?cluster=${encodeURIComponent(normalized)}`;
+}
+export function toExplorerLink(signature, cluster) {
+    return `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${explorerClusterSuffix(cluster)}`;
+}
+export function toExplorerAddressLink(address, cluster) {
+    return `https://explorer.solana.com/address/${encodeURIComponent(address)}${explorerClusterSuffix(cluster)}`;
 }
 export { PROTOCOL_ACCOUNT_DISCRIMINATORS, PROTOCOL_INSTRUCTION_ACCOUNTS, PROTOCOL_INSTRUCTION_DISCRIMINATORS, PROTOCOL_PROGRAM_ID, };

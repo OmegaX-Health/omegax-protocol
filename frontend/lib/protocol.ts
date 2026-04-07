@@ -329,7 +329,8 @@ export type SponsorReadModel = {
   paidRewards: bigint;
   reserveCoverageBps: bigint | null;
   claimCounts: Record<string, number>;
-  budgetBurn: bigint;
+  activeClaimCount: number;
+  committedSponsorBudget: bigint;
   perSeriesPerformance: Array<{
     policySeries: string;
     seriesId: string;
@@ -878,6 +879,10 @@ export function describeClaimStatus(status: number): string {
   }
 }
 
+export function isActiveClaimStatus(status: number): boolean {
+  return status === CLAIM_INTAKE_OPEN || status === CLAIM_INTAKE_UNDER_REVIEW || status === CLAIM_INTAKE_APPROVED;
+}
+
 export function describeObligationStatus(status: number): string {
   switch (status) {
     case OBLIGATION_STATUS_PROPOSED:
@@ -948,6 +953,7 @@ export function buildSponsorReadModel(params: {
     (sum, line) => sum + availableFundingLineBalance(line),
     0n,
   );
+  const committedSponsorBudget = fundedSponsorBudget - remainingSponsorBudget;
 
   const accruedRewards = planObligations
     .filter((obligation) => {
@@ -971,6 +977,7 @@ export function buildSponsorReadModel(params: {
     accumulator[label] = (accumulator[label] ?? 0) + 1;
     return accumulator;
   }, {});
+  const activeClaimCount = planClaims.filter((claimCase) => isActiveClaimStatus(claimCase.intakeStatus)).length;
 
   const perSeriesPerformance = planSeries.map((series) => {
     const obligations = planObligations.filter((obligation) => obligation.policySeries === series.address);
@@ -1004,7 +1011,8 @@ export function buildSponsorReadModel(params: {
     paidRewards,
     reserveCoverageBps: bpsRatio(planLedger.funded, planLedger.reserved + planLedger.claimable + planLedger.payable),
     claimCounts,
-    budgetBurn: fundedSponsorBudget - remainingSponsorBudget,
+    activeClaimCount,
+    committedSponsorBudget,
     perSeriesPerformance,
   };
 }
@@ -1110,6 +1118,24 @@ export function buildMemberReadModel(params: {
 export function shortenAddress(address: string, size = 4): string {
   if (!address || address.length <= size * 2 + 1) return address;
   return `${address.slice(0, size)}...${address.slice(-size)}`;
+}
+
+function explorerClusterSuffix(cluster?: string | null): string {
+  const normalized = (
+    cluster?.trim()
+    || process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER?.trim()
+    || process.env.NEXT_PUBLIC_REALMS_CLUSTER?.trim()
+    || "devnet"
+  );
+  return normalized === "mainnet-beta" ? "" : `?cluster=${encodeURIComponent(normalized)}`;
+}
+
+export function toExplorerLink(signature: string, cluster?: string | null): string {
+  return `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${explorerClusterSuffix(cluster)}`;
+}
+
+export function toExplorerAddressLink(address: string, cluster?: string | null): string {
+  return `https://explorer.solana.com/address/${encodeURIComponent(address)}${explorerClusterSuffix(cluster)}`;
 }
 
 export {

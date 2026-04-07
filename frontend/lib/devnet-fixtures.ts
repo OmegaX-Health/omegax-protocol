@@ -125,6 +125,14 @@ function env(name: string, fallback = UNSET): string {
   return String(process.env[name] ?? fallback).trim() || fallback;
 }
 
+function envPreferred(name: string, aliases: readonly string[], fallback = UNSET): string {
+  for (const candidate of [name, ...aliases]) {
+    const value = String(process.env[candidate] ?? "").trim();
+    if (value) return value;
+  }
+  return fallback;
+}
+
 const settlementMint = env("NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT");
 const rewardMint = env("NEXT_PUBLIC_DEVNET_REWARD_MINT", settlementMint);
 const wrapperSettlementMint = env("NEXT_PUBLIC_DEVNET_WRAPPER_SETTLEMENT_MINT", settlementMint);
@@ -225,8 +233,63 @@ const allocationProtectionWrapperAddress = deriveAllocationPositionPda({
   fundingLine: blendedProtectionLiquidityLineAddress,
 }).toBase58();
 
+// Legacy local env files from the older pool-first console used different wallet names.
+// Keep those aliases readable here so stale local `.env.local` files still populate fixtures.
+const observerWallet = env("NEXT_PUBLIC_DEVNET_OBSERVER_WALLET");
+const protocolGovernanceWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET",
+  ["NEXT_PUBLIC_DEVNET_GOVERNANCE_WALLET"],
+);
+const domainAdminWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_DOMAIN_ADMIN_WALLET",
+  ["NEXT_PUBLIC_DEVNET_POOL_AUTHORITY_WALLET"],
+);
+const planAdminWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET",
+  ["NEXT_PUBLIC_DEVNET_POOL_OPERATOR_WALLET"],
+);
+const sponsorOperatorWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_SPONSOR_OPERATOR_WALLET",
+  ["NEXT_PUBLIC_DEVNET_POOL_OPERATOR_WALLET"],
+);
+const claimsOperatorWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_CLAIMS_OPERATOR_WALLET",
+  ["NEXT_PUBLIC_DEVNET_ORACLE_ADMIN_WALLET", "NEXT_PUBLIC_DEVNET_COMPLIANCE_WALLET"],
+);
+const oracleOperatorWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_ORACLE_OPERATOR_WALLET",
+  ["NEXT_PUBLIC_DEVNET_ORACLE_SIGNER_WALLET"],
+);
+const poolCuratorWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_POOL_CURATOR_WALLET",
+  ["NEXT_PUBLIC_DEVNET_COMPLIANCE_WALLET"],
+);
+const poolAllocatorWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_POOL_ALLOCATOR_WALLET",
+  ["NEXT_PUBLIC_DEVNET_RISK_MANAGER_WALLET"],
+);
+const poolSentinelWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_POOL_SENTINEL_WALLET",
+  ["NEXT_PUBLIC_DEVNET_GUARDIAN_WALLET"],
+);
 const memberWallet = env("NEXT_PUBLIC_DEVNET_MEMBER_WALLET");
-const secondMemberWallet = env("NEXT_PUBLIC_DEVNET_SECOND_MEMBER_WALLET", env("NEXT_PUBLIC_DEVNET_MEMBER_DELEGATE_WALLET"));
+const memberDelegateWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_MEMBER_DELEGATE_WALLET",
+  ["NEXT_PUBLIC_DEVNET_CLAIM_DELEGATE_WALLET"],
+);
+const secondMemberWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_SECOND_MEMBER_WALLET",
+  ["NEXT_PUBLIC_DEVNET_MEMBER_DELEGATE_WALLET", "NEXT_PUBLIC_DEVNET_CLAIM_DELEGATE_WALLET"],
+  memberDelegateWallet,
+);
+const lpProviderWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_LP_PROVIDER_WALLET",
+  ["NEXT_PUBLIC_DEVNET_CAPITAL_PROVIDER_WALLET"],
+);
+const wrapperProviderWallet = envPreferred(
+  "NEXT_PUBLIC_DEVNET_WRAPPER_PROVIDER_WALLET",
+  ["NEXT_PUBLIC_DEVNET_CAPITAL_PROVIDER_WALLET"],
+);
 
 const seekerMemberPosition = deriveMemberPositionPda({
   healthPlan: seekerPlanAddress,
@@ -343,9 +406,9 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       planId: seekerPlanId,
       displayName: "Nexus Seeker Rewards",
       sponsorLabel: "Seeker Sponsor",
-      planAdmin: env("NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET"),
-      sponsorOperator: env("NEXT_PUBLIC_DEVNET_SPONSOR_OPERATOR_WALLET"),
-      claimsOperator: env("NEXT_PUBLIC_DEVNET_CLAIMS_OPERATOR_WALLET"),
+      planAdmin: planAdminWallet,
+      sponsorOperator: sponsorOperatorWallet,
+      claimsOperator: claimsOperatorWallet,
       membershipModel: "sponsor-invite",
       pauseFlags: 0,
       active: true,
@@ -356,9 +419,9 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       planId: blendedPlanId,
       displayName: "Nexus Protect Plus",
       sponsorLabel: "Protect Plus Sponsor",
-      planAdmin: env("NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET"),
-      sponsorOperator: env("NEXT_PUBLIC_DEVNET_SPONSOR_OPERATOR_WALLET"),
-      claimsOperator: env("NEXT_PUBLIC_DEVNET_CLAIMS_OPERATOR_WALLET"),
+      planAdmin: planAdminWallet,
+      sponsorOperator: sponsorOperatorWallet,
+      claimsOperator: claimsOperatorWallet,
       membershipModel: "open-with-claims-operator",
       pauseFlags: 0,
       active: true,
@@ -814,8 +877,8 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
   ],
   lpPositions: [
     {
-      address: deriveLpPositionPda({ capitalClass: openClassAddress, owner: env("NEXT_PUBLIC_DEVNET_LP_PROVIDER_WALLET") }).toBase58(),
-      owner: env("NEXT_PUBLIC_DEVNET_LP_PROVIDER_WALLET"),
+      address: deriveLpPositionPda({ capitalClass: openClassAddress, owner: lpProviderWallet }).toBase58(),
+      owner: lpProviderWallet,
       capitalClass: openClassAddress,
       shares: 1_500_000n,
       subscriptionBasis: 1_500_000n,
@@ -826,8 +889,8 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       queueStatus: LP_QUEUE_STATUS_NONE,
     },
     {
-      address: deriveLpPositionPda({ capitalClass: wrapperClassAddress, owner: env("NEXT_PUBLIC_DEVNET_WRAPPER_PROVIDER_WALLET") }).toBase58(),
-      owner: env("NEXT_PUBLIC_DEVNET_WRAPPER_PROVIDER_WALLET"),
+      address: deriveLpPositionPda({ capitalClass: wrapperClassAddress, owner: wrapperProviderWallet }).toBase58(),
+      owner: wrapperProviderWallet,
       capitalClass: wrapperClassAddress,
       shares: 400_000n,
       subscriptionBasis: 400_000n,
@@ -923,20 +986,20 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
     [blendedProtectionSeriesAddress]: 7n,
   },
   wallets: [
-    { role: "observer", label: "Observer wallet", address: env("NEXT_PUBLIC_DEVNET_OBSERVER_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_OBSERVER_WALLET" },
-    { role: "protocol_governance", label: "Protocol governance", address: env("NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET" },
-    { role: "domain_admin", label: "Reserve domain admin", address: env("NEXT_PUBLIC_DEVNET_DOMAIN_ADMIN_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_DOMAIN_ADMIN_WALLET" },
-    { role: "plan_admin", label: "Plan admin", address: env("NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET" },
-    { role: "sponsor_operator", label: "Sponsor operator", address: env("NEXT_PUBLIC_DEVNET_SPONSOR_OPERATOR_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_SPONSOR_OPERATOR_WALLET" },
-    { role: "claims_operator", label: "Claims operator", address: env("NEXT_PUBLIC_DEVNET_CLAIMS_OPERATOR_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_CLAIMS_OPERATOR_WALLET" },
-    { role: "oracle_operator", label: "Oracle operator", address: env("NEXT_PUBLIC_DEVNET_ORACLE_OPERATOR_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_ORACLE_OPERATOR_WALLET" },
-    { role: "pool_curator", label: "Pool curator", address: env("NEXT_PUBLIC_DEVNET_POOL_CURATOR_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_POOL_CURATOR_WALLET" },
-    { role: "pool_allocator", label: "Pool allocator", address: env("NEXT_PUBLIC_DEVNET_POOL_ALLOCATOR_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_POOL_ALLOCATOR_WALLET" },
-    { role: "pool_sentinel", label: "Pool sentinel", address: env("NEXT_PUBLIC_DEVNET_POOL_SENTINEL_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_POOL_SENTINEL_WALLET" },
+    { role: "observer", label: "Observer wallet", address: observerWallet, envVar: "NEXT_PUBLIC_DEVNET_OBSERVER_WALLET" },
+    { role: "protocol_governance", label: "Protocol governance", address: protocolGovernanceWallet, envVar: "NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET" },
+    { role: "domain_admin", label: "Reserve domain admin", address: domainAdminWallet, envVar: "NEXT_PUBLIC_DEVNET_DOMAIN_ADMIN_WALLET" },
+    { role: "plan_admin", label: "Plan admin", address: planAdminWallet, envVar: "NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET" },
+    { role: "sponsor_operator", label: "Sponsor operator", address: sponsorOperatorWallet, envVar: "NEXT_PUBLIC_DEVNET_SPONSOR_OPERATOR_WALLET" },
+    { role: "claims_operator", label: "Claims operator", address: claimsOperatorWallet, envVar: "NEXT_PUBLIC_DEVNET_CLAIMS_OPERATOR_WALLET" },
+    { role: "oracle_operator", label: "Oracle operator", address: oracleOperatorWallet, envVar: "NEXT_PUBLIC_DEVNET_ORACLE_OPERATOR_WALLET" },
+    { role: "pool_curator", label: "Pool curator", address: poolCuratorWallet, envVar: "NEXT_PUBLIC_DEVNET_POOL_CURATOR_WALLET" },
+    { role: "pool_allocator", label: "Pool allocator", address: poolAllocatorWallet, envVar: "NEXT_PUBLIC_DEVNET_POOL_ALLOCATOR_WALLET" },
+    { role: "pool_sentinel", label: "Pool sentinel", address: poolSentinelWallet, envVar: "NEXT_PUBLIC_DEVNET_POOL_SENTINEL_WALLET" },
     { role: "member", label: "Member wallet", address: memberWallet, envVar: "NEXT_PUBLIC_DEVNET_MEMBER_WALLET" },
     { role: "member_delegate", label: "Member delegate", address: secondMemberWallet, envVar: "NEXT_PUBLIC_DEVNET_MEMBER_DELEGATE_WALLET" },
-    { role: "lp_provider", label: "Open LP provider", address: env("NEXT_PUBLIC_DEVNET_LP_PROVIDER_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_LP_PROVIDER_WALLET" },
-    { role: "wrapper_provider", label: "Wrapper LP provider", address: env("NEXT_PUBLIC_DEVNET_WRAPPER_PROVIDER_WALLET"), envVar: "NEXT_PUBLIC_DEVNET_WRAPPER_PROVIDER_WALLET" },
+    { role: "lp_provider", label: "Open LP provider", address: lpProviderWallet, envVar: "NEXT_PUBLIC_DEVNET_LP_PROVIDER_WALLET" },
+    { role: "wrapper_provider", label: "Wrapper LP provider", address: wrapperProviderWallet, envVar: "NEXT_PUBLIC_DEVNET_WRAPPER_PROVIDER_WALLET" },
   ],
   paymentRails: [
     { label: "Open settlement mint", mint: settlementMint, envVar: "NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT" },

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { buildCapitalReadModel, buildMemberReadModel, buildSponsorReadModel, CLAIM_INTAKE_SETTLED, derivePlanReserveLedgerPda, shortenAddress, } from "./protocol";
+import { buildCapitalReadModel, buildMemberReadModel, buildSponsorReadModel, derivePlanReserveLedgerPda, isActiveClaimStatus, shortenAddress, } from "./protocol";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "./devnet-fixtures";
 function planLedgerFor(plan) {
     const assetMint = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.find((line) => line.healthPlan === plan.address)?.assetMint;
@@ -44,7 +44,7 @@ export function buildCanonicalConsoleState() {
         sponsors: sponsorViews(),
         capital: capitalViews(),
         members: memberViews(),
-        activeClaims: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => claim.intakeStatus !== CLAIM_INTAKE_SETTLED),
+        activeClaims: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => isActiveClaimStatus(claim.intakeStatus)),
         glossary: [
             { noun: "ReserveDomain", meaning: "Hard custody, settlement, and legal segregation boundary." },
             { noun: "HealthPlan", meaning: "Sponsor/member/liability root for a public program." },

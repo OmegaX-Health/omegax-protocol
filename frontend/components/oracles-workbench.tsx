@@ -8,7 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SearchableSelect } from "@/components/searchable-select";
 import { WorkbenchEmptyState, WorkbenchRailCard, WorkbenchTabs } from "@/components/workbench-ui";
 import { useWorkspacePersona } from "@/components/workspace-persona";
-import { formatAmount, seriesForPool } from "@/lib/canonical-ui";
+import { claimCasesForOracleContext, formatAmount, seriesForPool } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { buildAuditTrail, defaultTabForPersona, ORACLE_TABS, type OracleTabId } from "@/lib/workbench";
 import { describeClaimStatus, describeSeriesMode, hasObligationImpairment, shortenAddress } from "@/lib/protocol";
@@ -26,7 +26,6 @@ export function OraclesWorkbench() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
-  const auditTrail = useMemo(() => buildAuditTrail(), []);
   const [poolSearch, setPoolSearch] = useState("");
 
   const requestedTab = searchParams.get("tab");
@@ -55,24 +54,22 @@ export function OraclesWorkbench() {
     () => boundSeries.find((series) => series.address === querySeries) ?? boundSeries[0] ?? null,
     [boundSeries, querySeries],
   );
+  const auditTrail = useMemo(
+    () => buildAuditTrail({
+      section: "oracles",
+      poolAddress: selectedPool?.address,
+      seriesAddress: selectedSeries?.address,
+    }),
+    [selectedPool, selectedSeries],
+  );
 
   const operatorWallets = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter(
     (wallet) => wallet.role === "oracle_operator" || wallet.role === "claims_operator",
   );
-  const scopedClaimCases = useMemo(() => {
-    if (selectedSeries) {
-      return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => claim.policySeries === selectedSeries.address);
-    }
-
-    if (!selectedPool) return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases;
-
-    const boundSeriesAddresses = new Set(boundSeries.map((series) => series.address));
-    if (boundSeriesAddresses.size === 0) return [];
-
-    return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) =>
-      claim.policySeries ? boundSeriesAddresses.has(claim.policySeries) : false,
-    );
-  }, [boundSeries, selectedPool, selectedSeries]);
+  const scopedClaimCases = useMemo(
+    () => claimCasesForOracleContext(selectedPool?.address, selectedSeries?.address),
+    [selectedPool, selectedSeries],
+  );
   const attestations = useMemo<OracleAttestation[]>(() => {
     return scopedClaimCases.map((claim, index) => {
       const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((entry) => entry.address === claim.policySeries);

@@ -279,7 +279,6 @@ async function main(): Promise<void> {
     await waitForWorkbenchReady(page, server.baseUrl);
 
     const toggle = page.locator(`button[aria-controls="${SIDEBAR_ID}"]`);
-    const closeNavigation = page.locator('button[aria-label="Close navigation"]');
 
     await page.waitForFunction((sidebarId) => {
       const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
@@ -300,7 +299,8 @@ async function main(): Promise<void> {
       throw new Error("Expected the mobile drawer toggle to report aria-expanded=false before opening.");
     }
 
-    await closeNavigation.click();
+    await toggle.focus();
+    await page.keyboard.press("Space");
     await page.waitForFunction((sidebarId) => {
       const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
       return (
@@ -317,7 +317,8 @@ async function main(): Promise<void> {
     const openFocus = await reverseTabIntoSidebar(page, toggle);
     assertFocusLocation(openFocus, true, "Opened mobile drawer did not restore sidebar tab order");
 
-    await toggle.click();
+    await toggle.focus();
+    await page.keyboard.press("Space");
     await page.waitForFunction((sidebarId) => {
       const sidebar = document.getElementById(sidebarId) as (HTMLElement & { inert?: boolean }) | null;
       return (

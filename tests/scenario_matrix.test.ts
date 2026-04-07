@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import canonicalUiModule from "../frontend/lib/canonical-ui.ts";
 import consoleModelModule from "../frontend/lib/console-model.ts";
 import fixturesModule from "../frontend/lib/devnet-fixtures.ts";
 import protocolModule from "../frontend/lib/protocol.ts";
 
+const { claimCasesForOracleContext } = canonicalUiModule as typeof import("../frontend/lib/canonical-ui.ts");
 const { buildCanonicalConsoleState } = consoleModelModule as typeof import("../frontend/lib/console-model.ts");
 const { DEVNET_PROTOCOL_FIXTURE_STATE } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
 const {
@@ -50,6 +52,7 @@ test("1. sponsor-only reward plan works without LP capital", () => {
     sponsorModel.remainingSponsorBudget,
     availableFundingLineBalance(sponsorLine),
   );
+  assert.equal(sponsorModel.committedSponsorBudget, 22_000n);
   assert.equal(
     toBigIntAmount(sponsorLine.fundedAmount) - toBigIntAmount(sponsorLine.spentAmount),
     222_000n,
@@ -220,4 +223,30 @@ test("11. oracle disputes ignore ordinary reserved obligations", () => {
   assert.equal(hasObligationImpairment(reservedFixtureObligation), false);
   assert.equal(hasObligationImpairment({ status: OBLIGATION_STATUS_IMPAIRED, impairedAmount: 0n }), true);
   assert.equal(hasObligationImpairment({ status: OBLIGATION_STATUS_RESERVED, impairedAmount: 1n }), true);
+});
+
+test("12. sponsor claim pressure excludes settled claim history", () => {
+  const blendedPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) => plan.planId === "nexus-protect-plus")!;
+  const sponsorModel = consoleState.sponsors.find((plan) => plan.healthPlanAddress === blendedPlan.address)!;
+  const activeClaims = consoleState.activeClaims.filter((claim) => claim.healthPlan === blendedPlan.address);
+
+  assert.equal(sponsorModel.claimCounts.approved, 1);
+  assert.equal(sponsorModel.claimCounts.settled, 1);
+  assert.equal(sponsorModel.activeClaimCount, 1);
+  assert.equal(activeClaims.length, 1);
+});
+
+test("13. oracle attestation feed stays inside the selected pool and series", () => {
+  const incomePool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((pool) => pool.poolId === "omega-health-income")!;
+  const rewardSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.seriesId === "preventive-adherence-rewards")!;
+  const protectionSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.seriesId === "catastrophic-protection-2026")!;
+
+  const rewardClaims = claimCasesForOracleContext(incomePool.address, rewardSeries.address);
+  const protectionClaims = claimCasesForOracleContext(incomePool.address, protectionSeries.address);
+  const unboundClaims = claimCasesForOracleContext(incomePool.address, DEVNET_PROTOCOL_FIXTURE_STATE.policySeries[0]!.address);
+
+  assert.equal(rewardClaims.length, 0);
+  assert(protectionClaims.length > 0);
+  assert(protectionClaims.every((claim) => claim.policySeries === protectionSeries.address));
+  assert.equal(unboundClaims.length, 0);
 });

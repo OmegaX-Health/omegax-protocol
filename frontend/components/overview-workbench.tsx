@@ -10,7 +10,7 @@ import { WorkbenchRailCard } from "@/components/workbench-ui";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
-import { loadGovernanceDashboard } from "@/lib/governance";
+import { loadGovernanceDashboard } from "@/lib/governance-readonly";
 import { buildAuditTrail, buildGovernanceQueue, computeWorkbenchMetrics } from "@/lib/workbench";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 
@@ -60,7 +60,10 @@ export function OverviewWorkbench() {
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [governanceQueueLoaded, setGovernanceQueueLoaded] = useState(false);
   const governanceQueue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
-  const auditTrail = useMemo(() => buildAuditTrail(governanceQueue), [governanceQueue]);
+  const auditTrail = useMemo(
+    () => buildAuditTrail({ section: "overview", persona: effectivePersona, queue: governanceQueue }),
+    [effectivePersona, governanceQueue],
+  );
 
   const focusRows = useMemo<FocusRow[]>(() => {
     if (effectivePersona === "capital") {
@@ -99,7 +102,7 @@ export function OverviewWorkbench() {
 
     return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.map((plan) => {
       const sponsor = consoleState.sponsors.find((entry) => entry.healthPlanAddress === plan.address);
-      const claimCount = Object.values(sponsor?.claimCounts ?? {}).reduce((sum, count) => sum + count, 0);
+      const claimCount = sponsor?.activeClaimCount ?? 0;
       return {
         id: plan.address,
         title: plan.displayName,

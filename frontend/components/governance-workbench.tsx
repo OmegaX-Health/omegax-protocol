@@ -8,7 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { WorkbenchRailCard, WorkbenchTabs } from "@/components/workbench-ui";
-import { loadGovernanceDashboard } from "@/lib/governance";
+import { loadGovernanceDashboard } from "@/lib/governance-readonly";
 import { buildAuditTrail, buildGovernanceQueue, defaultTabForPersona, GOVERNANCE_TABS, GOVERNANCE_TEMPLATE_ROWS, type GovernanceTabId } from "@/lib/workbench";
 import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { useWorkspacePersona } from "@/components/workspace-persona";
@@ -24,13 +24,16 @@ export function GovernanceWorkbench() {
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [proposalQueueLoaded, setProposalQueueLoaded] = useState(false);
   const queue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
-  const auditTrail = useMemo(() => buildAuditTrail(queue), [queue]);
 
   const requestedTab = searchParams.get("tab");
   const activeTab = (GOVERNANCE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("governance", effectivePersona)) as GovernanceTabId;
   const queryProposal = searchParams.get("proposal")?.trim() ?? "";
   const selectedProposal = queue.find((proposal) => proposal.proposal === queryProposal) ?? queue[0] ?? null;
+  const auditTrail = useMemo(
+    () => buildAuditTrail({ section: "governance", queue, proposal: selectedProposal }),
+    [queue, selectedProposal],
+  );
   const queueEmptyMessage = proposalQueueLoaded
     ? "No live governance proposals are available for the configured realm."
     : "Loading live governance proposals...";

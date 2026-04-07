@@ -2,7 +2,7 @@
 
 import { buildCanonicalConsoleState } from "./console-model";
 import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureWallet } from "./devnet-fixtures";
-import type { HealthPlanSnapshot, PolicySeriesSnapshot } from "./protocol";
+import type { ClaimCaseSnapshot, HealthPlanSnapshot, PolicySeriesSnapshot } from "./protocol";
 
 export function formatAmount(value: bigint | number | string | null | undefined): string {
   if (value === null || value === undefined) return "0";
@@ -59,6 +59,29 @@ export function seriesForPool(poolAddress?: string | null): PolicySeriesSnapshot
   );
 
   return DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => seriesIds.has(series.address));
+}
+
+export function claimCasesForOracleContext(poolAddress?: string | null, seriesAddress?: string | null): ClaimCaseSnapshot[] {
+  const normalizedPool = (poolAddress ?? "").trim();
+  const normalizedSeries = (seriesAddress ?? "").trim();
+
+  if (normalizedSeries) {
+    if (normalizedPool) {
+      const boundSeriesAddresses = new Set(seriesForPool(normalizedPool).map((series) => series.address));
+      if (!boundSeriesAddresses.has(normalizedSeries)) return [];
+    }
+
+    return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => claim.policySeries === normalizedSeries);
+  }
+
+  if (!normalizedPool) return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases;
+
+  const boundSeriesAddresses = new Set(seriesForPool(normalizedPool).map((series) => series.address));
+  if (boundSeriesAddresses.size === 0) return [];
+
+  return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) =>
+    claim.policySeries ? boundSeriesAddresses.has(claim.policySeries) : false,
+  );
 }
 
 export function poolAddressForSeries(seriesAddress?: string | null): string | null {

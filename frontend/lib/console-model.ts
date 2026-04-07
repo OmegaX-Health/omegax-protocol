@@ -4,8 +4,8 @@ import {
   buildCapitalReadModel,
   buildMemberReadModel,
   buildSponsorReadModel,
-  CLAIM_INTAKE_SETTLED,
   derivePlanReserveLedgerPda,
+  isActiveClaimStatus,
   shortenAddress,
   type CapitalReadModel,
   type ClaimCaseSnapshot,
@@ -83,9 +83,7 @@ export function buildCanonicalConsoleState(): CanonicalConsoleState {
     sponsors: sponsorViews(),
     capital: capitalViews(),
     members: memberViews(),
-    activeClaims: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter(
-      (claim) => claim.intakeStatus !== CLAIM_INTAKE_SETTLED,
-    ),
+    activeClaims: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => isActiveClaimStatus(claim.intakeStatus)),
     glossary: [
       { noun: "ReserveDomain", meaning: "Hard custody, settlement, and legal segregation boundary." },
       { noun: "HealthPlan", meaning: "Sponsor/member/liability root for a public program." },

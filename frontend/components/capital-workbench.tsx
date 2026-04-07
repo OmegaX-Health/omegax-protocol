@@ -34,7 +34,6 @@ export function CapitalWorkbench() {
   const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
-  const auditTrail = useMemo(() => buildAuditTrail(), []);
   const [poolSearch, setPoolSearch] = useState("");
 
   const requestedTab = searchParams.get("tab");
@@ -104,6 +103,14 @@ export function CapitalWorkbench() {
     const ids = new Set(poolAllocations.map((allocation) => allocation.healthPlan));
     return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.filter((plan) => ids.has(plan.address));
   }, [poolAllocations]);
+  const auditTrail = useMemo(
+    () => buildAuditTrail({
+      section: "capital",
+      poolAddress: selectedPool?.address,
+      classAddress: selectedClass?.address,
+    }),
+    [selectedClass, selectedPool],
+  );
 
   return (
     <div className="workbench-page">
