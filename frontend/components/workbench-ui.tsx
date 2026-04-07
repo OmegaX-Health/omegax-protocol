@@ -33,7 +33,7 @@ export function WorkbenchRailCard({
   className?: string;
 }) {
   return (
-    <section className={cn("workbench-rail-card", className)}>
+    <section className={cn("workbench-rail-card heavy-glass brackets", className)}>
       <div className="workbench-rail-card-head">
         <h3 className="workbench-rail-title">{title}</h3>
         {meta ? <span className="workbench-card-meta">{meta}</span> : null}

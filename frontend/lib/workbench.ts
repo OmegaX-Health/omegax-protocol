@@ -20,7 +20,7 @@ export type WorkbenchTab = {
   label: string;
 };
 
-export const WORKBENCH_VERSION_STAMP = "SYS_V.2.04 // OMEGAX_PROTOCOL_KERNEL";
+export const WORKBENCH_VERSION_STAMP = "Shared protocol operations";
 
 export const WORKBENCH_NAV: Array<{
   id: WorkbenchSection;

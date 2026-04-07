@@ -100,29 +100,20 @@ export function OverviewWorkbench() {
 
   const selectedRow = focusRows.find((row) => row.id === selectedFocus) ?? focusRows[0] ?? null;
   const quickActions = quickActionsForPersona(effectivePersona);
-  const totalTvl = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.reduce(
-    (sum, pool) => sum + BigInt(pool.totalValueLocked),
-    0n,
-  );
-
   return (
     <div className="workbench-page">
       <section className="workbench-main-column">
-        <section className="workbench-panel ceramic-panel workbench-primary-surface">
+        <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
           <div className="workbench-panel-head">
             <div>
-              <p className="workbench-panel-eyebrow">Priority board</p>
-              <h2 className="workbench-panel-title">Plans, pools, and proposals stay in one dense operating surface.</h2>
-              <p className="workbench-body-copy">The main canvas should read like a register first, not a dashboard first.</p>
+              <p className="workbench-panel-eyebrow">Operations register</p>
+              <h2 className="workbench-panel-title">Track plans, pools, and proposals in one shared workspace.</h2>
+              <p className="workbench-body-copy">Review active plan, capital, and governance work in one place before opening a specific lane.</p>
             </div>
             <span className="workbench-card-meta">{effectivePersona.toUpperCase()}</span>
           </div>
 
           <div className="workbench-summary-strip">
-            <div className="workbench-summary-metric">
-              <span>Protocol TVL</span>
-              <strong>{`$${formatAmount(totalTvl)}`}</strong>
-            </div>
             <div className="workbench-summary-metric">
               <span>Active claims</span>
               <strong>{metrics.activeClaims}</strong>
@@ -137,27 +128,27 @@ export function OverviewWorkbench() {
             </div>
           </div>
 
-          <div className="workbench-table-card workbench-table-card-embedded">
-            <table className="workbench-table">
+          <div className="workbench-table-card workbench-table-card-embedded milled-ceramic overview-register-table-card">
+            <table className="workbench-table overview-register-table">
               <thead>
                 <tr>
-                  <th>Focus</th>
-                  <th>Context</th>
-                  <th>State</th>
-                  <th>Action</th>
+                  <th scope="col">Focus</th>
+                  <th scope="col">Context</th>
+                  <th scope="col">State</th>
+                  <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {focusRows.map((row) => (
                   <tr key={row.id} className={selectedRow?.id === row.id ? "workbench-table-row-active" : undefined}>
-                    <td>
+                    <td data-label="Focus">
                       <button type="button" className="workbench-inline-button" onClick={() => setSelectedFocus(row.id)}>
                         {row.title}
                       </button>
                     </td>
-                    <td>{row.meta}</td>
-                    <td>{row.detail}</td>
-                    <td>
+                    <td data-label="Context">{row.meta}</td>
+                    <td data-label="State">{row.detail}</td>
+                    <td data-label="Action">
                       <Link href={row.href} className="workbench-inline-link">
                         Open
                       </Link>

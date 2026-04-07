@@ -143,7 +143,7 @@ export function CapitalWorkbench() {
           />
         </div>
 
-        <section className="workbench-panel ceramic-panel workbench-primary-surface">
+        <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
           <div className="workbench-panel-head">
             <div>
               <p className="workbench-panel-eyebrow">Selected pool</p>

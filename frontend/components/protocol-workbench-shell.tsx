@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -25,6 +25,13 @@ import { WalletButton } from "@/components/wallet-providers";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { cn } from "@/lib/cn";
 import { computeWorkbenchMetrics, sectionChrome, sectionFromPathname, WORKBENCH_NAV, WORKBENCH_VERSION_STAMP } from "@/lib/workbench";
+
+const MOBILE_SIDEBAR_MEDIA_QUERY = "(max-width: 899px)";
+const WORKBENCH_SIDEBAR_ID = "protocol-workbench-sidebar";
+
+type InertHTMLElement = HTMLElement & {
+  inert: boolean;
+};
 
 function iconForNav(icon: (typeof WORKBENCH_NAV)[number]["icon"]) {
   switch (icon) {
@@ -81,7 +88,9 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const { mounted, theme, toggleTheme } = useTheme();
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
+  const sidebarRef = useRef<HTMLElement | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [epoch, setEpoch] = useState("--");
   const [slot, setSlot] = useState("--");
   const [isLive, setIsLive] = useState(false);
@@ -91,12 +100,45 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const sourceRepoUrl = process.env.NEXT_PUBLIC_SOURCE_REPO_URL || "https://github.com/OmegaX-Health/omegax-protocol";
   const footerLinks = useMemo(() => buildFooterLinks(sourceRepoUrl), [sourceRepoUrl]);
   const metrics = computeWorkbenchMetrics();
-  const networkHealth = isLive ? "98% synced" : "Reconnecting";
+  const rpcStatus = isLive ? "RPC reachable" : "RPC unavailable";
   const ThemeIcon = mounted && theme === "dark" ? SunMedium : MoonStar;
+  const isMobileDrawerHidden = isMobileViewport && !isSidebarOpen;
 
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_SIDEBAR_MEDIA_QUERY);
+
+    const syncMobileViewport = (matches: boolean) => {
+      setIsMobileViewport(matches);
+      if (!matches) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    syncMobileViewport(mediaQuery.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      syncMobileViewport(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current as InertHTMLElement | null;
+    if (!sidebar) return;
+
+    sidebar.inert = isMobileDrawerHidden;
+    return () => {
+      sidebar.inert = false;
+    };
+  }, [isMobileDrawerHidden]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,8 +174,15 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   }, [connection, selectedNetwork]);
 
   return (
-    <div className="protocol-workbench-shell">
-      <aside className={cn("protocol-sidebar", isSidebarOpen && "protocol-sidebar-open")}>
+    <div className="protocol-workbench-shell relative">
+      <div className="absolute inset-0 misty-cyan-glow pointer-events-none z-0" />
+      <aside
+        ref={sidebarRef}
+        id={WORKBENCH_SIDEBAR_ID}
+        aria-hidden={isMobileDrawerHidden}
+        data-mobile-hidden={isMobileDrawerHidden ? "true" : "false"}
+        className={cn("protocol-sidebar liquid-glass z-10", isSidebarOpen && "protocol-sidebar-open")}
+      >
         <div className="protocol-sidebar-brand">
           <Link href="/overview" className="protocol-sidebar-wordmark" aria-label="OmegaX workbench home">
             OmegaX
@@ -165,14 +214,10 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
 
         <div className="protocol-sidebar-metrics">
           <div className="protocol-sidebar-metric">
-            <span className="protocol-sidebar-metric-label">TVL_RESERVE</span>
-            <strong className="protocol-sidebar-metric-value">$1.2B</strong>
-          </div>
-          <div className="protocol-sidebar-metric">
-            <span className="protocol-sidebar-metric-label">HEALTH_STATUS</span>
+            <span className="protocol-sidebar-metric-label">RPC_STATUS</span>
             <div className="protocol-sidebar-health">
               <span className={cn("protocol-health-dot", isLive && "protocol-health-dot-live")} aria-hidden="true" />
-              <strong>{networkHealth}</strong>
+              <strong>{rpcStatus}</strong>
             </div>
           </div>
           <div className="protocol-sidebar-metric">
@@ -186,7 +231,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
         </div>
       </aside>
 
-      {isSidebarOpen ? (
+      {isMobileViewport && isSidebarOpen ? (
         <button
           type="button"
           className="protocol-sidebar-scrim"
@@ -197,11 +242,13 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
 
       <div className="protocol-workbench-frame">
         <header className="protocol-workbench-header">
-          <div className="protocol-workbench-header-main">
+          <div className="protocol-workbench-header-main liquid-glass">
             <div className="protocol-workbench-header-title">
               <button
                 type="button"
                 className="protocol-mobile-menu-button"
+                aria-controls={WORKBENCH_SIDEBAR_ID}
+                aria-expanded={isSidebarOpen}
                 onClick={() => setIsSidebarOpen((current) => !current)}
                 aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
               >
@@ -228,7 +275,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
 
               <div className="protocol-header-pill-cluster">
                 <span className="protocol-header-pill">{selectedNetwork === "mainnet-beta" ? "MAINNET" : "DEVNET"}</span>
-                <span className="protocol-header-pill">{isLive ? "LIVE DATA FEED" : "CHAIN RETRY"}</span>
+                <span className="protocol-header-pill">{isLive ? "Live updates" : "Reconnecting"}</span>
               </div>
 
               <label className="protocol-header-select">
@@ -279,7 +326,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
           </div>
         </header>
 
-        <main className="protocol-workbench-content">{children}</main>
+        <main className="protocol-workbench-content micro-etch">{children}</main>
 
         <footer className="protocol-workbench-footer">
           <div className="protocol-workbench-footer-copy">

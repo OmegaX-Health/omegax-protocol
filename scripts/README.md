@@ -10,6 +10,7 @@ This directory contains the repository's command-line helpers.
 - `check_semantic_readiness.mjs` blocks retired pool-era language from active protocol, audit, script, and documentation surfaces
 - `check_dependency_licenses.mjs` audits npm and Cargo dependency licenses
 - `check_protocol_contract.mjs` verifies that generated protocol artifacts are in sync
+- `protocol_workbench_mobile_sidebar_smoke.ts` boots the local frontend and verifies the closed mobile workbench drawer stays out of tab order and assistive-tech exposure
 - `check_beta_consistency.mjs` and `check_mvp_consistency.mjs` validate protocol consistency assumptions
 - `doctor.mjs` runs local environment sanity checks
 
@@ -45,6 +46,7 @@ This directory contains the repository's command-line helpers.
 
 - Prefer package scripts from the repository root when they exist.
 - Use `npm run verify:public` for the public release gate.
+- Use `npm run frontend:workbench:mobile-sidebar:smoke` for the targeted mobile drawer accessibility smoke.
 - Use `npm run test:e2e:localnet` as an additional release-candidate sign-off step when the public protocol surface changes.
 - Use `npm run semantic:readiness:check` when you want the canonical-surface wording guard on its own.
 - Treat deployment and bootstrap helpers as operator tooling, not general contributor entry points.

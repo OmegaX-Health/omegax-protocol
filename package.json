@@ -47,6 +47,7 @@
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:dev:reset": "pkill -f \"[n]ext dev\" || true; rm -rf frontend/.next frontend/.next-dev-*; npm run frontend:dev",
     "frontend:build": "npm --prefix frontend run build",
+    "frontend:workbench:mobile-sidebar:smoke": "node --import tsx scripts/protocol_workbench_mobile_sidebar_smoke.ts",
     "frontend:start": "npm --prefix frontend run start",
     "test:node": "node --import tsx --test $(find tests -type f -name '*.test.ts' | sort)",
     "test:e2e:localnet": "node scripts/run_localnet_e2e.mjs",

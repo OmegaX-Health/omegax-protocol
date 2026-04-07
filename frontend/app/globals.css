@@ -2055,7 +2055,104 @@
   }
 }
 
+
 @layer components {
+  .liquid-glass {
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 100%);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.5);
+    box-shadow:
+      0 25px 50px -12px rgba(0,0,0,0.05),
+      inset 0 1px 1px rgba(255,255,255,0.8),
+      inset 0 -1px 20px rgba(0,229,255,0.05);
+  }
+  .dark .liquid-glass {
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow:
+      0 25px 50px -12px rgba(0,0,0,0.3),
+      inset 0 1px 1px rgba(255,255,255,0.05),
+      inset 0 -1px 20px rgba(0,229,255,0.03);
+  }
+  .heavy-glass {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow:
+      0 30px 60px -15px rgba(25,28,29,0.08),
+      inset 0 0 0 1px rgba(255,255,255,1);
+  }
+  .dark .heavy-glass {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      0 30px 60px -15px rgba(0,0,0,0.2),
+      inset 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  .milled-ceramic {
+    background: #ffffff;
+    border: 1px solid rgba(225,227,228,0.6);
+    box-shadow:
+      0 15px 35px rgba(0,0,0,0.02),
+      inset 0 2px 4px rgba(0,0,0,0.01);
+  }
+  .dark .milled-ceramic {
+    background: #0F172A;
+    border: 1px solid rgba(148,163,184,0.12);
+    box-shadow:
+      0 15px 35px rgba(0,0,0,0.15),
+      inset 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .micro-etch {
+    background-image:
+      linear-gradient(rgba(186,201,204,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(186,201,204,0.08) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .misty-cyan-glow {
+    background: radial-gradient(circle at center, rgba(0,229,255,0.12) 0%, transparent 70%);
+  }
+  .glow-cyan {
+    box-shadow: 0 0 40px rgba(0,229,255,0.3);
+  }
+  .brackets::before,
+  .brackets::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+    opacity: 0.3;
+  }
+  .brackets::before {
+    top: 1.5rem; left: 1.5rem;
+    border-top: 1px solid currentColor;
+    border-left: 1px solid currentColor;
+  }
+  .brackets::after {
+    top: 1.5rem; right: 1.5rem;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+  }
+  .protocol-tag {
+    font-family: 'Fira Code', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: #94a3b8;
+  }
+  .version-tag {
+    font-family: 'Fira Code', monospace;
+    font-size: 8px;
+    color: #94a3b8;
+    position: absolute;
+    top: 1.5rem;
+    right: 3rem;
+    letter-spacing: 0.15em;
+    opacity: 0.5;
+  }
+
   .glass-panel {
     backdrop-filter: blur(24px);
     background: color-mix(in oklab, rgba(255, 255, 255, 0.74) 88%, var(--surface-soft));
@@ -2067,12 +2164,10 @@
   }
 
   .ceramic-panel {
-    background: color-mix(in oklab, var(--surface-elevated) 94%, white 6%);
-    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      0 16px 34px rgba(10, 21, 37, 0.06);
-    border-radius: 2rem;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
   }
 
   .protocol-workbench-shell {
@@ -2112,17 +2207,18 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    border-right: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
-    background: color-mix(in oklab, var(--surface-elevated) 92%, white 8%);
+    border-right: none;
+    background: transparent;
     position: sticky;
     top: 0;
     z-index: 35;
-    box-shadow: 24px 0 48px rgba(10, 21, 37, 0.06);
+    box-shadow: none;
+    border-radius: 0;
   }
 
   .dark .protocol-sidebar {
-    background: color-mix(in oklab, var(--surface) 90%, rgba(8, 17, 31, 0.3));
-    box-shadow: 24px 0 52px rgba(0, 0, 0, 0.2);
+    background: transparent;
+    box-shadow: none;
   }
 
   .protocol-sidebar-brand {
@@ -2610,17 +2706,10 @@
   }
 
   .workbench-rail-card {
-    backdrop-filter: blur(24px);
-    background: color-mix(in oklab, rgba(255, 255, 255, 0.72) 88%, var(--surface-soft));
-    border: 1px solid color-mix(in oklab, var(--border-strong) 58%, transparent);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.38),
-      0 16px 30px rgba(10, 21, 37, 0.07);
     border-radius: 1.85rem;
   }
 
   .dark .workbench-rail-card {
-    background: color-mix(in oklab, rgba(10, 21, 37, 0.84) 92%, var(--surface-soft));
   }
 
   .workbench-panel-head,
@@ -2705,17 +2794,17 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
-    border-radius: 1.2rem;
+    border: none;
+    border-radius: 0;
     overflow: hidden;
-    background: color-mix(in oklab, var(--surface-elevated) 90%, white 10%);
+    background: transparent;
   }
 
   .workbench-summary-metric {
     display: grid;
     gap: 0.2rem;
     padding: 0.85rem 1rem;
-    border-right: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+    border-right: none;
   }
 
   .workbench-summary-metric span {
@@ -2834,8 +2923,8 @@
 
   .workbench-table-card {
     border-radius: 1.55rem;
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
-    background: color-mix(in oklab, var(--surface-elevated) 92%, white 8%);
+    border: none;
+    background: transparent;
   }
 
   .workbench-table-card-embedded {
@@ -2848,6 +2937,15 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+  }
+
+  .overview-register-table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .overview-register-table {
+    min-width: 40rem;
   }
 
   .workbench-table th {
@@ -2978,10 +3076,10 @@
   .workbench-content-split {
     display: grid;
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
-    border-radius: 1.45rem;
+    border: none;
+    border-radius: 0;
     overflow: hidden;
-    background: color-mix(in oklab, var(--surface-elevated) 92%, white 8%);
+    background: transparent;
   }
 
   .workbench-content-pane {
@@ -2990,7 +3088,7 @@
   }
 
   .workbench-content-pane + .workbench-content-pane {
-    border-left: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+    border-left: none;
   }
 
   .workbench-content-pane-head {
@@ -3084,11 +3182,26 @@
       inset: 0 auto 0 0;
       width: min(18rem, calc(100vw - 3rem));
       transform: translateX(-105%);
-      transition: transform 180ms ease;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        transform 180ms ease,
+        visibility 0s linear 180ms;
     }
 
     .protocol-sidebar-open {
       transform: translateX(0);
+      visibility: visible;
+      pointer-events: auto;
+      transition: transform 180ms ease;
+    }
+
+    .protocol-sidebar[data-mobile-hidden="false"] {
+      visibility: visible;
+    }
+
+    .protocol-sidebar[data-mobile-hidden="true"] {
+      pointer-events: none;
     }
 
     .protocol-sidebar-scrim {
@@ -3207,6 +3320,67 @@
 
     .workbench-summary-metric:first-child {
       border-top: none;
+    }
+
+    .overview-register-table-card {
+      overflow: visible;
+      padding: 0.65rem 0.75rem 0.75rem;
+    }
+
+    .overview-register-table {
+      min-width: 0;
+      display: block;
+    }
+
+    .overview-register-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .overview-register-table tbody {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .overview-register-table tr {
+      display: grid;
+      gap: 0.7rem;
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+      background: color-mix(in oklab, var(--surface-elevated) 92%, white 8%);
+    }
+
+    .overview-register-table .workbench-table-row-active {
+      border-color: color-mix(in oklab, var(--accent) 24%, var(--border) 76%);
+      background: color-mix(in oklab, var(--status-surface) 88%, white 12%);
+    }
+
+    .overview-register-table td {
+      display: grid;
+      gap: 0.32rem;
+      padding: 0;
+      border-bottom: none;
+      white-space: normal;
+    }
+
+    .overview-register-table .workbench-table-row-active td {
+      background: transparent;
+    }
+
+    .overview-register-table td::before {
+      content: attr(data-label);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted-foreground);
     }
   }
 }
