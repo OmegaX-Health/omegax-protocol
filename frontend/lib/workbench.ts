@@ -174,6 +174,42 @@ function shortenGovernanceAddress(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
+function countBe(count: number): string {
+  return count === 1 ? "is" : "are";
+}
+
+function countRemain(count: number): string {
+  return count === 1 ? "remains" : "remain";
+}
+
+function joinWithConjunction(values: string[]): string {
+  if (values.length === 0) return "";
+  if (values.length === 1) return values[0]!;
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
+}
+
+const GOVERNANCE_QUEUE_STATE_ORDER = ["Voting", "Executing", "Completed"] as const;
+
+function describeGovernanceQueueStates(queueStateCounts: Record<string, number>): string {
+  return joinWithConjunction(
+    Object.entries(queueStateCounts)
+      .sort(([leftStatus], [rightStatus]) => {
+        const leftIndex = GOVERNANCE_QUEUE_STATE_ORDER.indexOf(leftStatus as (typeof GOVERNANCE_QUEUE_STATE_ORDER)[number]);
+        const rightIndex = GOVERNANCE_QUEUE_STATE_ORDER.indexOf(rightStatus as (typeof GOVERNANCE_QUEUE_STATE_ORDER)[number]);
+
+        if (leftIndex !== -1 || rightIndex !== -1) {
+          if (leftIndex === -1) return 1;
+          if (rightIndex === -1) return -1;
+          return leftIndex - rightIndex;
+        }
+
+        return leftStatus.localeCompare(rightStatus);
+      })
+      .map(([status, count]) => `${count} ${status.toLowerCase()}`),
+  );
+}
+
 function templateLabelForProposal(descriptionLink: string): string {
   if (!descriptionLink) return "No description";
   try {
@@ -365,13 +401,15 @@ export function linkedContextForPool(poolAddress?: string | null): {
   plan: string | null;
   series: string | null;
 } {
-  const allocation = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.find(
+  const allocations = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
     (row) => row.liquidityPool === (poolAddress ?? ""),
   );
+  const plans = [...new Set(allocations.map((row) => row.healthPlan).filter(Boolean))];
+  const series = [...new Set(allocations.map((row) => row.policySeries).filter(Boolean))];
 
   return {
-    plan: allocation?.healthPlan ?? null,
-    series: allocation?.policySeries ?? null,
+    plan: plans.length === 1 ? plans[0] ?? null : null,
+    series: series.length === 1 ? series[0] ?? null : null,
   };
 }
 
@@ -532,14 +570,14 @@ function buildOverviewAuditTrail(
         index: 1,
         label: metrics.activeClaims > 0 ? "Claims watch" : "Claims clear",
         tone: metrics.activeClaims > 0 ? "pending" : "verified",
-        detail: `${metrics.activeClaims} claim lane${metrics.activeClaims === 1 ? "" : "s"} remain open across sponsor and oracle surfaces.`,
+        detail: `${metrics.activeClaims} claim lane${metrics.activeClaims === 1 ? "" : "s"} ${countRemain(metrics.activeClaims)} open across sponsor and oracle surfaces.`,
       }),
       createAuditItem({
         seed: `overview:${persona}:obligations`,
         index: 2,
         label: metrics.reservedObligations > 0 ? "Reserve watch" : "Reserve clear",
         tone: metrics.reservedObligations > 0 ? "signal" : "verified",
-        detail: `${metrics.reservedObligations} obligation lane${metrics.reservedObligations === 1 ? "" : "s"} are still claimable, payable, or reserved.`,
+        detail: `${metrics.reservedObligations} obligation lane${metrics.reservedObligations === 1 ? "" : "s"} ${countBe(metrics.reservedObligations)} still claimable, payable, or reserved.`,
       }),
     ];
   }
@@ -550,7 +588,7 @@ function buildOverviewAuditTrail(
       index: 0,
       label: metrics.approvedClaims > 0 ? "Claims approved" : "Claims quiet",
       tone: metrics.approvedClaims > 0 ? "signal" : "verified",
-      detail: `${metrics.approvedClaims} claim lane${metrics.approvedClaims === 1 ? "" : "s"} are approved and waiting for reserve or settlement execution.`,
+      detail: `${metrics.approvedClaims} claim lane${metrics.approvedClaims === 1 ? "" : "s"} ${countBe(metrics.approvedClaims)} approved and waiting for reserve or settlement execution.`,
     }),
     createAuditItem({
       seed: `overview:${persona}:plan`,
@@ -566,7 +604,7 @@ function buildOverviewAuditTrail(
       index: 2,
       label: metrics.pendingRedemptions > 0 ? "Capital queue" : "Capital clear",
       tone: metrics.pendingRedemptions > 0 ? "pending" : "verified",
-      detail: `${metrics.pendingRedemptions} LP queue record${metrics.pendingRedemptions === 1 ? "" : "s"} still need processing across active capital classes.`,
+      detail: `${metrics.pendingRedemptions} LP queue record${metrics.pendingRedemptions === 1 ? "" : "s"} ${metrics.pendingRedemptions === 1 ? "still needs" : "still need"} processing across active capital classes.`,
     }),
   ];
 }
@@ -635,8 +673,8 @@ function buildCapitalAuditTrail(poolAddress?: string | null, classAddress?: stri
       detail: totalImpairedAmount > 0n
         ? `${queueScope} is carrying ${formatAuditAmount(totalImpairedAmount)} impaired exposure, led by ${leadImpairedSeries?.displayName ?? "the top allocation"} at ${formatAuditAmount(leadImpairedAllocation?.impairedAmount)}.`
         : payableAmount > 0n
-          ? `${payableObligations.length} obligation lane${payableObligations.length === 1 ? "" : "s"} remain ${describeObligationStatus(OBLIGATION_STATUS_CLAIMABLE_PAYABLE)} with ${formatAuditAmount(payableAmount)} still scheduled for settlement.`
-          : `${linkedPlanCount} linked plan lane${linkedPlanCount === 1 ? "" : "s"} currently draw on ${pool.displayName}, and none are carrying impaired or payable exposure.`,
+          ? `${payableObligations.length} obligation lane${payableObligations.length === 1 ? "" : "s"} ${countRemain(payableObligations.length)} ${describeObligationStatus(OBLIGATION_STATUS_CLAIMABLE_PAYABLE)} with ${formatAuditAmount(payableAmount)} still scheduled for settlement.`
+          : `${linkedPlanCount} linked plan lane${linkedPlanCount === 1 ? "" : "s"} ${linkedPlanCount === 1 ? "currently draws" : "currently draw"} on ${pool.displayName}, and none are carrying impaired or payable exposure.`,
     }),
   ];
 }
@@ -678,7 +716,7 @@ function buildPlansAuditTrail(planAddress?: string | null, seriesAddress?: strin
       index: 0,
       label: liveClaims.length > 0 ? "Claims watch" : "Claims quiet",
       tone: liveClaims.length > 0 ? "pending" : "verified",
-      detail: `${scopedClaims.length} claim lane${scopedClaims.length === 1 ? "" : "s"} are scoped to ${scopeLabel}; ${approvedClaims.length} approved and ${liveClaims.length} still active.`,
+      detail: `${scopedClaims.length} claim lane${scopedClaims.length === 1 ? "" : "s"} ${countBe(scopedClaims.length)} scoped to ${scopeLabel}; ${approvedClaims.length} approved and ${liveClaims.length} still active.`,
     }),
     createAuditItem({
       seed: `plans:${scopeLabel}:funding`,
@@ -744,7 +782,7 @@ function buildOraclesAuditTrail(poolAddress?: string | null, seriesAddress?: str
       tone: selectedSeries ? "verified" : "signal",
       detail: selectedSeries
         ? `${selectedSeries.displayName} stays bound to ${pool.displayName} in ${describeSeriesMode(selectedSeries.mode)} mode with terms ${selectedSeries.termsVersion}.`
-        : `${boundSeries.length} series are currently bound to ${pool.displayName} for the visible oracle shell.`,
+        : `${boundSeries.length} series ${countBe(boundSeries.length)} currently bound to ${pool.displayName} for the visible oracle shell.`,
     }),
     createAuditItem({
       seed: `oracles:${scopeLabel}:attestations`,
@@ -752,7 +790,7 @@ function buildOraclesAuditTrail(poolAddress?: string | null, seriesAddress?: str
       label: scopedClaims.length > 0 ? "Attestation watch" : "Attestations quiet",
       tone: scopedClaims.length > 0 ? "pending" : "verified",
       detail: leadClaim && leadClaimSeries
-        ? `${scopedClaims.length} claim lane${scopedClaims.length === 1 ? "" : "s"} are in scope; ${leadClaim.claimId} is ${describeClaimStatus(leadClaim.intakeStatus)} for ${leadClaimSeries.displayName}.`
+        ? `${scopedClaims.length} claim lane${scopedClaims.length === 1 ? "" : "s"} ${countBe(scopedClaims.length)} in scope; ${leadClaim.claimId} is ${describeClaimStatus(leadClaim.intakeStatus)} for ${leadClaimSeries.displayName}.`
         : `No claim attestations are currently scoped to ${scopeLabel}.`,
     }),
     createAuditItem({
@@ -761,7 +799,7 @@ function buildOraclesAuditTrail(poolAddress?: string | null, seriesAddress?: str
       label: watchlistObligations.length > 0 ? "Dispute watch" : "Disputes clear",
       tone: watchlistObligations.length > 0 ? "signal" : "verified",
       detail: watchlistObligations.length > 0
-        ? `${watchlistObligations.length} obligation lane${watchlistObligations.length === 1 ? "" : "s"} remain on the operator watchlist with ${formatAuditAmount(watchlistAmount)} in reserved, payable, or impaired exposure.`
+        ? `${watchlistObligations.length} obligation lane${watchlistObligations.length === 1 ? "" : "s"} ${countRemain(watchlistObligations.length)} on the operator watchlist with ${formatAuditAmount(watchlistAmount)} in reserved, payable, or impaired exposure.`
         : `No bound obligations currently need dispute or settlement escalation for ${scopeLabel}.`,
     }),
   ];
@@ -776,6 +814,7 @@ function buildGovernanceAuditTrail(
     counts[item.status] = (counts[item.status] ?? 0) + 1;
     return counts;
   }, {});
+  const queueStateSummary = describeGovernanceQueueStates(queueStateCounts);
   const scopeLabel = selectedProposal?.proposal ?? "governance";
 
   return [
@@ -803,7 +842,7 @@ function buildGovernanceAuditTrail(
       label: queue.length > 0 ? "Queue live" : "Queue empty",
       tone: queue.length > 0 ? "signal" : "verified",
       detail: queue.length > 0
-        ? `${queue.length} proposal lane${queue.length === 1 ? "" : "s"} are visible: ${queueStateCounts.Voting ?? 0} voting, ${queueStateCounts.Executing ?? 0} executing, and ${queueStateCounts.Completed ?? 0} completed.`
+        ? `${queue.length} proposal lane${queue.length === 1 ? "" : "s"} ${countBe(queue.length)} visible${queueStateSummary ? `: ${queueStateSummary}.` : "."}`
         : "No live governance proposals are currently loaded into the workbench queue.",
     }),
   ];

@@ -1,6 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { CAPITAL_CLASS_RESTRICTION_OPEN, CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY, CLAIM_INTAKE_APPROVED, CLAIM_INTAKE_SETTLED, ELIGIBILITY_ELIGIBLE, FUNDING_LINE_STATUS_OPEN, FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION, FUNDING_LINE_TYPE_PREMIUM_INCOME, FUNDING_LINE_TYPE_SPONSOR_BUDGET, LP_QUEUE_STATUS_NONE, OBLIGATION_DELIVERY_MODE_CLAIMABLE, OBLIGATION_DELIVERY_MODE_PAYABLE, OBLIGATION_STATUS_CLAIMABLE_PAYABLE, OBLIGATION_STATUS_RESERVED, OBLIGATION_STATUS_SETTLED, REDEMPTION_POLICY_QUEUE_ONLY, SERIES_MODE_PROTECTION, SERIES_MODE_REWARD, SERIES_STATUS_ACTIVE, ZERO_PUBKEY, deriveAllocationLedgerPda, deriveAllocationPositionPda, deriveCapitalClassPda, deriveClaimCasePda, deriveDomainAssetLedgerPda, deriveDomainAssetVaultPda, deriveFundingLineLedgerPda, deriveFundingLinePda, deriveHealthPlanPda, deriveLiquidityPoolPda, deriveLpPositionPda, deriveMemberPositionPda, deriveObligationPda, derivePlanReserveLedgerPda, derivePolicySeriesPda, derivePoolClassLedgerPda, deriveReserveDomainPda, deriveSeriesReserveLedgerPda, } from "./protocol";
 const UNSET = ZERO_PUBKEY;
+const DEVNET_CONTROL_WALLET_ROLES = new Set([
+    "protocol_governance",
+    "domain_admin",
+    "plan_admin",
+    "sponsor_operator",
+    "claims_operator",
+    "oracle_operator",
+    "pool_curator",
+    "pool_allocator",
+    "pool_sentinel",
+]);
 function env(name, fallback = UNSET) {
     return String(process.env[name] ?? fallback).trim() || fallback;
 }
@@ -11,6 +22,9 @@ function envPreferred(name, aliases, fallback = UNSET) {
             return value;
     }
     return fallback;
+}
+function planControlWallet(address) {
+    return isUnsetDevnetWalletAddress(address) ? "" : address;
 }
 const settlementMint = env("NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT");
 const rewardMint = env("NEXT_PUBLIC_DEVNET_REWARD_MINT", settlementMint);
@@ -230,9 +244,9 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE = {
             planId: seekerPlanId,
             displayName: "Nexus Seeker Rewards",
             sponsorLabel: "Seeker Sponsor",
-            planAdmin: planAdminWallet,
-            sponsorOperator: sponsorOperatorWallet,
-            claimsOperator: claimsOperatorWallet,
+            planAdmin: planControlWallet(planAdminWallet),
+            sponsorOperator: planControlWallet(sponsorOperatorWallet),
+            claimsOperator: planControlWallet(claimsOperatorWallet),
             membershipModel: "sponsor-invite",
             pauseFlags: 0,
             active: true,
@@ -243,9 +257,9 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE = {
             planId: blendedPlanId,
             displayName: "Nexus Protect Plus",
             sponsorLabel: "Protect Plus Sponsor",
-            planAdmin: planAdminWallet,
-            sponsorOperator: sponsorOperatorWallet,
-            claimsOperator: claimsOperatorWallet,
+            planAdmin: planControlWallet(planAdminWallet),
+            sponsorOperator: planControlWallet(sponsorOperatorWallet),
+            claimsOperator: planControlWallet(claimsOperatorWallet),
             membershipModel: "open-with-claims-operator",
             pauseFlags: 0,
             active: true,
@@ -855,8 +869,20 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE = {
 export const DEVNET_FIXTURES = DEVNET_PROTOCOL_FIXTURE_STATE;
 export const DEFAULT_HEALTH_PLAN_ADDRESS = seekerPlanAddress;
 export const DEFAULT_LIQUIDITY_POOL_ADDRESS = incomePoolAddress;
+export function isUnsetDevnetWalletAddress(address) {
+    return !address || address === UNSET;
+}
+export function isControlDevnetWalletRole(role) {
+    return DEVNET_CONTROL_WALLET_ROLES.has(role);
+}
 export function configuredDevnetWallets() {
-    return DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((wallet) => wallet.address !== UNSET);
+    return DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((wallet) => !isUnsetDevnetWalletAddress(wallet.address));
+}
+export function controlDevnetWallets() {
+    return DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((wallet) => isControlDevnetWalletRole(wallet.role));
+}
+export function configuredControlDevnetWallets() {
+    return controlDevnetWallets().filter((wallet) => !isUnsetDevnetWalletAddress(wallet.address));
 }
 export function devnetFixtureWalletKey(wallet) {
     const source = wallet.envVar?.trim() || wallet.role;

@@ -11,7 +11,7 @@ import { WorkbenchEmptyState, WorkbenchRailCard, WorkbenchTabs } from "@/compone
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount, seriesOutcomeCount } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { DEVNET_PROTOCOL_FIXTURE_STATE, isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
 import {
   buildAuditTrail,
   defaultTabForPersona,
@@ -28,6 +28,24 @@ import {
   describeSeriesStatus,
   shortenAddress,
 } from "@/lib/protocol";
+
+const SERIES_OPTIONAL_TABS = new Set<PlanTabId>(["claims", "members", "schemas"]);
+
+function formatControlLaneAddress(address?: string | null, size = 6) {
+  return isUnsetDevnetWalletAddress(address) ? "Not configured" : shortenAddress(address ?? "", size);
+}
+
+function claimsEmptyCopy(selectedSeries: boolean, planHasClaims: boolean): string {
+  if (!selectedSeries) return "This plan does not currently expose claim cases.";
+  if (planHasClaims) return "This series filter does not contain the plan's live claims. Choose another series or clear the series filter.";
+  return "This series does not currently expose claim cases.";
+}
+
+function obligationsEmptyCopy(selectedSeries: boolean, planHasObligations: boolean): string {
+  if (!selectedSeries) return "This plan does not currently expose obligations.";
+  if (planHasObligations) return "This series filter does not contain the plan's obligations. Choose another series or clear the series filter.";
+  return "This series does not currently expose obligations.";
+}
 
 export function PlansWorkbench() {
   const router = useRouter();
@@ -73,9 +91,15 @@ export function PlansWorkbench() {
     );
   }, [planSeries, seriesSearch]);
   const querySeries = searchParams.get("series")?.trim() ?? "";
+  const seriesSelectionOptional = SERIES_OPTIONAL_TABS.has(activeTab);
   const selectedSeries = useMemo(
-    () => planSeries.find((series) => series.address === querySeries) ?? filteredSeries[0] ?? planSeries[0] ?? null,
-    [filteredSeries, planSeries, querySeries],
+    () => {
+      const explicitSeries = planSeries.find((series) => series.address === querySeries) ?? null;
+      if (explicitSeries) return explicitSeries;
+      if (seriesSelectionOptional) return null;
+      return filteredSeries[0] ?? planSeries[0] ?? null;
+    },
+    [filteredSeries, planSeries, querySeries, seriesSelectionOptional],
   );
 
   const sponsorView = useMemo(
@@ -86,27 +110,30 @@ export function PlansWorkbench() {
     () => DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.filter((line) => line.healthPlan === selectedPlan?.address),
     [selectedPlan],
   );
-  const filteredClaims = useMemo(() => {
-    return DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => {
-      if (claim.healthPlan !== selectedPlan?.address) return false;
-      if (selectedSeries && claim.policySeries !== selectedSeries.address) return false;
-      return true;
-    });
-  }, [selectedPlan, selectedSeries]);
-  const filteredObligations = useMemo(() => {
-    return DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) => {
-      if (obligation.healthPlan !== selectedPlan?.address) return false;
-      if (selectedSeries && obligation.policySeries !== selectedSeries.address) return false;
-      return true;
-    });
-  }, [selectedPlan, selectedSeries]);
-  const filteredMembers = useMemo(() => {
-    return DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions.filter((position) => {
-      if (position.healthPlan !== selectedPlan?.address) return false;
-      if (selectedSeries && position.policySeries !== selectedSeries.address) return false;
-      return true;
-    });
-  }, [selectedPlan, selectedSeries]);
+  const planClaims = useMemo(
+    () => DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => claim.healthPlan === selectedPlan?.address),
+    [selectedPlan],
+  );
+  const filteredClaims = useMemo(
+    () => (selectedSeries ? planClaims.filter((claim) => claim.policySeries === selectedSeries.address) : planClaims),
+    [planClaims, selectedSeries],
+  );
+  const planObligations = useMemo(
+    () => DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) => obligation.healthPlan === selectedPlan?.address),
+    [selectedPlan],
+  );
+  const filteredObligations = useMemo(
+    () => (selectedSeries ? planObligations.filter((obligation) => obligation.policySeries === selectedSeries.address) : planObligations),
+    [planObligations, selectedSeries],
+  );
+  const planMembers = useMemo(
+    () => DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions.filter((position) => position.healthPlan === selectedPlan?.address),
+    [selectedPlan],
+  );
+  const filteredMembers = useMemo(
+    () => (selectedSeries ? planMembers.filter((position) => position.policySeries === selectedSeries.address) : planMembers),
+    [planMembers, selectedSeries],
+  );
   const auditTrail = useMemo(
     () => buildAuditTrail({
       section: "plans",
@@ -129,10 +156,11 @@ export function PlansWorkbench() {
   );
 
   useEffect(() => {
-    const nextUpdates: Record<string, string> = {};
+    const nextUpdates: Record<string, string | null> = {};
     if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
     if (selectedPlan && queryPlan !== selectedPlan.address) nextUpdates.plan = selectedPlan.address;
     if (selectedSeries && querySeries !== selectedSeries.address) nextUpdates.series = selectedSeries.address;
+    if (!selectedSeries && querySeries) nextUpdates.series = null;
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
   }, [activeTab, queryPlan, querySeries, requestedTab, selectedPlan, selectedSeries, updateParams]);
 
@@ -347,26 +375,33 @@ export function PlansWorkbench() {
                     <h2 className="workbench-panel-title">Intake and adjudication stay attached to the plan and series lane.</h2>
                   </div>
                 </div>
-                <table className="workbench-table">
-                  <thead>
-                    <tr>
-                      <th>Claim</th>
-                      <th>Status</th>
-                      <th>Approved</th>
-                      <th>Reserved</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredClaims.map((claim) => (
-                      <tr key={claim.address}>
-                        <td data-label="Claim">{claim.claimId}</td>
-                        <td data-label="Status">{describeClaimStatus(claim.intakeStatus)}</td>
-                        <td data-label="Approved">{formatAmount(claim.approvedAmount)}</td>
-                        <td data-label="Reserved">{formatAmount(claim.reservedAmount)}</td>
+                {filteredClaims.length > 0 ? (
+                  <table className="workbench-table">
+                    <thead>
+                      <tr>
+                        <th>Claim</th>
+                        <th>Status</th>
+                        <th>Approved</th>
+                        <th>Reserved</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredClaims.map((claim) => (
+                        <tr key={claim.address}>
+                          <td data-label="Claim">{claim.claimId}</td>
+                          <td data-label="Status">{describeClaimStatus(claim.intakeStatus)}</td>
+                          <td data-label="Approved">{formatAmount(claim.approvedAmount)}</td>
+                          <td data-label="Reserved">{formatAmount(claim.reservedAmount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <WorkbenchEmptyState
+                    title="No claim cases in this filter"
+                    copy={claimsEmptyCopy(Boolean(selectedSeries), planClaims.length > 0)}
+                  />
+                )}
               </div>
 
               <div className="workbench-content-pane">
@@ -376,26 +411,33 @@ export function PlansWorkbench() {
                     <h2 className="workbench-panel-title">Liabilities stay auditable without leaving the selected plan.</h2>
                   </div>
                 </div>
-                <table className="workbench-table">
-                  <thead>
-                    <tr>
-                      <th>Obligation</th>
-                      <th>Status</th>
-                      <th>Principal</th>
-                      <th>Outstanding</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredObligations.map((obligation) => (
-                      <tr key={obligation.address}>
-                        <td data-label="Obligation">{obligation.obligationId}</td>
-                        <td data-label="Status">{describeObligationStatus(obligation.status)}</td>
-                        <td data-label="Principal">{formatAmount(obligation.principalAmount)}</td>
-                        <td data-label="Outstanding">{formatAmount(obligation.outstandingAmount)}</td>
+                {filteredObligations.length > 0 ? (
+                  <table className="workbench-table">
+                    <thead>
+                      <tr>
+                        <th>Obligation</th>
+                        <th>Status</th>
+                        <th>Principal</th>
+                        <th>Outstanding</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredObligations.map((obligation) => (
+                        <tr key={obligation.address}>
+                          <td data-label="Obligation">{obligation.obligationId}</td>
+                          <td data-label="Status">{describeObligationStatus(obligation.status)}</td>
+                          <td data-label="Principal">{formatAmount(obligation.principalAmount)}</td>
+                          <td data-label="Outstanding">{formatAmount(obligation.outstandingAmount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <WorkbenchEmptyState
+                    title="No obligations in this filter"
+                    copy={obligationsEmptyCopy(Boolean(selectedSeries), planObligations.length > 0)}
+                  />
+                )}
               </div>
             </div>
           ) : null}
@@ -496,19 +538,19 @@ export function PlansWorkbench() {
                   <tbody>
                     <tr>
                       <td data-label="Control lane">Reserve domain</td>
-                      <td data-label="Address">{shortenAddress(selectedPlan?.reserveDomain ?? "", 6)}</td>
+                      <td data-label="Address">{formatControlLaneAddress(selectedPlan?.reserveDomain, 6)}</td>
                     </tr>
                     <tr>
                       <td data-label="Control lane">Plan admin</td>
-                      <td data-label="Address">{shortenAddress(selectedPlan?.planAdmin ?? "", 6)}</td>
+                      <td data-label="Address">{formatControlLaneAddress(selectedPlan?.planAdmin, 6)}</td>
                     </tr>
                     <tr>
                       <td data-label="Control lane">Sponsor operator</td>
-                      <td data-label="Address">{shortenAddress(selectedPlan?.sponsorOperator ?? "", 6)}</td>
+                      <td data-label="Address">{formatControlLaneAddress(selectedPlan?.sponsorOperator, 6)}</td>
                     </tr>
                     <tr>
                       <td data-label="Control lane">Claims operator</td>
-                      <td data-label="Address">{shortenAddress(selectedPlan?.claimsOperator ?? "", 6)}</td>
+                      <td data-label="Address">{formatControlLaneAddress(selectedPlan?.claimsOperator, 6)}</td>
                     </tr>
                   </tbody>
                 </table>

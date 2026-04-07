@@ -9,6 +9,9 @@ import { PublicKey } from "@solana/web3.js";
 type FixtureSnapshot = {
   wallets: Array<{ role: string; address: string }>;
   healthPlans: Array<{ planAdmin: string; sponsorOperator: string; claimsOperator: string }>;
+  controlWalletRoles: string[];
+  configuredControlWalletCount: number;
+  hasUnsetPlanAdmin: boolean;
 };
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,13 +40,21 @@ function loadFixtureSnapshot(envUpdates: Record<string, string>): FixtureSnapsho
   const script = `
     import fixturesModule from "./frontend/lib/devnet-fixtures.ts";
 
-    const { DEVNET_PROTOCOL_FIXTURE_STATE } = fixturesModule;
+    const {
+      DEVNET_PROTOCOL_FIXTURE_STATE,
+      configuredControlDevnetWallets,
+      controlDevnetWallets,
+      isUnsetDevnetWalletAddress,
+    } = fixturesModule;
 
     console.log(JSON.stringify({
       wallets: DEVNET_PROTOCOL_FIXTURE_STATE.wallets.map(({ role, address }) => ({ role, address })),
       healthPlans: DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.map(
         ({ planAdmin, sponsorOperator, claimsOperator }) => ({ planAdmin, sponsorOperator, claimsOperator }),
       ),
+      controlWalletRoles: controlDevnetWallets().map(({ role }) => role),
+      configuredControlWalletCount: configuredControlDevnetWallets().length,
+      hasUnsetPlanAdmin: isUnsetDevnetWalletAddress(DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]?.planAdmin),
     }));
   `;
 
@@ -106,4 +117,26 @@ test("canonical wallet vars win when both canonical and legacy names are present
 
   assert.equal(walletAddress(snapshot, "claims_operator"), address(11));
   assert.equal(walletAddress(snapshot, "oracle_operator"), address(12));
+});
+
+test("control-wallet helpers only surface privileged roles and treat unset placeholders as unconfigured", () => {
+  const snapshot = loadFixtureSnapshot({
+    NEXT_PUBLIC_DEVNET_MEMBER_WALLET: address(15),
+    NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET: address(16),
+    NEXT_PUBLIC_DEVNET_PLAN_ADMIN_WALLET: address(17),
+  });
+
+  assert.deepEqual(snapshot.controlWalletRoles, [
+    "protocol_governance",
+    "domain_admin",
+    "plan_admin",
+    "sponsor_operator",
+    "claims_operator",
+    "oracle_operator",
+    "pool_curator",
+    "pool_allocator",
+    "pool_sentinel",
+  ]);
+  assert.equal(snapshot.configuredControlWalletCount, 2);
+  assert.equal(snapshot.hasUnsetPlanAdmin, false);
 });

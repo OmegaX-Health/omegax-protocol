@@ -19,9 +19,18 @@ import {
   GOVERNANCE_TEMPLATE_ROWS,
   type GovernanceTabId,
 } from "@/lib/workbench";
-import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
+import {
+  configuredControlDevnetWallets,
+  controlDevnetWallets,
+  DEVNET_PROTOCOL_FIXTURE_STATE,
+  devnetFixtureWalletKey,
+  isControlDevnetWalletRole,
+  isUnsetDevnetWalletAddress,
+} from "@/lib/devnet-fixtures";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { shortenAddress } from "@/lib/protocol";
+
+const PROPOSAL_CONTEXT_TABS = new Set<GovernanceTabId>(["overview", "queue"]);
 
 export function GovernanceWorkbench() {
   const { connection } = useConnection();
@@ -56,6 +65,12 @@ export function GovernanceWorkbench() {
   const queueStatusBanner = proposalQueueError && queue.length > 0
     ? `Showing the last loaded governance queue. ${proposalQueueError}`
     : null;
+  const authorityRoles = useMemo(
+    () => DEVNET_PROTOCOL_FIXTURE_STATE.roleMatrix.filter((row) => isControlDevnetWalletRole(row.role)),
+    [],
+  );
+  const authorityWallets = useMemo(() => controlDevnetWallets(), []);
+  const configuredAuthorityWallets = useMemo(() => configuredControlDevnetWallets(), []);
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -68,6 +83,15 @@ export function GovernanceWorkbench() {
     },
     [pathname, router, searchParams],
   );
+
+  const handleTabChange = useCallback((tab: string) => {
+    const nextTab = tab as GovernanceTabId;
+    const nextProposal = selectedProposal?.proposal || queryProposal || undefined;
+    updateParams({
+      tab: nextTab,
+      proposal: PROPOSAL_CONTEXT_TABS.has(nextTab) ? nextProposal : null,
+    });
+  }, [queryProposal, selectedProposal, updateParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,14 +123,15 @@ export function GovernanceWorkbench() {
   }, [connection]);
 
   useEffect(() => {
-    const nextUpdates: Record<string, string> = {};
+    const nextUpdates: Record<string, string | null | undefined> = {};
     if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
-    if (selectedProposal && queryProposal !== selectedProposal.proposal) nextUpdates.proposal = selectedProposal.proposal;
+    if (PROPOSAL_CONTEXT_TABS.has(activeTab)) {
+      if (selectedProposal && queryProposal !== selectedProposal.proposal) nextUpdates.proposal = selectedProposal.proposal;
+    } else if (queryProposal) {
+      nextUpdates.proposal = null;
+    }
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
   }, [activeTab, queryProposal, requestedTab, selectedProposal, updateParams]);
-
-  const authorities = DEVNET_PROTOCOL_FIXTURE_STATE.roleMatrix;
-  const wallets = DEVNET_PROTOCOL_FIXTURE_STATE.wallets;
 
   return (
     <div className="workbench-page">
@@ -128,15 +153,15 @@ export function GovernanceWorkbench() {
             </div>
             <div className="workbench-summary-metric">
               <span>Authority roles</span>
-              <strong>{authorities.length}</strong>
+              <strong>{authorityRoles.length}</strong>
             </div>
             <div className="workbench-summary-metric">
               <span>Templates</span>
               <strong>{GOVERNANCE_TEMPLATE_ROWS.length}</strong>
             </div>
             <div className="workbench-summary-metric">
-              <span>Operator wallets</span>
-              <strong>{wallets.length}</strong>
+              <span>Configured control wallets</span>
+              <strong>{configuredAuthorityWallets.length}</strong>
             </div>
           </div>
 
@@ -144,7 +169,7 @@ export function GovernanceWorkbench() {
             <p className="field-help">{queueStatusBanner}</p>
           ) : null}
 
-          <WorkbenchTabs tabs={GOVERNANCE_TABS} active={activeTab} onChange={(tab) => updateParams({ tab })} />
+          <WorkbenchTabs tabs={GOVERNANCE_TABS} active={activeTab} onChange={handleTabChange} />
 
           {activeTab === "overview" ? (
             <div className="workbench-content-split">
@@ -248,13 +273,13 @@ export function GovernanceWorkbench() {
                   </tr>
                 </thead>
                 <tbody>
-                  {wallets.map((wallet) => {
-                    const actions = authorities.find((row) => row.role === wallet.role)?.actions ?? [];
+                  {authorityWallets.map((wallet) => {
+                    const actions = authorityRoles.find((row) => row.role === wallet.role)?.actions ?? [];
                     return (
                       <tr key={devnetFixtureWalletKey(wallet)}>
                         <td data-label="Role">{wallet.role}</td>
                         <td data-label="Wallet">{wallet.label}</td>
-                        <td data-label="Address">{shortenAddress(wallet.address, 8)}</td>
+                        <td data-label="Address">{isUnsetDevnetWalletAddress(wallet.address) ? "Not configured" : shortenAddress(wallet.address, 8)}</td>
                         <td data-label="Actions">{actions.join(", ") || "None"}</td>
                       </tr>
                     );

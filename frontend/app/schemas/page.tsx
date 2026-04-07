@@ -16,12 +16,13 @@ export default function SchemasShimPage({ searchParams }: SchemasShimPageProps) 
   const pool = firstValue(searchParams?.pool);
   const series = firstValue(searchParams?.series);
   const linked = linkedContextForPool(pool);
-  const plan = firstValue(searchParams?.plan) || planAddressForSeries(series) || linked.plan || "";
+  const resolvedSeries = series || linked.series || "";
+  const plan = firstValue(searchParams?.plan) || planAddressForSeries(resolvedSeries) || linked.plan || "";
   const params = new URLSearchParams();
 
   params.set("tab", "schemas");
   if (plan) params.set("plan", plan);
-  if (series || linked.series) params.set("series", series || linked.series || "");
+  if (resolvedSeries) params.set("series", resolvedSeries);
 
   redirect(`/plans?${params.toString()}`);
 }

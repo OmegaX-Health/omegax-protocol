@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { linkedContextForPool } from "@/lib/workbench";
+import { linkedContextForPool, planAddressForSeries } from "@/lib/workbench";
 
 type MembersShimPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -17,12 +17,13 @@ export default function MembersShimPage({ searchParams }: MembersShimPageProps) 
   const series = firstValue(searchParams?.series);
   const pool = firstValue(searchParams?.pool);
   const linked = linkedContextForPool(pool);
+  const resolvedSeries = series || linked.series || "";
+  const resolvedPlan = plan || planAddressForSeries(resolvedSeries) || linked.plan || "";
   const params = new URLSearchParams();
 
   params.set("tab", "members");
-  if (plan || linked.plan) params.set("plan", plan || linked.plan || "");
-  if (series || linked.series) params.set("series", series || linked.series || "");
+  if (resolvedPlan) params.set("plan", resolvedPlan);
+  if (resolvedSeries) params.set("series", resolvedSeries);
 
   redirect(`/plans?${params.toString()}`);
 }
-

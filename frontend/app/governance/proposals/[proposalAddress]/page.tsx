@@ -1,15 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PublicKey } from "@solana/web3.js";
 
 import { GovernanceProposalReadonlyPanel } from "@/components/governance-proposal-readonly-panel";
 import { shortenAddress } from "@/lib/protocol";
+
+function isValidProposalAddress(value: string): boolean {
+  try {
+    void new PublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default function GovernanceProposalPage({
   params,
 }: {
   params: { proposalAddress: string };
 }) {
+  if (!isValidProposalAddress(params.proposalAddress)) {
+    notFound();
+  }
+
   return (
     <div className="protocol-page">
       <section className="protocol-hero protocol-hero-bleed">

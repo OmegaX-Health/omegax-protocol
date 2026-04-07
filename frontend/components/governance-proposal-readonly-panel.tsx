@@ -32,14 +32,29 @@ export function GovernanceProposalReadonlyPanel({
   const [detail, setDetail] = useState<GovernanceProposalDetailSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+  const parsedProposalAddress = useMemo(() => {
+    try {
+      return new PublicKey(proposalAddress);
+    } catch {
+      return null;
+    }
+  }, [proposalAddress]);
+  const invalidProposalAddress = parsedProposalAddress === null;
 
   const refresh = useCallback(async () => {
+    if (!parsedProposalAddress) {
+      setDetail(null);
+      setStatus(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setStatus(null);
     try {
       const nextDetail = await loadGovernanceProposalDetail({
         connection,
-        proposalAddress: new PublicKey(proposalAddress),
+        proposalAddress: parsedProposalAddress,
       });
       setDetail(nextDetail);
     } catch (cause) {
@@ -50,7 +65,7 @@ export function GovernanceProposalReadonlyPanel({
     } finally {
       setLoading(false);
     }
-  }, [connection, proposalAddress]);
+  }, [connection, parsedProposalAddress]);
 
   useEffect(() => {
     void refresh();
@@ -70,11 +85,21 @@ export function GovernanceProposalReadonlyPanel({
     );
   }
 
+  if (invalidProposalAddress) {
+    return (
+      <section className="surface-card space-y-3">
+        <p className="metric-label">Proposal detail</p>
+        <p className="field-error">This proposal address is not a valid Solana public key.</p>
+        <p className="field-help">Check the proposal link and try again from the live governance queue.</p>
+      </section>
+    );
+  }
+
   if (!detail) {
     return (
       <section className="surface-card space-y-3">
         <p className="metric-label">Proposal detail</p>
-        <p className="field-help">Proposal details are unavailable for this network configuration.</p>
+        <p className="field-help">Proposal details could not be loaded from the current network or RPC endpoint.</p>
         {status ? <p className="field-error">{status}</p> : null}
       </section>
     );

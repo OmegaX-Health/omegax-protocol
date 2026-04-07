@@ -12,9 +12,7 @@ import {
   Landmark,
   LayoutDashboard,
   Menu,
-  MoonStar,
   ShieldCheck,
-  SunMedium,
   Wallet,
   X,
 } from "lucide-react";
@@ -107,7 +105,7 @@ function buildFooterLinks(sourceRepoUrl: string) {
 export default function ProtocolWorkbenchShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { connection } = useConnection();
-  const { mounted, theme, toggleTheme } = useTheme();
+  const { mounted, theme, themePreference, setThemePreference } = useTheme();
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
   const sidebarRef = useRef<HTMLElement | null>(null);
@@ -128,7 +126,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const footerLinks = useMemo(() => buildFooterLinks(sourceRepoUrl), [sourceRepoUrl]);
   const metrics = computeWorkbenchMetrics();
   const rpcStatus = isLive ? "RPC reachable" : "RPC unavailable";
-  const ThemeIcon = mounted && theme === "dark" ? SunMedium : MoonStar;
+  const resolvedThemeLabel = theme === "dark" ? "Dark" : "Light";
   const isMobileDrawerModalOpen = isMobileViewport && isSidebarOpen;
   const isMobileDrawerHidden = isMobileViewport && !isSidebarOpen;
 
@@ -443,14 +441,18 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
                 </label>
               ) : null}
 
-              <button
-                type="button"
-                className="protocol-icon-button"
-                onClick={toggleTheme}
-                aria-label={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                <ThemeIcon className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
-              </button>
+              <label className="protocol-header-select">
+                <span className="sr-only">Theme mode</span>
+                <select
+                  value={themePreference}
+                  onChange={(event) => setThemePreference(event.target.value as "system" | "light" | "dark")}
+                  aria-label="Theme mode"
+                >
+                  <option value="system">{mounted ? `System (${resolvedThemeLabel})` : "System"}</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
 
               <div className="protocol-wallet-pill">
                 <Wallet className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
