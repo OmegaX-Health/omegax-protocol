@@ -476,14 +476,14 @@ export function OverviewWorkbench() {
               <span className="ov-eyebrow">OVERVIEW_SYNC // {sectionLabelForPersona(effectivePersona)}</span>
               <h1 className="ov-hero-title">Health Capital Markets</h1>
 
-              <div className="ov-total-stack">
-                <span className="ov-total-value">${formatAmount(stats.tvl)}</span>
-                <span className="ov-total-label">Aggregate network value locked</span>
-              </div>
-
               <div className="ov-wave-panel">
                 <div className="ov-wave-scan" aria-hidden="true" />
                 <SignalWave />
+              </div>
+
+              <div className="ov-total-stack">
+                <span className="ov-total-value">${formatAmount(stats.tvl)}</span>
+                <span className="ov-total-label">Aggregate network value locked</span>
               </div>
 
               <div className="ov-signal-grid" role="list" aria-label="Overview system metrics">

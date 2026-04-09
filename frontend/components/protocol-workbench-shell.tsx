@@ -5,9 +5,9 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { BookOpenText, ChevronDown, GitBranch, Menu, MoonStar, Package, ShieldCheck, Signal, SunMedium, Users, X } from "lucide-react";
+import { ChevronDown, Menu, MoonStar, SunMedium, Users, X } from "lucide-react";
 
 import { useNetworkContext } from "@/components/network-context";
 import { useTheme } from "@/components/theme-provider";
@@ -24,11 +24,11 @@ const SDK_PACKAGE_URL = "https://www.npmjs.com/package/@omegax/protocol-sdk";
 const DOCS_URL = "https://docs.omegax.health";
 const SECURITY_AUDITS_URL = "https://omegax.health/protocol/audit";
 
-function buildFooterMetadataLabel(): string {
+function buildFooterMetadata(): { version: string; networkLabel: string } {
   const configuredCluster = normalizeExplorerCluster(process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER);
   const networkLabel = NETWORK_OPTIONS.find((option) => option.id === configuredCluster)?.label ?? "Devnet";
   const protocolVersion = (process.env.NEXT_PUBLIC_PROTOCOL_BUILD_VERSION || "").trim() || frontendPackage.version;
-  return `Protocol v${protocolVersion} • ${networkLabel} build`;
+  return { version: `v${protocolVersion}`, networkLabel };
 }
 
 function personaBadgeForNav(sectionId: (typeof WORKBENCH_NAV)[number]["id"], persona: string) {
@@ -56,12 +56,18 @@ function sectionLabelForPersona(persona: string) {
 
 export default function ProtocolWorkbenchShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { connection } = useConnection();
   const { mounted, theme, toggleTheme } = useTheme();
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
   const isOverviewRoute = pathname === "/overview" || pathname.startsWith("/overview/");
+  const useFullscreenWorkbenchChrome = [
+    "/overview",
+    "/plans",
+    "/capital",
+    "/governance",
+    "/oracles",
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   const networkMenuRef = useRef<HTMLDivElement | null>(null);
   const personaMenuRef = useRef<HTMLDivElement | null>(null);
@@ -76,34 +82,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const isDarkTheme = mounted && theme === "dark";
   const ThemeIcon = isDarkTheme ? SunMedium : MoonStar;
   const nextThemeLabel = isDarkTheme ? "light" : "dark";
-  const footerMetadataLabel = buildFooterMetadataLabel();
-  const activePlansTab = searchParams.get("tab");
-  const shortcutActions = [
-    {
-      href: "/plans",
-      label: "Plans",
-      icon: "description",
-      active: pathname === "/plans" && (!activePlansTab || activePlansTab === "overview"),
-    },
-    {
-      href: "/members",
-      label: "Members",
-      icon: "groups",
-      active: pathname === "/members" || (pathname === "/plans" && activePlansTab === "members"),
-    },
-    {
-      href: "/claims",
-      label: "Claims",
-      icon: "assignment_turned_in",
-      active: pathname === "/claims" || (pathname === "/plans" && activePlansTab === "claims"),
-    },
-    {
-      href: "/schemas",
-      label: "Schemas",
-      icon: "schema",
-      active: pathname === "/schemas" || (pathname === "/plans" && activePlansTab === "schemas"),
-    },
-  ] as const;
+  const footerMetadata = buildFooterMetadata();
 
   useEffect(() => {
     setIsMobileNavOpen(false);
@@ -171,7 +150,13 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   }, [connection, selectedNetwork]);
 
   return (
-    <div className={cn("protocol-workbench-shell relative", isOverviewRoute && "protocol-workbench-shell-overview")}>
+    <div
+      className={cn(
+        "protocol-workbench-shell relative",
+        useFullscreenWorkbenchChrome && "protocol-workbench-shell-fullscreen",
+        isOverviewRoute && "protocol-workbench-shell-overview",
+      )}
+    >
       {isOverviewRoute ? null : <div className="absolute inset-0 misty-cyan-glow pointer-events-none z-0" />}
 
       <header className="protocol-topbar">
@@ -222,22 +207,6 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
           </div>
 
           <div className="protocol-topbar-controls">
-            <div className="protocol-topbar-icon-group" aria-label="Workspace shortcuts" role="navigation">
-              {shortcutActions.map((action) => (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className={cn("protocol-topbar-icon-link", action.active && "protocol-topbar-icon-link-active")}
-                  aria-label={action.label}
-                  aria-current={action.active ? "page" : undefined}
-                  data-tooltip={action.label}
-                  title={action.label}
-                >
-                  <span className="material-symbols-outlined" aria-hidden="true">{action.icon}</span>
-                </Link>
-              ))}
-            </div>
-
             <div ref={networkMenuRef} className="protocol-toolbar-dropdown">
               <button
                 type="button"
@@ -395,37 +364,49 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
       <main
         className={cn(
           "protocol-workbench-content micro-etch",
+          useFullscreenWorkbenchChrome && "protocol-workbench-content-fullscreen",
           isOverviewRoute && "protocol-workbench-content-overview",
         )}
       >
         {children}
       </main>
 
-      <footer className={cn("protocol-footer", isOverviewRoute && "protocol-footer-overview")}>
-        <span className="protocol-footer-copy">
-          &copy; 2026 OmegaX Health Capital Markets. All rights reserved. // {footerMetadataLabel}
-        </span>
-        <div className="protocol-footer-links">
+      <footer
+        className={cn(
+          "protocol-footer",
+          useFullscreenWorkbenchChrome && "protocol-footer-fullscreen",
+          isOverviewRoute && "protocol-footer-overview",
+        )}
+      >
+        <div className="protocol-footer-identity">
+          <span className="protocol-footer-mark">OmegaX Protocol</span>
+          <span className="protocol-footer-legal">
+            &copy; 2026 OmegaX Health Capital Markets · All rights reserved
+          </span>
+        </div>
+
+        <nav className="protocol-footer-links" aria-label="Resources">
           <Link href={SOURCE_REPO_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
-            <GitBranch className="protocol-footer-link-icon" aria-hidden="true" />
-            <span>SOURCE</span>
+            Source
           </Link>
           <Link href={SDK_PACKAGE_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
-            <Package className="protocol-footer-link-icon" aria-hidden="true" />
-            <span>SDK</span>
+            SDK
           </Link>
           <Link href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
-            <BookOpenText className="protocol-footer-link-icon" aria-hidden="true" />
-            <span>DOCS</span>
+            Docs
           </Link>
           <Link href="/network-health" className="protocol-footer-link">
-            <Signal className="protocol-footer-link-icon" aria-hidden="true" />
-            <span>STATUS</span>
+            Status
           </Link>
           <Link href={SECURITY_AUDITS_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
-            <ShieldCheck className="protocol-footer-link-icon" aria-hidden="true" />
-            <span>AUDITS</span>
+            Audits
           </Link>
+        </nav>
+
+        <div className="protocol-footer-build" aria-label="Build">
+          <span className="protocol-footer-build-version">{footerMetadata.version}</span>
+          <span className="protocol-footer-build-sep" aria-hidden="true" />
+          <span className="protocol-footer-build-network">{footerMetadata.networkLabel}</span>
         </div>
       </footer>
     </div>

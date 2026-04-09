@@ -17,6 +17,7 @@ The public UI should treat these as first-order objects:
 
 ## Navigation model
 
+- `/overview` is the editorial systems-map entrypoint for the protocol workbench
 - `/plans` is the sponsor/operator view
 - `/capital` is the LP and capital-markets view
 - `/claims` is the liability and adjudication view
@@ -26,6 +27,17 @@ The public UI should treat these as first-order objects:
 - `/schemas` explains comparability and series versioning
 
 Legacy `/pools/*` routes are retained only as redirects to avoid carrying pool-first concepts forward in the main UX.
+
+## Overview route
+
+The overview route is not a generic dashboard. It is the protocol entry composition: a sticky editorial hero rail on the left and a flowing access stream on the right.
+
+- The left rail establishes protocol mood and orientation through one large headline, one aggregate network value, a signal-wave moment, and compact metric chips.
+- The right rail is the navigation surface. It stages the major workbench destinations as staggered route cards, then closes with a live field log.
+- Desktop keeps the hero rail visually stable while the document scroll moves the access stream beneath the floating top and bottom chrome.
+- Mobile collapses to one column, but keeps the same sequence and hierarchy instead of inventing a separate dashboard layout.
+
+The approved visual grammar for this route lives in the OmegaX design-system file `references/DESIGN_PROTOCOL_FRONTEND.md`. Treat that document as the source of truth when extending or redesigning `/overview`.
 
 ## Naming rules
 
