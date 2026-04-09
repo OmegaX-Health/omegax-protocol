@@ -136,12 +136,10 @@ export function GovernanceWorkbench() {
   return (
     <div className="workbench-page">
       <section className="workbench-main-column">
-        <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+        <section className="workbench-panel workbench-primary-surface">
           <div className="workbench-panel-head">
             <div>
-              <p className="workbench-panel-eyebrow">Governance lane</p>
               <h2 className="workbench-panel-title">{selectedProposal?.title ?? "Proposal queue"}</h2>
-              <p className="workbench-body-copy">Sequence scoped changes through review, timelock, execution, and audit without turning governance into a generic admin room.</p>
             </div>
             {selectedProposal ? <span className="workbench-card-meta">{selectedProposal.status}</span> : null}
           </div>
@@ -176,14 +174,10 @@ export function GovernanceWorkbench() {
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Lead proposal</p>
-                    <h2 className="workbench-panel-title">{selectedProposal?.title ?? "Awaiting proposal selection"}</h2>
+                    <h2 className="workbench-panel-title">{selectedProposal?.title ?? "No active proposals"}</h2>
                   </div>
                   {selectedProposal ? <span className="workbench-card-meta">{selectedProposal.status}</span> : null}
                 </div>
-                <p className="workbench-body-copy">
-                  Governance should sequence scoped changes without silently mutating sponsor budgets, claim history, or class economics.
-                </p>
                 {selectedProposal ? (
                   <Link href={`/governance/proposals/${encodeURIComponent(selectedProposal.proposal)}`} className="workbench-inline-link">
                     Open proposal detail
@@ -194,8 +188,7 @@ export function GovernanceWorkbench() {
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Queue register</p>
-                    <h2 className="workbench-panel-title">Review, timelock, and execution stay visible in one lane.</h2>
+                    <h2 className="workbench-panel-title">Queue</h2>
                   </div>
                 </div>
                 <div className="workbench-list">
@@ -323,24 +316,26 @@ export function GovernanceWorkbench() {
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Execution discipline</p>
-                    <h2 className="workbench-panel-title">Review, timelock, execution, and audit stay in one visible lane.</h2>
+                    <h2 className="workbench-panel-title">Execution pipeline</h2>
                   </div>
                 </div>
-                <p className="workbench-body-copy">
-                  Proposal routes remain shareable, but queueing and authority posture stay in the main governance workbench.
-                </p>
+                <div className="workbench-data-list">
+                  <div className="workbench-data-row"><span>Review</span><strong>Timelock active</strong></div>
+                  <div className="workbench-data-row"><span>Execution</span><strong>Sequential</strong></div>
+                  <div className="workbench-data-row"><span>Audit</span><strong>On-chain</strong></div>
+                </div>
               </div>
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Scope discipline</p>
-                    <h2 className="workbench-panel-title">Templates constrain the change surface before an instruction is signed.</h2>
+                    <h2 className="workbench-panel-title">Scope constraints</h2>
                   </div>
                 </div>
-                <p className="workbench-body-copy">
-                  Keep reserve, plan, and capital controls auditable without inventing a catch-all governance room.
-                </p>
+                <div className="workbench-data-list">
+                  <div className="workbench-data-row"><span>Templates</span><strong>{GOVERNANCE_TEMPLATE_ROWS.length} active</strong></div>
+                  <div className="workbench-data-row"><span>Authority wallets</span><strong>{configuredAuthorityWallets.length} configured</strong></div>
+                  <div className="workbench-data-row"><span>Control surface</span><strong>Template-bounded</strong></div>
+                </div>
               </div>
             </div>
           ) : null}

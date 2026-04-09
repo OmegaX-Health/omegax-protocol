@@ -2,19 +2,12 @@
 
 import { redirect } from "next/navigation";
 
-import { linkedContextForPool } from "@/lib/workbench";
+import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 
 type LegacyCoverageMintPageProps = {
   params: { poolAddress: string };
 };
 
 export default function LegacyCoverageMintPage({ params }: LegacyCoverageMintPageProps) {
-  const linked = linkedContextForPool(params.poolAddress);
-  const nextParams = new URLSearchParams({
-    tab: "schemas",
-  });
-  if (linked.plan) nextParams.set("plan", linked.plan);
-  if (linked.series) nextParams.set("series", linked.series);
-
-  redirect(`/plans?${nextParams.toString()}`);
+  redirect(buildCanonicalPoolHref(params.poolAddress, { section: "claims" }));
 }

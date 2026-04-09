@@ -185,12 +185,10 @@ export function OraclesWorkbench() {
         <section className="workbench-main-column">
           {selectionToolbar}
 
-          <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+          <section className="workbench-panel workbench-primary-surface">
             <div className="workbench-panel-head">
               <div>
-                <p className="workbench-panel-eyebrow">Oracle workspace</p>
                 <h2 className="workbench-panel-title">{invalidSelection.title}</h2>
-                <p className="workbench-body-copy">This deep link does not match the current visible oracle context.</p>
               </div>
               <span className="workbench-card-meta">INVALID</span>
             </div>
@@ -213,12 +211,10 @@ export function OraclesWorkbench() {
       <section className="workbench-main-column">
         {selectionToolbar}
 
-        <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+        <section className="workbench-panel workbench-primary-surface">
           <div className="workbench-panel-head">
             <div>
-              <p className="workbench-panel-eyebrow">Verification lane</p>
-              <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Awaiting pool selection"}</h2>
-              <p className="workbench-body-copy">Operators can attest, dispute, and delay finality, but they do not move protocol funds.</p>
+              <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Select a pool"}</h2>
             </div>
             {selectedSeries ? <span className="workbench-card-meta">{selectedSeries.termsVersion}</span> : null}
           </div>
@@ -371,24 +367,26 @@ export function OraclesWorkbench() {
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Access posture</p>
-                    <h2 className="workbench-panel-title">Oracle operators stay scoped to evidence and finality lanes.</h2>
+                    <h2 className="workbench-panel-title">Access posture</h2>
                   </div>
                 </div>
-                <p className="workbench-body-copy">
-                  Connected operators should hold attestation rights without acquiring broad treasury or payout powers.
-                </p>
+                <div className="workbench-data-list">
+                  <div className="workbench-data-row"><span>Operators</span><strong>{operatorWallets.length}</strong></div>
+                  <div className="workbench-data-row"><span>Scope</span><strong>Attestation & finality</strong></div>
+                  <div className="workbench-data-row"><span>Treasury access</span><strong>None</strong></div>
+                </div>
               </div>
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Coverage</p>
-                    <h2 className="workbench-panel-title">{boundSeries.length} bound series across {allPools.length} visible pools.</h2>
+                    <h2 className="workbench-panel-title">Coverage</h2>
                   </div>
                 </div>
-                <p className="workbench-body-copy">
-                  Each binding keeps the series context visible to claims and capital operators on the same workbench shell.
-                </p>
+                <div className="workbench-data-list">
+                  <div className="workbench-data-row"><span>Bound series</span><strong>{boundSeries.length}</strong></div>
+                  <div className="workbench-data-row"><span>Visible pools</span><strong>{allPools.length}</strong></div>
+                  <div className="workbench-data-row"><span>Active disputes</span><strong>{disputes.length}</strong></div>
+                </div>
               </div>
             </div>
           ) : null}

@@ -164,7 +164,7 @@ export function CanonicalSchemasSurface() {
               {selectedSeries && poolAddressForSeries(selectedSeries.address) ? (
                 <Link
                   className="secondary-button mt-3 inline-flex"
-                  href={buildCanonicalPoolHref(poolAddressForSeries(selectedSeries.address) ?? "", { section: "oracles", panel: "policy" })}
+                  href={buildCanonicalPoolHref(poolAddressForSeries(selectedSeries.address) ?? "", { section: "oracles", panel: "bindings" })}
                 >
                   Open oracle bindings
                 </Link>

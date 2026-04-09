@@ -2,15 +2,20 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useConnection } from "@solana/wallet-adapter-react";
 
-import { WorkbenchRailCard } from "@/components/workbench-ui";
-import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
 import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
+import {
+  describeClaimStatus,
+  describeObligationStatus,
+  describeSeriesMode,
+  describeSeriesStatus,
+  toBigIntAmount,
+} from "@/lib/protocol";
 import { formatRpcError } from "@/lib/rpc-errors";
 import {
   buildAuditTrail,
@@ -20,77 +25,244 @@ import {
 } from "@/lib/workbench";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 
-type FocusRow = {
-  id: string;
-  title: string;
-  meta: string;
-  detail: string;
-  href: string;
-};
+/* ── Derived protocol data ──────────────────────────── */
 
-function quickActionsForPersona(persona: string, selectedRow: FocusRow | null, sponsorClaimsHref: string) {
-  const selectedAddress = selectedRow?.id ? encodeURIComponent(selectedRow.id) : "";
+function useProtocolStats() {
+  return useMemo(() => {
+    const pools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
+    const classes = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses;
+    const plans = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans;
+    const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries;
+    const obligations = DEVNET_PROTOCOL_FIXTURE_STATE.obligations;
+    const claims = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases;
+    const members = DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions;
+
+    const tvl = pools.reduce((s, p) => s + toBigIntAmount(p.totalValueLocked), 0n);
+    const allocated = pools.reduce((s, p) => s + toBigIntAmount(p.totalAllocated), 0n);
+    const available = tvl - allocated;
+    const utilization = tvl > 0n ? Number((allocated * 100n) / tvl) : 0;
+    const pendingRedemptions = pools.reduce((s, p) => s + toBigIntAmount(p.totalPendingRedemptions), 0n);
+
+    const seriesModes: Record<string, number> = {};
+    const seriesStatuses: Record<string, number> = {};
+    for (const s of series) {
+      const mode = describeSeriesMode(s.mode);
+      seriesModes[mode] = (seriesModes[mode] || 0) + 1;
+      const status = describeSeriesStatus(s.status);
+      seriesStatuses[status] = (seriesStatuses[status] || 0) + 1;
+    }
+
+    const obligationStatuses: Record<string, number> = {};
+    let totalObligationPrincipal = 0n;
+    let totalReservedAmount = 0n;
+    for (const o of obligations) {
+      const status = describeObligationStatus(o.status);
+      obligationStatuses[status] = (obligationStatuses[status] || 0) + 1;
+      totalObligationPrincipal += toBigIntAmount(o.principalAmount);
+      totalReservedAmount += toBigIntAmount(o.reservedAmount);
+    }
+
+    const claimStatuses: Record<string, number> = {};
+    let totalApprovedAmount = 0n;
+    for (const c of claims) {
+      const status = describeClaimStatus(c.intakeStatus);
+      claimStatuses[status] = (claimStatuses[status] || 0) + 1;
+      totalApprovedAmount += toBigIntAmount(c.approvedAmount);
+    }
+
+    const classBreakdown = classes.map((c) => ({
+      name: c.displayName,
+      nav: toBigIntAmount(c.navAssets),
+      allocated: toBigIntAmount(c.allocatedAssets),
+      shares: toBigIntAmount(c.totalShares),
+      priority: c.priority,
+    }));
+
+    return {
+      tvl, allocated, available, utilization, pendingRedemptions,
+      poolCount: pools.length,
+      classCount: classes.length,
+      planCount: plans.length,
+      seriesCount: series.length,
+      domainCount: DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.length,
+      oracleCount: DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((w) => w.role === "oracle_operator").length,
+      obligationCount: obligations.length,
+      memberCount: members.length,
+      seriesModes,
+      seriesStatuses,
+      obligationStatuses,
+      totalObligationPrincipal,
+      totalReservedAmount,
+      claimStatuses,
+      totalApprovedAmount,
+      classBreakdown,
+      plans: plans.map((p) => ({ name: p.displayName, sponsor: p.sponsorLabel })),
+    };
+  }, []);
+}
+
+function formatCompact(value: bigint): string {
+  const num = Number(value);
+  if (num >= 1_000_000_000) return `$${(num / 1_000_000_000).toFixed(2)}B`;
+  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(2)}M`;
+  if (num >= 1_000) return `$${(num / 1_000).toFixed(0)}K`;
+  return `$${num.toLocaleString()}`;
+}
+
+function sectionLabelForPersona(persona: string) {
   switch (persona) {
-    case "capital":
-      if (selectedAddress) {
-        return [
-          { href: `/capital?pool=${selectedAddress}&tab=queue`, label: "Review queue posture" },
-          { href: `/capital?pool=${selectedAddress}&tab=allocations`, label: "Inspect allocations" },
-          { href: `/oracles?pool=${selectedAddress}&tab=bindings`, label: "Check settlement bindings" },
-        ];
-      }
-      return [
-        { href: "/capital?tab=queue", label: "Review queue posture" },
-        { href: "/capital?tab=allocations", label: "Inspect allocations" },
-        { href: "/oracles?tab=bindings", label: "Check settlement bindings" },
-      ];
-    case "governance":
-      if (selectedRow) {
-        return [
-          { href: selectedRow.href, label: "Open proposal queue" },
-          { href: "/governance?tab=templates", label: "Review templates" },
-          { href: "/oracles?tab=attestations", label: "Watch attestation feed" },
-        ];
-      }
-      return [
-        { href: "/governance?tab=queue", label: "Open proposal queue" },
-        { href: "/governance?tab=templates", label: "Review templates" },
-        { href: "/oracles?tab=attestations", label: "Watch attestation feed" },
-      ];
     case "sponsor":
-      if (selectedAddress) {
-        return [
-          { href: `/plans?plan=${selectedAddress}&tab=claims`, label: "Resolve active claims" },
-          { href: `/plans?plan=${selectedAddress}&tab=funding`, label: "Review funding lines" },
-          { href: `/plans?plan=${selectedAddress}&tab=series`, label: "Inspect policy series" },
-        ];
-      }
-      return [
-        { href: sponsorClaimsHref, label: "Resolve active claims" },
-        { href: "/plans?tab=funding", label: "Review funding lines" },
-        { href: "/plans?tab=series", label: "Inspect policy series" },
-      ];
+      return "Sponsor / Operator";
+    case "capital":
+      return "Capital Provider";
+    case "governance":
+      return "Governance / Operator";
     default:
-      if (selectedRow) {
-        return [
-          { href: selectedRow.href, label: "Open plans" },
-          { href: "/capital", label: "Open capital" },
-          { href: "/governance", label: "Open governance" },
-        ];
-      }
-      return [
-        { href: "/plans", label: "Open plans" },
-        { href: "/capital", label: "Open capital" },
-        { href: "/governance", label: "Open governance" },
-      ];
+      return "Observer";
   }
 }
+
+function SignalWave() {
+  return (
+    <svg className="ov-wave-svg" viewBox="0 0 1000 120" aria-hidden="true" preserveAspectRatio="none">
+      <path
+        className="ov-wave-path ov-wave-path-primary"
+        d="M0,60 Q125,100 250,60 T500,60 T750,60 T1000,60"
+      >
+        <animate
+          attributeName="d"
+          dur="10s"
+          repeatCount="indefinite"
+          values={[
+            "M0,60 Q125,100 250,60 T500,60 T750,60 T1000,60",
+            "M0,60 Q125,18 250,60 T500,60 T750,60 T1000,60",
+            "M0,60 Q125,100 250,60 T500,60 T750,60 T1000,60",
+          ].join(";")}
+        />
+      </path>
+      <path
+        className="ov-wave-path ov-wave-path-secondary"
+        d="M0,66 Q150,20 300,66 T600,66 T1000,66"
+      >
+        <animate
+          attributeName="d"
+          dur="13s"
+          repeatCount="indefinite"
+          values={[
+            "M0,66 Q150,20 300,66 T600,66 T1000,66",
+            "M0,66 Q150,100 300,66 T600,66 T1000,66",
+            "M0,66 Q150,20 300,66 T600,66 T1000,66",
+          ].join(";")}
+        />
+      </path>
+    </svg>
+  );
+}
+
+/** Humanize raw status enum labels */
+function cleanLabel(raw: string): string {
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bOr\b/g, "/")
+    .replace("Claimable / Payable", "Claimable");
+}
+
+type OverviewCardMetric = {
+  label: string;
+  value: string;
+};
+
+type OverviewCardDetail = {
+  label: string;
+  value: string;
+};
+
+function OverviewEntryCard(props: {
+  align: "start" | "end";
+  entry: string;
+  href: string;
+  status: string;
+  title: string;
+  summary: string;
+  highlightLabel: string;
+  highlightValue: string;
+  metrics: OverviewCardMetric[];
+  details: OverviewCardDetail[];
+  note: string;
+}) {
+  const wrapClassName = props.align === "end" ? "ov-entry-wrap ov-entry-wrap-end" : "ov-entry-wrap ov-entry-wrap-start";
+
+  return (
+    <div className={wrapClassName}>
+      <Link href={props.href} className="ov-entry heavy-glass">
+        <div className="ov-entry-bracket ov-entry-bracket-tl" aria-hidden="true" />
+        <div className="ov-entry-bracket ov-entry-bracket-br" aria-hidden="true" />
+
+        <div className="ov-entry-head">
+          <span className="ov-entry-tag">{props.entry}</span>
+          <span className="ov-entry-status">{props.status}</span>
+        </div>
+
+        <h2 className="ov-entry-title">{props.title}</h2>
+        <p className="ov-entry-summary">{props.summary}</p>
+
+        <div className="ov-entry-preview" aria-hidden="true">
+          <span className="ov-entry-preview-label">Inspect surface</span>
+          <span className="material-symbols-outlined ov-entry-preview-icon">south</span>
+        </div>
+
+        <div className="ov-entry-reveal">
+          <div className="ov-entry-reveal-inner">
+            <div className="ov-entry-reveal-top">
+              <div className="ov-entry-highlight">
+                <span className="ov-entry-highlight-value">{props.highlightValue}</span>
+                <span className="ov-entry-highlight-label">{props.highlightLabel}</span>
+              </div>
+
+              <div className="ov-entry-metrics" role="list" aria-label={`${props.title} metrics`}>
+                {props.metrics.map((metric) => (
+                  <div key={metric.label} className="ov-entry-metric" role="listitem">
+                    <span className="ov-entry-metric-value">{metric.value}</span>
+                    <span className="ov-entry-metric-label">{metric.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ov-entry-details" role="list" aria-label={`${props.title} details`}>
+              {props.details.map((detail) => (
+                <div key={`${detail.label}-${detail.value}`} className="ov-entry-detail" role="listitem">
+                  <span className="ov-entry-detail-label">{detail.label}</span>
+                  <span className="ov-entry-detail-value">{detail.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="ov-entry-footer">
+              <span className="ov-entry-note">{props.note}</span>
+              <span className="ov-entry-link">
+                Access surface
+                <span className="material-symbols-outlined ov-entry-link-icon" aria-hidden="true">north_east</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+/* ── Main component ─────────────────────────────────── */
 
 export function OverviewWorkbench() {
   const { connection } = useConnection();
   const { effectivePersona } = useWorkspacePersona();
-  const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
+  const overviewRef = useRef<HTMLDivElement | null>(null);
+  const streamRef = useRef<HTMLElement | null>(null);
   const metrics = useMemo(() => computeWorkbenchMetrics(), []);
+  const stats = useProtocolStats();
+
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [governanceQueueLoaded, setGovernanceQueueLoaded] = useState(false);
   const [governanceQueueError, setGovernanceQueueError] = useState<string | null>(null);
@@ -108,74 +280,145 @@ export function OverviewWorkbench() {
     () => buildAuditTrail({ section: "overview", persona: effectivePersona, queue: governanceQueue }),
     [effectivePersona, governanceQueue],
   );
-
-  const focusRows = useMemo<FocusRow[]>(() => {
-    if (effectivePersona === "capital") {
-      return DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.map((pool) => ({
-        id: pool.address,
-        title: pool.displayName,
-        meta: `${formatAmount(pool.totalValueLocked)} TVL`,
-        detail: `${DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.filter((entry) => entry.liquidityPool === pool.address).length} classes linked to ${DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter((entry) => entry.liquidityPool === pool.address).length} active allocations.`,
-        href: `/capital?pool=${encodeURIComponent(pool.address)}&tab=overview`,
+  const overviewCards = useMemo(() => {
+    const topClasses = [...stats.classBreakdown]
+      .sort((left, right) => Number(right.nav - left.nav))
+      .slice(0, 2)
+      .map((item) => ({
+        label: item.name,
+        value: `${formatCompact(item.nav)} NAV`,
       }));
-    }
-
-    if (effectivePersona === "governance") {
-      if (governanceQueue.length === 0) {
-        return [
-          {
-            id: "governance-live-queue",
-            title: governanceQueueStatus.emptyTitle,
-            meta: governanceQueueStatus.emptyMeta,
-            detail: governanceQueueStatus.emptyDetail,
-            href: "/governance?tab=queue",
-          },
-        ];
-      }
-
-      return governanceQueue.map((proposal) => ({
-        id: proposal.proposal,
-        title: proposal.title,
-        meta: proposal.status,
-        detail: `${proposal.stage} · ${proposal.authority}`,
-        href: `/governance?proposal=${encodeURIComponent(proposal.proposal)}&tab=queue`,
+    const topPlans = stats.plans.slice(0, 2).map((plan) => ({
+      label: plan.name,
+      value: plan.sponsor,
+    }));
+    const governanceDetails = governanceQueue.length > 0
+      ? governanceQueue.slice(0, 2).map((item) => ({
+        label: item.status,
+        value: item.title,
+      }))
+      : [{
+        label: governanceQueueStatus.emptyTitle,
+        value: governanceQueueError ?? governanceQueueStatus.emptyMeta,
+      }];
+    const obligationDetails = Object.entries(stats.obligationStatuses)
+      .filter(([, value]) => value > 0)
+      .slice(0, 2)
+      .map(([label, value]) => ({
+        label: cleanLabel(label),
+        value: `${value} lane${value === 1 ? "" : "s"}`,
       }));
-    }
 
-    return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.map((plan) => {
-      const sponsor = consoleState.sponsors.find((entry) => entry.healthPlanAddress === plan.address);
-      const claimCount = sponsor?.activeClaimCount ?? 0;
-      return {
-        id: plan.address,
-        title: plan.displayName,
-        meta: `${sponsor?.perSeriesPerformance.length ?? 0} series`,
-        detail: `${claimCount} active claim lanes and ${formatAmount(sponsor?.remainingSponsorBudget ?? 0)} remaining sponsor budget.`,
-        href: `/plans?plan=${encodeURIComponent(plan.address)}&tab=overview`,
-      };
-    });
-  }, [consoleState.sponsors, effectivePersona, governanceQueue, governanceQueueStatus]);
-
-  const [selectedFocus, setSelectedFocus] = useState<string>("");
-  const sponsorClaimsPlanAddress = useMemo(
-    () =>
-      consoleState.sponsors.find((entry) => entry.activeClaimCount > 0)?.healthPlanAddress
-      ?? DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]?.address
-      ?? "",
-    [consoleState.sponsors],
-  );
-  const sponsorClaimsHref = sponsorClaimsPlanAddress
-    ? `/plans?plan=${encodeURIComponent(sponsorClaimsPlanAddress)}&tab=claims`
-    : "/plans?tab=claims";
-  const preferredFocusId = useMemo(() => {
-    if ((effectivePersona === "sponsor" || effectivePersona === "observer") && sponsorClaimsPlanAddress) {
-      return sponsorClaimsPlanAddress;
-    }
-    return focusRows[0]?.id ?? "";
-  }, [effectivePersona, focusRows, sponsorClaimsPlanAddress]);
+    return [
+      {
+        align: "start" as const,
+        entry: "ENTRY_01",
+        href: "/plans",
+        status: `${stats.planCount} plans`,
+        title: "Plans",
+        summary: "Coverage series, member exposure, and sponsor operations across the public OmegaX protocol surface.",
+        highlightLabel: "Claim-active coverage lanes",
+        highlightValue: String(metrics.activeClaims),
+        metrics: [
+          { label: "Plans", value: String(stats.planCount) },
+          { label: "Series", value: String(stats.seriesCount) },
+          { label: "Members", value: String(stats.memberCount) },
+        ],
+        details: topPlans,
+        note: "Sponsor and member coverage telemetry",
+      },
+      {
+        align: "end" as const,
+        entry: "ENTRY_02",
+        href: "/capital",
+        status: `${stats.poolCount} pools`,
+        title: "Capital",
+        summary: "Liquidity routing, class depth, and redemption pressure across the reserve-backed treasury rail.",
+        highlightLabel: "Aggregate value locked",
+        highlightValue: formatCompact(stats.tvl),
+        metrics: [
+          { label: "Utilization", value: `${stats.utilization}%` },
+          { label: "Classes", value: String(stats.classCount) },
+          { label: "Pending", value: formatCompact(stats.pendingRedemptions) },
+        ],
+        details: topClasses,
+        note: "Pool capital, queue, and class allocation routing",
+      },
+      {
+        align: "start" as const,
+        entry: "ENTRY_03",
+        href: "/governance",
+        status: governanceQueueError ? "degraded" : governanceQueueLoaded ? "live" : "syncing",
+        title: "Governance",
+        summary: "Proposal movement, reserve domains, and operational approvals for the shared protocol control plane.",
+        highlightLabel: "Proposal queue",
+        highlightValue: governanceQueueStatus.metricValue,
+        metrics: [
+          { label: "Domains", value: String(stats.domainCount) },
+          { label: "Loaded", value: governanceQueueLoaded ? "YES" : "WAIT" },
+          { label: "Reserve", value: String(metrics.reservedObligations) },
+        ],
+        details: governanceDetails,
+        note: governanceQueueError ? governanceQueueError : "Proposal execution and queue visibility",
+      },
+      {
+        align: "end" as const,
+        entry: "ENTRY_04",
+        href: "/oracles",
+        status: `${stats.oracleCount} operators`,
+        title: "Oracles",
+        summary: "Operator coverage, reserve obligations, and public proof telemetry across the protocol attestation mesh.",
+        highlightLabel: "Protected principal",
+        highlightValue: formatCompact(stats.totalObligationPrincipal),
+        metrics: [
+          { label: "Operators", value: String(stats.oracleCount) },
+          { label: "Obligations", value: String(stats.obligationCount) },
+          { label: "Approved", value: formatCompact(stats.totalApprovedAmount) },
+        ],
+        details: obligationDetails,
+        note: "Attestation operators and reserve-obligation integrity",
+      },
+    ];
+  }, [
+    governanceQueue,
+    governanceQueueError,
+    governanceQueueLoaded,
+    governanceQueueStatus.emptyMeta,
+    governanceQueueStatus.emptyTitle,
+    governanceQueueStatus.metricValue,
+    metrics.activeClaims,
+    metrics.reservedObligations,
+    stats.classBreakdown,
+    stats.classCount,
+    stats.domainCount,
+    stats.memberCount,
+    stats.obligationCount,
+    stats.obligationStatuses,
+    stats.oracleCount,
+    stats.pendingRedemptions,
+    stats.planCount,
+    stats.plans,
+    stats.poolCount,
+    stats.seriesCount,
+    stats.totalApprovedAmount,
+    stats.totalObligationPrincipal,
+    stats.tvl,
+    stats.utilization,
+  ]);
+  const signalMetrics = useMemo(() => [
+    { label: "Utilization", value: `${stats.utilization}%` },
+    { label: "Capacity", value: formatCompact(stats.available) },
+    { label: "Queue", value: governanceQueueStatus.metricValue },
+    { label: "Reserves", value: String(metrics.reservedObligations) },
+  ], [
+    stats.available,
+    governanceQueueStatus.metricValue,
+    metrics.reservedObligations,
+    stats.utilization,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
-
     async function loadProposalQueue() {
       setGovernanceQueueLoaded(false);
       setGovernanceQueueError(null);
@@ -190,156 +433,113 @@ export function OverviewWorkbench() {
           rpcEndpoint: connection.rpcEndpoint,
         }));
       } finally {
-        if (!cancelled) {
-          setGovernanceQueueLoaded(true);
-        }
+        if (!cancelled) setGovernanceQueueLoaded(true);
       }
     }
-
     void loadProposalQueue();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [connection]);
 
   useEffect(() => {
-    if (focusRows.length === 0) {
-      if (selectedFocus) {
-        setSelectedFocus("");
-      }
-      return;
-    }
-    if (!selectedFocus || !focusRows.some((row) => row.id === selectedFocus)) {
-      setSelectedFocus(preferredFocusId);
-    }
-  }, [focusRows, preferredFocusId, selectedFocus]);
+    const overview = overviewRef.current;
+    if (!overview || !streamRef.current) return;
 
-  const selectedRow =
-    focusRows.find((row) => row.id === selectedFocus)
-    ?? focusRows.find((row) => row.id === preferredFocusId)
-    ?? focusRows[0]
-    ?? null;
-  const quickActions = quickActionsForPersona(effectivePersona, selectedRow, sponsorClaimsHref);
+    const desktopMediaQuery = window.matchMedia("(min-width: 1181px)");
+
+    function handleWheel(event: WheelEvent) {
+      const stream = streamRef.current;
+      if (!stream) return;
+      if (!desktopMediaQuery.matches) return;
+      if (!(event.target instanceof Node) || stream.contains(event.target)) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+
+      const maxScrollTop = stream.scrollHeight - stream.clientHeight;
+      if (maxScrollTop <= 0) return;
+
+      const nextScrollTop = Math.max(0, Math.min(maxScrollTop, stream.scrollTop + event.deltaY));
+      if (nextScrollTop === stream.scrollTop) return;
+
+      stream.scrollTop = nextScrollTop;
+      event.preventDefault();
+    }
+
+    overview.addEventListener("wheel", handleWheel, { passive: false });
+    return () => overview.removeEventListener("wheel", handleWheel);
+  }, []);
+
   return (
-    <div className="workbench-page">
-      <section className="workbench-main-column">
-        <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
-          <div className="workbench-panel-head">
-            <div>
-              <p className="workbench-panel-eyebrow">Operations register</p>
-              <h2 className="workbench-panel-title">Track plans, pools, and proposals in one shared workspace.</h2>
-              <p className="workbench-body-copy">Review active plan, capital, and governance work in one place before opening a specific lane.</p>
-            </div>
-            <span className="workbench-card-meta">{effectivePersona.toUpperCase()}</span>
-          </div>
+    <div ref={overviewRef} className="ov">
+      <div className="ov-layout">
+        <aside className="ov-hero-column">
+          <div className="ov-hero-stack">
+            <section className="ov-hero">
+              <div className="ov-hero-glow" aria-hidden="true" />
+              <span className="ov-eyebrow">OVERVIEW_SYNC // {sectionLabelForPersona(effectivePersona)}</span>
+              <h1 className="ov-hero-title">
+                <span className="ov-hero-title-accent">Health</span> Capital Markets
+              </h1>
+              <p className="ov-hero-copy">
+                Live capital, coverage, governance, and oracle telemetry for the public OmegaX protocol workbench.
+              </p>
 
-          <div className="workbench-summary-strip">
-            <div className="workbench-summary-metric">
-              <span>Active claims</span>
-              <strong>{metrics.activeClaims}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Pending queue</span>
-              <strong>{metrics.pendingRedemptions}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Governance queue</span>
-              <strong aria-live="polite" aria-label={governanceQueueStatus.metricAriaLabel}>{governanceQueueStatus.metricValue}</strong>
-            </div>
-          </div>
+              <div className="ov-total-stack">
+                <span className="ov-total-value">${formatAmount(stats.tvl)}</span>
+                <span className="ov-total-label">Aggregate network value locked</span>
+              </div>
 
-          <div className="workbench-table-card workbench-table-card-embedded milled-ceramic overview-register-table-card">
-            <table className="workbench-table overview-register-table">
-              <thead>
-                <tr>
-                  <th scope="col">Focus</th>
-                  <th scope="col">Context</th>
-                  <th scope="col">State</th>
-                  <th scope="col">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {focusRows.map((row) => (
-                  <tr key={row.id} className={selectedRow?.id === row.id ? "workbench-table-row-active" : undefined}>
-                    <td data-label="Focus">
-                      <button type="button" className="workbench-inline-button" onClick={() => setSelectedFocus(row.id)}>
-                        {row.title}
-                      </button>
-                    </td>
-                    <td data-label="Context">{row.meta}</td>
-                    <td data-label="State">{row.detail}</td>
-                    <td data-label="Action">
-                      <Link href={row.href} className="workbench-inline-link">
-                        Open
-                      </Link>
-                    </td>
-                  </tr>
+              <div className="ov-wave-panel">
+                <div className="ov-wave-scan" aria-hidden="true" />
+                <SignalWave />
+              </div>
+
+              <div className="ov-signal-grid" role="list" aria-label="Overview system metrics">
+                {signalMetrics.map((metric) => (
+                  <div key={metric.label} className="ov-signal-card" role="listitem">
+                    <span className="ov-signal-value" aria-live={metric.label === "Queue" ? "polite" : undefined}>
+                      {metric.value}
+                    </span>
+                    <span className="ov-signal-label">{metric.label}</span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </section>
+
+            <section className="ov-audit-panel">
+              <div className="ov-panel-head">
+                <span className="ov-panel-tag">FIELD_LOG</span>
+                <span className="ov-panel-subtag">LIVE_AUDIT</span>
+              </div>
+              <div className="ov-audit-list">
+                {auditTrail.map((item) => (
+                  <article key={item.id} className="ov-audit-item">
+                    <span className={`ov-audit-dot ov-audit-dot-${item.tone}`} aria-hidden="true" />
+                    <div className="ov-audit-copy">
+                      <div className="ov-audit-row">
+                        <strong className="ov-audit-title">{item.label}</strong>
+                        <span className="ov-audit-time">{item.timestamp}</span>
+                      </div>
+                      <p className="ov-audit-detail">{item.detail}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           </div>
+        </aside>
+
+        <section ref={streamRef} className="ov-stream" aria-label="Overview access surfaces">
+          <div className="ov-stream-intro">
+            <span className="ov-eyebrow">ACCESS_SURFACES</span>
+            <p className="ov-stream-copy">
+              Each lane keeps the same public protocol state, re-framed for the operator surface underneath.
+            </p>
+          </div>
+
+          {overviewCards.map((card) => (
+            <OverviewEntryCard key={card.href} {...card} />
+          ))}
         </section>
-      </section>
-
-      <aside className="workbench-rail">
-        <WorkbenchRailCard title="Selected context" meta="DETAIL">
-          {selectedRow ? (
-            <div className="workbench-stack">
-              <strong>{selectedRow.title}</strong>
-              <p>{selectedRow.detail}</p>
-              <p className="workbench-inline-meta">{selectedRow.meta}</p>
-              <Link href={selectedRow.href} className="workbench-inline-link">
-                Open workbench
-              </Link>
-            </div>
-          ) : null}
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="Audit trail" meta="LIVE">
-          <div className="workbench-timeline">
-            {auditTrail.map((item) => (
-              <article key={item.id} className={`workbench-timeline-item workbench-timeline-item-${item.tone}`}>
-                <div className="workbench-timeline-head">
-                  <strong>{item.label}</strong>
-                  <span>{item.timestamp}</span>
-                </div>
-                <p>{item.detail}</p>
-              </article>
-            ))}
-          </div>
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="Quick actions" meta="TASKS">
-          <div className="workbench-stack">
-            {quickActions.map((action) => (
-              <Link key={action.href} href={action.href} className="workbench-inline-link">
-                {action.label}
-              </Link>
-            ))}
-          </div>
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="System watch" meta="HEALTH">
-          <div className="workbench-stack">
-            <div className="workbench-mini-stat">
-              <span>Health plans</span>
-              <strong>{DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.length}</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Policy series</span>
-              <strong>{DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.length}</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Reserve domains</span>
-              <strong>{DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.length}</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Oracle operators</span>
-              <strong>{DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((wallet) => wallet.role === "oracle_operator").length}</strong>
-            </div>
-          </div>
-        </WorkbenchRailCard>
-      </aside>
+      </div>
     </div>
   );
 }

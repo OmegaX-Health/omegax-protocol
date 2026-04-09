@@ -421,6 +421,13 @@ export function planAddressForSeries(seriesAddress?: string | null): string | nu
   );
 }
 
+export function firstSeriesAddressForPlan(planAddress?: string | null): string | null {
+  return (
+    DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.healthPlan === (planAddress ?? ""))?.address
+    ?? null
+  );
+}
+
 export function buildGovernanceQueue(proposals: GovernanceProposalSummary[] = []): GovernanceQueueItem[] {
   return proposals.map((proposal) => ({
     proposal: proposal.address,

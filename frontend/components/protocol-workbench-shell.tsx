@@ -2,71 +2,33 @@
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
-import {
-  Activity,
-  Droplets,
-  Landmark,
-  LayoutDashboard,
-  Menu,
-  ShieldCheck,
-  Wallet,
-  X,
-} from "lucide-react";
+import { BookOpenText, ChevronDown, GitBranch, Menu, MoonStar, Package, ShieldCheck, Signal, SunMedium, Users, X } from "lucide-react";
 
 import { useNetworkContext } from "@/components/network-context";
 import { useTheme } from "@/components/theme-provider";
 import { WalletButton } from "@/components/wallet-providers";
 import { useWorkspacePersona } from "@/components/workspace-persona";
+import frontendPackage from "@/package.json";
+import { NETWORK_OPTIONS, normalizeExplorerCluster } from "@/lib/network-config";
 import { cn } from "@/lib/cn";
-import { computeWorkbenchMetrics, sectionChrome, sectionFromPathname, WORKBENCH_NAV, WORKBENCH_VERSION_STAMP } from "@/lib/workbench";
+import { computeWorkbenchMetrics, WORKBENCH_NAV } from "@/lib/workbench";
 
-const MOBILE_SIDEBAR_MEDIA_QUERY = "(max-width: 899px)";
-const WORKBENCH_SIDEBAR_ID = "protocol-workbench-sidebar";
-const FOCUSABLE_SELECTOR = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled]):not([type='hidden'])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
-].join(", ");
+const MOBILE_NAV_ID = "protocol-mobile-nav";
+const SOURCE_REPO_URL = process.env.NEXT_PUBLIC_SOURCE_REPO_URL ?? "https://github.com/OmegaX-Health/omegax-protocol";
+const SDK_PACKAGE_URL = "https://www.npmjs.com/package/@omegax/protocol-sdk";
+const DOCS_URL = "https://docs.omegax.health";
+const SECURITY_AUDITS_URL = "https://omegax.health/protocol/audit";
 
-type InertHTMLElement = HTMLElement & {
-  inert: boolean;
-};
-
-function canReceiveFocus(element: HTMLElement | null | undefined): element is HTMLElement {
-  return Boolean(
-    element
-    && element.isConnected
-    && !(element as InertHTMLElement).inert
-    && element.getAttribute("aria-hidden") !== "true"
-    && element.getClientRects().length > 0,
-  );
-}
-
-function getFocusableElements(container: HTMLElement) {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(canReceiveFocus);
-}
-
-function iconForNav(icon: (typeof WORKBENCH_NAV)[number]["icon"]) {
-  switch (icon) {
-    case "plans":
-      return Activity;
-    case "capital":
-      return Droplets;
-    case "governance":
-      return Landmark;
-    case "oracles":
-      return ShieldCheck;
-    case "overview":
-    default:
-      return LayoutDashboard;
-  }
+function buildFooterMetadataLabel(): string {
+  const configuredCluster = normalizeExplorerCluster(process.env.NEXT_PUBLIC_SOLANA_EXPLORER_CLUSTER);
+  const networkLabel = NETWORK_OPTIONS.find((option) => option.id === configuredCluster)?.label ?? "Devnet";
+  const protocolVersion = (process.env.NEXT_PUBLIC_PROTOCOL_BUILD_VERSION || "").trim() || frontendPackage.version;
+  return `Protocol v${protocolVersion} • ${networkLabel} build`;
 }
 
 function personaBadgeForNav(sectionId: (typeof WORKBENCH_NAV)[number]["id"], persona: string) {
@@ -92,170 +54,90 @@ function sectionLabelForPersona(persona: string) {
   }
 }
 
-function buildFooterLinks(sourceRepoUrl: string) {
-  return [
-    { href: "https://docs.omegax.health/docs/thesis/why-omegax", label: "Whitepaper", external: true },
-    { href: "https://docs.omegax.health/docs", label: "Docs", external: true },
-    { href: sourceRepoUrl, label: "Source", external: true },
-    { href: `${sourceRepoUrl.replace(/\/$/, "")}/blob/main/docs/testing/protocol-surface-audit.md`, label: "Security Audits", external: true },
-    { href: "/overview", label: "Network Health", external: false },
-  ];
-}
-
 export default function ProtocolWorkbenchShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { connection } = useConnection();
-  const { mounted, theme, themePreference, setThemePreference } = useTheme();
+  const { mounted, theme, toggleTheme } = useTheme();
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
-  const sidebarRef = useRef<HTMLElement | null>(null);
-  const frameRef = useRef<HTMLDivElement | null>(null);
-  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const mobileCloseButtonRef = useRef<HTMLButtonElement | null>(null);
-  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
-  const wasMobileDrawerModalOpenRef = useRef(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const isOverviewRoute = pathname === "/overview" || pathname.startsWith("/overview/");
+
+  const networkMenuRef = useRef<HTMLDivElement | null>(null);
+  const personaMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isNetworkMenuOpen, setIsNetworkMenuOpen] = useState(false);
+  const [isPersonaMenuOpen, setIsPersonaMenuOpen] = useState(false);
   const [epoch, setEpoch] = useState("--");
   const [slot, setSlot] = useState("--");
   const [isLive, setIsLive] = useState(false);
 
-  const section = sectionFromPathname(pathname);
-  const chrome = sectionChrome(section);
-  const sourceRepoUrl = process.env.NEXT_PUBLIC_SOURCE_REPO_URL || "https://github.com/OmegaX-Health/omegax-protocol";
-  const footerLinks = useMemo(() => buildFooterLinks(sourceRepoUrl), [sourceRepoUrl]);
-  const metrics = computeWorkbenchMetrics();
-  const rpcStatus = isLive ? "RPC reachable" : "RPC unavailable";
-  const resolvedThemeLabel = theme === "dark" ? "Dark" : "Light";
-  const isMobileDrawerModalOpen = isMobileViewport && isSidebarOpen;
-  const isMobileDrawerHidden = isMobileViewport && !isSidebarOpen;
+  const isDarkTheme = mounted && theme === "dark";
+  const ThemeIcon = isDarkTheme ? SunMedium : MoonStar;
+  const nextThemeLabel = isDarkTheme ? "light" : "dark";
+  const footerMetadataLabel = buildFooterMetadataLabel();
+  const activePlansTab = searchParams.get("tab");
+  const shortcutActions = [
+    {
+      href: "/plans",
+      label: "Plans",
+      icon: "description",
+      active: pathname === "/plans" && (!activePlansTab || activePlansTab === "overview"),
+    },
+    {
+      href: "/members",
+      label: "Members",
+      icon: "groups",
+      active: pathname === "/members" || (pathname === "/plans" && activePlansTab === "members"),
+    },
+    {
+      href: "/claims",
+      label: "Claims",
+      icon: "assignment_turned_in",
+      active: pathname === "/claims" || (pathname === "/plans" && activePlansTab === "claims"),
+    },
+    {
+      href: "/schemas",
+      label: "Schemas",
+      icon: "schema",
+      active: pathname === "/schemas" || (pathname === "/plans" && activePlansTab === "schemas"),
+    },
+  ] as const;
 
   useEffect(() => {
-    setIsSidebarOpen(false);
+    setIsMobileNavOpen(false);
+    setIsNetworkMenuOpen(false);
+    setIsPersonaMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia(MOBILE_SIDEBAR_MEDIA_QUERY);
+    if (!isNetworkMenuOpen && !isPersonaMenuOpen) return;
 
-    const syncMobileViewport = (matches: boolean) => {
-      setIsMobileViewport(matches);
-      if (!matches) {
-        setIsSidebarOpen(false);
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (isNetworkMenuOpen && networkMenuRef.current && !networkMenuRef.current.contains(target)) {
+        setIsNetworkMenuOpen(false);
       }
-    };
-
-    syncMobileViewport(mediaQuery.matches);
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      syncMobileViewport(event.matches);
-    };
-
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", handleChange);
-    } else {
-      mediaQuery.addListener(handleChange);
-    }
-
-    return () => {
-      if (typeof mediaQuery.removeEventListener === "function") {
-        mediaQuery.removeEventListener("change", handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
+      if (isPersonaMenuOpen && personaMenuRef.current && !personaMenuRef.current.contains(target)) {
+        setIsPersonaMenuOpen(false);
       }
-    };
-  }, []);
-
-  useEffect(() => {
-    const sidebar = sidebarRef.current as InertHTMLElement | null;
-    if (!sidebar) return;
-
-    sidebar.inert = isMobileDrawerHidden;
-    return () => {
-      sidebar.inert = false;
-    };
-  }, [isMobileDrawerHidden]);
-
-  useEffect(() => {
-    const frame = frameRef.current as InertHTMLElement | null;
-    if (!frame) return;
-
-    frame.inert = isMobileDrawerModalOpen;
-    if (isMobileDrawerModalOpen) {
-      frame.setAttribute("aria-hidden", "true");
-    } else {
-      frame.removeAttribute("aria-hidden");
     }
 
-    return () => {
-      frame.inert = false;
-      frame.removeAttribute("aria-hidden");
-    };
-  }, [isMobileDrawerModalOpen]);
-
-  useEffect(() => {
-    const wasOpen = wasMobileDrawerModalOpenRef.current;
-
-    if (isMobileDrawerModalOpen && !wasOpen) {
-      lastFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const sidebar = sidebarRef.current;
-      const focusTarget = mobileCloseButtonRef.current ?? (sidebar ? getFocusableElements(sidebar)[0] : null) ?? sidebar;
-      focusTarget?.focus();
-    }
-
-    if (!isMobileDrawerModalOpen && wasOpen) {
-      const restoreTarget = [lastFocusedElementRef.current, mobileMenuButtonRef.current].find(canReceiveFocus);
-      restoreTarget?.focus();
-      lastFocusedElementRef.current = null;
-    }
-
-    wasMobileDrawerModalOpenRef.current = isMobileDrawerModalOpen;
-  }, [isMobileDrawerModalOpen]);
-
-  useEffect(() => {
-    if (!isMobileDrawerModalOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        event.preventDefault();
-        setIsSidebarOpen(false);
-        return;
+        setIsNetworkMenuOpen(false);
+        setIsPersonaMenuOpen(false);
       }
+    }
 
-      if (event.key !== "Tab") return;
-
-      const sidebar = sidebarRef.current;
-      if (!sidebar) return;
-
-      const focusableElements = getFocusableElements(sidebar);
-      if (focusableElements.length === 0) {
-        event.preventDefault();
-        sidebar.focus();
-        return;
-      }
-
-      const [firstFocusable] = focusableElements;
-      const lastFocusable = focusableElements[focusableElements.length - 1];
-      const activeElement = document.activeElement as HTMLElement | null;
-
-      if (event.shiftKey) {
-        if (!activeElement || activeElement === firstFocusable || !sidebar.contains(activeElement)) {
-          event.preventDefault();
-          lastFocusable.focus();
-        }
-        return;
-      }
-
-      if (!activeElement || activeElement === lastFocusable || !sidebar.contains(activeElement)) {
-        event.preventDefault();
-        firstFocusable.focus();
-      }
-    };
-
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isMobileDrawerModalOpen]);
+  }, [isNetworkMenuOpen, isPersonaMenuOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -280,9 +162,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
     }
 
     void refreshStatus();
-    const interval = window.setInterval(() => {
-      void refreshStatus();
-    }, 15000);
+    const interval = window.setInterval(() => void refreshStatus(), 15000);
 
     return () => {
       cancelled = true;
@@ -291,198 +171,263 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   }, [connection, selectedNetwork]);
 
   return (
-    <div className="protocol-workbench-shell relative">
-      <div className="absolute inset-0 misty-cyan-glow pointer-events-none z-0" />
-      <aside
-        ref={sidebarRef}
-        id={WORKBENCH_SIDEBAR_ID}
-        role={isMobileViewport ? "dialog" : undefined}
-        aria-label={isMobileViewport ? "Workbench navigation" : undefined}
-        aria-modal={isMobileDrawerModalOpen || undefined}
-        aria-hidden={isMobileDrawerHidden}
-        data-mobile-hidden={isMobileDrawerHidden ? "true" : "false"}
-        tabIndex={-1}
-        className={cn("protocol-sidebar liquid-glass z-10", isSidebarOpen && "protocol-sidebar-open")}
-      >
-        <div className="protocol-sidebar-brand">
-          <Link href="/overview" className="protocol-sidebar-wordmark" aria-label="OmegaX workbench home">
-            OmegaX
-          </Link>
-          {isMobileViewport ? (
+    <div className={cn("protocol-workbench-shell relative", isOverviewRoute && "protocol-workbench-shell-overview")}>
+      {isOverviewRoute ? null : <div className="absolute inset-0 misty-cyan-glow pointer-events-none z-0" />}
+
+      <header className="protocol-topbar">
+        <div className="protocol-topbar-row">
+          <div className="protocol-topbar-left">
             <button
-              ref={mobileCloseButtonRef}
               type="button"
-              className="protocol-mobile-close-button"
-              onClick={() => setIsSidebarOpen(false)}
-              aria-label="Close sidebar"
+              className="protocol-topbar-menu-button"
+              aria-controls={MOBILE_NAV_ID}
+              aria-expanded={isMobileNavOpen}
+              onClick={() => setIsMobileNavOpen((prev) => !prev)}
+              aria-label={isMobileNavOpen ? "Close navigation" : "Open navigation"}
             >
-              <X className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+              {isMobileNavOpen
+                ? <X className="h-4 w-4" strokeWidth={1.9} />
+                : <Menu className="h-4 w-4" strokeWidth={1.9} />}
             </button>
-          ) : null}
+
+            <Link href="/overview" className="protocol-topbar-wordmark" aria-label="OmegaX workbench home">
+              <Image
+                src="/brand/wordmark-horizontal.svg"
+                alt="OmegaX"
+                width={158}
+                height={10}
+                className="protocol-topbar-wordmark-image"
+                priority
+              />
+            </Link>
+
+            <nav className="protocol-topbar-nav" aria-label="Primary navigation">
+              {WORKBENCH_NAV.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const badge = personaBadgeForNav(item.id, effectivePersona);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn("protocol-topbar-tab", active && "protocol-topbar-tab-active")}
+                  >
+                    {item.label}
+                    {badge ? <span className="protocol-topbar-badge">{badge}</span> : null}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="protocol-topbar-controls">
+            <div className="protocol-topbar-icon-group" aria-label="Workspace shortcuts" role="navigation">
+              {shortcutActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={cn("protocol-topbar-icon-link", action.active && "protocol-topbar-icon-link-active")}
+                  aria-label={action.label}
+                  aria-current={action.active ? "page" : undefined}
+                  data-tooltip={action.label}
+                  title={action.label}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">{action.icon}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div ref={networkMenuRef} className="protocol-toolbar-dropdown">
+              <button
+                type="button"
+                className="protocol-toolbar-button"
+                aria-haspopup="menu"
+                aria-expanded={isNetworkMenuOpen}
+                onClick={() => {
+                  setIsNetworkMenuOpen((prev) => !prev);
+                  setIsPersonaMenuOpen(false);
+                }}
+                aria-label={`Network: ${selectedNetwork === "mainnet-beta" ? "Mainnet" : "Devnet"}`}
+              >
+                <span className={cn("protocol-toolbar-network-dot", isLive && "protocol-toolbar-network-dot-live")} aria-hidden="true" />
+                <span>{selectedNetwork === "mainnet-beta" ? "Mainnet" : "Devnet"}</span>
+                <ChevronDown className={cn("h-3 w-3 transition-transform", isNetworkMenuOpen && "rotate-180")} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+              {isNetworkMenuOpen ? (
+                <div className="protocol-toolbar-menu" role="menu" aria-label="Network selection">
+                  {NETWORK_OPTIONS.map((network) => {
+                    const isCurrent = network.id === selectedNetwork;
+                    const canSelect = canSelectNetwork(network.id);
+
+                    return (
+                      <button
+                        key={network.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isCurrent}
+                        aria-disabled={!canSelect}
+                        disabled={!canSelect}
+                        onClick={() => {
+                          if (!canSelect) return;
+                          setSelectedNetwork(network.id);
+                          setIsNetworkMenuOpen(false);
+                        }}
+                        className={cn(
+                          "protocol-toolbar-menu-item",
+                          isCurrent && "protocol-toolbar-menu-item-active",
+                          !canSelect && "protocol-toolbar-menu-item-disabled",
+                        )}
+                      >
+                        <span>{network.label}</span>
+                        {!canSelect ? <span className="protocol-toolbar-menu-badge">Coming soon</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+
+            {canPreviewPersona ? (
+              <div ref={personaMenuRef} className="protocol-toolbar-dropdown">
+                <button
+                  type="button"
+                  className="protocol-toolbar-icon-button"
+                  aria-haspopup="menu"
+                  aria-expanded={isPersonaMenuOpen}
+                  onClick={() => {
+                    setIsPersonaMenuOpen((prev) => !prev);
+                    setIsNetworkMenuOpen(false);
+                  }}
+                  aria-label={`Persona: ${sectionLabelForPersona(effectivePersona)}`}
+                  title="Preview persona"
+                >
+                  <Users className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden="true" />
+                </button>
+                {isPersonaMenuOpen ? (
+                  <div className="protocol-toolbar-menu" role="menu" aria-label="Persona selection">
+                    {(["auto", "sponsor", "capital", "governance"] as const).map((persona) => (
+                      <button
+                        key={persona}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={previewPersona === persona}
+                        onClick={() => {
+                          setPreviewPersona(persona);
+                          setIsPersonaMenuOpen(false);
+                        }}
+                        className={cn(
+                          "protocol-toolbar-menu-item",
+                          previewPersona === persona && "protocol-toolbar-menu-item-active",
+                        )}
+                      >
+                        {persona === "auto" ? "Auto" : sectionLabelForPersona(persona)}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              className="protocol-toolbar-icon-button"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${nextThemeLabel} mode`}
+              title={`Switch to ${nextThemeLabel} mode`}
+            >
+              <ThemeIcon className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden="true" />
+            </button>
+
+            <WalletButton className="protocol-topbar-wallet" />
+          </div>
         </div>
 
-        <nav className="protocol-sidebar-nav" aria-label="Primary navigation">
+        <div className="protocol-topbar-status-row">
+          <div className="protocol-topbar-status-pill">
+            <div className="protocol-topbar-status-left">
+              <span className="protocol-topbar-status-item">
+                <span className="protocol-topbar-status-key">Epoch</span>
+                <span className="protocol-topbar-status-val">{epoch}</span>
+              </span>
+              <span className="protocol-topbar-status-item">
+                <span className="protocol-topbar-status-key">Block</span>
+                <span className="protocol-topbar-status-val">{slot}</span>
+              </span>
+            </div>
+            <div className="protocol-topbar-status-right">
+              <span className={cn("protocol-topbar-sync-dot", isLive && "is-live")} aria-hidden="true" />
+              <span className={cn("protocol-topbar-sync-label", isLive && "is-live")}>
+                {isLive ? "System Synced" : "Retrying"}
+              </span>
+              {isLive ? (
+                <span className="material-symbols-outlined protocol-topbar-sync-icon" aria-hidden="true">sync</span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {isMobileNavOpen ? (
+        <nav id={MOBILE_NAV_ID} className="protocol-mobile-nav" aria-label="Mobile navigation">
           {WORKBENCH_NAV.map((item) => {
-            const Icon = iconForNav(item.icon);
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const badge = personaBadgeForNav(item.id, effectivePersona);
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={cn("protocol-sidebar-link", active && "protocol-sidebar-link-active")}
+                className={cn("protocol-mobile-nav-link", active && "protocol-mobile-nav-link-active")}
               >
-                <span className="protocol-sidebar-link-main">
-                  <Icon className="protocol-sidebar-link-icon" strokeWidth={1.9} aria-hidden="true" />
-                  <span className="protocol-sidebar-link-label">{item.label}</span>
-                </span>
-                {badge ? <span className="protocol-sidebar-link-badge">{badge}</span> : null}
+                {item.label}
               </Link>
             );
           })}
+
+          <div className="protocol-mobile-nav-divider" aria-hidden="true" />
+          <div className="protocol-mobile-wallet">
+            <WalletButton className="w-full" mobile />
+          </div>
         </nav>
-
-        <div className="protocol-sidebar-metrics">
-          <div className="protocol-sidebar-metric">
-            <span className="protocol-sidebar-metric-label">RPC_STATUS</span>
-            <div className="protocol-sidebar-health">
-              <span className={cn("protocol-health-dot", isLive && "protocol-health-dot-live")} aria-hidden="true" />
-              <strong>{rpcStatus}</strong>
-            </div>
-          </div>
-          <div className="protocol-sidebar-metric">
-            <span className="protocol-sidebar-metric-label">ACTIVE_CLAIMS</span>
-            <strong className="protocol-sidebar-metric-value">{metrics.activeClaims}</strong>
-          </div>
-        </div>
-
-        <div className="protocol-sidebar-wallet">
-          <WalletButton className="protocol-sidebar-wallet-button" />
-        </div>
-      </aside>
-
-      {isMobileViewport && isSidebarOpen ? (
-        <div
-          className="protocol-sidebar-scrim"
-          aria-hidden="true"
-          onClick={() => setIsSidebarOpen(false)}
-        />
       ) : null}
 
-      <div ref={frameRef} className="protocol-workbench-frame">
-        <header className="protocol-workbench-header">
-          <div className="protocol-workbench-header-main liquid-glass">
-            <div className="protocol-workbench-header-title">
-              <button
-                ref={mobileMenuButtonRef}
-                type="button"
-                className="protocol-mobile-menu-button"
-                aria-controls={WORKBENCH_SIDEBAR_ID}
-                aria-expanded={isSidebarOpen}
-                onClick={() => setIsSidebarOpen((current) => !current)}
-                aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-              >
-                {isSidebarOpen ? <X className="h-4 w-4" strokeWidth={1.9} /> : <Menu className="h-4 w-4" strokeWidth={1.9} />}
-              </button>
-              <div>
-                <p className="protocol-header-eyebrow">{chrome.eyebrow}</p>
-                <h1 className="protocol-header-title">{chrome.title}</h1>
-                <p className="protocol-header-stamp">{WORKBENCH_VERSION_STAMP}</p>
-              </div>
-            </div>
+      <main
+        className={cn(
+          "protocol-workbench-content micro-etch",
+          isOverviewRoute && "protocol-workbench-content-overview",
+        )}
+      >
+        {children}
+      </main>
 
-            <div className="protocol-workbench-controls">
-              <div className="protocol-header-stat-group">
-                <div className="protocol-header-stat">
-                  <span>Epoch</span>
-                  <strong>{epoch}</strong>
-                </div>
-                <div className="protocol-header-stat">
-                  <span>Block</span>
-                  <strong>{slot}</strong>
-                </div>
-              </div>
-
-              <div className="protocol-header-pill-cluster">
-                <span className="protocol-header-pill">{selectedNetwork === "mainnet-beta" ? "MAINNET" : "DEVNET"}</span>
-                <span className="protocol-header-pill">{isLive ? "Live updates" : "Reconnecting"}</span>
-              </div>
-
-              <label className="protocol-header-select">
-                <span className="sr-only">Network</span>
-                <select
-                  value={selectedNetwork}
-                  onChange={(event) => {
-                    const nextValue = event.target.value as "devnet" | "mainnet-beta";
-                    if (canSelectNetwork(nextValue)) {
-                      setSelectedNetwork(nextValue);
-                    }
-                  }}
-                >
-                  <option value="devnet">Devnet</option>
-                  <option value="mainnet-beta" disabled={!canSelectNetwork("mainnet-beta")}>Mainnet</option>
-                </select>
-              </label>
-
-              {canPreviewPersona ? (
-                <label className="protocol-header-select">
-                  <span className="sr-only">Role preview</span>
-                  <select
-                    value={previewPersona}
-                    onChange={(event) => setPreviewPersona(event.target.value as "auto" | "sponsor" | "capital" | "governance")}
-                  >
-                    <option value="auto">Auto persona</option>
-                    <option value="sponsor">Sponsor / operator</option>
-                    <option value="capital">Capital provider</option>
-                    <option value="governance">Governance / operator</option>
-                  </select>
-                </label>
-              ) : null}
-
-              <label className="protocol-header-select">
-                <span className="sr-only">Theme mode</span>
-                <select
-                  value={themePreference}
-                  onChange={(event) => setThemePreference(event.target.value as "system" | "light" | "dark")}
-                  aria-label="Theme mode"
-                >
-                  <option value="system">{mounted ? `System (${resolvedThemeLabel})` : "System"}</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
-              </label>
-
-              <div className="protocol-wallet-pill">
-                <Wallet className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
-                <span>{sectionLabelForPersona(effectivePersona)}</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="protocol-workbench-content micro-etch">{children}</main>
-
-        <footer className="protocol-workbench-footer">
-          <div className="protocol-workbench-footer-copy">
-            © 2026 OmegaX Health Capital Markets. // Protocol Node: 77.01-B
-          </div>
-          <div className="protocol-workbench-footer-links">
-            {footerLinks.map((link) => (
-              link.external ? (
-                <Link key={link.label} href={link.href} target="_blank" rel="noopener noreferrer">
-                  {link.label}
-                </Link>
-              ) : (
-                <Link key={link.label} href={link.href}>
-                  {link.label}
-                </Link>
-              )
-            ))}
-          </div>
-        </footer>
-      </div>
+      <footer className={cn("protocol-footer", isOverviewRoute && "protocol-footer-overview")}>
+        <span className="protocol-footer-copy">
+          &copy; 2026 OmegaX Health Capital Markets. All rights reserved. // {footerMetadataLabel}
+        </span>
+        <div className="protocol-footer-links">
+          <Link href={SOURCE_REPO_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
+            <GitBranch className="protocol-footer-link-icon" aria-hidden="true" />
+            <span>SOURCE</span>
+          </Link>
+          <Link href={SDK_PACKAGE_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
+            <Package className="protocol-footer-link-icon" aria-hidden="true" />
+            <span>SDK</span>
+          </Link>
+          <Link href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
+            <BookOpenText className="protocol-footer-link-icon" aria-hidden="true" />
+            <span>DOCS</span>
+          </Link>
+          <Link href="/network-health" className="protocol-footer-link">
+            <Signal className="protocol-footer-link-icon" aria-hidden="true" />
+            <span>STATUS</span>
+          </Link>
+          <Link href={SECURITY_AUDITS_URL} target="_blank" rel="noopener noreferrer" className="protocol-footer-link">
+            <ShieldCheck className="protocol-footer-link-icon" aria-hidden="true" />
+            <span>AUDITS</span>
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

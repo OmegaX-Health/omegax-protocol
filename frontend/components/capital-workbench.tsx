@@ -30,6 +30,21 @@ function describeRedemptionPolicyInline(queueOnly?: boolean) {
   return queueOnly ? "queue_only" : "open";
 }
 
+function buildPlansWorkbenchHref(input: {
+  plan: string;
+  series?: string | null;
+  tab: "funding" | "overview";
+}): string {
+  const params = new URLSearchParams({
+    plan: input.plan,
+    tab: input.tab,
+  });
+
+  if (input.series) params.set("series", input.series);
+
+  return `/plans?${params.toString()}`;
+}
+
 export function CapitalWorkbench() {
   const router = useRouter();
   const pathname = usePathname();
@@ -178,12 +193,10 @@ export function CapitalWorkbench() {
         <section className="workbench-main-column">
           {selectionToolbar}
 
-          <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+          <section className="workbench-panel workbench-primary-surface">
             <div className="workbench-panel-head">
               <div>
-                <p className="workbench-panel-eyebrow">Capital workspace</p>
                 <h2 className="workbench-panel-title">{invalidSelection.title}</h2>
-                <p className="workbench-body-copy">This deep link does not match the current visible capital context.</p>
               </div>
               <span className="workbench-card-meta">INVALID</span>
             </div>
@@ -206,12 +219,10 @@ export function CapitalWorkbench() {
       <section className="workbench-main-column">
         {selectionToolbar}
 
-        <section className="workbench-panel heavy-glass brackets workbench-primary-surface">
+        <section className="workbench-panel workbench-primary-surface">
           <div className="workbench-panel-head">
             <div>
-              <p className="workbench-panel-eyebrow">Selected pool</p>
-              <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Awaiting pool selection"}</h2>
-              <p className="workbench-body-copy">{selectedPool?.strategyThesis ?? "Choose a pool to inspect class posture and queue controls."}</p>
+              <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Select a pool"}</h2>
             </div>
             {selectedClass ? <span className="workbench-card-meta">{selectedClass.classId}</span> : null}
           </div>
@@ -242,14 +253,10 @@ export function CapitalWorkbench() {
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Pool overview</p>
-                    <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Awaiting pool selection"}</h2>
+                    <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Select a pool"}</h2>
                   </div>
                   {selectedPool ? <span className="workbench-card-meta">{selectedPool.poolId}</span> : null}
                 </div>
-                <p className="workbench-body-copy">
-                  {selectedPool?.strategyThesis ?? "Choose a pool to inspect the current capital posture."}
-                </p>
                 <div className="workbench-data-list">
                   <div className="workbench-data-row">
                     <span>Total allocated</span>
@@ -265,7 +272,14 @@ export function CapitalWorkbench() {
                   </div>
                 </div>
                 {linkedPlanContext.plan ? (
-                  <Link href={`/plans?plan=${encodeURIComponent(linkedPlanContext.plan)}&series=${encodeURIComponent(linkedPlanContext.series ?? "")}&tab=funding`} className="workbench-inline-link">
+                  <Link
+                    href={buildPlansWorkbenchHref({
+                      plan: linkedPlanContext.plan,
+                      series: linkedPlanContext.series,
+                      tab: "funding",
+                    })}
+                    className="workbench-inline-link"
+                  >
                     Open linked plan funding
                   </Link>
                 ) : null}
@@ -274,8 +288,7 @@ export function CapitalWorkbench() {
               <div className="workbench-content-pane">
                 <div className="workbench-content-pane-head">
                   <div>
-                    <p className="workbench-panel-eyebrow">Class register</p>
-                    <h2 className="workbench-panel-title">Classes remain inside the selected pool context.</h2>
+                    <h2 className="workbench-panel-title">Capital classes</h2>
                   </div>
                 </div>
                 <div className="workbench-list">
@@ -420,7 +433,13 @@ export function CapitalWorkbench() {
                         <td data-label="Plan id">{plan.planId}</td>
                         <td data-label="Series lanes">{DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === plan.address).length}</td>
                         <td data-label="Open">
-                          <Link href={`/plans?plan=${encodeURIComponent(plan.address)}&tab=overview`} className="workbench-inline-link">
+                          <Link
+                            href={buildPlansWorkbenchHref({
+                              plan: plan.address,
+                              tab: "overview",
+                            })}
+                            className="workbench-inline-link"
+                          >
                             Open plan
                           </Link>
                         </td>
@@ -439,8 +458,7 @@ export function CapitalWorkbench() {
       <aside className="workbench-rail">
         <WorkbenchRailCard title="Pool health" meta="POOL">
           <div className="workbench-stack">
-            <strong>{selectedPool?.displayName ?? "Awaiting selection"}</strong>
-            <p>{selectedPool?.strategyThesis ?? "Choose a pool to inspect live capital posture."}</p>
+            <strong>{selectedPool?.displayName ?? "No pool selected"}</strong>
             <div className="workbench-mini-stat">
               <span>Total NAV</span>
               <strong>{formatAmount(capitalView?.totalNav ?? 0)}</strong>

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { linkedContextForPool } from "@/lib/workbench";
+import { firstSeriesAddressForPlan, linkedContextForPool } from "@/lib/workbench";
 
 export type CanonicalPoolSection =
   | "coverage"
@@ -74,7 +74,8 @@ export function buildCanonicalPoolHref(
 
   if (pathname === "/plans") {
     if (linked.plan) params.set("plan", linked.plan);
-    if (linked.series) params.set("series", linked.series);
+    const resolvedSeries = linked.series || (resolvedPanel === "schemas" ? firstSeriesAddressForPlan(linked.plan) : null);
+    if (resolvedSeries) params.set("series", resolvedSeries);
   }
 
   return `${pathname}?${params.toString()}`;

@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 
-import { linkedContextForPool, planAddressForSeries } from "@/lib/workbench";
+import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { firstSeriesAddressForPlan, linkedContextForPool, planAddressForSeries } from "@/lib/workbench";
 
 type SchemasShimPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -14,10 +15,14 @@ function firstValue(value: string | string[] | undefined): string {
 
 export default function SchemasShimPage({ searchParams }: SchemasShimPageProps) {
   const pool = firstValue(searchParams?.pool);
-  const series = firstValue(searchParams?.series);
+  const requestedSeries = firstValue(searchParams?.series);
   const linked = linkedContextForPool(pool);
-  const resolvedSeries = series || linked.series || "";
-  const plan = firstValue(searchParams?.plan) || planAddressForSeries(resolvedSeries) || linked.plan || "";
+  const plan = firstValue(searchParams?.plan)
+    || planAddressForSeries(requestedSeries)
+    || linked.plan
+    || DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]?.address
+    || "";
+  const resolvedSeries = requestedSeries || linked.series || firstSeriesAddressForPlan(plan) || "";
   const params = new URLSearchParams();
 
   params.set("tab", "schemas");

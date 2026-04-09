@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Fira_Code, Newsreader, Space_Grotesk } from "next/font/google";
 
 import AppProviders from "@/components/app-providers";
@@ -51,9 +51,23 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
         <AppProviders>
-          <ProtocolWorkbenchShell>{children}</ProtocolWorkbenchShell>
+          <Suspense
+            fallback={
+              <div className="protocol-workbench-shell relative">
+                <div className="absolute inset-0 misty-cyan-glow pointer-events-none z-0" />
+              </div>
+            }
+          >
+            <ProtocolWorkbenchShell>{children}</ProtocolWorkbenchShell>
+          </Suspense>
         </AppProviders>
       </body>
     </html>

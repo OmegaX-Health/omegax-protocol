@@ -167,7 +167,7 @@ test("12. sponsor claim pressure excludes settled claim history", () => {
     assert.equal(sponsorModel.activeClaimCount, 1);
     assert.equal(activeClaims.length, 1);
 });
-test("12. oracle attestation feed stays inside the selected pool and series", () => {
+test("13. oracle attestation feed stays inside the selected pool and series", () => {
     const incomePool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((pool) => pool.poolId === "omega-health-income");
     const rewardSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.seriesId === "preventive-adherence-rewards");
     const protectionSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.seriesId === "catastrophic-protection-2026");

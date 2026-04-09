@@ -226,8 +226,8 @@ export function CanonicalCapitalSurface() {
                 <Link className="secondary-button" href={buildCanonicalPoolHref(selectedPool.address, { section: "members" })}>
                   Members
                 </Link>
-                <Link className="secondary-button" href={buildCanonicalPoolHref(selectedPool.address, { section: "oracles", panel: "policy" })}>
-                  Oracle policy
+                <Link className="secondary-button" href={buildCanonicalPoolHref(selectedPool.address, { section: "oracles", panel: "bindings" })}>
+                  Oracle bindings
                 </Link>
               </div>
             </div>

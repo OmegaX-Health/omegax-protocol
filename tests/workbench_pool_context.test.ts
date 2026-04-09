@@ -7,7 +7,7 @@ import workbenchModule from "../frontend/lib/workbench.ts";
 
 const { buildCanonicalPoolHref } = canonicalRoutesModule as typeof import("../frontend/lib/canonical-routes.ts");
 const { DEVNET_PROTOCOL_FIXTURE_STATE } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
-const { linkedContextForPool } = workbenchModule as typeof import("../frontend/lib/workbench.ts");
+const { firstSeriesAddressForPlan, linkedContextForPool } = workbenchModule as typeof import("../frontend/lib/workbench.ts");
 
 test("linked pool context keeps a unique plan but does not invent a series for multi-series pools", () => {
   const pool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((entry) => entry.poolId === "omega-health-income");
@@ -33,4 +33,20 @@ test("canonical claims links omit ambiguous series context", () => {
   assert.equal(url.searchParams.get("tab"), "claims");
   assert.equal(url.searchParams.get("plan"), DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((entry) => entry.planId === "nexus-protect-plus")?.address ?? null);
   assert.equal(url.searchParams.get("series"), null);
+});
+
+test("canonical schema links pick a deterministic series when only the plan is unique", () => {
+  const pool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((entry) => entry.poolId === "omega-health-income");
+  const blendedPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((entry) => entry.planId === "nexus-protect-plus");
+
+  assert(pool, "expected income pool fixture");
+  assert(blendedPlan, "expected blended plan fixture");
+
+  const href = buildCanonicalPoolHref(pool.address, { section: "schemas" });
+  const url = new URL(href, "https://protocol.omegax.health");
+
+  assert.equal(url.pathname, "/plans");
+  assert.equal(url.searchParams.get("tab"), "schemas");
+  assert.equal(url.searchParams.get("plan"), blendedPlan.address);
+  assert.equal(url.searchParams.get("series"), firstSeriesAddressForPlan(blendedPlan.address));
 });
