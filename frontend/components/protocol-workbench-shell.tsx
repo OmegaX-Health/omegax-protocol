@@ -62,6 +62,13 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
   const isOverviewRoute = pathname === "/overview" || pathname.startsWith("/overview/");
+  const useFullscreenWorkbenchChrome = [
+    "/overview",
+    "/plans",
+    "/capital",
+    "/governance",
+    "/oracles",
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   const networkMenuRef = useRef<HTMLDivElement | null>(null);
   const personaMenuRef = useRef<HTMLDivElement | null>(null);
@@ -171,7 +178,13 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   }, [connection, selectedNetwork]);
 
   return (
-    <div className={cn("protocol-workbench-shell relative", isOverviewRoute && "protocol-workbench-shell-overview")}>
+    <div
+      className={cn(
+        "protocol-workbench-shell relative",
+        useFullscreenWorkbenchChrome && "protocol-workbench-shell-fullscreen",
+        isOverviewRoute && "protocol-workbench-shell-overview",
+      )}
+    >
       {isOverviewRoute ? null : <div className="absolute inset-0 misty-cyan-glow pointer-events-none z-0" />}
 
       <header className="protocol-topbar">
@@ -395,13 +408,20 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
       <main
         className={cn(
           "protocol-workbench-content micro-etch",
+          useFullscreenWorkbenchChrome && "protocol-workbench-content-fullscreen",
           isOverviewRoute && "protocol-workbench-content-overview",
         )}
       >
         {children}
       </main>
 
-      <footer className={cn("protocol-footer", isOverviewRoute && "protocol-footer-overview")}>
+      <footer
+        className={cn(
+          "protocol-footer",
+          useFullscreenWorkbenchChrome && "protocol-footer-fullscreen",
+          isOverviewRoute && "protocol-footer-overview",
+        )}
+      >
         <span className="protocol-footer-copy">
           &copy; 2026 OmegaX Health Capital Markets. All rights reserved. // {footerMetadataLabel}
         </span>
