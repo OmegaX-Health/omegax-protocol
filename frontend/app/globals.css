@@ -2139,6 +2139,9 @@
   .protocol-workbench-shell-overview {
     --protocol-overview-top-overlap: calc(env(safe-area-inset-top, 0px) + 8.25rem);
     --protocol-overview-bottom-overlap: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
     background:
       radial-gradient(circle at 14% 0%, rgba(51, 197, 244, 0.06), transparent 24%),
       radial-gradient(circle at 84% 0%, rgba(0, 104, 117, 0.05), transparent 20%),
@@ -2152,6 +2155,15 @@
       radial-gradient(circle at 84% 0%, rgba(51, 197, 244, 0.05), transparent 20%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 16rem),
       linear-gradient(180deg, #06101b 0%, var(--background) 46%, #07111d 100%);
+  }
+
+  .protocol-workbench-shell-overview .protocol-topbar {
+    position: fixed;
+    inset: 0 0 auto;
+  }
+
+  .protocol-workbench-shell-overview .protocol-workbench-content {
+    overflow: visible;
   }
 
   .protocol-footer-copy,
@@ -2775,28 +2787,26 @@
 
   .protocol-workbench-content-overview {
     display: block;
-    min-height: 0;
-    margin-top: calc(var(--protocol-overview-top-overlap) * -1);
-    margin-bottom: calc(var(--protocol-overview-bottom-overlap) * -1);
+    min-height: auto;
+    margin-top: 0;
+    margin-bottom: 0;
     padding:
       calc(var(--protocol-overview-top-overlap) + 0.8rem)
       1.15rem
-      calc(var(--protocol-overview-bottom-overlap) + 0.85rem);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scroll-padding-top: calc(var(--protocol-overview-top-overlap) + 0.8rem);
-    scroll-padding-bottom: calc(var(--protocol-overview-bottom-overlap) + 0.85rem);
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+      calc(var(--protocol-overview-bottom-overlap) + 2rem);
+    overflow: visible;
+    scroll-padding-top: 0;
+    scroll-padding-bottom: 0;
+    -ms-overflow-style: auto;
+    scrollbar-width: auto;
   }
 
   .protocol-workbench-content-overview::-webkit-scrollbar {
-    display: none;
+    display: initial;
   }
 
   .protocol-workbench-content-overview > * {
-    min-height: 100%;
+    min-height: auto;
   }
 
   /* ── Protocol footer ── */
@@ -2895,6 +2905,14 @@
       0 -18px 38px -28px rgba(0, 0, 0, 0.34),
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
       inset 0 -1px 18px rgba(0, 229, 255, 0.025);
+  }
+
+  .protocol-workbench-shell-overview .protocol-footer-overview {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(0.55rem, 1vw, 0.95rem);
+    margin: 0;
+    transform: translateX(-50%);
   }
 
   .dark .protocol-footer-link {
@@ -3312,13 +3330,11 @@
   }
 
   .ov-hero-stack {
-    position: sticky;
-    top: 0;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     min-height: max(0px, calc(100vh - var(--protocol-overview-top-overlap) - var(--protocol-overview-bottom-overlap)));
-    padding-top: 0.25rem;
+    padding-top: 0;
   }
 
   .ov-hero {
@@ -4055,6 +4071,19 @@
       margin-left: 0;
       margin-right: 0;
     }
+
+    .protocol-workbench-shell-overview .protocol-topbar {
+      position: sticky;
+      inset: auto;
+      top: 0;
+    }
+
+    .protocol-workbench-shell-overview .protocol-footer-overview {
+      position: sticky;
+      left: auto;
+      bottom: clamp(0.55rem, 1vw, 0.95rem);
+      transform: none;
+    }
   }
 
   @media (min-width: 1181px) and (max-height: 820px) {
@@ -4092,6 +4121,24 @@
 
     .ov-signal-value {
       font-size: 0.86rem;
+    }
+  }
+
+  @media (min-width: 1181px) {
+    .ov-layout {
+      padding-top: 0;
+      padding-bottom: calc(var(--protocol-overview-bottom-overlap) + 2rem);
+    }
+
+    .ov-hero-column {
+      align-self: start;
+    }
+
+    .ov-hero-stack {
+      position: sticky;
+      top: calc(var(--protocol-overview-top-overlap) + 0.8rem);
+      max-height: calc(100vh - (var(--protocol-overview-top-overlap) + 0.8rem) - (var(--protocol-overview-bottom-overlap) + 0.35rem));
+      z-index: 1;
     }
   }
 
