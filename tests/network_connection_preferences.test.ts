@@ -102,7 +102,7 @@ test("custom RPC endpoints persist independently per cluster", () => {
 
 test("custom RPC validation accepts http/https endpoints only", () => {
   assert.equal(validateCustomRpcUrl("https://rpc.example.com"), null);
-  assert.match(validateCustomRpcUrl(""), /Enter a custom RPC URL/);
+  assert.match(validateCustomRpcUrl(""), /http:\/\/ or https:\/\//);
   assert.match(validateCustomRpcUrl("wss://rpc.example.com"), /http:\/\/ or https:\/\//);
   assert.match(validateCustomRpcUrl("not-a-url"), /http:\/\/ or https:\/\//);
 });

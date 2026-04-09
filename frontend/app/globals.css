@@ -2137,6 +2137,8 @@
   }
 
   .protocol-workbench-shell-overview {
+    --protocol-overview-top-overlap: calc(env(safe-area-inset-top, 0px) + 8.25rem);
+    --protocol-overview-bottom-overlap: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
     background:
       radial-gradient(circle at 14% 0%, rgba(51, 197, 244, 0.06), transparent 24%),
       radial-gradient(circle at 84% 0%, rgba(0, 104, 117, 0.05), transparent 20%),
@@ -2186,6 +2188,9 @@
   }
 
   .protocol-topbar-row {
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2424,6 +2429,7 @@
   .protocol-topbar-icon-link::after {
     content: attr(data-tooltip);
     position: absolute;
+    z-index: 24;
     left: 50%;
     top: calc(100% + max(0.45rem, env(safe-area-inset-top, 0px) * 0.15));
     transform: translate(-50%, -0.2rem);
@@ -2460,6 +2466,8 @@
   }
 
   .protocol-topbar-status-row {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     width: var(--protocol-chrome-width);
@@ -2594,6 +2602,7 @@
 
   .protocol-toolbar-dropdown {
     position: relative;
+    z-index: 6;
     display: inline-flex;
     align-items: center;
     min-height: var(--protocol-topbar-control-height);
@@ -2710,7 +2719,7 @@
     background: color-mix(in oklab, var(--surface-elevated) 96%, white 4%);
     backdrop-filter: blur(24px);
     box-shadow: 0 12px 28px rgba(10, 21, 37, 0.12);
-    z-index: 50;
+    z-index: 24;
   }
 
   .dark .protocol-toolbar-menu {
@@ -2765,13 +2774,29 @@
   }
 
   .protocol-workbench-content-overview {
-    display: flex;
+    display: block;
     min-height: 0;
+    margin-top: calc(var(--protocol-overview-top-overlap) * -1);
+    margin-bottom: calc(var(--protocol-overview-bottom-overlap) * -1);
+    padding:
+      calc(var(--protocol-overview-top-overlap) + 0.8rem)
+      1.15rem
+      calc(var(--protocol-overview-bottom-overlap) + 0.85rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-top: calc(var(--protocol-overview-top-overlap) + 0.8rem);
+    scroll-padding-bottom: calc(var(--protocol-overview-bottom-overlap) + 0.85rem);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .protocol-workbench-content-overview::-webkit-scrollbar {
+    display: none;
   }
 
   .protocol-workbench-content-overview > * {
-    flex: 1 1 auto;
-    min-height: 0;
+    min-height: 100%;
   }
 
   /* ── Protocol footer ── */
@@ -3242,23 +3267,15 @@
 
   .ov {
     position: relative;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
+    min-height: 100%;
+    overflow: visible;
     padding-right: 0;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .ov::-webkit-scrollbar {
-    display: none;
   }
 
   .ov-layout {
     --ov-column-gap: clamp(2rem, 4vw, 4.5rem);
     width: min(100%, 92rem);
-    height: 100%;
-    min-height: 0;
+    min-height: 100%;
     margin: 0 auto;
     padding: clamp(0.5rem, 1vw, 0.9rem) clamp(0rem, 1vw, 0.45rem) clamp(2rem, 4vw, 3rem);
     display: grid;
@@ -3300,8 +3317,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    height: 100%;
-    min-height: 0;
+    min-height: max(0px, calc(100vh - var(--protocol-overview-top-overlap) - var(--protocol-overview-bottom-overlap)));
     padding-top: 0.25rem;
   }
 
@@ -3556,21 +3572,10 @@
     flex-direction: column;
     gap: clamp(2.5rem, 4vh, 3.75rem);
     min-width: 0;
-    min-height: 0;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    padding-block: 0.75rem max(4.75rem, calc(2.75rem + env(safe-area-inset-bottom, 0px)));
+    min-height: 100%;
+    padding-block: 0.75rem 0;
     padding-left: clamp(0.65rem, 1.2vw, 1.15rem);
     padding-right: clamp(0.8rem, 1.35vw, 1.35rem);
-    scroll-padding-bottom: max(4.75rem, calc(2.75rem + env(safe-area-inset-bottom, 0px)));
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .ov-stream::-webkit-scrollbar {
-    display: none;
   }
 
   .ov-stream-group {
@@ -4049,6 +4054,44 @@
       width: 100%;
       margin-left: 0;
       margin-right: 0;
+    }
+  }
+
+  @media (min-width: 1181px) and (max-height: 820px) {
+    .ov-hero {
+      gap: 0.68rem;
+      padding-top: 1rem;
+      padding-bottom: 0.15rem;
+    }
+
+    .ov-hero-title {
+      font-size: clamp(2.9rem, 10.8vh, 5.2rem);
+    }
+
+    .ov-total-value {
+      font-size: clamp(2.05rem, 7.2vh, 3.55rem);
+    }
+
+    .ov-wave-panel {
+      min-height: 4.2rem;
+      margin-top: 0.1rem;
+    }
+
+    .ov-wave-svg {
+      height: 4rem;
+    }
+
+    .ov-signal-grid {
+      gap: 0.45rem;
+      margin-top: 0.1rem;
+    }
+
+    .ov-signal-card {
+      padding: 0.38rem 0.65rem;
+    }
+
+    .ov-signal-value {
+      font-size: 0.86rem;
     }
   }
 
@@ -5146,6 +5189,11 @@
       min-height: 100vh;
     }
 
+    .protocol-workbench-shell-overview {
+      --protocol-overview-top-overlap: 0px;
+      --protocol-overview-bottom-overlap: calc(env(safe-area-inset-bottom, 0px) + 1.2rem);
+    }
+
     .protocol-topbar-nav {
       display: none;
     }
@@ -5266,6 +5314,16 @@
 
     .protocol-workbench-content {
       overflow: visible;
+    }
+
+    .protocol-workbench-content-overview {
+      margin-top: 0;
+      margin-bottom: 0;
+      padding-top: 0.25rem;
+      padding-bottom: calc(var(--protocol-overview-bottom-overlap) + 0.35rem);
+      overflow: visible;
+      scroll-padding-top: 0.25rem;
+      scroll-padding-bottom: calc(var(--protocol-overview-bottom-overlap) + 0.35rem);
     }
 
     .workbench-rail {

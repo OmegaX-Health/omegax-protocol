@@ -625,7 +625,7 @@ Required page sections:
 
 ### 3.11 Legacy routes and redirect behavior
 
-Legacy pool-first routes should remain accessible long enough to avoid dead links, but they must redirect into the canonical health-capital-markets information architecture.
+Legacy pre-canonical routes should remain accessible long enough to avoid dead links, but they must redirect into the canonical health-capital-markets information architecture.
 
 | Legacy route | Required target behavior |
 | --- | --- |
@@ -643,4 +643,4 @@ Legacy pool-first routes should remain accessible long enough to avoid dead link
 - Every claim, plan, schema, pool, and governance view links cleanly into the adjacent canonical route that owns the next action.
 - Every advanced protocol value is available, but only after intentional disclosure.
 - Mobile and desktop both expose the full route set, network switcher, theme action, and wallet control.
-- Legacy pool-first routes redirect without leaving users on stale concepts.
+- Legacy pre-canonical routes redirect without leaving users on stale concepts.

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useConnection } from "@solana/wallet-adapter-react";
 
@@ -286,8 +286,6 @@ function OverviewEntryCard(props: {
 export function OverviewWorkbench() {
   const { connection } = useConnection();
   const { effectivePersona } = useWorkspacePersona();
-  const overviewRef = useRef<HTMLDivElement | null>(null);
-  const streamRef = useRef<HTMLElement | null>(null);
   const metrics = useMemo(() => computeWorkbenchMetrics(), []);
   const stats = useProtocolStats();
 
@@ -468,35 +466,8 @@ export function OverviewWorkbench() {
     return () => { cancelled = true; };
   }, [connection]);
 
-  useEffect(() => {
-    const overview = overviewRef.current;
-    if (!overview || !streamRef.current) return;
-
-    const desktopMediaQuery = window.matchMedia("(min-width: 1181px)");
-
-    function handleWheel(event: WheelEvent) {
-      const stream = streamRef.current;
-      if (!stream) return;
-      if (!desktopMediaQuery.matches) return;
-      if (!(event.target instanceof Node) || stream.contains(event.target)) return;
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-
-      const maxScrollTop = stream.scrollHeight - stream.clientHeight;
-      if (maxScrollTop <= 0) return;
-
-      const nextScrollTop = Math.max(0, Math.min(maxScrollTop, stream.scrollTop + event.deltaY));
-      if (nextScrollTop === stream.scrollTop) return;
-
-      stream.scrollTop = nextScrollTop;
-      event.preventDefault();
-    }
-
-    overview.addEventListener("wheel", handleWheel, { passive: false });
-    return () => overview.removeEventListener("wheel", handleWheel);
-  }, []);
-
   return (
-    <div ref={overviewRef} className="ov">
+    <div className="ov">
       <div className="ov-layout">
         <aside className="ov-hero-column">
           <div className="ov-hero-stack">
@@ -529,7 +500,7 @@ export function OverviewWorkbench() {
           </div>
         </aside>
 
-        <section ref={streamRef} className="ov-stream" aria-label="Overview surfaces and field log">
+        <section className="ov-stream" aria-label="Overview surfaces and field log">
           <div className="ov-stream-group">
             <span className="ov-stream-label">ACCESS_SURFACES</span>
             <div className="ov-stream-stack">
