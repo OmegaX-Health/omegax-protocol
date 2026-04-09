@@ -4,8 +4,9 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "--port", "3847"],
+      "runtimeArgs": ["next", "dev"],
       "port": 3847,
+      "autoPort": true,
       "cwd": "frontend"
     }
   ]

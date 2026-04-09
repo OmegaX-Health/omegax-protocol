@@ -27,7 +27,6 @@ export const GOVERNANCE_TABS = [
     { id: "queue", label: "Queue" },
     { id: "authorities", label: "Authorities" },
     { id: "templates", label: "Templates" },
-    { id: "dao-ops", label: "DAO ops" },
 ];
 export const ORACLE_TABS = [
     { id: "registry", label: "Registry" },
