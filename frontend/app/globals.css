@@ -4126,18 +4126,26 @@
 
   @media (min-width: 1181px) {
     .ov-layout {
+      --ov-layout-inline-pad: clamp(0rem, 1vw, 0.45rem);
+      --ov-layout-width: min(calc(100vw - 2.3rem), 92rem);
+      --ov-left-column-width: max(20rem, calc((var(--ov-layout-width) - (var(--ov-layout-inline-pad) * 2) - var(--ov-column-gap)) * 0.46));
+      --ov-fixed-left: calc(max(1.15rem, (100vw - var(--ov-layout-width)) / 2) + var(--ov-layout-inline-pad));
+      --ov-fixed-top: calc(var(--protocol-overview-top-overlap) + 0.8rem);
+      --ov-fixed-height: calc(100vh - var(--ov-fixed-top) - (var(--protocol-overview-bottom-overlap) + 0.35rem));
       padding-top: 0;
       padding-bottom: calc(var(--protocol-overview-bottom-overlap) + 2rem);
     }
 
     .ov-hero-column {
-      align-self: start;
+      min-height: var(--ov-fixed-height);
     }
 
     .ov-hero-stack {
-      position: sticky;
-      top: calc(var(--protocol-overview-top-overlap) + 0.8rem);
-      max-height: calc(100vh - (var(--protocol-overview-top-overlap) + 0.8rem) - (var(--protocol-overview-bottom-overlap) + 0.35rem));
+      position: fixed;
+      top: var(--ov-fixed-top);
+      left: var(--ov-fixed-left);
+      width: var(--ov-left-column-width);
+      max-height: var(--ov-fixed-height);
       z-index: 1;
     }
   }
