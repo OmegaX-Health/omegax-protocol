@@ -5873,6 +5873,24 @@
     line-height: 1.35;
   }
 
+  .plans-rail-hero-val-sm {
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    font-style: normal;
+    font-family: inherit;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  .plans-rail-empty-copy {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
   .plans-rail-bar {
     height: 6px;
     border-radius: 3px;
