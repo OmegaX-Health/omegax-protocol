@@ -4508,39 +4508,186 @@
 
   .plans-hero {
     position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(22rem, 0.95fr);
-    gap: clamp(1.5rem, 3vw, 2.75rem);
-    align-items: end;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
     padding: clamp(0.6rem, 1.2vw, 1.1rem) clamp(0.75rem, 1vw, 1.1rem) 0;
     isolation: isolate;
+    min-height: 13.5rem;
+  }
+
+  /* ── Context bar (selectors + CTA) ── */
+
+  .plans-hero-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 1rem 1.5rem;
+  }
+
+  .plans-hero-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-self: start;
+    padding-top: 0.2rem;
+  }
+
+  .plans-context-bar {
+    --plans-context-control-height: 3.8rem;
+    display: flex;
+    align-items: stretch;
+    margin: 0 clamp(0.5rem, 1vw, 1rem);
+    min-width: 0;
+  }
+
+  .plans-context-selectors {
+    position: relative;
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: stretch;
+    padding: 0.55rem 0.7rem;
+    border-radius: 1rem;
+    min-height: var(--plans-context-control-height);
+    min-width: 0;
+  }
+
+  .plans-context-selectors .plans-hero-select {
+    padding: 0.3rem 0.55rem;
+  }
+
+  .plans-context-selectors .plans-hero-select-eyebrow {
+    font-size: 0.52rem;
+  }
+
+  .plans-context-selectors .plans-hero-select-label {
+    font-size: 0.88rem;
+  }
+
+  .plans-context-selectors .plans-hero-select-meta {
+    font-size: 0.6rem;
+  }
+
+  .plans-context-divider {
+    align-self: stretch;
+    width: 1px;
+    margin: 0.2rem 0.3rem;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in oklab, var(--border-strong) 55%, transparent) 50%,
+      transparent 100%
+    );
+  }
+
+  .plans-hero-cta,
+  .plans-primary-cta,
+  .plans-secondary-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    gap: 0.5rem;
+    min-height: 2.9rem;
+    padding: 0.72rem 1.18rem;
+    color: var(--foreground);
+    font-family: var(--font-sans), "Space Grotesk", system-ui, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 18%, var(--border));
+    text-decoration: none;
+    transition:
+      transform 180ms ease,
+      box-shadow 200ms ease,
+      border-color 200ms ease,
+      background 200ms ease,
+      color 200ms ease;
+    white-space: nowrap;
+  }
+
+  .plans-hero-cta,
+  .plans-primary-cta {
+    position: relative;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--foreground) 94%, var(--surface-elevated) 6%), color-mix(in oklab, var(--foreground) 88%, var(--surface) 12%));
+    border-color: color-mix(in oklab, var(--foreground) 18%, var(--border-strong));
+    color: var(--background);
+    box-shadow:
+      0 14px 30px -22px rgba(10, 21, 37, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .plans-hero-cta {
+    padding: 0.72rem 1.55rem;
+    min-height: 2.95rem;
+    min-width: 10.75rem;
+    flex-shrink: 0;
+  }
+
+  .plans-hero-cta .material-symbols-outlined,
+  .plans-primary-cta .material-symbols-outlined {
+    font-size: 1.02rem;
+    color: currentColor;
+    opacity: 0.88;
+  }
+
+  .plans-hero-cta:hover,
+  .plans-primary-cta:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--foreground) 28%, var(--border-strong));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--foreground) 97%, var(--surface-elevated) 3%), color-mix(in oklab, var(--foreground) 91%, var(--surface) 9%));
+    box-shadow:
+      0 18px 34px -22px rgba(10, 21, 37, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .plans-hero-cta:active,
+  .plans-primary-cta:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .plans-hero-cta:focus-visible,
+  .plans-primary-cta:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 3px;
   }
 
   .plans-hero-glow {
     position: absolute;
-    inset: -2rem -2rem auto -2rem;
-    height: 18rem;
+    inset: 0;
     background: radial-gradient(
-      ellipse 72% 60% at 22% 35%,
-      rgba(0, 229, 255, 0.12) 0%,
-      transparent 60%
+      ellipse 58% 88% at 18% 18%,
+      rgba(0, 229, 255, 0.14) 0%,
+      rgba(0, 229, 255, 0.09) 26%,
+      rgba(51, 197, 244, 0.05) 42%,
+      transparent 68%
     );
+    filter: blur(18px);
+    opacity: 0.95;
     pointer-events: none;
     z-index: -1;
   }
 
   .dark .plans-hero-glow {
     background: radial-gradient(
-      ellipse 72% 60% at 22% 35%,
-      rgba(0, 229, 255, 0.09) 0%,
-      transparent 65%
+      ellipse 58% 88% at 18% 18%,
+      rgba(0, 229, 255, 0.12) 0%,
+      rgba(0, 229, 255, 0.08) 26%,
+      rgba(51, 197, 244, 0.045) 42%,
+      transparent 70%
     );
   }
 
   .plans-hero-copy {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.65rem;
+    max-width: 54rem;
     min-width: 0;
   }
 
@@ -4554,15 +4701,18 @@
 
   .plans-hero-title {
     margin: 0;
-    max-width: 12ch;
     font-family: var(--font-display), "Newsreader", Georgia, serif;
     font-style: italic;
-    font-size: clamp(2.8rem, 6vw, 5.4rem);
+    font-size: clamp(2.4rem, 4.4vw, 4rem);
     font-weight: 500;
-    line-height: 0.95;
-    letter-spacing: -0.04em;
+    line-height: 1;
+    letter-spacing: -0.035em;
     color: var(--foreground);
     text-wrap: balance;
+    /* Reserve space for a consistent 2-line title height so the layout
+       does not shift when switching between tabs with different-length
+       headlines. */
+    min-height: calc(2em * 1);
   }
 
   .plans-hero-title em {
@@ -4573,33 +4723,12 @@
 
   .plans-hero-subtitle {
     margin: 0;
-    max-width: 42ch;
-    font-size: 0.88rem;
+    max-width: 56ch;
+    font-size: 0.86rem;
     line-height: 1.55;
     color: var(--muted-foreground);
-  }
-
-  .plans-hero-selectors {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    align-items: stretch;
-    gap: 0;
-    padding: 0.85rem 0.95rem;
-    border-radius: 1.25rem;
-    min-height: 5.4rem;
-  }
-
-  .plans-hero-selectors-divider {
-    align-self: stretch;
-    width: 1px;
-    margin: 0.25rem 0.4rem;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in oklab, var(--border-strong) 55%, transparent) 50%,
-      transparent 100%
-    );
+    /* Reserve 2 lines to keep switches between tabs from dancing. */
+    min-height: 2.65em;
   }
 
   .plans-hero-select {
@@ -4715,70 +4844,6 @@
     50% { opacity: 1; transform: scale(1); }
   }
 
-  /* ── KPI strip ── */
-
-  .plans-kpi-strip {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0;
-    padding: 0.1rem clamp(0.75rem, 1vw, 1.1rem);
-  }
-
-  .plans-kpi-metric {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    padding: 0.35rem 1.15rem 0.35rem;
-    border-left: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
-    min-width: 0;
-  }
-  .plans-kpi-metric:first-child {
-    border-left: none;
-    padding-left: 0.2rem;
-  }
-
-  .plans-kpi-label {
-    font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.56rem;
-    text-transform: uppercase;
-    letter-spacing: 0.22em;
-    color: var(--muted-foreground);
-  }
-
-  .plans-kpi-value {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.4rem;
-    font-family: var(--font-display), "Newsreader", Georgia, serif;
-    font-style: italic;
-    font-size: clamp(1.5rem, 2.2vw, 1.95rem);
-    font-weight: 500;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    color: var(--foreground);
-  }
-
-  .plans-kpi-pulse {
-    display: inline-block;
-    width: 0.45rem;
-    height: 0.45rem;
-    border-radius: 999px;
-    background: var(--signal);
-    box-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
-    animation: plans-pulse 2.2s ease-in-out infinite;
-    transform: translateY(-0.18rem);
-  }
-
-  .plans-kpi-meta {
-    font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.62rem;
-    color: var(--muted-foreground);
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   /* ── Tab bar ── */
 
   .plans-tabs {
@@ -4880,7 +4945,7 @@
 
   .plans-body {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(20rem, 0.95fr);
+    grid-template-columns: minmax(0, 2.15fr) minmax(15.5rem, 0.7fr);
     gap: clamp(0.85rem, 1.2vw, 1.35rem);
     align-items: start;
     padding: 0 clamp(0.5rem, 1vw, 1rem);
@@ -4891,12 +4956,15 @@
     flex-direction: column;
     gap: clamp(0.85rem, 1.2vw, 1.25rem);
     min-width: 0;
+    /* Reserve a consistent height so switching between tabs does not
+       cause the rail and surrounding chrome to dance up and down. */
+    min-height: 34rem;
   }
 
   .plans-rail {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.85rem, 1.2vw, 1.25rem);
+    gap: 0.7rem;
     min-width: 0;
     position: sticky;
     top: 0.5rem;
@@ -5030,34 +5098,7 @@
     background: color-mix(in oklab, var(--accent) 22%, transparent);
   }
 
-  /* ── Overview tab: asymmetric bento ── */
-
-  .plans-overview-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-    gap: clamp(0.85rem, 1.2vw, 1.25rem);
-  }
-
-  .plans-vitality {
-    grid-column: 1 / 2;
-    grid-row: 1 / 3;
-  }
-
-  .plans-pressure {
-    grid-column: 2 / 3;
-    grid-row: 1 / 2;
-  }
-
-  .plans-velocity {
-    grid-column: 2 / 3;
-    grid-row: 2 / 3;
-  }
-
-  .plans-lanes {
-    grid-column: 1 / -1;
-    grid-row: 3 / 4;
-  }
+  /* ── Overview tab: vitality card ── */
 
   /* Vitality card — hero + chart */
   .plans-vitality::before,
@@ -5086,27 +5127,33 @@
 
   .plans-vitality-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
-    padding-top: 0.25rem;
-    border-top: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
     padding: 0.85rem 0 0.15rem;
     margin-top: 0.25rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+  }
+
+  .plans-unit {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.5em;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    margin-left: 0.12em;
+    letter-spacing: 0.04em;
   }
 
   .plans-vitality-stat {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
   }
 
   .plans-vitality-stat-value {
-    font-family: var(--font-display), "Newsreader", Georgia, serif;
-    font-style: italic;
-    font-size: clamp(1.5rem, 2.4vw, 2.1rem);
-    font-weight: 500;
+    font-size: clamp(1.3rem, 2vw, 1.75rem);
+    font-weight: 700;
     line-height: 1;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
     color: var(--foreground);
   }
 
@@ -5183,12 +5230,11 @@
   }
 
   .plans-vitality-bar-val {
-    font-family: var(--font-display), "Newsreader", Georgia, serif;
-    font-style: italic;
-    font-size: 0.92rem;
-    font-weight: 500;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.76rem;
+    font-weight: 700;
     color: var(--cyan-ink);
-    letter-spacing: -0.01em;
+    letter-spacing: 0.01em;
   }
 
   .plans-vitality-bar-track {
@@ -5211,48 +5257,6 @@
     font-size: 0.58rem;
     color: var(--muted-foreground);
     letter-spacing: 0.02em;
-  }
-
-  /* Reserve pressure card */
-  .plans-pressure-unit {
-    font-family: var(--font-display), "Newsreader", Georgia, serif;
-    font-style: italic;
-    font-size: 0.55em;
-    color: var(--muted-foreground);
-    margin-left: 0.15em;
-  }
-
-  .plans-pressure-bar {
-    height: 8px;
-    border-radius: 4px;
-    background: color-mix(in oklab, var(--border) 35%, transparent);
-    overflow: hidden;
-    margin-top: auto;
-  }
-
-  .plans-pressure-bar-fill {
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--signal), var(--cyan-ink));
-    box-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
-    transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .plans-pressure-meta {
-    display: flex;
-    justify-content: space-between;
-    font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.62rem;
-    color: var(--muted-foreground);
-    letter-spacing: 0.02em;
-    margin-top: 0.2rem;
-  }
-
-  /* Claims velocity card */
-  .plans-velocity {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
   }
 
   /* Lanes card */
@@ -5324,12 +5328,403 @@
     flex-shrink: 0;
   }
 
-  .plans-lane-mode {
+  .plans-lane-mode,
+  .plans-lane-outcomes {
     font-family: var(--font-mono), "Fira Code", monospace;
     font-size: 0.62rem;
     color: var(--muted-foreground);
     letter-spacing: 0.02em;
     text-transform: uppercase;
+  }
+
+  /* ── Primary / secondary CTAs ── */
+
+  .plans-primary-cta {
+    cursor: pointer;
+  }
+
+  .plans-secondary-cta {
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 96%, white 4%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    cursor: pointer;
+    box-shadow:
+      0 12px 24px -20px rgba(10, 21, 37, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+  }
+
+  .plans-secondary-cta:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--border-strong) 42%, var(--border));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 98%, white 2%), color-mix(in oklab, var(--surface) 96%, var(--surface-elevated) 4%));
+    box-shadow:
+      0 14px 28px -20px rgba(10, 21, 37, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.05);
+  }
+
+  .plans-secondary-cta:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .plans-secondary-cta:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 3px;
+  }
+
+  .plans-secondary-cta .material-symbols-outlined {
+    font-size: 1rem;
+    color: var(--cyan-ink);
+  }
+
+  /* ── Members view ── */
+
+  .plans-members-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .plans-members-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+    flex-wrap: wrap;
+  }
+
+  .plans-members-chips {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .plans-chip {
+    padding: 0.42rem 0.8rem;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 16%, var(--border));
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 96%, white 4%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow:
+      0 10px 18px -18px rgba(10, 21, 37, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.68),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+    transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+
+  .plans-chip:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--border-strong) 34%, var(--border));
+    color: var(--foreground);
+  }
+
+  .plans-chip:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 2px;
+  }
+
+  .plans-chip-active {
+    border-color: color-mix(in oklab, var(--cyan-ink) 40%, var(--border));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 94%, white 6%), color-mix(in oklab, var(--surface) 90%, var(--signal-soft) 10%));
+    color: var(--cyan-ink);
+  }
+
+  .plans-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background: color-mix(in oklab, var(--surface-elevated) 35%, transparent);
+    min-width: 14rem;
+    transition: border-color 180ms ease;
+  }
+
+  .plans-search:focus-within {
+    border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+
+  .plans-search .material-symbols-outlined {
+    font-size: 1.05rem;
+    color: var(--muted-foreground);
+  }
+
+  .plans-search input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.82rem;
+    color: var(--foreground);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .plans-search input::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .plans-member-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .plans-member-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem;
+    border-radius: 1.1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+    background: color-mix(in oklab, var(--surface-elevated) 42%, transparent);
+    transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .plans-member-card:hover {
+    border-color: color-mix(in oklab, var(--accent) 28%, transparent);
+    background: color-mix(in oklab, var(--signal-soft) 34%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .plans-member-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .plans-member-avatar {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, color-mix(in oklab, var(--signal) 32%, transparent), color-mix(in oklab, var(--cyan-ink) 22%, transparent));
+    color: var(--accent);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    border: 1px solid color-mix(in oklab, var(--accent) 25%, transparent);
+    flex-shrink: 0;
+  }
+
+  .plans-member-id {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .plans-member-wallet {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .plans-member-position {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.04em;
+  }
+
+  .plans-member-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 50%, transparent);
+  }
+
+  .plans-member-label {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.54rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--muted-foreground);
+  }
+
+  .plans-member-rights {
+    font-size: 0.78rem;
+    color: var(--foreground);
+    font-weight: 500;
+  }
+
+  /* ── Claims control card ── */
+
+  .plans-claims-control {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 1.15rem clamp(1rem, 1.5vw, 1.35rem);
+    flex-wrap: wrap;
+  }
+
+  .plans-claims-control-segment {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0 clamp(0.85rem, 1.5vw, 1.4rem);
+    min-width: 0;
+    flex: 1;
+  }
+
+  .plans-claims-control-segment:first-child {
+    padding-left: 0.3rem;
+  }
+
+  .plans-claims-control-divider {
+    align-self: stretch;
+    width: 1px;
+    margin: 0.35rem 0;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in oklab, var(--border-strong) 55%, transparent) 50%,
+      transparent 100%
+    );
+    flex-shrink: 0;
+  }
+
+  .plans-control-label {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.54rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--muted-foreground);
+  }
+
+  .plans-control-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--foreground);
+    letter-spacing: -0.015em;
+  }
+
+  .plans-control-value-accent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--cyan-ink);
+    font-size: 1rem;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .plans-control-meta {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .plans-claims-control-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding-left: clamp(0.85rem, 1.5vw, 1.4rem);
+    flex-shrink: 0;
+  }
+
+  /* ── Treasury funding list ── */
+
+  .plans-funding-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .plans-funding-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--surface-elevated) 40%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+    transition: border-color 180ms ease;
+  }
+
+  .plans-funding-row:hover {
+    border-color: color-mix(in oklab, var(--accent) 28%, transparent);
+  }
+
+  .plans-funding-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .plans-funding-row-head > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .plans-funding-name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .plans-funding-type {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .plans-funding-amount {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--cyan-ink);
+    letter-spacing: 0.01em;
+    flex-shrink: 0;
+  }
+
+  .plans-funding-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.58rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
   }
 
   /* ── Badges ── */
@@ -5477,9 +5872,9 @@
   .plans-rail-card {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 1.1rem 1.2rem;
-    border-radius: 1.35rem;
+    gap: 0.55rem;
+    padding: 0.9rem 1rem;
+    border-radius: 1.15rem;
   }
 
   .plans-rail-head {
@@ -5491,9 +5886,9 @@
 
   .plans-rail-tag {
     font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.55rem;
+    font-size: 0.52rem;
     text-transform: uppercase;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.22em;
     color: var(--muted-foreground);
   }
 
@@ -5502,31 +5897,31 @@
     align-items: center;
     gap: 0.3rem;
     font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.55rem;
+    font-size: 0.52rem;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     color: var(--accent);
   }
 
   .plans-rail-hero {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.15rem;
   }
 
   .plans-rail-hero-val {
-    font-family: var(--font-display), "Newsreader", Georgia, serif;
-    font-style: italic;
-    font-size: clamp(1.7rem, 2.6vw, 2.1rem);
-    font-weight: 500;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: clamp(1.15rem, 1.7vw, 1.4rem);
+    font-weight: 700;
     color: var(--cyan-ink);
-    line-height: 1;
-    letter-spacing: -0.035em;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
   }
 
   .plans-rail-hero-sub {
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     color: var(--muted-foreground);
+    line-height: 1.35;
   }
 
   .plans-rail-bar {
@@ -5554,13 +5949,13 @@
   }
 
   .plans-rail-row > span {
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     color: var(--muted-foreground);
   }
 
   .plans-rail-row > strong {
     font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--foreground);
   }
@@ -5595,12 +5990,12 @@
   .plans-rail-event {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.65rem;
-    padding: 0.7rem 0;
+    gap: 0.55rem;
+    padding: 0.55rem 0;
     border-top: 1px solid color-mix(in oklab, var(--border) 35%, transparent);
   }
-  .plans-rail-event:first-child { border-top: none; padding-top: 0.2rem; }
-  .plans-rail-event:last-child { padding-bottom: 0.2rem; }
+  .plans-rail-event:first-child { border-top: none; padding-top: 0.15rem; }
+  .plans-rail-event:last-child { padding-bottom: 0.15rem; }
 
   .plans-rail-event-dot {
     width: 0.48rem;
@@ -5629,7 +6024,7 @@
   }
 
   .plans-rail-event-label {
-    font-size: 0.78rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--foreground);
   }
@@ -5637,16 +6032,16 @@
   .plans-rail-event-time {
     flex-shrink: 0;
     font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.54rem;
+    font-size: 0.5rem;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     color: var(--muted-foreground);
   }
 
   .plans-rail-event-detail {
-    margin: 0.3rem 0 0;
-    font-size: 0.78rem;
-    line-height: 1.5;
+    margin: 0.22rem 0 0;
+    font-size: 0.68rem;
+    line-height: 1.45;
     color: var(--muted-foreground);
   }
 
@@ -5713,7 +6108,8 @@
     color: var(--muted-foreground);
     font-size: 0.85rem;
     line-height: 1.55;
-    max-width: 36ch;
+    max-width: 42ch;
+    text-wrap: pretty;
   }
 
   /* ── Settings grid ── */
@@ -5770,6 +6166,696 @@
     flex-shrink: 0;
   }
 
+  /* ── Plan creation wizard ────────────── */
+
+  .plans-wizard-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.5rem, 2.5vw, 2.25rem);
+    width: min(100%, 80rem);
+    height: 100%;
+    margin: 0 auto;
+    padding: clamp(0.5rem, 1vw, 0.85rem) clamp(0.5rem, 1.2vw, 1.25rem) clamp(2rem, 3vw, 3rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .plans-wizard-scroll::-webkit-scrollbar { width: 8px; }
+  .plans-wizard-scroll::-webkit-scrollbar-track { background: transparent; }
+  .plans-wizard-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--border) 50%, transparent);
+    border-radius: 999px;
+  }
+
+  .plans-wizard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0.5rem 0;
+  }
+
+  .plans-wizard-header-ident {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .plans-wizard-wordmark {
+    font-family: var(--font-display), "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--cyan-ink);
+    letter-spacing: -0.025em;
+  }
+
+  .plans-wizard-header-divider {
+    width: 1px;
+    height: 1.4rem;
+    background: color-mix(in oklab, var(--border-strong) 60%, transparent);
+  }
+
+  .plans-wizard-header-label {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    color: var(--muted-foreground);
+  }
+
+  .plans-wizard-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.62rem 1rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 16%, var(--border));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 96%, white 4%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    box-shadow:
+      0 12px 24px -20px rgba(10, 21, 37, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition:
+      transform 180ms ease,
+      box-shadow 200ms ease,
+      border-color 180ms ease,
+      background 180ms ease,
+      color 180ms ease;
+  }
+
+  .plans-wizard-cancel:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--border-strong) 34%, var(--border));
+    color: var(--foreground);
+  }
+
+  .plans-wizard-cancel:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 3px;
+  }
+
+  .plans-wizard-cancel .material-symbols-outlined {
+    font-size: 1rem;
+    color: var(--cyan-ink);
+    transition: transform 180ms ease;
+  }
+
+  .plans-wizard-cancel:hover .material-symbols-outlined {
+    transform: rotate(90deg);
+  }
+
+  .plans-wizard-progress-wrap {
+    padding: 0 0.25rem;
+  }
+
+  .plans-wizard-progress {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    padding: 0.35rem;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .plans-wizard-progress-indicator {
+    position: absolute;
+    left: 0.35rem;
+    top: 0.35rem;
+    bottom: 0.35rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(51, 230, 255, 0.85) 0%, rgba(0, 201, 224, 0.65) 100%);
+    box-shadow:
+      0 8px 22px -10px rgba(0, 180, 226, 0.55),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1), width 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    /* Account for the 0.35rem padding on both sides (*2 = 0.7rem) */
+    width: calc((100% - 0.7rem) / 5);
+    pointer-events: none;
+  }
+
+  .plans-wizard-step {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    flex: 1;
+    padding: 0.7rem 0.6rem;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-body), "Space Grotesk", system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 220ms ease, color 220ms ease;
+  }
+
+  .plans-wizard-step:hover {
+    opacity: 0.85;
+  }
+
+  .plans-wizard-step-active,
+  .plans-wizard-step-past {
+    color: #001014;
+    opacity: 1;
+  }
+
+  .plans-wizard-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.35rem;
+    border: 1px solid currentColor;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+
+  .plans-wizard-step-label {
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+
+  .plans-wizard-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: clamp(1.5rem, 3vw, 2.75rem);
+    align-items: start;
+    padding: 0 0.5rem;
+  }
+
+  .plans-wizard-prompt {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .plans-wizard-headline {
+    margin: 0;
+    font-family: var(--font-display), "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: clamp(2.2rem, 3.8vw, 3.2rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    color: var(--muted-foreground);
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+
+  .plans-wizard-headline em {
+    font-style: italic;
+    color: var(--cyan-ink);
+    font-weight: 500;
+  }
+
+  .plans-wizard-body-text {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+    max-width: 38ch;
+  }
+
+  .plans-wizard-tip {
+    padding: 1rem 1.1rem;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 0.85rem 0.85rem 0;
+    background: color-mix(in oklab, var(--surface-elevated) 50%, transparent);
+  }
+
+  .plans-wizard-tip-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .plans-wizard-tip p {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--muted-foreground);
+  }
+
+  .plans-wizard-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.85rem;
+    padding: clamp(1.5rem, 2.3vw, 2.25rem);
+    border-radius: 1.5rem;
+  }
+
+  .plans-wizard-step-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+  }
+
+  .plans-wizard-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .plans-wizard-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .plans-wizard-field-label {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--muted-foreground);
+  }
+
+  .plans-wizard-input {
+    width: 100%;
+    padding: 0.95rem 1.1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--surface-elevated) 40%, transparent);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--foreground);
+    outline: none;
+    transition: border-color 180ms ease, background-color 180ms ease;
+    font-weight: 500;
+  }
+
+  .plans-wizard-input:focus {
+    border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+    background: color-mix(in oklab, var(--surface-elevated) 65%, transparent);
+  }
+
+  .plans-wizard-input::placeholder {
+    color: color-mix(in oklab, var(--muted-foreground) 85%, transparent);
+    font-weight: 400;
+  }
+
+  .plans-wizard-input-lg {
+    font-size: 1.15rem;
+    font-weight: 600;
+    padding: 1.05rem 1.25rem;
+  }
+
+  select.plans-wizard-input {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+                      linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+    background-position: calc(100% - 1.25rem) 1.15rem, calc(100% - 1rem) 1.15rem;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 2.5rem;
+    cursor: pointer;
+  }
+
+  .plans-wizard-field-bar {
+    position: relative;
+  }
+
+  .plans-wizard-field-bar::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 30%;
+    background: var(--accent);
+    border-radius: 0 3px 3px 0;
+    transition: height 220ms ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .plans-wizard-field-bar:focus-within::before {
+    height: 80%;
+  }
+
+  .plans-wizard-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in oklab, var(--border-strong) 55%, transparent) 50%,
+      transparent 100%
+    );
+  }
+
+  .plans-wizard-section-label {
+    margin: 0;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--muted-foreground);
+    font-weight: 700;
+  }
+
+  .plans-wizard-disabled-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.25rem 1.35rem;
+    border: 1px dashed color-mix(in oklab, var(--border-strong) 55%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--surface-elevated) 22%, transparent);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  .plans-wizard-disabled-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .plans-wizard-disabled-head .plans-wizard-field-label {
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  .plans-wizard-disabled-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .plans-wizard-disabled-value .material-symbols-outlined {
+    font-size: 1rem;
+    color: var(--muted-foreground);
+  }
+
+  .plans-wizard-disabled-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--danger) 14%, transparent);
+    color: var(--danger);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border: 1px solid color-mix(in oklab, var(--danger) 22%, transparent);
+    flex-shrink: 0;
+  }
+
+  .plans-wizard-disabled-reason {
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.55rem;
+    background: color-mix(in oklab, var(--surface-elevated) 45%, transparent);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+
+  .plans-wizard-chips {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .plans-wizard-chip {
+    padding: 0.7rem 1.25rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 16%, var(--border));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 96%, white 4%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow:
+      0 12px 22px -20px rgba(10, 21, 37, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+    transition: border-color 180ms ease, color 180ms ease, background 180ms ease, transform 180ms ease;
+  }
+
+  .plans-wizard-chip:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--border-strong) 34%, var(--border));
+    color: var(--cyan-ink);
+  }
+
+  .plans-wizard-chip:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 2px;
+  }
+
+  .plans-wizard-chip-active {
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 94%, white 6%), color-mix(in oklab, var(--surface) 90%, var(--signal-soft) 10%));
+    border-color: color-mix(in oklab, var(--cyan-ink) 42%, var(--border));
+    color: var(--cyan-ink);
+    box-shadow:
+      0 12px 22px -20px rgba(10, 21, 37, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 0 0 1px color-mix(in oklab, var(--cyan-ink) 18%, transparent);
+  }
+
+  .plans-wizard-review-grid {
+    display: grid;
+    gap: 0;
+  }
+
+  .plans-wizard-review-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 35%, transparent);
+  }
+
+  .plans-wizard-review-row:last-child {
+    border-bottom: none;
+  }
+
+  .plans-wizard-review-label {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--muted-foreground);
+  }
+
+  .plans-wizard-review-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--foreground);
+    text-align: right;
+    font-family: var(--font-mono), "Fira Code", monospace;
+  }
+
+  .plans-wizard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+    flex-wrap: wrap;
+  }
+
+  .plans-wizard-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.72rem 1.08rem;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 16%, var(--border));
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 96%, white 4%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    box-shadow:
+      0 12px 24px -20px rgba(10, 21, 37, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      transform 180ms ease,
+      box-shadow 200ms ease,
+      border-color 180ms ease,
+      background 180ms ease,
+      color 180ms ease;
+  }
+
+  .plans-wizard-back:not(:disabled):hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--border-strong) 34%, var(--border));
+  }
+
+  .plans-wizard-back:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .plans-wizard-back:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 3px;
+  }
+
+  .plans-wizard-back .material-symbols-outlined {
+    font-size: 1rem;
+    color: var(--cyan-ink);
+  }
+
+  .plans-wizard-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0.72rem 1.25rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 18%, var(--border-strong));
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--foreground) 94%, var(--surface-elevated) 6%), color-mix(in oklab, var(--foreground) 88%, var(--surface) 12%));
+    color: var(--background);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow:
+      0 14px 30px -22px rgba(10, 21, 37, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+    transition:
+      transform 200ms ease,
+      box-shadow 200ms ease,
+      border-color 200ms ease,
+      background 200ms ease;
+  }
+
+  .plans-wizard-next:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--foreground) 28%, var(--border-strong));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--foreground) 97%, var(--surface-elevated) 3%), color-mix(in oklab, var(--foreground) 91%, var(--surface) 9%));
+    box-shadow:
+      0 18px 34px -22px rgba(10, 21, 37, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .plans-wizard-next:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .plans-wizard-next:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 52%, transparent);
+    outline-offset: 3px;
+  }
+
+  .plans-wizard-next-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .plans-wizard-next .material-symbols-outlined {
+    font-size: 1.08rem;
+    color: currentColor;
+    opacity: 0.88;
+  }
+
+  .plans-wizard-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 0.5rem;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.58rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 1279px) {
+    .plans-wizard-body {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    .plans-wizard-prompt {
+      position: static;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .plans-wizard-progress {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .plans-wizard-progress::-webkit-scrollbar { display: none; }
+    .plans-wizard-step {
+      flex: 0 0 auto;
+      min-width: max-content;
+    }
+    .plans-wizard-progress-indicator {
+      display: none;
+    }
+    .plans-wizard-step-active,
+    .plans-wizard-step-past {
+      color: var(--cyan-ink);
+    }
+
+    .plans-wizard-row {
+      grid-template-columns: 1fr;
+    }
+
+    .plans-wizard-footer {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .plans-wizard-next {
+      justify-content: space-between;
+    }
+  }
+
   @media (max-width: 1320px) {
     .protocol-topbar-icon-group {
       display: none;
@@ -5820,12 +6906,16 @@
     }
 
     .plans-hero {
-      grid-template-columns: 1fr;
-      gap: 1.25rem;
+      min-height: auto;
+      gap: 0.6rem;
     }
 
     .plans-body {
       grid-template-columns: 1fr;
+    }
+
+    .plans-main {
+      min-height: auto;
     }
 
     .plans-rail {
@@ -5835,35 +6925,69 @@
       align-items: start;
     }
 
-    .plans-overview-grid {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto;
-    }
-    .plans-vitality,
-    .plans-pressure,
-    .plans-velocity,
-    .plans-lanes {
-      grid-column: 1 / -1;
-      grid-row: auto;
-    }
-
-    .plans-kpi-strip {
+    .plans-vitality-stats {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       row-gap: 1rem;
     }
-    .plans-kpi-metric:nth-child(3) {
-      border-left: none;
-      padding-left: 0.2rem;
+
+    .plans-hero-head {
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+    }
+
+    .plans-hero-actions {
+      justify-content: flex-start;
+      padding-top: 0;
+    }
+
+    .plans-context-bar {
+      --plans-context-control-height: 4rem;
+    }
+
+    .plans-context-selectors {
+      min-height: 4rem;
+    }
+
+    .plans-hero-cta {
+      min-height: 3.2rem;
+      min-width: 0;
+      justify-content: center;
+    }
+
+    .plans-claims-control {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+    .plans-claims-control-divider {
+      width: 100%;
+      height: 1px;
+      margin: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in oklab, var(--border-strong) 55%, transparent) 50%,
+        transparent 100%
+      );
+    }
+    .plans-claims-control-segment {
+      padding: 0;
+    }
+    .plans-claims-control-actions {
+      padding-left: 0;
+      justify-content: flex-end;
+      flex-wrap: wrap;
     }
   }
 
   @media (max-width: 899px) {
-    .plans-hero-selectors {
+    .plans-context-selectors {
       grid-template-columns: 1fr;
       gap: 0.25rem;
+      min-height: auto;
     }
 
-    .plans-hero-selectors-divider {
+    .plans-context-divider {
       width: 100%;
       height: 1px;
       margin: 0.15rem 0;
@@ -5879,19 +7003,22 @@
       grid-template-columns: 1fr;
     }
 
-    .plans-kpi-strip {
+    .plans-vitality-stats {
       grid-template-columns: 1fr;
       row-gap: 0.75rem;
     }
-    .plans-kpi-metric {
-      border-left: none !important;
-      padding-left: 0.2rem;
-      border-top: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
-      padding-top: 0.75rem;
+
+    .plans-members-head {
+      flex-direction: column;
+      align-items: stretch;
     }
-    .plans-kpi-metric:first-child {
-      border-top: none;
-      padding-top: 0;
+
+    .plans-members-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .plans-members-toolbar .plans-search {
+      width: 100%;
     }
 
     .protocol-workbench-shell {
@@ -6064,16 +7191,18 @@
     }
 
     .plans-hero-title {
-      font-size: clamp(2.2rem, 10vw, 3.1rem);
+      font-size: clamp(2rem, 9vw, 2.8rem);
+      min-height: 0;
     }
 
     .plans-hero-subtitle {
       font-size: 0.82rem;
+      min-height: 0;
     }
 
-    .plans-hero-selectors {
-      padding: 0.65rem 0.75rem;
-      border-radius: 1rem;
+    .plans-context-selectors {
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.95rem;
     }
 
     .plans-tabs {
@@ -6087,9 +7216,18 @@
       font-size: 0.74rem;
     }
 
-    .plans-tab-icon,
     .plans-tab-number {
       display: none;
+    }
+
+    .plans-member-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .plans-hero-cta {
+      min-height: 2.85rem;
+      width: 100%;
+      min-width: 0;
     }
 
     .plans-card {

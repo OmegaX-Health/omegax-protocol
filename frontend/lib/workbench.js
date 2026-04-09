@@ -11,12 +11,9 @@ export const WORKBENCH_NAV = [
 ];
 export const PLAN_TABS = [
     { id: "overview", label: "Overview" },
-    { id: "series", label: "Series" },
     { id: "members", label: "Members" },
     { id: "claims", label: "Claims" },
-    { id: "schemas", label: "Schemas" },
-    { id: "funding", label: "Funding" },
-    { id: "settings", label: "Settings" },
+    { id: "treasury", label: "Treasury" },
 ];
 export const CAPITAL_TABS = [
     { id: "overview", label: "Overview" },
@@ -261,7 +258,7 @@ export function derivePersonaFromRole(role) {
 export function defaultTabForPersona(section, persona) {
     if (section === "plans") {
         if (persona === "capital")
-            return "funding";
+            return "treasury";
         if (persona === "governance")
             return "claims";
         return "overview";

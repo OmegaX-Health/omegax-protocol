@@ -2,12 +2,10 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { SearchableSelect } from "@/components/searchable-select";
-import { WorkbenchEmptyState, WorkbenchRailCard, WorkbenchTabs } from "@/components/workbench-ui";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
@@ -25,15 +23,73 @@ import {
   hasPendingRedemptionQueue,
   shortenAddress,
 } from "@/lib/protocol";
+import { cn } from "@/lib/cn";
+
+/* ── Constants ──────────────────────────────────────── */
+
+const TAB_NUMBERS: Record<CapitalTabId, string> = {
+  overview: "01",
+  classes: "02",
+  allocations: "03",
+  queue: "04",
+  "linked-plans": "05",
+};
+
+type TabHero = { eyebrow: string; title: string; emphasis: string; tail: string; subtitle: string };
+
+const TAB_HEROES: Record<CapitalTabId, TabHero> = {
+  overview: {
+    eyebrow: "RESERVE_TREASURY_CONSOLE",
+    title: "Reserve",
+    emphasis: "Treasury.",
+    tail: "",
+    subtitle:
+      "A single operational heartbeat for protocol capital — pool depth, class allocation and redemption pressure across every lane.",
+  },
+  classes: {
+    eyebrow: "CAPITAL_CLASS_REGISTER",
+    title: "Capital",
+    emphasis: "Classes.",
+    tail: "",
+    subtitle:
+      "Tranche restrictions, NAV depth and lockup posture for each class linked to the active liquidity pool.",
+  },
+  allocations: {
+    eyebrow: "ALLOCATION_DEPLOYMENT_LANES",
+    title: "Allocation",
+    emphasis: "Lanes.",
+    tail: "",
+    subtitle:
+      "Live deployment between class capacity and the health plans currently consuming this pool's reserves.",
+  },
+  queue: {
+    eyebrow: "REDEMPTION_QUEUE_MONITOR",
+    title: "Redemption",
+    emphasis: "Queue.",
+    tail: "",
+    subtitle:
+      "Pending exits and processing windows in protocol custody. Trace queue depth and clear redemption pressure.",
+  },
+  "linked-plans": {
+    eyebrow: "LINKED_PLAN_ROUTING",
+    title: "Linked",
+    emphasis: "Plans.",
+    tail: "",
+    subtitle:
+      "Health plans currently funded by this pool. Trace which sponsors depend on the selected reserve and open them in context.",
+  },
+};
+
+/* ── Helpers ────────────────────────────────────────── */
 
 function describeRedemptionPolicyInline(queueOnly?: boolean) {
-  return queueOnly ? "queue_only" : "open";
+  return queueOnly ? "QUEUE_ONLY" : "OPEN";
 }
 
 function buildPlansWorkbenchHref(input: {
   plan: string;
   series?: string | null;
-  tab: "funding" | "overview";
+  tab: "funding" | "overview" | "treasury";
 }): string {
   const params = new URLSearchParams({
     plan: input.plan,
@@ -45,53 +101,123 @@ function buildPlansWorkbenchHref(input: {
   return `/plans?${params.toString()}`;
 }
 
+function personaEyebrow(persona: string): string {
+  switch (persona) {
+    case "sponsor": return "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE";
+    case "capital": return "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE";
+    case "governance": return "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE";
+    default: return "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE";
+  }
+}
+
+function CapitalEmptyState({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div className="plans-empty liquid-glass">
+      <strong>{title}</strong>
+      <p>{copy}</p>
+    </div>
+  );
+}
+
+type HeroSelectorProps<T extends { address: string }> = {
+  eyebrow: string;
+  label: string;
+  value: T | null;
+  options: T[];
+  renderLabel: (item: T) => string;
+  renderMeta: (item: T) => string;
+  placeholder: string;
+  disabled?: boolean;
+  onChange: (address: string) => void;
+};
+
+function HeroSelector<T extends { address: string }>(props: HeroSelectorProps<T>) {
+  return (
+    <label className={cn("plans-hero-select", props.disabled && "plans-hero-select-disabled")}>
+      <span className="plans-hero-select-eyebrow">{props.eyebrow}</span>
+      <div className="plans-hero-select-body">
+        <div className="plans-hero-select-copy">
+          <span className="plans-hero-select-label">
+            {props.value ? props.renderLabel(props.value) : props.placeholder}
+          </span>
+          <span className="plans-hero-select-meta">
+            {props.value ? props.renderMeta(props.value) : "—"}
+          </span>
+        </div>
+        <span className="material-symbols-outlined plans-hero-select-caret" aria-hidden="true">unfold_more</span>
+      </div>
+      <select
+        className="plans-hero-select-native"
+        value={props.value?.address ?? ""}
+        disabled={props.disabled}
+        onChange={(event) => props.onChange(event.target.value)}
+        aria-label={props.label}
+      >
+        {props.value ? null : <option value="">{props.placeholder}</option>}
+        {props.options.map((option) => (
+          <option key={option.address} value={option.address}>
+            {props.renderLabel(option)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/* ── Component ──────────────────────────────────────── */
+
 export function CapitalWorkbench() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
-  const [poolSearch, setPoolSearch] = useState("");
+
+  /* ── Selection state ── */
 
   const requestedTab = searchParams.get("tab");
   const activeTab = (CAPITAL_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("capital", effectivePersona)) as CapitalTabId;
 
   const allPools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
-  const filteredPools = useMemo(() => {
-    const query = poolSearch.trim().toLowerCase();
-    if (!query) return allPools;
-    return allPools.filter((pool) =>
-      [pool.displayName, pool.poolId, pool.address, pool.strategyThesis].some((value) =>
-        value.toLowerCase().includes(query),
-      ),
-    );
-  }, [allPools, poolSearch]);
-
   const queryPool = searchParams.get("pool")?.trim() ?? "";
   const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
   const hasInvalidPool = Boolean(queryPool) && !matchedPool;
   const selectedPool = useMemo(() => {
     if (hasInvalidPool) return null;
-    return matchedPool ?? filteredPools[0] ?? allPools[0] ?? null;
-  }, [allPools, filteredPools, hasInvalidPool, matchedPool]);
+    return matchedPool ?? allPools[0] ?? null;
+  }, [allPools, hasInvalidPool, matchedPool]);
+
   const poolClasses = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.filter((capitalClass) => capitalClass.liquidityPool === selectedPool?.address),
+    () =>
+      DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.filter(
+        (capitalClass) => capitalClass.liquidityPool === selectedPool?.address,
+      ),
     [selectedPool],
   );
+
   const queryClass = searchParams.get("class")?.trim() ?? "";
-  const matchedClass = useMemo(() => poolClasses.find((capitalClass) => capitalClass.address === queryClass) ?? null, [poolClasses, queryClass]);
+  const matchedClass = useMemo(
+    () => poolClasses.find((capitalClass) => capitalClass.address === queryClass) ?? null,
+    [poolClasses, queryClass],
+  );
   const hasInvalidClass = Boolean(queryClass) && !matchedClass;
   const selectedClass = useMemo(() => {
     if (hasInvalidClass) return null;
     return matchedClass ?? poolClasses[0] ?? null;
   }, [hasInvalidClass, matchedClass, poolClasses]);
+
+  /* ── Derived data ── */
+
   const capitalView = useMemo(
     () => consoleState.capital.find((entry) => entry.liquidityPoolAddress === selectedPool?.address) ?? null,
     [consoleState.capital, selectedPool],
   );
   const poolAllocations = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter((allocation) => allocation.liquidityPool === selectedPool?.address),
+    () =>
+      DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
+        (allocation) => allocation.liquidityPool === selectedPool?.address,
+      ),
     [selectedPool],
   );
   const queueRows = useMemo(() => {
@@ -100,6 +226,21 @@ export function CapitalWorkbench() {
       (position) => classAddresses.has(position.capitalClass) && hasPendingRedemptionQueue(position),
     );
   }, [poolClasses]);
+  const linkedPlanContext = linkedContextForPool(selectedPool?.address);
+  const linkedPlans = useMemo(() => {
+    const ids = new Set(poolAllocations.map((allocation) => allocation.healthPlan));
+    return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.filter((plan) => ids.has(plan.address));
+  }, [poolAllocations]);
+  const auditTrail = useMemo(
+    () => buildAuditTrail({
+      section: "capital",
+      poolAddress: selectedPool?.address,
+      classAddress: selectedClass?.address,
+    }),
+    [selectedClass, selectedPool],
+  );
+
+  /* ── URL sync ── */
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -120,61 +261,46 @@ export function CapitalWorkbench() {
     if (selectedPool && queryPool !== selectedPool.address) nextUpdates.pool = selectedPool.address;
     if (selectedClass && queryClass !== selectedClass.address) nextUpdates.class = selectedClass.address;
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
-  }, [activeTab, hasInvalidClass, hasInvalidPool, queryClass, queryPool, requestedTab, selectedClass, selectedPool, updateParams]);
+  }, [
+    activeTab,
+    hasInvalidClass,
+    hasInvalidPool,
+    queryClass,
+    queryPool,
+    requestedTab,
+    selectedClass,
+    selectedPool,
+    updateParams,
+  ]);
 
-  const linkedPlanContext = linkedContextForPool(selectedPool?.address);
-  const linkedPlans = useMemo(() => {
-    const ids = new Set(poolAllocations.map((allocation) => allocation.healthPlan));
-    return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.filter((plan) => ids.has(plan.address));
-  }, [poolAllocations]);
-  const auditTrail = useMemo(
-    () => buildAuditTrail({
-      section: "capital",
-      poolAddress: selectedPool?.address,
-      classAddress: selectedClass?.address,
-    }),
-    [selectedClass, selectedPool],
-  );
-  const selectionToolbar = (
-    <div className="workbench-toolbar workbench-toolbar-compact">
-      <SearchableSelect
-        label="Liquidity pool"
-        value={selectedPool?.address ?? ""}
-        options={filteredPools.map((pool) => ({
-          value: pool.address,
-          label: `${pool.displayName} (${pool.poolId})`,
-          hint: pool.strategyThesis,
-        }))}
-        onChange={(value) => updateParams({ pool: value, class: null })}
-        searchValue={poolSearch}
-        onSearchChange={setPoolSearch}
-        placeholder="Choose pool"
-        error={hasInvalidPool ? "Requested liquidity pool was not found in the current fixture set." : null}
-        showOptionCount={false}
-        showSelectedHint={false}
-      />
+  /* ── Derived stats ── */
 
-      <SearchableSelect
-        label="Capital class"
-        value={selectedClass?.address ?? ""}
-        options={poolClasses.map((capitalClass) => ({
-          value: capitalClass.address,
-          label: `${capitalClass.displayName} (${capitalClass.classId})`,
-          hint: `${describeCapitalRestriction(capitalClass.restrictionMode)} // priority ${capitalClass.priority}`,
-        }))}
-        onChange={(value) => updateParams({ class: value })}
-        searchValue=""
-        onSearchChange={() => {}}
-        placeholder="Choose capital class"
-        disabled={!selectedPool}
-        disabledHint="Choose a valid liquidity pool before selecting a capital class."
-        error={hasInvalidClass ? "Requested capital class is not linked to the selected pool." : null}
-        emptyMessage="No capital classes are linked to this pool."
-        showOptionCount={false}
-        showSelectedHint={false}
-      />
-    </div>
-  );
+  const tvl = Number(selectedPool?.totalValueLocked ?? 0);
+  const allocated = Number(selectedPool?.totalAllocated ?? 0);
+  const pending = Number(selectedPool?.totalPendingRedemptions ?? 0);
+  const utilization = tvl > 0 ? Math.round((allocated / tvl) * 100) : 0;
+  const totalNav = Number(capitalView?.totalNav ?? 0);
+  const unallocated = Number(capitalView?.totalUnallocated ?? Math.max(0, tvl - allocated));
+
+  // Per-class breakdown bars (overview)
+  const classBars = useMemo(() => {
+    if (poolClasses.length === 0) return [] as Array<{ id: string; name: string; nav: number; allocated: number; ratio: number; pending: number }>;
+    const maxNav = poolClasses.reduce((max, c) => Math.max(max, Number(c.navAssets)), 0) || 1;
+    return poolClasses.map((capitalClass) => ({
+      id: capitalClass.address,
+      name: capitalClass.classId,
+      nav: Number(capitalClass.navAssets),
+      allocated: Number(capitalClass.allocatedAssets),
+      pending: Number(capitalClass.pendingRedemptions),
+      ratio: Number(capitalClass.navAssets) / maxNav,
+    }));
+  }, [poolClasses]);
+
+  const hero = TAB_HEROES[activeTab];
+  const eyebrow = activeTab === "overview" ? personaEyebrow(effectivePersona) : hero.eyebrow;
+
+  /* ── Invalid selection guard ── */
+
   const invalidSelection = hasInvalidPool
     ? {
         title: "Pool not found",
@@ -187,329 +313,651 @@ export function CapitalWorkbench() {
         }
       : null;
 
-  if (invalidSelection) {
-    return (
-      <div className="workbench-page">
-        <section className="workbench-main-column">
-          {selectionToolbar}
-
-          <section className="workbench-panel workbench-primary-surface">
-            <div className="workbench-panel-head">
-              <div>
-                <h2 className="workbench-panel-title">{invalidSelection.title}</h2>
-              </div>
-              <span className="workbench-card-meta">INVALID</span>
-            </div>
-
-            <WorkbenchEmptyState title={invalidSelection.title} copy={invalidSelection.copy} />
-          </section>
-        </section>
-
-        <aside className="workbench-rail">
-          <WorkbenchRailCard title="Selection status" meta="INVALID">
-            <WorkbenchEmptyState title={invalidSelection.title} copy="Use the selectors above to restore a valid capital view." />
-          </WorkbenchRailCard>
-        </aside>
-      </div>
-    );
-  }
+  /* ── Main render ── */
 
   return (
-    <div className="workbench-page">
-      <section className="workbench-main-column">
-        {selectionToolbar}
+    <div className="plans-shell">
+      <div className="plans-scroll">
 
-        <section className="workbench-panel workbench-primary-surface">
-          <div className="workbench-panel-head">
-            <div>
-              <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Select a pool"}</h2>
+        {/* ── Hero ──────────────────────────── */}
+        <header className="plans-hero">
+          <div className="plans-hero-glow" aria-hidden="true" />
+          <div className="plans-hero-head">
+            <div className="plans-hero-copy">
+              <span className="plans-hero-eyebrow">{eyebrow}</span>
+              <h1 className="plans-hero-title">
+                {hero.title}{" "}
+                {hero.emphasis ? <em>{hero.emphasis}</em> : null}
+                {hero.tail ? <> {hero.tail}</> : null}
+              </h1>
+              <p className="plans-hero-subtitle">{hero.subtitle}</p>
             </div>
-            {selectedClass ? <span className="workbench-card-meta">{selectedClass.classId}</span> : null}
+            <div className="plans-hero-actions">
+              {linkedPlanContext.plan ? (
+                <Link
+                  href={buildPlansWorkbenchHref({
+                    plan: linkedPlanContext.plan,
+                    series: linkedPlanContext.series,
+                    tab: "funding",
+                  })}
+                  className="plans-hero-cta"
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">north_east</span>
+                  OPEN_PLAN_FUNDING
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="plans-hero-cta"
+                  onClick={() => updateParams({ tab: "queue" })}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">stacks</span>
+                  REVIEW_QUEUE
+                </button>
+              )}
+            </div>
           </div>
+        </header>
 
-          <div className="workbench-summary-strip">
-            <div className="workbench-summary-metric">
-              <span>Pool TVL</span>
-              <strong>{formatAmount(selectedPool?.totalValueLocked ?? 0)}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Capital classes</span>
-              <strong>{poolClasses.length}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Allocations</span>
-              <strong>{poolAllocations.length}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Queue records</span>
-              <strong>{queueRows.length}</strong>
-            </div>
+        {/* ── Context bar ────────────────────── */}
+        <div className="plans-context-bar">
+          <div className="plans-context-selectors liquid-glass">
+            <HeroSelector
+              eyebrow="LIQUIDITY_POOL"
+              label="Liquidity pool"
+              value={selectedPool}
+              options={allPools}
+              renderLabel={(pool) => pool.displayName}
+              renderMeta={(pool) => `${pool.poolId} · ${describeRedemptionPolicyInline(pool.redemptionPolicy === 1)}`}
+              placeholder="Choose pool"
+              onChange={(value) => updateParams({ pool: value, class: null })}
+            />
+            <span className="plans-context-divider" aria-hidden="true" />
+            <HeroSelector
+              eyebrow="CAPITAL_CLASS"
+              label="Capital class"
+              value={selectedClass}
+              options={poolClasses}
+              renderLabel={(capitalClass) => capitalClass.displayName}
+              renderMeta={(capitalClass) =>
+                `${capitalClass.classId} · ${describeCapitalRestriction(capitalClass.restrictionMode)}`
+              }
+              placeholder={poolClasses.length > 0 ? "All classes" : "No classes"}
+              disabled={!selectedPool || poolClasses.length === 0}
+              onChange={(value) => updateParams({ class: value || null })}
+            />
           </div>
+        </div>
 
-          <WorkbenchTabs tabs={CAPITAL_TABS} active={activeTab} onChange={(tab) => updateParams({ tab })} />
+        {/* ── Tab bar ───────────────────────── */}
+        <nav className="plans-tabs liquid-glass" aria-label="Capital workspace sections">
+          <div className="plans-tabs-inner">
+            {CAPITAL_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  data-tab-id={tab.id}
+                  className={cn("plans-tab", isActive && "plans-tab-active")}
+                  onClick={() => updateParams({ tab: tab.id })}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span className="plans-tab-number">{TAB_NUMBERS[tab.id as CapitalTabId]}</span>
+                  <span className="plans-tab-label">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
 
-          {activeTab === "overview" ? (
-            <div className="workbench-content-split">
-              <div className="workbench-content-pane">
-                <div className="workbench-content-pane-head">
-                  <div>
-                    <h2 className="workbench-panel-title">{selectedPool?.displayName ?? "Select a pool"}</h2>
-                  </div>
-                  {selectedPool ? <span className="workbench-card-meta">{selectedPool.poolId}</span> : null}
-                </div>
-                <div className="workbench-data-list">
-                  <div className="workbench-data-row">
-                    <span>Total allocated</span>
-                    <strong>{formatAmount(selectedPool?.totalAllocated ?? 0)}</strong>
-                  </div>
-                  <div className="workbench-data-row">
-                    <span>Pending redemptions</span>
-                    <strong>{formatAmount(selectedPool?.totalPendingRedemptions ?? 0)}</strong>
-                  </div>
-                  <div className="workbench-data-row">
-                    <span>Linked plans</span>
-                    <strong>{linkedPlans.length}</strong>
-                  </div>
-                </div>
-                {linkedPlanContext.plan ? (
-                  <Link
-                    href={buildPlansWorkbenchHref({
-                      plan: linkedPlanContext.plan,
-                      series: linkedPlanContext.series,
-                      tab: "funding",
-                    })}
-                    className="workbench-inline-link"
-                  >
-                    Open linked plan funding
-                  </Link>
-                ) : null}
-              </div>
+        {/* ── Body ──────────────────────────── */}
+        {invalidSelection ? (
+          <CapitalEmptyState title={invalidSelection.title} copy={invalidSelection.copy} />
+        ) : (
+          <div className="plans-body">
+            <section className="plans-main">
 
-              <div className="workbench-content-pane">
-                <div className="workbench-content-pane-head">
-                  <div>
-                    <h2 className="workbench-panel-title">Capital classes</h2>
-                  </div>
-                </div>
-                <div className="workbench-list">
-                  {poolClasses.map((capitalClass) => (
-                    <button
-                      key={capitalClass.address}
-                      type="button"
-                      className={`workbench-list-row ${selectedClass?.address === capitalClass.address ? "workbench-list-row-active" : ""}`}
-                      onClick={() => updateParams({ class: capitalClass.address, tab: "classes" })}
-                    >
+              {/* ── OVERVIEW ── */}
+              {activeTab === "overview" ? (
+                <div className="plans-stack">
+                  <article className="plans-card plans-vitality heavy-glass">
+                    <div className="plans-card-head">
                       <div>
-                        <strong>{capitalClass.displayName}</strong>
-                        <p>{describeCapitalRestriction(capitalClass.restrictionMode)}</p>
+                        <p className="plans-card-eyebrow">POOL_VITALITY_INDEX</p>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          {selectedPool?.displayName ?? "Awaiting pool"}
+                        </h2>
                       </div>
-                      <div className="workbench-list-row-meta">
-                        <span>{formatAmount(capitalClass.navAssets)} NAV</span>
+                      <span className="plans-card-meta">
+                        <span className="plans-live-dot" aria-hidden="true" />
+                        {selectedPool?.poolId ?? "—"}
+                      </span>
+                    </div>
+
+                    <div className="plans-vitality-stats">
+                      <div className="plans-vitality-stat">
+                        <span className="plans-vitality-stat-value">
+                          ${formatAmount(tvl)}
+                        </span>
+                        <span className="plans-vitality-stat-label">Total value locked</span>
                       </div>
-                    </button>
+                      <div className="plans-vitality-stat">
+                        <span className="plans-vitality-stat-value">
+                          {utilization}<span className="plans-unit">%</span>
+                        </span>
+                        <span className="plans-vitality-stat-label">Capital deployed</span>
+                      </div>
+                      <div className="plans-vitality-stat">
+                        <span className="plans-vitality-stat-value">{poolClasses.length}</span>
+                        <span className="plans-vitality-stat-label">Active classes</span>
+                      </div>
+                      <div className="plans-vitality-stat">
+                        <span className="plans-vitality-stat-value plans-vitality-stat-value-accent">
+                          {queueRows.length}
+                        </span>
+                        <span className="plans-vitality-stat-label">In redemption queue</span>
+                      </div>
+                    </div>
+
+                    {classBars.length > 0 ? (
+                      <div className="plans-vitality-chart" aria-label="NAV by capital class">
+                        <div className="plans-vitality-chart-head">
+                          <span className="plans-chart-label">NAV_BY_CLASS</span>
+                          <span className="plans-chart-legend">NAV · Allocated</span>
+                        </div>
+                        <div className="plans-vitality-bars">
+                          {classBars.map((bar) => (
+                            <div key={bar.id} className="plans-vitality-bar">
+                              <div className="plans-vitality-bar-head">
+                                <span className="plans-vitality-bar-name">{bar.name}</span>
+                                <span className="plans-vitality-bar-val">${formatAmount(bar.nav)}</span>
+                              </div>
+                              <div className="plans-vitality-bar-track">
+                                <div
+                                  className="plans-vitality-bar-fill"
+                                  style={{ width: `${Math.max(4, bar.ratio * 100)}%` }}
+                                />
+                              </div>
+                              <span className="plans-vitality-bar-claims">
+                                ${formatAmount(bar.allocated)} allocated · ${formatAmount(bar.pending)} pending
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+
+                  <article className="plans-card plans-lanes heavy-glass">
+                    <div className="plans-card-head">
+                      <div>
+                        <p className="plans-card-eyebrow">CAPITAL_CLASSES</p>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          {poolClasses.length} active <em>{poolClasses.length === 1 ? "class" : "classes"}</em>
+                        </h2>
+                      </div>
+                      <span className="plans-card-meta">{selectedPool?.poolId}</span>
+                    </div>
+                    {poolClasses.length > 0 ? (
+                      <div className="plans-lane-stack">
+                        {poolClasses.map((capitalClass) => {
+                          const isSelected = selectedClass?.address === capitalClass.address;
+                          const lockup = capitalClass.minLockupSeconds
+                            ? `${Math.round(capitalClass.minLockupSeconds / 86400)}d lockup`
+                            : "no lockup";
+                          return (
+                            <button
+                              type="button"
+                              key={capitalClass.address}
+                              className={cn("plans-lane", isSelected && "plans-lane-active")}
+                              onClick={() =>
+                                updateParams({
+                                  class: isSelected ? null : capitalClass.address,
+                                })
+                              }
+                            >
+                              <div className="plans-lane-info">
+                                <span className="plans-lane-name">{capitalClass.displayName}</span>
+                                <span className="plans-lane-key">
+                                  {capitalClass.classId} · priority {capitalClass.priority} · {lockup}
+                                </span>
+                              </div>
+                              <div className="plans-lane-meta">
+                                <span className="plans-lane-mode">
+                                  {describeCapitalRestriction(capitalClass.restrictionMode)}
+                                </span>
+                                <span className="plans-lane-outcomes">
+                                  ${formatAmount(capitalClass.navAssets)} NAV
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="plans-card-body">
+                        No capital classes are currently linked to this pool.
+                      </p>
+                    )}
+                  </article>
+                </div>
+              ) : null}
+
+              {/* ── CLASSES ── */}
+              {activeTab === "classes" ? (
+                <article className="plans-card heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">TRANCHE_REGISTER</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        Capital <em>classes</em>
+                      </h2>
+                    </div>
+                    <span className="plans-card-meta">{poolClasses.length} tracked</span>
+                  </div>
+
+                  {poolClasses.length > 0 ? (
+                    <div className="plans-table-wrap">
+                      <table className="plans-table">
+                        <thead>
+                          <tr>
+                            <th>Class</th>
+                            <th>Restriction</th>
+                            <th>NAV</th>
+                            <th>Pending</th>
+                            <th>Lockup</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {poolClasses.map((capitalClass) => {
+                            const isActive = selectedClass?.address === capitalClass.address;
+                            return (
+                              <tr
+                                key={capitalClass.address}
+                                className={cn(isActive && "plans-table-row-active")}
+                              >
+                                <td data-label="Class">
+                                  <button
+                                    type="button"
+                                    className="plans-table-link"
+                                    onClick={() => updateParams({ class: capitalClass.address })}
+                                  >
+                                    {capitalClass.displayName}
+                                  </button>
+                                </td>
+                                <td data-label="Restriction">
+                                  {describeCapitalRestriction(capitalClass.restrictionMode)}
+                                </td>
+                                <td data-label="NAV">
+                                  <span className="plans-table-amount">
+                                    ${formatAmount(capitalClass.navAssets)}
+                                  </span>
+                                </td>
+                                <td data-label="Pending">
+                                  <span className="plans-table-amount">
+                                    ${formatAmount(capitalClass.pendingRedemptions)}
+                                  </span>
+                                </td>
+                                <td data-label="Lockup">
+                                  <span className="plans-table-mono">
+                                    {capitalClass.minLockupSeconds
+                                      ? `${Math.round(capitalClass.minLockupSeconds / 86400)}d`
+                                      : "—"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <CapitalEmptyState
+                      title="No capital classes"
+                      copy="Choose another pool or provision a class before continuing."
+                    />
+                  )}
+                </article>
+              ) : null}
+
+              {/* ── ALLOCATIONS ── */}
+              {activeTab === "allocations" ? (
+                <article className="plans-card heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">ALLOCATION_LANES</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        Deployed <em>capacity</em>
+                      </h2>
+                    </div>
+                    <span className="plans-card-meta">{poolAllocations.length} tracked</span>
+                  </div>
+
+                  {poolAllocations.length > 0 ? (
+                    <div className="plans-table-wrap">
+                      <table className="plans-table">
+                        <thead>
+                          <tr>
+                            <th>Plan</th>
+                            <th>Series</th>
+                            <th>Class</th>
+                            <th>Allocated</th>
+                            <th>Reserved</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {poolAllocations.map((allocation) => {
+                            const plan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find(
+                              (entry) => entry.address === allocation.healthPlan,
+                            );
+                            const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
+                              (entry) => entry.address === allocation.policySeries,
+                            );
+                            const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find(
+                              (entry) => entry.address === allocation.capitalClass,
+                            );
+                            return (
+                              <tr key={allocation.address}>
+                                <td data-label="Plan">
+                                  {plan ? (
+                                    <Link
+                                      href={buildPlansWorkbenchHref({
+                                        plan: plan.address,
+                                        tab: "overview",
+                                      })}
+                                      className="plans-table-link"
+                                    >
+                                      {plan.displayName}
+                                    </Link>
+                                  ) : (
+                                    <span className="plans-table-mono">
+                                      {shortenAddress(allocation.healthPlan, 6)}
+                                    </span>
+                                  )}
+                                </td>
+                                <td data-label="Series">
+                                  <span className="plans-table-mono">
+                                    {series?.seriesId ?? "Pool-wide"}
+                                  </span>
+                                </td>
+                                <td data-label="Class">
+                                  <span className="plans-table-mono">
+                                    {capitalClass?.classId ?? shortenAddress(allocation.capitalClass, 6)}
+                                  </span>
+                                </td>
+                                <td data-label="Allocated">
+                                  <span className="plans-table-amount">
+                                    ${formatAmount(allocation.allocatedAmount)}
+                                  </span>
+                                </td>
+                                <td data-label="Reserved">
+                                  <span className="plans-table-amount">
+                                    ${formatAmount(allocation.reservedCapacity)}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <CapitalEmptyState
+                      title="No allocations"
+                      copy="This pool has no live allocations into health plan funding lines."
+                    />
+                  )}
+                </article>
+              ) : null}
+
+              {/* ── QUEUE ── */}
+              {activeTab === "queue" ? (
+                <article className="plans-card heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">REDEMPTION_REGISTER</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        Pending <em>redemptions</em>
+                      </h2>
+                    </div>
+                    <span className="plans-card-meta">
+                      <span className="plans-live-dot" aria-hidden="true" />
+                      {queueRows.length} {queueRows.length === 1 ? "lane" : "lanes"}
+                    </span>
+                  </div>
+
+                  {queueRows.length > 0 ? (
+                    <div className="plans-table-wrap">
+                      <table className="plans-table">
+                        <thead>
+                          <tr>
+                            <th>Owner</th>
+                            <th>Class</th>
+                            <th>Shares</th>
+                            <th>Pending</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {queueRows.map((position) => {
+                            const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find(
+                              (entry) => entry.address === position.capitalClass,
+                            );
+                            return (
+                              <tr key={position.address}>
+                                <td data-label="Owner">
+                                  <span className="plans-table-mono">
+                                    {shortenAddress(position.owner, 6)}
+                                  </span>
+                                </td>
+                                <td data-label="Class">
+                                  <span className="plans-table-mono">
+                                    {capitalClass?.classId ?? shortenAddress(position.capitalClass, 6)}
+                                  </span>
+                                </td>
+                                <td data-label="Shares">
+                                  <span className="plans-table-amount">
+                                    {formatAmount(position.shares)}
+                                  </span>
+                                </td>
+                                <td data-label="Pending">
+                                  <span className="plans-table-amount">
+                                    {formatAmount(position.pendingRedemptionShares)}
+                                  </span>
+                                </td>
+                                <td data-label="Status">
+                                  <span className="plans-badge plans-badge-info">
+                                    {describeLpQueueStatus(position)}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <CapitalEmptyState
+                      title="Queue is clear"
+                      copy="No LP positions currently need redemption queue review for this pool."
+                    />
+                  )}
+                </article>
+              ) : null}
+
+              {/* ── LINKED PLANS ── */}
+              {activeTab === "linked-plans" ? (
+                <article className="plans-card heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">FUNDED_PLANS</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        Linked <em>plans</em>
+                      </h2>
+                    </div>
+                    <span className="plans-card-meta">{linkedPlans.length} tracked</span>
+                  </div>
+
+                  {linkedPlans.length > 0 ? (
+                    <div className="plans-table-wrap">
+                      <table className="plans-table">
+                        <thead>
+                          <tr>
+                            <th>Plan</th>
+                            <th>Plan id</th>
+                            <th>Series lanes</th>
+                            <th>Open</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {linkedPlans.map((plan) => {
+                            const seriesCount = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter(
+                              (series) => series.healthPlan === plan.address,
+                            ).length;
+                            return (
+                              <tr key={plan.address}>
+                                <td data-label="Plan">{plan.displayName}</td>
+                                <td data-label="Plan id">
+                                  <span className="plans-table-mono">{plan.planId}</span>
+                                </td>
+                                <td data-label="Series lanes">
+                                  <span className="plans-table-mono">{seriesCount}</span>
+                                </td>
+                                <td data-label="Open">
+                                  <Link
+                                    href={buildPlansWorkbenchHref({
+                                      plan: plan.address,
+                                      tab: "overview",
+                                    })}
+                                    className="plans-table-link"
+                                  >
+                                    Open plan →
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <CapitalEmptyState
+                      title="No linked plans"
+                      copy="This pool does not currently fund any plan lanes."
+                    />
+                  )}
+                </article>
+              ) : null}
+            </section>
+
+            {/* ── Rail ───────────────────────── */}
+            <aside className="plans-rail">
+              <section className="plans-rail-card heavy-glass">
+                <div className="plans-rail-head">
+                  <span className="plans-rail-tag">POOL_HEALTH</span>
+                  <span className="plans-rail-subtag">
+                    <span className="plans-live-dot" aria-hidden="true" />
+                    LIVE
+                  </span>
+                </div>
+                <div className="plans-rail-hero">
+                  <span className="plans-rail-hero-val">${formatAmount(totalNav || tvl)}</span>
+                  <span className="plans-rail-hero-sub">
+                    Total NAV · ${formatAmount(unallocated)} unallocated
+                  </span>
+                </div>
+                <div className="plans-rail-bar">
+                  <div
+                    className="plans-rail-bar-fill"
+                    style={{ width: `${Math.min(100, utilization)}%` }}
+                  />
+                </div>
+                <div className="plans-rail-row">
+                  <span>Deployed</span>
+                  <strong>{utilization}%</strong>
+                </div>
+                <div className="plans-rail-row">
+                  <span>Total allocated</span>
+                  <strong>${formatAmount(allocated)}</strong>
+                </div>
+                <div className="plans-rail-row">
+                  <span>Pending redemption</span>
+                  <strong>${formatAmount(pending)}</strong>
+                </div>
+                <div className="plans-rail-row">
+                  <span>Redemption policy</span>
+                  <strong>
+                    {describeRedemptionPolicyInline(selectedClass?.queueOnlyRedemptions)}
+                  </strong>
+                </div>
+              </section>
+
+              <section className="plans-rail-card heavy-glass">
+                <div className="plans-rail-head">
+                  <span className="plans-rail-tag">SELECTED_CLASS</span>
+                  <span className="plans-rail-subtag">{selectedClass?.classId ?? "—"}</span>
+                </div>
+                {selectedClass ? (
+                  <>
+                    <div className="plans-rail-hero">
+                      <span className="plans-rail-hero-val">
+                        ${formatAmount(selectedClass.navAssets)}
+                      </span>
+                      <span className="plans-rail-hero-sub">{selectedClass.displayName}</span>
+                    </div>
+                    <div className="plans-rail-row">
+                      <span>Restriction</span>
+                      <strong>{describeCapitalRestriction(selectedClass.restrictionMode)}</strong>
+                    </div>
+                    <div className="plans-rail-row">
+                      <span>Allocated</span>
+                      <strong>${formatAmount(selectedClass.allocatedAssets)}</strong>
+                    </div>
+                    <div className="plans-rail-row">
+                      <span>Pending</span>
+                      <strong>${formatAmount(selectedClass.pendingRedemptions)}</strong>
+                    </div>
+                    <div className="plans-rail-row">
+                      <span>Lockup</span>
+                      <strong>
+                        {selectedClass.minLockupSeconds
+                          ? `${Math.round(selectedClass.minLockupSeconds / 86400)}d`
+                          : "none"}
+                      </strong>
+                    </div>
+                  </>
+                ) : (
+                  <p className="plans-rail-hero-sub">
+                    Select a capital class to inspect tranche posture.
+                  </p>
+                )}
+              </section>
+
+              <section className="plans-rail-card heavy-glass">
+                <div className="plans-rail-head">
+                  <span className="plans-rail-tag">FIELD_LOG</span>
+                  <span className="plans-rail-subtag">LIVE_AUDIT</span>
+                </div>
+                <div className="plans-rail-trail">
+                  {auditTrail.map((item) => (
+                    <div key={item.id} className={`plans-rail-event plans-rail-event-${item.tone}`}>
+                      <span className="plans-rail-event-dot" aria-hidden="true" />
+                      <div className="plans-rail-event-copy">
+                        <div className="plans-rail-event-row">
+                          <strong className="plans-rail-event-label">{item.label}</strong>
+                          <time className="plans-rail-event-time">{item.timestamp}</time>
+                        </div>
+                        <p className="plans-rail-event-detail">{item.detail}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "classes" ? (
-            poolClasses.length > 0 ? (
-              <div className="workbench-table-card">
-                <table className="workbench-table">
-                  <thead>
-                    <tr>
-                      <th>Class</th>
-                      <th>Restriction</th>
-                      <th>NAV</th>
-                      <th>Pending</th>
-                      <th>Lockup</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {poolClasses.map((capitalClass) => (
-                      <tr key={capitalClass.address}>
-                        <td data-label="Class">
-                          <button type="button" className="workbench-inline-button" onClick={() => updateParams({ class: capitalClass.address })}>
-                            {capitalClass.displayName}
-                          </button>
-                        </td>
-                        <td data-label="Restriction">{describeCapitalRestriction(capitalClass.restrictionMode)}</td>
-                        <td data-label="NAV">{formatAmount(capitalClass.navAssets)}</td>
-                        <td data-label="Pending">{formatAmount(capitalClass.pendingRedemptions)}</td>
-                        <td data-label="Lockup">{capitalClass.minLockupSeconds ? `${Math.round(capitalClass.minLockupSeconds / 86400)}d` : "n/a"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <WorkbenchEmptyState title="No capital classes" copy="Choose another pool or provision a class before continuing." />
-            )
-          ) : null}
-
-          {activeTab === "allocations" ? (
-            <div className="workbench-table-card">
-              <table className="workbench-table">
-                <thead>
-                  <tr>
-                    <th>Plan</th>
-                    <th>Series</th>
-                    <th>Class</th>
-                    <th>Allocated</th>
-                    <th>Reserved</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {poolAllocations.map((allocation) => {
-                    const plan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((entry) => entry.address === allocation.healthPlan);
-                    const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((entry) => entry.address === allocation.policySeries);
-                    const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find((entry) => entry.address === allocation.capitalClass);
-                    return (
-                      <tr key={allocation.address}>
-                        <td data-label="Plan">{plan?.displayName ?? shortenAddress(allocation.healthPlan, 6)}</td>
-                        <td data-label="Series">{series?.displayName ?? "Pool-wide"}</td>
-                        <td data-label="Class">{capitalClass?.classId ?? shortenAddress(allocation.capitalClass, 6)}</td>
-                        <td data-label="Allocated">{formatAmount(allocation.allocatedAmount)}</td>
-                        <td data-label="Reserved">{formatAmount(allocation.reservedCapacity)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-
-          {activeTab === "queue" ? (
-            queueRows.length > 0 ? (
-              <div className="workbench-table-card">
-                <table className="workbench-table">
-                  <thead>
-                    <tr>
-                      <th>Owner</th>
-                      <th>Class</th>
-                      <th>Shares</th>
-                      <th>Pending redemption</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {queueRows.map((position) => {
-                      const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find((entry) => entry.address === position.capitalClass);
-                      return (
-                        <tr key={position.address}>
-                          <td data-label="Owner">{shortenAddress(position.owner, 6)}</td>
-                          <td data-label="Class">{capitalClass?.displayName ?? shortenAddress(position.capitalClass, 6)}</td>
-                          <td data-label="Shares">{formatAmount(position.shares)}</td>
-                          <td data-label="Pending redemption">{formatAmount(position.pendingRedemptionShares)}</td>
-                          <td data-label="Status">{describeLpQueueStatus(position)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <WorkbenchEmptyState title="No queue records" copy="No LP positions currently need redemption queue review." />
-            )
-          ) : null}
-
-          {activeTab === "linked-plans" ? (
-            linkedPlans.length > 0 ? (
-              <div className="workbench-table-card">
-                <table className="workbench-table">
-                  <thead>
-                    <tr>
-                      <th>Plan</th>
-                      <th>Plan id</th>
-                      <th>Series lanes</th>
-                      <th>Open</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {linkedPlans.map((plan) => (
-                      <tr key={plan.address}>
-                        <td data-label="Plan">{plan.displayName}</td>
-                        <td data-label="Plan id">{plan.planId}</td>
-                        <td data-label="Series lanes">{DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === plan.address).length}</td>
-                        <td data-label="Open">
-                          <Link
-                            href={buildPlansWorkbenchHref({
-                              plan: plan.address,
-                              tab: "overview",
-                            })}
-                            className="workbench-inline-link"
-                          >
-                            Open plan
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <WorkbenchEmptyState title="No linked plans" copy="This pool does not currently fund any plan lanes." />
-            )
-          ) : null}
-        </section>
-      </section>
-
-      <aside className="workbench-rail">
-        <WorkbenchRailCard title="Pool health" meta="POOL">
-          <div className="workbench-stack">
-            <strong>{selectedPool?.displayName ?? "No pool selected"}</strong>
-            <div className="workbench-mini-stat">
-              <span>Total NAV</span>
-              <strong>{formatAmount(capitalView?.totalNav ?? 0)}</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Unallocated</span>
-              <strong>{formatAmount(capitalView?.totalUnallocated ?? 0)}</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Redemption policy</span>
-              <strong>{describeRedemptionPolicyInline(selectedClass?.queueOnlyRedemptions)}</strong>
-            </div>
+              </section>
+            </aside>
           </div>
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="Selected class" meta="CLASS">
-          {selectedClass ? (
-            <div className="workbench-stack">
-              <strong>{selectedClass.displayName}</strong>
-              <div className="workbench-mini-stat">
-                <span>Restriction</span>
-                <strong>{describeCapitalRestriction(selectedClass.restrictionMode)}</strong>
-              </div>
-              <div className="workbench-mini-stat">
-                <span>Allocated assets</span>
-                <strong>{formatAmount(selectedClass.allocatedAssets)}</strong>
-              </div>
-              <div className="workbench-mini-stat">
-                <span>Pending redemptions</span>
-                <strong>{formatAmount(selectedClass.pendingRedemptions)}</strong>
-              </div>
-            </div>
-          ) : (
-            <WorkbenchEmptyState title="No class selected" copy="Choose a capital class to inspect class posture." />
-          )}
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="Recent capital events" meta="AUDIT">
-          <div className="workbench-timeline">
-            {auditTrail.map((item) => (
-              <article key={item.id} className={`workbench-timeline-item workbench-timeline-item-${item.tone}`}>
-                <div className="workbench-timeline-head">
-                  <strong>{item.label}</strong>
-                  <span>{item.timestamp}</span>
-                </div>
-                <p>{item.detail}</p>
-              </article>
-            ))}
-          </div>
-        </WorkbenchRailCard>
-      </aside>
+        )}
+      </div>
     </div>
   );
 }

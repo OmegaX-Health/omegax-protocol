@@ -138,6 +138,12 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
     setMounted(true);
   }, []);
 
+  const hydratedWallet = mounted ? wallet : null;
+  const hydratedPublicKey = mounted ? publicKey : null;
+  const hydratedConnected = mounted && connected;
+  const hydratedConnecting = mounted && connecting;
+  const hydratedDisconnecting = mounted && disconnecting;
+
   useEffect(() => {
     if (!panelOpen || mobile) return;
 
@@ -205,29 +211,35 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
     setSettingsStatus(null);
   }, [customRpcUrl, panelOpen, selectedNetwork]);
 
-  const walletName = wallet?.adapter.name ?? "Wallet";
-  const walletIcon = wallet?.adapter.icon;
-  const connectedAddress = publicKey?.toBase58() ?? "";
+  const walletName = hydratedWallet?.adapter.name ?? "Wallet";
+  const walletIcon = hydratedWallet?.adapter.icon;
+  const connectedAddress = hydratedPublicKey?.toBase58() ?? "";
   const connectedLabel = connectedAddress ? middleTruncate(connectedAddress, 4, 4) : walletName;
   const buttonLabel = !mounted
     ? "Connect wallet"
-    : connecting
+    : hydratedConnecting
       ? "Connecting..."
-      : connected
+      : hydratedConnected
         ? connectedLabel
         : "Connect wallet";
-  const buttonMeta = connected
+  const buttonMeta = hydratedConnected
     ? walletName
     : connectionMetaLabel(selectedNetwork, resolvedRpcProfile);
   const installedWallets = useMemo(
-    () => sortWallets(wallets.filter((candidate) => candidate.readyState === WalletReadyState.Installed), wallet?.adapter.name),
-    [wallet?.adapter.name, wallets],
+    () =>
+      mounted
+        ? sortWallets(wallets.filter((candidate) => candidate.readyState === WalletReadyState.Installed), hydratedWallet?.adapter.name)
+        : [],
+    [hydratedWallet?.adapter.name, mounted, wallets],
   );
   const otherWallets = useMemo(
-    () => sortWallets(wallets.filter((candidate) => candidate.readyState !== WalletReadyState.Installed), wallet?.adapter.name),
-    [wallet?.adapter.name, wallets],
+    () =>
+      mounted
+        ? sortWallets(wallets.filter((candidate) => candidate.readyState !== WalletReadyState.Installed), hydratedWallet?.adapter.name)
+        : [],
+    [hydratedWallet?.adapter.name, mounted, wallets],
   );
-  const buttonDisabled = disconnecting || Boolean(pendingWalletName);
+  const buttonDisabled = hydratedDisconnecting || Boolean(pendingWalletName);
 
   async function handleCopyAddress() {
     if (!connectedAddress) return;
@@ -252,14 +264,14 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
   function handleWalletChoice(nextWalletName: WalletName<string>) {
     const nextWallet = wallets.find((candidate) => candidate.adapter.name === nextWalletName);
     if (!nextWallet || !isWalletSelectable(nextWallet.readyState)) return;
-    if (connecting || disconnecting || pendingWalletName) return;
-    if (wallet?.adapter.name === nextWallet.adapter.name && connected) return;
+    if (hydratedConnecting || hydratedDisconnecting || pendingWalletName) return;
+    if (hydratedWallet?.adapter.name === nextWallet.adapter.name && hydratedConnected) return;
 
     setWalletStatus(null);
     setWalletStatusTone("success");
     setPendingWalletName(nextWallet.adapter.name);
 
-    if (wallet?.adapter.name !== nextWallet.adapter.name) {
+    if (hydratedWallet?.adapter.name !== nextWallet.adapter.name) {
       select(nextWallet.adapter.name);
       return;
     }
@@ -324,15 +336,15 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
       <button
         type="button"
         className={cn(
-          "wallet-control-button",
-          connected && "wallet-control-button-connected",
-          mobile && "wallet-control-button-mobile",
-        )}
-        aria-haspopup="dialog"
-        aria-expanded={panelOpen}
-        aria-label={connected ? `${walletName} wallet controls` : "Connect wallet"}
-        onClick={handlePrimaryClick}
-        disabled={buttonDisabled}
+        "wallet-control-button",
+        hydratedConnected && "wallet-control-button-connected",
+        mobile && "wallet-control-button-mobile",
+      )}
+      aria-haspopup="dialog"
+      aria-expanded={panelOpen}
+      aria-label={hydratedConnected ? `${walletName} wallet controls` : "Connect wallet"}
+      onClick={handlePrimaryClick}
+      disabled={buttonDisabled}
       >
         <span className="wallet-control-leading" aria-hidden="true">
           {walletIcon ? (
@@ -340,13 +352,13 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
           ) : (
             <Wallet className="wallet-control-fallback-icon" strokeWidth={1.9} />
           )}
-          {connected ? <span className="wallet-control-status-dot" /> : null}
+          {hydratedConnected ? <span className="wallet-control-status-dot" /> : null}
         </span>
         <span className="wallet-control-copy">
           <span className="wallet-control-title">{buttonLabel}</span>
           <span className="wallet-control-subtitle">{buttonMeta}</span>
         </span>
-        {connecting || pendingWalletName ? (
+        {hydratedConnecting || pendingWalletName ? (
           <LoaderCircle className="wallet-control-spinner animate-spin" strokeWidth={1.8} aria-hidden="true" />
         ) : (
           <ChevronDown
@@ -374,7 +386,7 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
                 >
                   {activeView === "settings"
                     ? "RPC + cluster"
-                    : connected
+                    : hydratedConnected
                       ? (
                           <>
                             Wallet <span className="wallet-surface-title-connected">connected</span>
@@ -502,14 +514,14 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
                   <div className="wallet-surface-summary-copy">
                     <span className="wallet-surface-summary-label">{connectionMetaLabel(selectedNetwork, resolvedRpcProfile)}</span>
                     <span className="wallet-surface-summary-title">
-                      {connected ? middleTruncate(connectedAddress, 8, 6) : "Choose a wallet to continue"}
+                      {hydratedConnected ? middleTruncate(connectedAddress, 8, 6) : "Choose a wallet to continue"}
                     </span>
                     <span className="wallet-surface-summary-meta">{endpointSummary(resolvedEndpoint)}</span>
                   </div>
                   {walletIcon ? <img src={walletIcon} alt="" className="wallet-surface-summary-icon" /> : <Wallet className="wallet-surface-summary-fallback" strokeWidth={1.8} />}
                 </div>
 
-                {connected ? (
+                {hydratedConnected ? (
                   <div className="wallet-surface-inline-actions">
                     <button type="button" className="wallet-surface-chip" onClick={() => setActiveView("settings")}>
                       <Settings2 className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -535,11 +547,11 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
 
                 <div className="wallet-surface-section">
                   <div className="wallet-surface-section-head">
-                    <span className="wallet-surface-section-title">{connected ? "Switch wallet" : "Installed wallets"}</span>
+                    <span className="wallet-surface-section-title">{hydratedConnected ? "Switch wallet" : "Installed wallets"}</span>
                   </div>
                   <div className="wallet-wallet-list">
                     {installedWallets.length ? installedWallets.map((candidate) => {
-                      const isCurrent = wallet?.adapter.name === candidate.adapter.name;
+                      const isCurrent = hydratedWallet?.adapter.name === candidate.adapter.name;
                       const isBusy = pendingWalletName === candidate.adapter.name;
 
                       return (
@@ -551,7 +563,7 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
                             isCurrent && "wallet-wallet-row-active",
                           )}
                           onClick={() => handleWalletChoice(candidate.adapter.name)}
-                          disabled={connecting || disconnecting || Boolean(pendingWalletName)}
+                          disabled={hydratedConnecting || hydratedDisconnecting || Boolean(pendingWalletName)}
                         >
                           <span className="wallet-wallet-copy">
                             <span className="wallet-wallet-leading">
@@ -559,7 +571,7 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
                               <span className="wallet-wallet-name">{candidate.adapter.name}</span>
                             </span>
                             <span className="wallet-wallet-caption">
-                              {isCurrent && connected ? "Connected wallet" : "Ready in this browser"}
+                              {isCurrent && hydratedConnected ? "Connected wallet" : "Ready in this browser"}
                             </span>
                           </span>
                           <span className="wallet-wallet-state">
@@ -582,7 +594,7 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
                     </div>
                     <div className="wallet-wallet-list">
                       {otherWallets.map((candidate) => {
-                        const isCurrent = wallet?.adapter.name === candidate.adapter.name;
+                        const isCurrent = hydratedWallet?.adapter.name === candidate.adapter.name;
 
                         return (
                           <button

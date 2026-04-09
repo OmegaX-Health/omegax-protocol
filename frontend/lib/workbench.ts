@@ -46,12 +46,9 @@ export const WORKBENCH_NAV: Array<{
 
 export const PLAN_TABS = [
   { id: "overview", label: "Overview" },
-  { id: "series", label: "Series" },
   { id: "members", label: "Members" },
   { id: "claims", label: "Claims" },
-  { id: "schemas", label: "Schemas" },
-  { id: "funding", label: "Funding" },
-  { id: "settings", label: "Settings" },
+  { id: "treasury", label: "Treasury" },
 ] as const satisfies readonly WorkbenchTab[];
 
 export const CAPITAL_TABS = [
@@ -377,7 +374,7 @@ export function defaultTabForPersona(
   persona: WorkbenchPersona,
 ): string {
   if (section === "plans") {
-    if (persona === "capital") return "funding";
+    if (persona === "capital") return "treasury";
     if (persona === "governance") return "claims";
     return "overview";
   }

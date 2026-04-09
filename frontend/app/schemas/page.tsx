@@ -25,7 +25,7 @@ export default function SchemasShimPage({ searchParams }: SchemasShimPageProps) 
   const resolvedSeries = requestedSeries || linked.series || firstSeriesAddressForPlan(plan) || "";
   const params = new URLSearchParams();
 
-  params.set("tab", "schemas");
+  params.set("tab", "overview");
   if (plan) params.set("plan", plan);
   if (resolvedSeries) params.set("series", resolvedSeries);
 

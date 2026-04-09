@@ -2,6 +2,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -16,7 +17,6 @@ import {
   type PlanTabId,
 } from "@/lib/workbench";
 import {
-  availableFundingLineBalance,
   describeClaimStatus,
   describeEligibilityStatus,
   describeFundingLineType,
@@ -29,26 +29,50 @@ import { cn } from "@/lib/cn";
 
 /* ── Constants ──────────────────────────────────────── */
 
-const SERIES_OPTIONAL_TABS = new Set<PlanTabId>(["claims", "members", "schemas"]);
-
-const TAB_ICONS: Record<PlanTabId, string> = {
-  overview: "dashboard",
-  series: "category",
-  members: "group",
-  claims: "gavel",
-  schemas: "schema",
-  funding: "account_balance",
-  settings: "tune",
-};
+const SERIES_OPTIONAL_TABS = new Set<PlanTabId>(["members", "claims", "treasury", "overview"]);
 
 const TAB_NUMBERS: Record<PlanTabId, string> = {
   overview: "01",
-  series: "02",
-  members: "03",
-  claims: "04",
-  schemas: "05",
-  funding: "06",
-  settings: "07",
+  members: "02",
+  claims: "03",
+  treasury: "04",
+};
+
+type TabHero = { eyebrow: string; title: string; emphasis: string; tail: string; subtitle: string };
+
+const TAB_HEROES: Record<PlanTabId, TabHero> = {
+  overview: {
+    eyebrow: "ACTIVE_WORKSPACE",
+    title: "Active",
+    emphasis: "Workspace.",
+    tail: "",
+    subtitle:
+      "A single operational heartbeat for your plan — capital velocity, claim activity and reserve depth across every lane.",
+  },
+  members: {
+    eyebrow: "MEMBER_ELIGIBILITY_REGISTER",
+    title: "Member Eligibility",
+    emphasis: "&",
+    tail: "Register.",
+    subtitle:
+      "Every wallet enlisted against this plan, with delegated rights and eligibility posture. Enlist new members or inspect the current register.",
+  },
+  claims: {
+    eyebrow: "LIABILITY_MONITOR",
+    title: "Liability",
+    emphasis: "Monitor.",
+    tail: "",
+    subtitle:
+      "Adjudicated claim cases and outstanding obligations in protocol custody. Trace reserve pressure and initiate settlement actions.",
+  },
+  treasury: {
+    eyebrow: "TREASURY_LANES_AND_CONTROLS",
+    title: "Treasury",
+    emphasis: "&",
+    tail: "Control Lanes.",
+    subtitle:
+      "Funding lines, reserve posture and every administrative wallet that can act on this plan. The full custody surface.",
+  },
 };
 
 /* ── Helpers ────────────────────────────────────────── */
@@ -70,18 +94,6 @@ function StatusBadge({ label }: { label: string }) {
   return <span className={`plans-badge plans-badge-${statusVariant(label)}`}>{label}</span>;
 }
 
-function claimsEmptyCopy(selectedSeries: boolean, planHasClaims: boolean): string {
-  if (!selectedSeries) return "This plan does not currently expose claim cases.";
-  if (planHasClaims) return "This series filter does not contain the plan's live claims. Choose another series or clear the series filter.";
-  return "This series does not currently expose claim cases.";
-}
-
-function obligationsEmptyCopy(selectedSeries: boolean, planHasObligations: boolean): string {
-  if (!selectedSeries) return "This plan does not currently expose obligations.";
-  if (planHasObligations) return "This series filter does not contain the plan's obligations. Choose another series or clear the series filter.";
-  return "This series does not currently expose obligations.";
-}
-
 function PlansEmptyState({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="plans-empty liquid-glass">
@@ -91,28 +103,18 @@ function PlansEmptyState({ title, copy }: { title: string; copy: string }) {
   );
 }
 
-function personaHeroCopy(persona: string): { eyebrow: string; subtitle: string } {
+function walletInitials(wallet: string): string {
+  const clean = wallet.replace(/[^a-zA-Z0-9]/g, "");
+  if (clean.length === 0) return "··";
+  return clean.slice(0, 2).toUpperCase();
+}
+
+function personaEyebrow(persona: string): string {
   switch (persona) {
-    case "sponsor":
-      return {
-        eyebrow: "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE",
-        subtitle: "Operate the full lifecycle of your clinical plans — budgets, series, members, and claims across a single control plane.",
-      };
-    case "capital":
-      return {
-        eyebrow: "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE",
-        subtitle: "Inspect how pool allocations flow into each plan and trace reserve coverage across the sponsor rail.",
-      };
-    case "governance":
-      return {
-        eyebrow: "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE",
-        subtitle: "Review plan operations, administration lanes, and settlement history before approving new controls.",
-      };
-    default:
-      return {
-        eyebrow: "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE",
-        subtitle: "Coverage series, member exposure, and sponsor operations across the public OmegaX protocol surface.",
-      };
+    case "sponsor": return "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE";
+    case "capital": return "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE";
+    case "governance": return "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE";
+    default: return "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE";
   }
 }
 
@@ -247,6 +249,23 @@ export function PlansWorkbench() {
     [selectedPlan, selectedSeries],
   );
 
+  /* ── Members filter state ── */
+
+  const [memberStatusFilter, setMemberStatusFilter] = useState<"all" | "eligible" | "pending" | "other">("all");
+  const [memberSearch, setMemberSearch] = useState("");
+
+  const displayedMembers = useMemo(() => {
+    const term = memberSearch.trim().toLowerCase();
+    return filteredMembers.filter((member) => {
+      if (term && !member.wallet.toLowerCase().includes(term)) return false;
+      if (memberStatusFilter === "all") return true;
+      const label = describeEligibilityStatus(member.eligibilityStatus).toLowerCase();
+      if (memberStatusFilter === "eligible") return label.includes("eligible") || label.includes("active");
+      if (memberStatusFilter === "pending") return label.includes("pending") || label.includes("review");
+      return !(label.includes("eligible") || label.includes("active") || label.includes("pending") || label.includes("review"));
+    });
+  }, [filteredMembers, memberSearch, memberStatusFilter]);
+
   /* ── URL sync ── */
 
   const updateParams = useCallback(
@@ -293,7 +312,7 @@ export function PlansWorkbench() {
   const totalReserved = planFundingLines.reduce((sum, line) => sum + Number(line.reservedAmount), 0);
   const poolUtilization = totalFunded > 0 ? Math.round((totalReserved / totalFunded) * 100) : 0;
 
-  // Protocol Vitality bar chart data (per-series approvals × claim count)
+  // Per-series vitality bars (kept on overview)
   const vitalityBars = useMemo(() => {
     const rows = sponsorView?.perSeriesPerformance ?? [];
     if (rows.length === 0) return [] as Array<{ id: string; name: string; value: number; claims: number; ratio: number }>;
@@ -307,7 +326,8 @@ export function PlansWorkbench() {
     }));
   }, [sponsorView]);
 
-  const { eyebrow: heroEyebrow, subtitle: heroSubtitle } = personaHeroCopy(effectivePersona);
+  const hero = TAB_HEROES[activeTab];
+  const eyebrow = activeTab === "overview" ? personaEyebrow(effectivePersona) : hero.eyebrow;
 
   /* ── Invalid selection guard ── */
 
@@ -326,15 +346,28 @@ export function PlansWorkbench() {
         {/* ── Hero ──────────────────────────── */}
         <header className="plans-hero">
           <div className="plans-hero-glow" aria-hidden="true" />
-          <div className="plans-hero-copy">
-            <span className="plans-hero-eyebrow">{heroEyebrow}</span>
-            <h1 className="plans-hero-title">
-              Active <em>Workspace</em>
-            </h1>
-            <p className="plans-hero-subtitle">{heroSubtitle}</p>
+          <div className="plans-hero-head">
+            <div className="plans-hero-copy">
+              <span className="plans-hero-eyebrow">{eyebrow}</span>
+              <h1 className="plans-hero-title">
+                {hero.title}{" "}
+                {hero.emphasis ? <em>{hero.emphasis}</em> : null}
+                {hero.tail ? <> {hero.tail}</> : null}
+              </h1>
+              <p className="plans-hero-subtitle">{hero.subtitle}</p>
+            </div>
+            <div className="plans-hero-actions">
+              <Link href="/plans/new" className="plans-hero-cta">
+                <span className="material-symbols-outlined" aria-hidden="true">add</span>
+                NEW_PLAN
+              </Link>
+            </div>
           </div>
+        </header>
 
-          <div className="plans-hero-selectors liquid-glass">
+        {/* ── Context bar ────────────────────── */}
+        <div className="plans-context-bar">
+          <div className="plans-context-selectors liquid-glass">
             <HeroSelector
               eyebrow="HEALTH_PLAN"
               label="Health plan"
@@ -345,7 +378,7 @@ export function PlansWorkbench() {
               placeholder="Choose plan"
               onChange={(value) => updateParams({ plan: value, series: null })}
             />
-            <span className="plans-hero-selectors-divider" aria-hidden="true" />
+            <span className="plans-context-divider" aria-hidden="true" />
             <HeroSelector
               eyebrow="POLICY_SERIES"
               label="Policy series"
@@ -358,34 +391,7 @@ export function PlansWorkbench() {
               onChange={(value) => updateParams({ series: value || null })}
             />
           </div>
-        </header>
-
-        {/* ── KPI strip ─────────────────────── */}
-        <section className="plans-kpi-strip" aria-label="Plan workspace telemetry">
-          <div className="plans-kpi-metric">
-            <span className="plans-kpi-label">BUDGET_REMAINING</span>
-            <span className="plans-kpi-value">${formatAmount(remaining)}</span>
-            <span className="plans-kpi-meta">of ${formatAmount(funded)} funded</span>
-          </div>
-          <div className="plans-kpi-metric">
-            <span className="plans-kpi-label">ACTIVE_SERIES</span>
-            <span className="plans-kpi-value">{planSeries.length}</span>
-            <span className="plans-kpi-meta">{planMembers.length} member positions</span>
-          </div>
-          <div className="plans-kpi-metric">
-            <span className="plans-kpi-label">CLAIMS_LIVE</span>
-            <span className="plans-kpi-value">{planClaimCount}</span>
-            <span className="plans-kpi-meta">{planObligations.length} obligations tracked</span>
-          </div>
-          <div className="plans-kpi-metric">
-            <span className="plans-kpi-label">FUNDING_UTILIZATION</span>
-            <span className="plans-kpi-value">
-              <span className="plans-kpi-pulse" aria-hidden="true" />
-              {poolUtilization}%
-            </span>
-            <span className="plans-kpi-meta">{planFundingLines.length} {planFundingLines.length === 1 ? "line" : "lines"} · {formatAmount(reserveCoverage)} bps</span>
-          </div>
-        </section>
+        </div>
 
         {/* ── Tab bar ───────────────────────── */}
         <nav className="plans-tabs liquid-glass" aria-label="Plan workspace sections">
@@ -402,7 +408,6 @@ export function PlansWorkbench() {
                   aria-current={isActive ? "page" : undefined}
                 >
                   <span className="plans-tab-number">{TAB_NUMBERS[tab.id as PlanTabId]}</span>
-                  <span className="material-symbols-outlined plans-tab-icon">{TAB_ICONS[tab.id as PlanTabId]}</span>
                   <span className="plans-tab-label">{tab.label}</span>
                 </button>
               );
@@ -417,9 +422,9 @@ export function PlansWorkbench() {
           <div className="plans-body">
             <section className="plans-main">
 
-              {/* ── Overview tab ── */}
+              {/* ── OVERVIEW ── */}
               {activeTab === "overview" ? (
-                <div className="plans-overview-grid">
+                <div className="plans-stack">
                   <article className="plans-card plans-vitality heavy-glass">
                     <div className="plans-card-head">
                       <div>
@@ -433,14 +438,10 @@ export function PlansWorkbench() {
                         {selectedPlan?.planId ?? "—"}
                       </span>
                     </div>
-                    <p className="plans-card-body">
-                      Capital velocity, claim activity, and reserve depth across every lane of this plan — a single
-                      operational heartbeat for the sponsor rail.
-                    </p>
 
                     <div className="plans-vitality-stats">
                       <div className="plans-vitality-stat">
-                        <span className="plans-vitality-stat-value">{deployedPct}%</span>
+                        <span className="plans-vitality-stat-value">{deployedPct}<span className="plans-unit">%</span></span>
                         <span className="plans-vitality-stat-label">Budget deployed</span>
                       </div>
                       <div className="plans-vitality-stat">
@@ -452,6 +453,10 @@ export function PlansWorkbench() {
                           {planClaimCount}
                         </span>
                         <span className="plans-vitality-stat-label">Claims live</span>
+                      </div>
+                      <div className="plans-vitality-stat">
+                        <span className="plans-vitality-stat-value">{poolUtilization}<span className="plans-unit">%</span></span>
+                        <span className="plans-vitality-stat-label">Pool utilization</span>
                       </div>
                     </div>
 
@@ -482,191 +487,167 @@ export function PlansWorkbench() {
                     ) : null}
                   </article>
 
-                  <article className="plans-card plans-pressure heavy-glass">
-                    <div className="plans-card-head">
-                      <div>
-                        <p className="plans-card-eyebrow">RESERVE_PRESSURE</p>
-                        <h2 className="plans-card-title plans-card-title-display">
-                          {deployedPct}<span className="plans-pressure-unit">%</span>
-                        </h2>
-                      </div>
-                      <span className={cn("plans-card-meta", deployedPct > 80 && "plans-card-meta-warn")}>
-                        {deployedPct > 80 ? "ELEVATED" : "NOMINAL"}
-                      </span>
-                    </div>
-                    <div className="plans-pressure-bar">
-                      <div
-                        className="plans-pressure-bar-fill"
-                        style={{ width: `${Math.min(100, deployedPct)}%` }}
-                      />
-                    </div>
-                    <div className="plans-pressure-meta">
-                      <span>${formatAmount(deployed)} deployed</span>
-                      <span>${formatAmount(remaining)} remaining</span>
-                    </div>
-                  </article>
-
-                  <article className="plans-card plans-velocity heavy-glass">
-                    <div className="plans-card-head">
-                      <div>
-                        <p className="plans-card-eyebrow">CLAIMS_VELOCITY</p>
-                        <h2 className="plans-card-title plans-card-title-display">{planClaimCount}</h2>
-                      </div>
-                      <span className="plans-card-meta">
-                        <span className="plans-live-dot" aria-hidden="true" />
-                        LIVE
-                      </span>
-                    </div>
-                    <p className="plans-card-body">
-                      Active adjudications across {planSeries.length} series lanes, with {planObligations.length} obligations
-                      in protocol custody.
-                    </p>
-                    <button
-                      type="button"
-                      className="plans-inline-action"
-                      onClick={() => updateParams({ tab: "claims" })}
-                    >
-                      INSPECT_CLAIMS
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                  </article>
-
                   <article className="plans-card plans-lanes heavy-glass">
                     <div className="plans-card-head">
                       <div>
                         <p className="plans-card-eyebrow">SERIES_LANES</p>
-                        <h2 className="plans-card-title">Coverage across the plan</h2>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          {planSeries.length} active <em>{planSeries.length === 1 ? "lane" : "lanes"}</em>
+                        </h2>
                       </div>
-                      <span className="plans-card-meta">{planSeries.length} active</span>
+                      <span className="plans-card-meta">{selectedPlan?.planId}</span>
                     </div>
-                    <div className="plans-lane-stack">
-                      {planSeries.map((series) => {
-                        const isSelected = selectedSeries?.address === series.address;
-                        return (
-                          <button
-                            type="button"
-                            key={series.address}
-                            className={cn("plans-lane", isSelected && "plans-lane-active")}
-                            onClick={() => updateParams({ series: series.address })}
-                          >
-                            <div className="plans-lane-info">
-                              <span className="plans-lane-name">{series.displayName}</span>
-                              <span className="plans-lane-key">{series.comparabilityKey}</span>
-                            </div>
-                            <div className="plans-lane-meta">
-                              <span className="plans-lane-mode">{describeSeriesMode(series.mode)}</span>
-                              <StatusBadge label={describeSeriesStatus(series.status)} />
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {planSeries.length > 0 ? (
+                      <div className="plans-lane-stack">
+                        {planSeries.map((series) => {
+                          const isSelected = selectedSeries?.address === series.address;
+                          return (
+                            <button
+                              type="button"
+                              key={series.address}
+                              className={cn("plans-lane", isSelected && "plans-lane-active")}
+                              onClick={() => updateParams({ series: isSelected ? null : series.address })}
+                            >
+                              <div className="plans-lane-info">
+                                <span className="plans-lane-name">{series.displayName}</span>
+                                <span className="plans-lane-key">
+                                  {series.seriesId} · {series.comparabilityKey} · v{series.termsVersion}
+                                </span>
+                              </div>
+                              <div className="plans-lane-meta">
+                                <span className="plans-lane-mode">{describeSeriesMode(series.mode)}</span>
+                                <span className="plans-lane-outcomes">
+                                  {formatAmount(seriesOutcomeCount(series.address))} outcomes
+                                </span>
+                                <StatusBadge label={describeSeriesStatus(series.status)} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="plans-card-body">No policy series are currently configured for this plan.</p>
+                    )}
                   </article>
                 </div>
               ) : null}
 
-              {/* ── Series tab ── */}
-              {activeTab === "series" ? (
+              {/* ── MEMBERS ── */}
+              {activeTab === "members" ? (
                 <article className="plans-card heavy-glass">
-                  <div className="plans-card-head">
+                  <div className="plans-members-head">
                     <div>
-                      <p className="plans-card-eyebrow">POLICY_SERIES_REGISTER</p>
+                      <p className="plans-card-eyebrow">ELIGIBILITY_REGISTER</p>
                       <h2 className="plans-card-title plans-card-title-display">
-                        {planSeries.length} active <em>{planSeries.length === 1 ? "lane" : "lanes"}</em>
+                        {filteredMembers.length} <em>members</em> enlisted
                       </h2>
                     </div>
-                    <span className="plans-card-meta">
-                      <span className="plans-live-dot" aria-hidden="true" />
-                      {selectedPlan?.planId}
-                    </span>
+                    <button type="button" className="plans-primary-cta" onClick={() => window.alert("Enlist flow not wired in this preview.")}>
+                      <span className="material-symbols-outlined">person_add</span>
+                      ENLIST_MEMBER
+                    </button>
                   </div>
-                  <div className="plans-table-wrap">
-                    <table className="plans-table">
-                      <thead>
-                        <tr>
-                          <th>Series</th>
-                          <th>Version</th>
-                          <th>Comparability</th>
-                          <th>Outcomes</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {planSeries.map((series) => {
-                          const isSelected = selectedSeries?.address === series.address;
-                          return (
-                            <tr key={series.address} className={cn(isSelected && "plans-table-row-active")}>
-                              <td data-label="Series">
-                                <button
-                                  type="button"
-                                  className="plans-table-link"
-                                  onClick={() => updateParams({ series: series.address })}
-                                >
-                                  {series.displayName}
-                                </button>
-                              </td>
-                              <td data-label="Version"><span className="plans-table-mono">{series.termsVersion}</span></td>
-                              <td data-label="Comparability"><span className="plans-table-mono">{series.comparabilityKey}</span></td>
-                              <td data-label="Outcomes"><span className="plans-table-mono">{formatAmount(seriesOutcomeCount(series.address))}</span></td>
-                              <td data-label="Status"><StatusBadge label={describeSeriesStatus(series.status)} /></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+
+                  <div className="plans-members-toolbar">
+                    <div className="plans-members-chips">
+                      {(["all", "eligible", "pending", "other"] as const).map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={cn("plans-chip", memberStatusFilter === key && "plans-chip-active")}
+                          onClick={() => setMemberStatusFilter(key)}
+                        >
+                          STATUS:{key.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="plans-search">
+                      <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                      <input
+                        type="search"
+                        placeholder="Search wallet"
+                        value={memberSearch}
+                        onChange={(event) => setMemberSearch(event.target.value)}
+                        aria-label="Search members by wallet"
+                      />
+                    </label>
                   </div>
+
+                  {displayedMembers.length > 0 ? (
+                    <ul className="plans-member-grid">
+                      {displayedMembers.map((member) => {
+                        const eligibility = describeEligibilityStatus(member.eligibilityStatus);
+                        return (
+                          <li key={member.address} className="plans-member-card">
+                            <div className="plans-member-head">
+                              <div className="plans-member-avatar" aria-hidden="true">
+                                {walletInitials(member.wallet)}
+                              </div>
+                              <div className="plans-member-id">
+                                <span className="plans-member-wallet">{shortenAddress(member.wallet, 6)}</span>
+                                <span className="plans-member-position">{shortenAddress(member.address, 4)}</span>
+                              </div>
+                              <StatusBadge label={eligibility} />
+                            </div>
+                            <div className="plans-member-meta">
+                              <span className="plans-member-label">DELEGATED_RIGHTS</span>
+                              <span className="plans-member-rights">
+                                {member.delegatedRights.length > 0 ? member.delegatedRights.join(" · ") : "—"}
+                              </span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <PlansEmptyState
+                      title="No members match this filter"
+                      copy={memberSearch || memberStatusFilter !== "all"
+                        ? "Clear the filters or broaden the search to see enlisted wallets."
+                        : "This plan does not currently expose member positions."}
+                    />
+                  )}
                 </article>
               ) : null}
 
-              {/* ── Members tab ── */}
-              {activeTab === "members" ? (
-                filteredMembers.length > 0 ? (
-                  <article className="plans-card heavy-glass">
-                    <div className="plans-card-head">
-                      <div>
-                        <p className="plans-card-eyebrow">ELIGIBILITY_REGISTER</p>
-                        <h2 className="plans-card-title plans-card-title-display">
-                          Member <em>positions</em>
-                        </h2>
-                      </div>
-                      <span className="plans-card-meta">{filteredMembers.length} tracked</span>
-                    </div>
-                    <div className="plans-table-wrap">
-                      <table className="plans-table">
-                        <thead>
-                          <tr>
-                            <th>Wallet</th>
-                            <th>Eligibility</th>
-                            <th>Delegated rights</th>
-                            <th>Position</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredMembers.map((member) => (
-                            <tr key={member.address}>
-                              <td data-label="Wallet"><span className="plans-table-mono">{shortenAddress(member.wallet, 6)}</span></td>
-                              <td data-label="Eligibility"><StatusBadge label={describeEligibilityStatus(member.eligibilityStatus)} /></td>
-                              <td data-label="Delegated rights">{member.delegatedRights.join(", ") || "None"}</td>
-                              <td data-label="Position"><span className="plans-table-mono">{shortenAddress(member.address, 6)}</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </article>
-                ) : (
-                  <PlansEmptyState
-                    title="No member positions in this filter"
-                    copy={effectivePersona === "sponsor"
-                      ? "Choose another series or plan to inspect member rights."
-                      : "This plan filter does not currently expose member positions."}
-                  />
-                )
-              ) : null}
-
-              {/* ── Claims tab ── */}
+              {/* ── CLAIMS ── */}
               {activeTab === "claims" ? (
                 <div className="plans-stack">
+                  <article className="plans-card plans-claims-control heavy-glass">
+                    <div className="plans-claims-control-segment">
+                      <span className="plans-control-label">ACTIVE_PLAN</span>
+                      <span className="plans-control-value">{selectedPlan?.planId ?? "—"}</span>
+                      <span className="plans-control-meta">{selectedPlan?.sponsorLabel ?? ""}</span>
+                    </div>
+                    <div className="plans-claims-control-divider" aria-hidden="true" />
+                    <div className="plans-claims-control-segment">
+                      <span className="plans-control-label">LIVE_CASES</span>
+                      <span className="plans-control-value">{filteredClaims.length}</span>
+                      <span className="plans-control-meta">
+                        {filteredObligations.length} obligations tracked
+                      </span>
+                    </div>
+                    <div className="plans-claims-control-divider" aria-hidden="true" />
+                    <div className="plans-claims-control-segment">
+                      <span className="plans-control-label">SYSTEM_STATUS</span>
+                      <span className="plans-control-value plans-control-value-accent">
+                        <span className="plans-live-dot" aria-hidden="true" />
+                        NOMINAL
+                      </span>
+                      <span className="plans-control-meta">Adjudication queue live</span>
+                    </div>
+                    <div className="plans-claims-control-actions">
+                      <button type="button" className="plans-secondary-cta">
+                        <span className="material-symbols-outlined">download</span>
+                        EXPORT_CSV
+                      </button>
+                      <button type="button" className="plans-primary-cta">
+                        <span className="material-symbols-outlined">bolt</span>
+                        INITIATE_RESERVE
+                      </button>
+                    </div>
+                  </article>
+
                   <article className="plans-card heavy-glass">
                     <div className="plans-card-head">
                       <div>
@@ -702,23 +683,25 @@ export function PlansWorkbench() {
                       </div>
                     ) : (
                       <PlansEmptyState
-                        title="No claim cases in this filter"
-                        copy={claimsEmptyCopy(Boolean(selectedSeries), planClaims.length > 0)}
+                        title="No claim cases"
+                        copy={selectedSeries
+                          ? "This series does not currently expose claim cases. Clear the series filter to see plan-wide claims."
+                          : "This plan does not currently expose claim cases."}
                       />
                     )}
                   </article>
 
-                  <article className="plans-card heavy-glass">
-                    <div className="plans-card-head">
-                      <div>
-                        <p className="plans-card-eyebrow">OUTSTANDING_OBLIGATIONS</p>
-                        <h2 className="plans-card-title plans-card-title-display">
-                          Protocol <em>liabilities</em>
-                        </h2>
+                  {filteredObligations.length > 0 ? (
+                    <article className="plans-card heavy-glass">
+                      <div className="plans-card-head">
+                        <div>
+                          <p className="plans-card-eyebrow">OUTSTANDING_OBLIGATIONS</p>
+                          <h2 className="plans-card-title plans-card-title-display">
+                            Protocol <em>liabilities</em>
+                          </h2>
+                        </div>
+                        <span className="plans-card-meta">{filteredObligations.length} tracked</span>
                       </div>
-                      <span className="plans-card-meta">{filteredObligations.length} tracked</span>
-                    </div>
-                    {filteredObligations.length > 0 ? (
                       <div className="plans-table-wrap">
                         <table className="plans-table">
                           <thead>
@@ -741,166 +724,103 @@ export function PlansWorkbench() {
                           </tbody>
                         </table>
                       </div>
-                    ) : (
-                      <PlansEmptyState
-                        title="No obligations in this filter"
-                        copy={obligationsEmptyCopy(Boolean(selectedSeries), planObligations.length > 0)}
-                      />
-                    )}
-                  </article>
+                    </article>
+                  ) : null}
                 </div>
               ) : null}
 
-              {/* ── Schemas tab ── */}
-              {activeTab === "schemas" ? (
-                selectedSeries ? (
-                  <div className="plans-stack">
-                    <article className="plans-card heavy-glass">
-                      <div className="plans-card-head">
+              {/* ── TREASURY ── */}
+              {activeTab === "treasury" ? (
+                <div className="plans-stack">
+                  <article className="plans-card heavy-glass">
+                    <div className="plans-card-head">
+                      <div>
+                        <p className="plans-card-eyebrow">FUNDING_LINES</p>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          Reserve <em>balances</em>
+                        </h2>
+                      </div>
+                      <span className="plans-card-meta">
+                        <span className="plans-live-dot" aria-hidden="true" />
+                        {planFundingLines.length} {planFundingLines.length === 1 ? "line" : "lines"}
+                      </span>
+                    </div>
+                    {planFundingLines.length > 0 ? (
+                      <ul className="plans-funding-list">
+                        {planFundingLines.map((line) => {
+                          const fundedVal = Number(line.fundedAmount);
+                          const reservedVal = Number(line.reservedAmount);
+                          const usedPct = fundedVal > 0 ? Math.round((reservedVal / fundedVal) * 100) : 0;
+                          return (
+                            <li key={line.address} className="plans-funding-row">
+                              <div className="plans-funding-row-head">
+                                <div>
+                                  <span className="plans-funding-name">{line.displayName}</span>
+                                  <span className="plans-funding-type">{describeFundingLineType(line.lineType)}</span>
+                                </div>
+                                <span className="plans-funding-amount">${formatAmount(fundedVal)}</span>
+                              </div>
+                              <div className="plans-rail-bar plans-rail-bar-sm">
+                                <div className="plans-rail-bar-fill" style={{ width: `${Math.min(100, usedPct)}%` }} />
+                              </div>
+                              <div className="plans-funding-meta">
+                                <span>${formatAmount(reservedVal)} reserved</span>
+                                <span>{usedPct}% deployed</span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <PlansEmptyState
+                        title="No funding lines"
+                        copy="This plan has no funding lines configured."
+                      />
+                    )}
+                  </article>
+
+                  <article className="plans-card heavy-glass">
+                    <div className="plans-card-head">
+                      <div>
+                        <p className="plans-card-eyebrow">ADMINISTRATION_LANES</p>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          Control <em>addresses</em>
+                        </h2>
+                      </div>
+                      <span className="plans-card-meta">{selectedPlan?.planId}</span>
+                    </div>
+                    <div className="plans-settings-grid">
+                      <div className="plans-settings-row">
                         <div>
-                          <p className="plans-card-eyebrow">COMPARABILITY_SCHEMA</p>
-                          <h2 className="plans-card-title plans-card-title-display">
-                            {selectedSeries.displayName}
-                          </h2>
+                          <span className="plans-settings-label">RESERVE_DOMAIN</span>
+                          <span className="plans-settings-lane">Reserve domain</span>
                         </div>
-                        <span className="plans-card-meta">{selectedSeries.termsVersion}</span>
+                        <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.reserveDomain, 6)}</span>
                       </div>
-                      <div className="plans-data-grid">
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Comparability_Key</span>
-                          <strong className="plans-data-value">{selectedSeries.comparabilityKey}</strong>
-                        </div>
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Outcome_Count</span>
-                          <strong className="plans-data-value">{formatAmount(seriesOutcomeCount(selectedSeries.address))}</strong>
-                        </div>
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Status</span>
-                          <StatusBadge label={describeSeriesStatus(selectedSeries.status)} />
-                        </div>
-                      </div>
-                    </article>
-
-                    <article className="plans-card heavy-glass">
-                      <div className="plans-card-head">
+                      <div className="plans-settings-row">
                         <div>
-                          <p className="plans-card-eyebrow">ON_CHAIN_STATE</p>
-                          <h2 className="plans-card-title">Series metadata</h2>
+                          <span className="plans-settings-label">PLAN_ADMIN</span>
+                          <span className="plans-settings-lane">Plan admin</span>
                         </div>
+                        <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.planAdmin, 6)}</span>
                       </div>
-                      <div className="plans-data-grid">
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Series_ID</span>
-                          <span className="plans-data-value plans-table-mono">{selectedSeries.seriesId}</span>
+                      <div className="plans-settings-row">
+                        <div>
+                          <span className="plans-settings-label">SPONSOR_OPERATOR</span>
+                          <span className="plans-settings-lane">Sponsor operator</span>
                         </div>
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Mode</span>
-                          <span className="plans-data-value">{describeSeriesMode(selectedSeries.mode)}</span>
+                        <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.sponsorOperator, 6)}</span>
+                      </div>
+                      <div className="plans-settings-row">
+                        <div>
+                          <span className="plans-settings-label">CLAIMS_OPERATOR</span>
+                          <span className="plans-settings-lane">Claims operator</span>
                         </div>
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Terms_Version</span>
-                          <span className="plans-data-value plans-table-mono">{selectedSeries.termsVersion}</span>
-                        </div>
-                        <div className="plans-data-row">
-                          <span className="plans-data-label">Address</span>
-                          <span className="plans-data-value plans-table-mono">{shortenAddress(selectedSeries.address, 8)}</span>
-                        </div>
+                        <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.claimsOperator, 6)}</span>
                       </div>
-                    </article>
-                  </div>
-                ) : (
-                  <PlansEmptyState
-                    title="No schema context"
-                    copy="Choose a policy series to inspect its comparability posture and on-chain metadata."
-                  />
-                )
-              ) : null}
-
-              {/* ── Funding tab ── */}
-              {activeTab === "funding" ? (
-                <article className="plans-card heavy-glass">
-                  <div className="plans-card-head">
-                    <div>
-                      <p className="plans-card-eyebrow">FUNDING_LINES</p>
-                      <h2 className="plans-card-title plans-card-title-display">
-                        Balances &amp; <em>reserves</em>
-                      </h2>
                     </div>
-                    <span className="plans-card-meta">
-                      <span className="plans-live-dot" aria-hidden="true" />
-                      {planFundingLines.length} {planFundingLines.length === 1 ? "line" : "lines"}
-                    </span>
-                  </div>
-                  <div className="plans-table-wrap">
-                    <table className="plans-table">
-                      <thead>
-                        <tr>
-                          <th>Funding line</th>
-                          <th>Type</th>
-                          <th>Funded</th>
-                          <th>Reserved</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {planFundingLines.map((line) => (
-                          <tr key={line.address}>
-                            <td data-label="Funding line">{line.displayName}</td>
-                            <td data-label="Type">{describeFundingLineType(line.lineType)}</td>
-                            <td data-label="Funded"><span className="plans-table-amount">{formatAmount(line.fundedAmount)}</span></td>
-                            <td data-label="Reserved"><span className="plans-table-amount">{formatAmount(line.reservedAmount)}</span></td>
-                            <td data-label="Status"><StatusBadge label={line.status === 0 ? "Open" : "Managed"} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
-              ) : null}
-
-              {/* ── Settings tab ── */}
-              {activeTab === "settings" ? (
-                <article className="plans-card heavy-glass">
-                  <div className="plans-card-head">
-                    <div>
-                      <p className="plans-card-eyebrow">ADMINISTRATION_LANES</p>
-                      <h2 className="plans-card-title plans-card-title-display">
-                        Control <em>addresses</em>
-                      </h2>
-                    </div>
-                    <span className="plans-card-meta">{selectedPlan?.planId}</span>
-                  </div>
-                  <div className="plans-settings-grid">
-                    <div className="plans-settings-row">
-                      <div>
-                        <span className="plans-settings-label">RESERVE_DOMAIN</span>
-                        <span className="plans-settings-lane">Reserve domain</span>
-                      </div>
-                      <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.reserveDomain, 6)}</span>
-                    </div>
-                    <div className="plans-settings-row">
-                      <div>
-                        <span className="plans-settings-label">PLAN_ADMIN</span>
-                        <span className="plans-settings-lane">Plan admin</span>
-                      </div>
-                      <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.planAdmin, 6)}</span>
-                    </div>
-                    <div className="plans-settings-row">
-                      <div>
-                        <span className="plans-settings-label">SPONSOR_OPERATOR</span>
-                        <span className="plans-settings-lane">Sponsor operator</span>
-                      </div>
-                      <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.sponsorOperator, 6)}</span>
-                    </div>
-                    <div className="plans-settings-row">
-                      <div>
-                        <span className="plans-settings-label">CLAIMS_OPERATOR</span>
-                        <span className="plans-settings-lane">Claims operator</span>
-                      </div>
-                      <span className="plans-settings-address">{formatControlLaneAddress(selectedPlan?.claimsOperator, 6)}</span>
-                    </div>
-                  </div>
-                </article>
+                  </article>
+                </div>
               ) : null}
             </section>
 
@@ -933,35 +853,9 @@ export function PlansWorkbench() {
                   <span>Accrued rewards</span>
                   <strong>${formatAmount(sponsorView?.accruedRewards ?? 0)}</strong>
                 </div>
-              </section>
-
-              <section className="plans-rail-card heavy-glass">
-                <div className="plans-rail-head">
-                  <span className="plans-rail-tag">FUNDING_LINES</span>
-                  <span className="plans-rail-subtag">{planFundingLines.length} active</span>
-                </div>
-                <div className="plans-rail-lines">
-                  {planFundingLines.map((line) => {
-                    const fundedVal = Number(line.fundedAmount);
-                    const reservedVal = Number(line.reservedAmount);
-                    const available = availableFundingLineBalance(line);
-                    const usedPct = fundedVal > 0 ? Math.round((reservedVal / fundedVal) * 100) : 0;
-                    return (
-                      <div key={line.address} className="plans-rail-line">
-                        <div className="plans-rail-row">
-                          <span>{line.displayName}</span>
-                          <strong>${formatAmount(available)}</strong>
-                        </div>
-                        <div className="plans-rail-bar plans-rail-bar-sm">
-                          <div className="plans-rail-bar-fill" style={{ width: `${Math.min(100, usedPct)}%` }} />
-                        </div>
-                        <div className="plans-rail-line-meta">
-                          <span>${formatAmount(reservedVal)} reserved</span>
-                          <span>${formatAmount(fundedVal)} funded</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="plans-rail-row">
+                  <span>Pool utilization</span>
+                  <strong>{poolUtilization}%</strong>
                 </div>
               </section>
 

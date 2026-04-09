@@ -2,7 +2,7 @@
 
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { useNetworkContext } from "@/components/network-context";
@@ -27,12 +27,17 @@ const WorkspacePersonaContext = createContext<WorkspacePersonaValue | undefined>
 export function WorkspacePersonaProvider({ children }: { children: ReactNode }) {
   const { publicKey } = useWallet();
   const { selectedNetwork } = useNetworkContext();
+  const [mounted, setMounted] = useState(false);
   const [previewPersona, setPreviewPersona] = useState<PreviewPersona>("auto");
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const derivedPersona = useMemo<WorkbenchPersona>(() => {
-    const fixture = walletFixtureFor(publicKey?.toBase58());
+    const fixture = walletFixtureFor(mounted ? publicKey?.toBase58() : undefined);
     return derivePersonaFromRole(fixture?.role);
-  }, [publicKey]);
+  }, [mounted, publicKey]);
 
   const canPreviewPersona = selectedNetwork === "devnet";
   const effectivePersona =
@@ -63,4 +68,3 @@ export function useWorkspacePersona(): WorkspacePersonaValue {
   }
   return context;
 }
-
