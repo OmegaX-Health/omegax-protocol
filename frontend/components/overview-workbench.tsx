@@ -178,6 +178,34 @@ type OverviewCardDetail = {
   value: string;
 };
 
+function OverviewFieldLogCard(props: {
+  items: ReturnType<typeof buildAuditTrail>;
+}) {
+  return (
+    <section className="ov-log-card liquid-glass" aria-label="Field log live audit">
+      <div className="ov-log-card-head">
+        <span className="ov-panel-tag">FIELD_LOG</span>
+        <span className="ov-panel-subtag">LIVE_AUDIT</span>
+      </div>
+
+      <div className="ov-audit-list" role="list" aria-label="Field log events">
+        {props.items.map((item) => (
+          <article key={item.id} className="ov-audit-item" role="listitem">
+            <span className={`ov-audit-dot ov-audit-dot-${item.tone}`} aria-hidden="true" />
+            <div className="ov-audit-copy">
+              <div className="ov-audit-row">
+                <strong className="ov-audit-title">{item.label}</strong>
+                <span className="ov-audit-time">{item.timestamp}</span>
+              </div>
+              <p className="ov-audit-detail">{item.detail}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function OverviewEntryCard(props: {
   align: "start" | "end";
   entry: string;
@@ -475,12 +503,7 @@ export function OverviewWorkbench() {
             <section className="ov-hero">
               <div className="ov-hero-glow" aria-hidden="true" />
               <span className="ov-eyebrow">OVERVIEW_SYNC // {sectionLabelForPersona(effectivePersona)}</span>
-              <h1 className="ov-hero-title">
-                <span className="ov-hero-title-accent">Health</span> Capital Markets
-              </h1>
-              <p className="ov-hero-copy">
-                Live capital, coverage, governance, and oracle telemetry for the public OmegaX protocol workbench.
-              </p>
+              <h1 className="ov-hero-title">Health Capital Markets</h1>
 
               <div className="ov-total-stack">
                 <span className="ov-total-value">${formatAmount(stats.tvl)}</span>
@@ -503,41 +526,23 @@ export function OverviewWorkbench() {
                 ))}
               </div>
             </section>
-
-            <section className="ov-audit-panel">
-              <div className="ov-panel-head">
-                <span className="ov-panel-tag">FIELD_LOG</span>
-                <span className="ov-panel-subtag">LIVE_AUDIT</span>
-              </div>
-              <div className="ov-audit-list">
-                {auditTrail.map((item) => (
-                  <article key={item.id} className="ov-audit-item">
-                    <span className={`ov-audit-dot ov-audit-dot-${item.tone}`} aria-hidden="true" />
-                    <div className="ov-audit-copy">
-                      <div className="ov-audit-row">
-                        <strong className="ov-audit-title">{item.label}</strong>
-                        <span className="ov-audit-time">{item.timestamp}</span>
-                      </div>
-                      <p className="ov-audit-detail">{item.detail}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
           </div>
         </aside>
 
-        <section ref={streamRef} className="ov-stream" aria-label="Overview access surfaces">
-          <div className="ov-stream-intro">
-            <span className="ov-eyebrow">ACCESS_SURFACES</span>
-            <p className="ov-stream-copy">
-              Each lane keeps the same public protocol state, re-framed for the operator surface underneath.
-            </p>
+        <section ref={streamRef} className="ov-stream" aria-label="Overview surfaces and field log">
+          <div className="ov-stream-group">
+            <span className="ov-stream-label">ACCESS_SURFACES</span>
+            <div className="ov-stream-stack">
+              {overviewCards.map((card) => (
+                <OverviewEntryCard key={card.href} {...card} />
+              ))}
+            </div>
           </div>
 
-          {overviewCards.map((card) => (
-            <OverviewEntryCard key={card.href} {...card} />
-          ))}
+          <div className="ov-stream-group">
+            <span className="ov-stream-label">FIELD_LOG</span>
+            <OverviewFieldLogCard items={auditTrail} />
+          </div>
         </section>
       </div>
     </div>

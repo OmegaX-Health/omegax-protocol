@@ -3299,8 +3299,7 @@
     top: 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: clamp(0.85rem, 1.8vh, 1.2rem);
+    justify-content: flex-start;
     height: 100%;
     min-height: 0;
     padding-top: 0.25rem;
@@ -3345,18 +3344,6 @@
     letter-spacing: -0.05em;
     color: var(--foreground);
     text-wrap: balance;
-  }
-
-  .ov-hero-title-accent {
-    color: var(--cyan-ink);
-  }
-
-  .ov-hero-copy {
-    max-width: 34rem;
-    margin: 0;
-    font-size: 0.98rem;
-    line-height: 1.7;
-    color: color-mix(in oklab, var(--muted-foreground) 92%, var(--foreground) 8%);
   }
 
   .ov-wave-panel {
@@ -3420,7 +3407,7 @@
     font-weight: 600;
     line-height: 0.96;
     letter-spacing: -0.05em;
-    color: var(--foreground);
+    color: var(--cyan-ink);
   }
 
   .ov-total-label {
@@ -3468,20 +3455,12 @@
     white-space: nowrap;
   }
 
-  .ov-audit-panel {
-    flex: 0 0 auto;
-    padding: 0.4rem 0 0.2rem;
-    overflow: visible;
-  }
-
-  .ov-panel-head {
+  .ov-panel-head,
+  .ov-log-card-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 0.35rem;
-    padding-left: 2.71rem;
-    padding-right: 1.35rem;
   }
 
   .ov-panel-tag,
@@ -3503,15 +3482,6 @@
   .ov-audit-list {
     display: flex;
     flex-direction: column;
-    max-height: min(14.5rem, 28vh);
-    overflow-y: auto;
-    padding-right: 0.15rem;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .ov-audit-list::-webkit-scrollbar {
-    display: none;
   }
 
   .ov-audit-item {
@@ -3584,7 +3554,7 @@
   .ov-stream {
     display: flex;
     flex-direction: column;
-    gap: clamp(2rem, 3.4vh, 2.85rem);
+    gap: clamp(2.5rem, 4vh, 3.75rem);
     min-width: 0;
     min-height: 0;
     height: 100%;
@@ -3603,21 +3573,28 @@
     display: none;
   }
 
-  .ov-stream-intro {
-    width: min(100%, 34rem);
-    margin-bottom: 0.45rem;
+  .ov-stream-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
   }
 
-  .ov-stream-copy {
-    margin: 0.4rem 0 0;
-    font-size: 0.96rem;
-    line-height: 1.65;
+  .ov-stream-label {
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
     color: var(--muted-foreground);
+  }
+
+  .ov-stream-stack {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.9rem, 3.4vh, 2.75rem);
   }
 
   .ov-entry-wrap {
     width: min(calc(100% - 1.6rem), 44rem);
-    padding-block: 0.45rem;
   }
 
   .ov-entry-wrap-end {
@@ -3993,6 +3970,29 @@
     font-size: 1rem;
   }
 
+  .ov-log-card {
+    width: min(calc(100% - 1.6rem), 44rem);
+    margin-left: auto;
+    padding: clamp(1.2rem, 2vw, 1.6rem);
+    border-radius: 2rem;
+  }
+
+  .ov-log-card-head {
+    margin-bottom: 0.45rem;
+  }
+
+  .ov-log-card .ov-audit-list {
+    gap: 0;
+  }
+
+  .ov-log-card .ov-audit-item {
+    padding-inline: 0;
+  }
+
+  .ov-log-card .ov-audit-item:first-child {
+    padding-top: 0.75rem;
+  }
+
   @media (min-width: 1025px) {
     .ov-entry-wrap-start {
       margin-right: 1.2rem;
@@ -4044,7 +4044,8 @@
     }
 
     .ov-entry-wrap,
-    .ov-entry-wrap-end {
+    .ov-entry-wrap-end,
+    .ov-log-card {
       width: 100%;
       margin-left: 0;
       margin-right: 0;
@@ -4066,16 +4067,14 @@
       padding: 1rem 0.2rem 0;
     }
 
-    .ov-audit-panel {
-      padding-inline: 0;
-    }
-
     .ov-panel-head,
+    .ov-log-card-head,
     .ov-audit-item {
       padding-inline: 0.2rem;
     }
 
-    .ov-panel-head {
+    .ov-panel-head,
+    .ov-log-card-head {
       padding-left: calc(0.2rem + 1.36rem);
     }
 
@@ -4097,6 +4096,11 @@
 
     .ov-entry-title {
       font-size: clamp(1.95rem, 12vw, 3rem);
+    }
+
+    .ov-log-card {
+      border-radius: 1.5rem;
+      padding-inline: 1rem;
     }
 
     .ov-entry-reveal-top {
