@@ -64,7 +64,6 @@ export const GOVERNANCE_TABS = [
   { id: "queue", label: "Queue" },
   { id: "authorities", label: "Authorities" },
   { id: "templates", label: "Templates" },
-  { id: "dao-ops", label: "DAO ops" },
 ] as const satisfies readonly WorkbenchTab[];
 
 export const ORACLE_TABS = [

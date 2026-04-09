@@ -2,12 +2,12 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
 
-import { WorkbenchRailCard, WorkbenchTabs } from "@/components/workbench-ui";
+import { useWorkspacePersona } from "@/components/workspace-persona";
 import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
 import { formatRpcError } from "@/lib/rpc-errors";
 import {
@@ -17,6 +17,7 @@ import {
   describeGovernanceQueueStatus,
   GOVERNANCE_TABS,
   GOVERNANCE_TEMPLATE_ROWS,
+  type GovernanceQueueItem,
   type GovernanceTabId,
 } from "@/lib/workbench";
 import {
@@ -27,10 +28,83 @@ import {
   isControlDevnetWalletRole,
   isUnsetDevnetWalletAddress,
 } from "@/lib/devnet-fixtures";
-import { useWorkspacePersona } from "@/components/workspace-persona";
 import { shortenAddress } from "@/lib/protocol";
+import { cn } from "@/lib/cn";
+
+/* ── Constants ──────────────────────────────────────── */
 
 const PROPOSAL_CONTEXT_TABS = new Set<GovernanceTabId>(["overview", "queue"]);
+
+const TAB_ICONS: Record<GovernanceTabId, string> = {
+  overview: "dashboard",
+  queue: "list_alt",
+  authorities: "shield_person",
+  templates: "hub",
+};
+
+const TAB_NUMBERS: Record<GovernanceTabId, string> = {
+  overview: "01",
+  queue: "02",
+  authorities: "03",
+  templates: "04",
+};
+
+/* ── Helpers ────────────────────────────────────────── */
+
+function personaHeroCopy(persona: string): { eyebrow: string; subtitle: string } {
+  switch (persona) {
+    case "sponsor":
+      return {
+        eyebrow: "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE",
+        subtitle: "Track plan and series controls under governance review before they reach the operational rail.",
+      };
+    case "capital":
+      return {
+        eyebrow: "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE",
+        subtitle: "Inspect protocol controls and authority posture that shape the capital lanes you're allocated to.",
+      };
+    case "governance":
+      return {
+        eyebrow: "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE",
+        subtitle: "Operate the proposal queue, control authorities, and template surface for the shared protocol shell.",
+      };
+    default:
+      return {
+        eyebrow: "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE",
+        subtitle: "Live proposals, control authorities, and operational templates exposed by the OmegaX protocol shell.",
+      };
+  }
+}
+
+function statusVariant(label: string): "success" | "warning" | "danger" | "info" | "muted" {
+  const l = label.toLowerCase();
+  if (l.includes("succeed") || l.includes("approved") || l.includes("completed")) return "success";
+  if (l.includes("execut") || l.includes("vot") || l.includes("active")) return "info";
+  if (l.includes("draft") || l.includes("review") || l.includes("signing")) return "warning";
+  if (l.includes("defeat") || l.includes("cancel") || l.includes("fail")) return "danger";
+  return "muted";
+}
+
+function StatusBadge({ label }: { label: string }) {
+  return <span className={`plans-badge plans-badge-${statusVariant(label)}`}>{label}</span>;
+}
+
+function buildQueueStateCounts(queue: GovernanceQueueItem[]) {
+  const counts = new Map<string, number>();
+  for (const item of queue) {
+    counts.set(item.status, (counts.get(item.status) ?? 0) + 1);
+  }
+  return Array.from(counts.entries()).map(([label, count]) => ({ label, count }));
+}
+
+function humanizeRole(role: string): string {
+  return role
+    .split("_")
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+/* ── Component ──────────────────────────────────────── */
 
 export function GovernanceWorkbench() {
   const { connection } = useConnection();
@@ -43,11 +117,16 @@ export function GovernanceWorkbench() {
   const [proposalQueueError, setProposalQueueError] = useState<string | null>(null);
   const queue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
 
+  /* ── Selection state ── */
+
   const requestedTab = searchParams.get("tab");
   const activeTab = (GOVERNANCE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("governance", effectivePersona)) as GovernanceTabId;
   const queryProposal = searchParams.get("proposal")?.trim() ?? "";
   const selectedProposal = queue.find((proposal) => proposal.proposal === queryProposal) ?? queue[0] ?? null;
+
+  /* ── Derived data ── */
+
   const auditTrail = useMemo(
     () => buildAuditTrail({ section: "governance", queue, proposal: selectedProposal }),
     [queue, selectedProposal],
@@ -61,7 +140,6 @@ export function GovernanceWorkbench() {
     }),
     [proposalQueueError, proposalQueueLoaded, queue.length],
   );
-  const queueEmptyMessage = queueStatus.emptyMessage;
   const queueStatusBanner = proposalQueueError && queue.length > 0
     ? `Showing the last loaded governance queue. ${proposalQueueError}`
     : null;
@@ -71,6 +149,10 @@ export function GovernanceWorkbench() {
   );
   const authorityWallets = useMemo(() => controlDevnetWallets(), []);
   const configuredAuthorityWallets = useMemo(() => configuredControlDevnetWallets(), []);
+  const reserveDomains = DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains;
+  const queueStateCounts = useMemo(() => buildQueueStateCounts(queue), [queue]);
+
+  /* ── URL sync ── */
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
@@ -133,269 +215,540 @@ export function GovernanceWorkbench() {
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
   }, [activeTab, queryProposal, requestedTab, selectedProposal, updateParams]);
 
+  /* ── Scroll tab into view ── */
+
+  const tabBarRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const bar = tabBarRef.current;
+    if (!bar) return;
+    const activeButton = bar.querySelector<HTMLButtonElement>(`[data-tab-id="${activeTab}"]`);
+    if (activeButton) activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  }, [activeTab]);
+
+  /* ── Derived display ── */
+
+  const { eyebrow: heroEyebrow, subtitle: heroSubtitle } = personaHeroCopy(effectivePersona);
+  const queueLoading = !proposalQueueLoaded;
+  const queueFailed = Boolean(proposalQueueError);
+  const queueLiveLabel = queueLoading
+    ? "Syncing"
+    : queueFailed
+      ? "RPC failed"
+      : queue.length === 0
+        ? "Queue clear"
+        : "Live";
+  const queueIsLive = !queueLoading && !queueFailed;
+
+  /* ── Main render ── */
+
   return (
-    <div className="workbench-page">
-      <section className="workbench-main-column">
-        <section className="workbench-panel workbench-primary-surface">
-          <div className="workbench-panel-head">
-            <div>
-              <h2 className="workbench-panel-title">{selectedProposal?.title ?? "Proposal queue"}</h2>
-            </div>
-            {selectedProposal ? <span className="workbench-card-meta">{selectedProposal.status}</span> : null}
-          </div>
+    <div className="plans-shell">
+      <div className="plans-scroll">
 
-          <div className="workbench-summary-strip">
-            <div className="workbench-summary-metric">
-              <span>Proposal queue</span>
-              <strong aria-live="polite" aria-label={queueStatus.metricAriaLabel}>{queueStatus.metricValue}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Authority roles</span>
-              <strong>{authorityRoles.length}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Templates</span>
-              <strong>{GOVERNANCE_TEMPLATE_ROWS.length}</strong>
-            </div>
-            <div className="workbench-summary-metric">
-              <span>Configured control wallets</span>
-              <strong>{configuredAuthorityWallets.length}</strong>
+        {/* ── Hero ──────────────────────────── */}
+        <header className="plans-hero">
+          <div className="plans-hero-glow" aria-hidden="true" />
+          <div className="plans-hero-head">
+            <div className="plans-hero-copy">
+              <span className="plans-hero-eyebrow">{heroEyebrow}</span>
+              <h1 className="plans-hero-title">
+                Control <em>plane</em>
+              </h1>
+              <p className="plans-hero-subtitle">{heroSubtitle}</p>
             </div>
           </div>
+        </header>
 
-          {queueStatusBanner ? (
-            <p className="field-help">{queueStatusBanner}</p>
-          ) : null}
-
-          <WorkbenchTabs tabs={GOVERNANCE_TABS} active={activeTab} onChange={handleTabChange} />
-
-          {activeTab === "overview" ? (
-            <div className="workbench-content-split">
-              <div className="workbench-content-pane">
-                <div className="workbench-content-pane-head">
-                  <div>
-                    <h2 className="workbench-panel-title">{selectedProposal?.title ?? "No active proposals"}</h2>
-                  </div>
-                  {selectedProposal ? <span className="workbench-card-meta">{selectedProposal.status}</span> : null}
+        {/* ── Context bar ────────────────────── */}
+        <div className="plans-context-bar">
+          <div className="plans-context-selectors liquid-glass">
+            <label
+              className={cn(
+                "plans-hero-select",
+                queue.length === 0 && "plans-hero-select-disabled",
+              )}
+            >
+              <span className="plans-hero-select-eyebrow">ACTIVE_PROPOSAL</span>
+              <div className="plans-hero-select-body">
+                <div className="plans-hero-select-copy">
+                  <span className="plans-hero-select-label">
+                    {selectedProposal?.title ?? queueStatus.emptyTitle}
+                  </span>
+                  <span className="plans-hero-select-meta">
+                    {selectedProposal
+                      ? `${selectedProposal.template} · ${selectedProposal.status}`
+                      : queueStatus.emptyMeta}
+                  </span>
                 </div>
-                {selectedProposal ? (
-                  <Link href={`/governance/proposals/${encodeURIComponent(selectedProposal.proposal)}`} className="workbench-inline-link">
-                    Open proposal detail
-                  </Link>
-                ) : null}
+                <span className="material-symbols-outlined plans-hero-select-caret" aria-hidden="true">unfold_more</span>
               </div>
+              <select
+                className="plans-hero-select-native"
+                value={selectedProposal?.proposal ?? ""}
+                disabled={queue.length === 0}
+                onChange={(event) => updateParams({ proposal: event.target.value || null })}
+                aria-label="Active proposal"
+              >
+                {selectedProposal ? null : <option value="">{queueStatus.emptyTitle}</option>}
+                {queue.map((proposal) => (
+                  <option key={proposal.proposal} value={proposal.proposal}>
+                    {proposal.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
 
-              <div className="workbench-content-pane">
-                <div className="workbench-content-pane-head">
-                  <div>
-                    <h2 className="workbench-panel-title">Queue</h2>
+        {/* ── KPI strip ─────────────────────── */}
+        <section className="plans-kpi-strip" aria-label="Governance workspace telemetry">
+          <div className="plans-kpi-metric">
+            <span className="plans-kpi-label">PROPOSAL_QUEUE</span>
+            <span className="plans-kpi-value" aria-live="polite" aria-label={queueStatus.metricAriaLabel}>
+              {queueIsLive ? <span className="plans-kpi-pulse" aria-hidden="true" /> : null}
+              {queueStatus.metricValue}
+            </span>
+            <span className="plans-kpi-meta">{queueLiveLabel}</span>
+          </div>
+          <div className="plans-kpi-metric">
+            <span className="plans-kpi-label">AUTHORITIES</span>
+            <span className="plans-kpi-value">{configuredAuthorityWallets.length}</span>
+            <span className="plans-kpi-meta">of {authorityWallets.length} role lanes</span>
+          </div>
+          <div className="plans-kpi-metric">
+            <span className="plans-kpi-label">TEMPLATES</span>
+            <span className="plans-kpi-value">{GOVERNANCE_TEMPLATE_ROWS.length}</span>
+            <span className="plans-kpi-meta">scoped controls</span>
+          </div>
+          <div className="plans-kpi-metric">
+            <span className="plans-kpi-label">RESERVE_DOMAINS</span>
+            <span className="plans-kpi-value">{reserveDomains.length}</span>
+            <span className="plans-kpi-meta">{reserveDomains.filter((domain) => domain.active).length} active</span>
+          </div>
+        </section>
+
+        {/* ── Tab bar ───────────────────────── */}
+        <nav className="plans-tabs liquid-glass" aria-label="Governance workspace sections">
+          <div ref={tabBarRef} className="plans-tabs-inner">
+            {GOVERNANCE_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  data-tab-id={tab.id}
+                  className={cn("plans-tab", isActive && "plans-tab-active")}
+                  onClick={() => handleTabChange(tab.id)}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span className="plans-tab-number">{TAB_NUMBERS[tab.id as GovernanceTabId]}</span>
+                  <span className="material-symbols-outlined plans-tab-icon">{TAB_ICONS[tab.id as GovernanceTabId]}</span>
+                  <span className="plans-tab-label">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {queueStatusBanner ? (
+          <div className="plans-notice liquid-glass" role="status">
+            <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">sync_problem</span>
+            <p>{queueStatusBanner}</p>
+          </div>
+        ) : null}
+
+        {/* ── Body ──────────────────────────── */}
+        <div className="plans-body">
+          <section className="plans-main">
+
+            {/* ── Overview tab ── */}
+            {activeTab === "overview" ? (
+              <div className="plans-overview-grid">
+                <article className="plans-card plans-vitality heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">PROPOSAL_PULSE</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        {selectedProposal?.title ?? queueStatus.emptyTitle}
+                      </h2>
+                    </div>
+                    {selectedProposal ? (
+                      <span className="plans-card-meta">
+                        <span className="plans-live-dot" aria-hidden="true" />
+                        {selectedProposal.status}
+                      </span>
+                    ) : (
+                      <span className="plans-card-meta">{queueStatus.emptyMeta}</span>
+                    )}
                   </div>
-                </div>
-                <div className="workbench-list">
-                  {queue.length > 0 ? queue.map((proposal) => (
-                    <button
-                      key={proposal.proposal}
-                      type="button"
-                      className={`workbench-list-row ${selectedProposal?.proposal === proposal.proposal ? "workbench-list-row-active" : ""}`}
-                      onClick={() => updateParams({ proposal: proposal.proposal, tab: "queue" })}
-                    >
-                      <div>
-                        <strong>{proposal.title}</strong>
-                        <p>{proposal.stage}</p>
+                  <p className="plans-card-body">
+                    {selectedProposal
+                      ? `${selectedProposal.stage}. Authority routes through ${selectedProposal.authority} under the ${selectedProposal.template} template.`
+                      : queueStatus.emptyDetail}
+                  </p>
+
+                  <div className="plans-vitality-stats">
+                    <div className="plans-vitality-stat">
+                      <span className="plans-vitality-stat-value">{queueStatus.metricValue}</span>
+                      <span className="plans-vitality-stat-label">Live proposals</span>
+                    </div>
+                    <div className="plans-vitality-stat">
+                      <span className="plans-vitality-stat-value">{configuredAuthorityWallets.length}</span>
+                      <span className="plans-vitality-stat-label">Authorities</span>
+                    </div>
+                    <div className="plans-vitality-stat">
+                      <span className="plans-vitality-stat-value plans-vitality-stat-value-accent">
+                        {GOVERNANCE_TEMPLATE_ROWS.length}
+                      </span>
+                      <span className="plans-vitality-stat-label">Templates</span>
+                    </div>
+                  </div>
+
+                  {queueStateCounts.length > 0 ? (
+                    <div className="plans-vitality-chart" aria-label="Proposal queue state distribution">
+                      <div className="plans-vitality-chart-head">
+                        <span className="plans-chart-label">QUEUE_STATE</span>
+                        <span className="plans-chart-legend">Status · Share</span>
                       </div>
-                      <div className="workbench-list-row-meta">
-                        <span>{proposal.status}</span>
+                      <div className="plans-vitality-bars">
+                        {queueStateCounts.map((entry) => {
+                          const ratio = queue.length > 0 ? entry.count / queue.length : 0;
+                          return (
+                            <div key={entry.label} className="plans-vitality-bar">
+                              <div className="plans-vitality-bar-head">
+                                <span className="plans-vitality-bar-name">{entry.label}</span>
+                                <span className="plans-vitality-bar-val">{entry.count}</span>
+                              </div>
+                              <div className="plans-vitality-bar-track">
+                                <div
+                                  className="plans-vitality-bar-fill"
+                                  style={{ width: `${Math.max(4, ratio * 100)}%` }}
+                                />
+                              </div>
+                              <span className="plans-vitality-bar-claims">
+                                {Math.round(ratio * 100)}% of queue
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </button>
-                  )) : (
-                    <p className="workbench-body-copy">{queueEmptyMessage}</p>
+                    </div>
+                  ) : null}
+                </article>
+
+                <article className="plans-card plans-pressure heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">EXECUTION_POSTURE</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        Timelock<span className="plans-pressure-unit"> · on</span>
+                      </h2>
+                    </div>
+                    <span className="plans-card-meta">SEQUENTIAL</span>
+                  </div>
+                  <div className="plans-data-grid">
+                    <div className="plans-data-row">
+                      <span className="plans-data-label">REVIEW</span>
+                      <span className="plans-data-value">Timelock active</span>
+                    </div>
+                    <div className="plans-data-row">
+                      <span className="plans-data-label">EXECUTION</span>
+                      <span className="plans-data-value">Sequential</span>
+                    </div>
+                    <div className="plans-data-row">
+                      <span className="plans-data-label">AUDIT</span>
+                      <span className="plans-data-value">On-chain</span>
+                    </div>
+                  </div>
+                </article>
+
+                <article className="plans-card plans-velocity heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">CONTROL_SCOPE</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        {GOVERNANCE_TEMPLATE_ROWS.length} <em>templates</em>
+                      </h2>
+                    </div>
+                    <span className="plans-card-meta">BOUNDED</span>
+                  </div>
+                  <p className="plans-card-body">
+                    Every governance action is bounded by a published template — no untyped instructions reach the protocol.
+                  </p>
+                  <button
+                    type="button"
+                    className="plans-inline-action"
+                    onClick={() => handleTabChange("templates")}
+                  >
+                    INSPECT_TEMPLATES
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
+                </article>
+
+                <article className="plans-card plans-lanes heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">PROPOSAL_LANES</p>
+                      <h2 className="plans-card-title">Live queue</h2>
+                    </div>
+                    <span className="plans-card-meta">{queue.length} {queue.length === 1 ? "proposal" : "proposals"}</span>
+                  </div>
+                  {queue.length > 0 ? (
+                    <div className="plans-lane-stack">
+                      {queue.map((proposal) => {
+                        const isSelected = selectedProposal?.proposal === proposal.proposal;
+                        return (
+                          <button
+                            type="button"
+                            key={proposal.proposal}
+                            className={cn("plans-lane", isSelected && "plans-lane-active")}
+                            onClick={() => updateParams({ proposal: proposal.proposal, tab: "overview" })}
+                          >
+                            <div className="plans-lane-info">
+                              <span className="plans-lane-name">{proposal.title}</span>
+                              <span className="plans-lane-key">{proposal.template}</span>
+                            </div>
+                            <div className="plans-lane-meta">
+                              <span className="plans-lane-mode">{proposal.authority}</span>
+                              <StatusBadge label={proposal.status} />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="plans-card-body">{queueStatus.emptyMessage}</p>
                   )}
-                </div>
+                </article>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {activeTab === "queue" ? (
-            <div className="workbench-table-card">
-              <table className="workbench-table">
-                <thead>
-                  <tr>
-                    <th>Proposal</th>
-                    <th>Template</th>
-                    <th>Authority</th>
-                    <th>Status</th>
-                    <th>Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {queue.length > 0 ? queue.map((proposal) => (
-                    <tr key={proposal.proposal}>
-                      <td data-label="Proposal">
-                        <button type="button" className="workbench-inline-button" onClick={() => updateParams({ proposal: proposal.proposal })}>
-                          {proposal.title}
-                        </button>
-                      </td>
-                      <td data-label="Template">{proposal.template}</td>
-                      <td data-label="Authority">{proposal.authority}</td>
-                      <td data-label="Status">{proposal.status}</td>
-                      <td data-label="Open">
-                        <Link href={`/governance/proposals/${encodeURIComponent(proposal.proposal)}`} className="workbench-inline-link">
-                          Detail
-                        </Link>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={5}>{queueEmptyMessage}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
+            {/* ── Queue tab ── */}
+            {activeTab === "queue" ? (
+              <article className="plans-card heavy-glass">
+                <div className="plans-card-head">
+                  <div>
+                    <p className="plans-card-eyebrow">PROPOSAL_REGISTER</p>
+                    <h2 className="plans-card-title plans-card-title-display">
+                      {queue.length} live <em>{queue.length === 1 ? "proposal" : "proposals"}</em>
+                    </h2>
+                  </div>
+                  <span className="plans-card-meta">
+                    <span className="plans-live-dot" aria-hidden="true" />
+                    {queueLiveLabel}
+                  </span>
+                </div>
+                {queue.length > 0 ? (
+                  <div className="plans-table-wrap">
+                    <table className="plans-table">
+                      <thead>
+                        <tr>
+                          <th>Proposal</th>
+                          <th>Template</th>
+                          <th>Authority</th>
+                          <th>Status</th>
+                          <th>Open</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {queue.map((proposal) => {
+                          const isSelected = selectedProposal?.proposal === proposal.proposal;
+                          return (
+                            <tr key={proposal.proposal} className={cn(isSelected && "plans-table-row-active")}>
+                              <td data-label="Proposal">
+                                <button
+                                  type="button"
+                                  className="plans-table-link"
+                                  onClick={() => updateParams({ proposal: proposal.proposal })}
+                                >
+                                  {proposal.title}
+                                </button>
+                              </td>
+                              <td data-label="Template"><span className="plans-table-mono">{proposal.template}</span></td>
+                              <td data-label="Authority"><span className="plans-table-mono">{proposal.authority}</span></td>
+                              <td data-label="Status"><StatusBadge label={proposal.status} /></td>
+                              <td data-label="Open">
+                                <Link
+                                  href={`/governance/proposals/${encodeURIComponent(proposal.proposal)}`}
+                                  className="plans-table-link"
+                                >
+                                  Detail →
+                                </Link>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="plans-empty">
+                    <strong>{queueStatus.emptyTitle}</strong>
+                    <p>{queueStatus.emptyMessage}</p>
+                  </div>
+                )}
+              </article>
+            ) : null}
 
-          {activeTab === "authorities" ? (
-            <div className="workbench-table-card">
-              <table className="workbench-table">
-                <thead>
-                  <tr>
-                    <th>Role</th>
-                    <th>Wallet</th>
-                    <th>Address</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+            {/* ── Authorities tab ── */}
+            {activeTab === "authorities" ? (
+              <article className="plans-card heavy-glass">
+                <div className="plans-card-head">
+                  <div>
+                    <p className="plans-card-eyebrow">AUTHORITY_MATRIX</p>
+                    <h2 className="plans-card-title plans-card-title-display">
+                      Control <em>wallets</em>
+                    </h2>
+                  </div>
+                  <span className="plans-card-meta">{configuredAuthorityWallets.length}/{authorityWallets.length} configured</span>
+                </div>
+                <p className="plans-card-body">
+                  Wallets with on-chain control of the protocol shell. Every authority is bound to a published role and a scoped action set.
+                </p>
+                <div className="plans-settings-grid">
                   {authorityWallets.map((wallet) => {
                     const actions = authorityRoles.find((row) => row.role === wallet.role)?.actions ?? [];
+                    const isConfigured = !isUnsetDevnetWalletAddress(wallet.address);
                     return (
-                      <tr key={devnetFixtureWalletKey(wallet)}>
-                        <td data-label="Role">{wallet.role}</td>
-                        <td data-label="Wallet">{wallet.label}</td>
-                        <td data-label="Address">{isUnsetDevnetWalletAddress(wallet.address) ? "Not configured" : shortenAddress(wallet.address, 8)}</td>
-                        <td data-label="Actions">{actions.join(", ") || "None"}</td>
-                      </tr>
+                      <div key={devnetFixtureWalletKey(wallet)} className="plans-settings-row">
+                        <div>
+                          <span className="plans-settings-label">{humanizeRole(wallet.role).toUpperCase()}</span>
+                          <span className="plans-settings-lane">{wallet.label}</span>
+                          {actions.length > 0 ? (
+                            <span className="plans-lane-key">{actions.join(" · ")}</span>
+                          ) : null}
+                        </div>
+                        <span className="plans-settings-address">
+                          {isConfigured ? shortenAddress(wallet.address, 6) : "Not configured"}
+                        </span>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-
-          {activeTab === "templates" ? (
-            <div className="workbench-table-card">
-              <table className="workbench-table">
-                <thead>
-                  <tr>
-                    <th>Template</th>
-                    <th>Authority</th>
-                    <th>Blast radius</th>
-                    <th>Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {GOVERNANCE_TEMPLATE_ROWS.map((template) => (
-                    <tr key={template.id}>
-                      <td data-label="Template">{template.label}</td>
-                      <td data-label="Authority">{template.authority}</td>
-                      <td data-label="Blast radius">{template.blastRadius}</td>
-                      <td data-label="Open">
-                        <Link href={`/governance/descriptions/${template.id}`} className="workbench-inline-link">
-                          Template detail
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-
-          {activeTab === "dao-ops" ? (
-            <div className="workbench-content-split">
-              <div className="workbench-content-pane">
-                <div className="workbench-content-pane-head">
-                  <div>
-                    <h2 className="workbench-panel-title">Execution pipeline</h2>
-                  </div>
                 </div>
-                <div className="workbench-data-list">
-                  <div className="workbench-data-row"><span>Review</span><strong>Timelock active</strong></div>
-                  <div className="workbench-data-row"><span>Execution</span><strong>Sequential</strong></div>
-                  <div className="workbench-data-row"><span>Audit</span><strong>On-chain</strong></div>
-                </div>
-              </div>
-              <div className="workbench-content-pane">
-                <div className="workbench-content-pane-head">
-                  <div>
-                    <h2 className="workbench-panel-title">Scope constraints</h2>
-                  </div>
-                </div>
-                <div className="workbench-data-list">
-                  <div className="workbench-data-row"><span>Templates</span><strong>{GOVERNANCE_TEMPLATE_ROWS.length} active</strong></div>
-                  <div className="workbench-data-row"><span>Authority wallets</span><strong>{configuredAuthorityWallets.length} configured</strong></div>
-                  <div className="workbench-data-row"><span>Control surface</span><strong>Template-bounded</strong></div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </section>
-      </section>
-
-      <aside className="workbench-rail">
-        <WorkbenchRailCard title="Selected proposal" meta="QUEUE">
-          {selectedProposal ? (
-            <div className="workbench-stack">
-              <strong>{selectedProposal.title}</strong>
-              <p>{selectedProposal.stage}</p>
-              <div className="workbench-mini-stat">
-                <span>Authority</span>
-                <strong>{selectedProposal.authority}</strong>
-              </div>
-              <div className="workbench-mini-stat">
-                <span>Template</span>
-                <strong>{selectedProposal.template}</strong>
-              </div>
-              <Link href={`/governance/proposals/${encodeURIComponent(selectedProposal.proposal)}`} className="workbench-inline-link">
-                Open standalone detail
-              </Link>
-            </div>
-          ) : (
-            <p>{queueEmptyMessage}</p>
-          )}
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="Authority alerts" meta="CONTROL">
-          <div className="workbench-stack">
-            <div className="workbench-mini-stat">
-              <span>Protocol governance</span>
-              <strong>Timelock review</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Pool sentinel</span>
-              <strong>Queue-only posture live</strong>
-            </div>
-            <div className="workbench-mini-stat">
-              <span>Plan admin</span>
-              <strong>Series controls monitored</strong>
-            </div>
-          </div>
-        </WorkbenchRailCard>
-
-        <WorkbenchRailCard title="Audit trail" meta="AUDIT">
-          <div className="workbench-timeline">
-            {auditTrail.map((item) => (
-              <article key={item.id} className={`workbench-timeline-item workbench-timeline-item-${item.tone}`}>
-                <div className="workbench-timeline-head">
-                  <strong>{item.label}</strong>
-                  <span>{item.timestamp}</span>
-                </div>
-                <p>{item.detail}</p>
               </article>
-            ))}
-          </div>
-        </WorkbenchRailCard>
-      </aside>
+            ) : null}
+
+            {/* ── Templates tab ── */}
+            {activeTab === "templates" ? (
+              <article className="plans-card heavy-glass">
+                <div className="plans-card-head">
+                  <div>
+                    <p className="plans-card-eyebrow">CONTROL_TEMPLATES</p>
+                    <h2 className="plans-card-title plans-card-title-display">
+                      Bounded <em>actions</em>
+                    </h2>
+                  </div>
+                  <span className="plans-card-meta">{GOVERNANCE_TEMPLATE_ROWS.length} active</span>
+                </div>
+                <div className="plans-table-wrap">
+                  <table className="plans-table">
+                    <thead>
+                      <tr>
+                        <th>Template</th>
+                        <th>Authority</th>
+                        <th>Blast radius</th>
+                        <th>Open</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {GOVERNANCE_TEMPLATE_ROWS.map((template) => (
+                        <tr key={template.id}>
+                          <td data-label="Template">{template.label}</td>
+                          <td data-label="Authority"><span className="plans-table-mono">{template.authority}</span></td>
+                          <td data-label="Blast radius">{template.blastRadius}</td>
+                          <td data-label="Open">
+                            <Link href={`/governance/descriptions/${template.id}`} className="plans-table-link">
+                              Detail →
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            ) : null}
+          </section>
+
+          {/* ── Rail ───────────────────────── */}
+          <aside className="plans-rail">
+            <section className="plans-rail-card heavy-glass">
+              <div className="plans-rail-head">
+                <span className="plans-rail-tag">SELECTED_PROPOSAL</span>
+                <span className="plans-rail-subtag">
+                  <span className="plans-live-dot" aria-hidden="true" />
+                  {selectedProposal ? selectedProposal.status : queueLiveLabel}
+                </span>
+              </div>
+              {selectedProposal ? (
+                <>
+                  <div className="plans-rail-hero">
+                    <span className="plans-rail-hero-val">{selectedProposal.title}</span>
+                    <span className="plans-rail-hero-sub">{selectedProposal.stage}</span>
+                  </div>
+                  <div className="plans-rail-row">
+                    <span>Authority</span>
+                    <strong>{selectedProposal.authority}</strong>
+                  </div>
+                  <div className="plans-rail-row">
+                    <span>Template</span>
+                    <strong>{selectedProposal.template}</strong>
+                  </div>
+                  <Link
+                    href={`/governance/proposals/${encodeURIComponent(selectedProposal.proposal)}`}
+                    className="plans-inline-action"
+                  >
+                    OPEN_PROPOSAL
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </Link>
+                </>
+              ) : (
+                <p className="plans-rail-hero-sub">{queueStatus.emptyDetail}</p>
+              )}
+            </section>
+
+            <section className="plans-rail-card heavy-glass">
+              <div className="plans-rail-head">
+                <span className="plans-rail-tag">AUTHORITY_ALERTS</span>
+                <span className="plans-rail-subtag">CONTROL</span>
+              </div>
+              <div className="plans-rail-row">
+                <span>Protocol governance</span>
+                <strong>Timelock review</strong>
+              </div>
+              <div className="plans-rail-row">
+                <span>Pool sentinel</span>
+                <strong>Queue-only live</strong>
+              </div>
+              <div className="plans-rail-row">
+                <span>Plan admin</span>
+                <strong>Series controls</strong>
+              </div>
+            </section>
+
+            <section className="plans-rail-card heavy-glass">
+              <div className="plans-rail-head">
+                <span className="plans-rail-tag">FIELD_LOG</span>
+                <span className="plans-rail-subtag">LIVE_AUDIT</span>
+              </div>
+              <div className="plans-rail-trail">
+                {auditTrail.map((item) => (
+                  <div key={item.id} className={`plans-rail-event plans-rail-event-${item.tone}`}>
+                    <span className="plans-rail-event-dot" aria-hidden="true" />
+                    <div className="plans-rail-event-copy">
+                      <div className="plans-rail-event-row">
+                        <strong className="plans-rail-event-label">{item.label}</strong>
+                        <time className="plans-rail-event-time">{item.timestamp}</time>
+                      </div>
+                      <p className="plans-rail-event-detail">{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
