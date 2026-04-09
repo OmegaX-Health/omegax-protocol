@@ -129,15 +129,13 @@ Required page sections:
 
 #### `/plans` launch workspace
 
-The launch workspace should support both a quick draft mode and a full on-chain creation wizard. Quick preview alone is not sufficient for the target product.
+The launch workspace must be a single canonical on-chain launch wizard. The UI may use `Rewards`, `Insurance`, and `Hybrid` as launch-intent language, but the protocol root remains a neutral `HealthPlan`; product semantics are expressed only by the `PolicySeries` lanes created under it.
 
-##### Step 1: plan basics and settlement posture
+##### Step 1: neutral plan root
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Plan style | Segmented control | Choose `Rewards`, `Insurance`, or `Hybrid`. | Changing plan style updates downstream required fields and summary language. |
-| Coverage path | Segmented control | For `Insurance` and `Hybrid`, choose `DeFi native` or `RWA policy` when enabled. | Hidden for pure rewards plans; required for coverage-bearing plans. |
-| Settlement style | Segmented control | For DeFi coverage, choose `On-chain programmatic` or `Hybrid rails`. | Required only when DeFi coverage is selected. |
+| Launch intent | Segmented control | Choose `Rewards`, `Insurance`, or `Hybrid`. | This is a UI-only selector; it drives which lane steps are required, but it must not create any root product-type field or equivalent protocol surface. |
 | Plan id | Text input | Capture the canonical seed-safe plan identifier. | Show byte-length validation and seed safety constraints. |
 | Display name | Text input | Capture the human-readable plan name. | Required before final creation. |
 | Sponsor label / organization reference | Text input | Identify the sponsor/operator organization responsible for the plan. | Required before final creation. |
@@ -149,16 +147,9 @@ The launch workspace should support both a quick draft mode and a full on-chain 
 | Reward payout amount | Numeric input | Set the default reward payout for reward-bearing flows. | Required for rewards and hybrid reward lanes; not required for pure insurance. |
 | Terms hash | Text input | Accept or display the 32-byte hash for plan terms. | Must support manual override and validation. |
 | Payout policy hash | Text input | Accept or display the 32-byte hash for payout policy logic. | Must support manual override and validation. |
-| DeFi technical terms URL | Text input | Capture the public technical terms reference. | Required for DeFi coverage. |
-| DeFi risk disclosure URL | Text input | Capture the public risk disclosure reference. | Required for DeFi coverage. |
-| RWA issuer legal name | Text input | Capture the legal issuer name for RWA coverage. | Required only when RWA coverage is enabled and selected. |
-| RWA jurisdiction | Text input | Capture governing jurisdiction. | Required only for RWA coverage. |
-| RWA policy terms URI | Text input | Capture the public policy terms reference. | Required only for RWA coverage. |
-| RWA regulatory/license reference | Text input | Capture regulatory or license reference. | Required only for RWA coverage. |
-| RWA compliance contact | Text input | Capture public contact for compliance follow-up. | Must accept email or public URI only. |
-| Derived PDA preview | Read-only card | Show predicted `HealthPlan`, initial `PolicySeries`, and default funding-line addresses before signature. | Must update live as form values change. |
+| Derived PDA preview | Read-only card | Show predicted `HealthPlan`, initial reward `PolicySeries`, initial protection `PolicySeries`, and first funding-line addresses before signature. | Must update live as form values change. |
 
-##### Step 1b: membership eligibility and initial creation
+##### Step 2: membership posture
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
@@ -166,24 +157,31 @@ The launch workspace should support both a quick draft mode and a full on-chain 
 | Token gate mint | Text input | Capture qualifying token mint for gated enrollment. | Required only in token-gated mode. |
 | Token gate minimum balance | Numeric input | Set the minimum qualifying balance. | Required only in token-gated mode; must be greater than zero. |
 | Invite issuer wallet | Text input | Capture the wallet allowed to issue invites. | Required only in invite-only mode; must be a valid public key. |
-| `Register invite issuer` | Secondary button | Register the invite issuer before invite-only enrollment goes live. | Disabled until the current wallet is valid for the action. |
-| Invite issuer readiness badge | Status pill | Show whether the issuer is registered and ready. | Must update after registration. |
-| `Create plan on-chain` | Primary button | Create the plan and primary policy series. | Disabled until all required Step 1 inputs are valid and a wallet is connected. |
-| Create-plan helper text | Inline helper/error text | Explain why the action is blocked or what it will do. | Must be explicit and actionable. |
+| Membership helper text | Inline helper/error text | Explain the selected enrollment posture and why the current step is blocked if invalid. | Must be explicit and actionable. |
 
-##### Step 2: verification network and payout rules
+##### Step 3: verification network
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
 | Oracle search | Text input | Filter oracle candidates by address, metadata, or status. | Keep selected values visible when filtered out. |
-| Oracle picker list | Selectable list | Select one or more oracle wallets allowed to confirm outcomes. | Show `Active`, `Inactive`, and `Required` states; support locked required oracle. |
-| Selected oracle chips | Status chip row | Show all currently selected verifiers. | Required oracle must remain visually distinct. |
+| Oracle picker list | Selectable list | Select one or more oracle wallets allowed to confirm outcomes. | Show `Active`, `Inactive`, and manual-entry states. |
+| Selected oracle chips | Status chip row | Show all currently selected verifiers. | Selected values must remain clearly removable and count toward quorum. |
 | Required confirmations | Numeric input | Set quorum `M`. | Must be `>= 1` and `<= N`. |
 | Selected verifier count | Disabled numeric field | Show derived quorum `N` from current selection. | Updates automatically. |
-| `Only use verified schemas` | Toggle | Restrict payout rules to governance-verified schemas. | Defaults on. |
+| `Only use verified schemas` | Toggle | Restrict reward-lane rule building to governance-verified schemas. | Defaults on. |
 | `Allow delegated reward claims` | Toggle | Permit sponsor/service agents to submit reward claims on behalf of members. | Must remain explicit because it changes who can initiate claims. |
-| `Save verification network` | Secondary/primary action | Persist verifier set and quorum. | Disabled until inputs are valid and plan exists. |
-| Schema selector | Select | Choose the schema that defines payout outcomes. | Required before rule creation. |
+
+##### Step 4: reward lane setup
+
+This step is required only for `Rewards` and `Hybrid` launches.
+
+| Element | Type | Required functionality | Required states / rules |
+| --- | --- | --- | --- |
+| Reward series id | Text input | Define the seed-safe id for the initial reward `PolicySeries`. | Required only when a reward lane is part of the launch. |
+| Reward series display name | Text input | Capture the human-readable label for the reward lane. | Required only when a reward lane is part of the launch. |
+| Reward metadata URI | Text input | Store the public metadata entrypoint for the reward lane. | Required only when a reward lane is part of the launch. |
+| Sponsor funding line id | Text input | Define the seed-safe id for the sponsor-budget funding line that supports the reward lane. | Required only when a reward lane is part of the launch. |
+| Schema selector | Select | Choose the schema that defines reward payout outcomes. | Required before rule creation. |
 | Schema metadata loading state | Inline state | Indicate when schema metadata and outcome definitions are being loaded. | Must not block the entire page. |
 | Schema warning note | Inline note | Explain missing metadata, unverifiable schema state, or other setup issues. | Must remain visible until resolved. |
 | Outcome filter | Text input | Filter outcome list by id or human label. | Preserve selections across filtering. |
@@ -192,20 +190,42 @@ The launch workspace should support both a quick draft mode and a full on-chain 
 | `Protocol details` per rule | Disclosure | Show derived rule hash, payout hash, and manual overrides. | Keep expert-only details out of the main flow. |
 | Rule hash override | Text input | Allow exact 32-byte override for rule hash. | Optional, validated. |
 | Payout hash override | Text input | Allow exact 32-byte override for payout hash. | Optional, validated. |
-| `Save outcome rules` | Primary action | Persist payout rules for the selected schema outcomes. | Disabled until schema, outcomes, and rule ids are valid. |
+| Committed sponsor budget | Numeric input | Set the initial committed amount for the reward sponsor-budget line. | Required only when a reward lane is part of the launch. |
 
-##### Step 3: funding and final review
+##### Step 5: protection lane setup
+
+This step is required only for `Insurance` and `Hybrid` launches.
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Launch summary list | Read-only summary | Show plan type, eligibility, verification, outcomes, funding mode, and workspace link. | Must stay human-readable first. |
-| `Open workspace` | Secondary button | Open the new plan in its canonical route context after creation. | Hidden until the plan exists. |
-| Funding amount input | Numeric input | Capture starting SOL or SPL amount for the launch vault. | Input type depends on payout mode. |
-| Mint decimals readout | Inline text | Show token mint decimals for SPL funding. | Loading state required while mint metadata resolves. |
-| `Fund launch vault` | Primary button | Seed the initial vault balance. | Disabled until plan exists, funding input is valid, and wallet is connected. |
-| Protocol and accounting details disclosure | Disclosure | Show pool type, payout mint, base-unit preview, and plan address. | Must stay collapsed by default. |
-| Coverage references disclosure | Disclosure | Show coverage-path references and link into follow-on setup. | Only for plans with coverage posture. |
-| Recent transactions disclosure | Disclosure | Show create/configure/fund transaction history with explorer links. | Append-only for the current session. |
+| Coverage path | Segmented control | Choose `DeFi native` or `RWA policy` when coverage is part of the launch. | Hidden for pure reward launches; required for protection-bearing launches. |
+| Settlement style | Segmented control | For DeFi coverage, choose `On-chain programmatic` or `Hybrid rails`. | Required only when DeFi coverage is selected. |
+| DeFi technical terms URL | Text input | Capture the public technical terms reference. | Required for DeFi coverage. |
+| DeFi risk disclosure URL | Text input | Capture the public risk disclosure reference. | Required for DeFi coverage. |
+| RWA issuer legal name | Text input | Capture the legal issuer name for RWA coverage. | Required only when RWA coverage is enabled and selected. |
+| RWA jurisdiction | Text input | Capture governing jurisdiction. | Required only for RWA coverage. |
+| RWA policy terms URI | Text input | Capture the public policy terms reference. | Required only for RWA coverage. |
+| RWA regulatory/license reference | Text input | Capture regulatory or license reference. | Required only for RWA coverage. |
+| RWA compliance contact | Text input | Capture public contact for compliance follow-up. | Must accept email or public URI only. |
+| Protection series id | Text input | Define the seed-safe id for the initial protection `PolicySeries`. | Required only when a protection lane is part of the launch. |
+| Protection series display name | Text input | Capture the human-readable label for the protection lane. | Required only when a protection lane is part of the launch. |
+| Protection metadata URI | Text input | Store the public metadata entrypoint for the protection lane. | Required only when a protection lane is part of the launch. |
+| Premium funding line id | Text input | Define the seed-safe id for the initial premium-income funding line. | Required only when a protection lane is part of the launch. |
+| Premium cadence | Numeric input | Capture the expected cadence for premium collection. | Required only when a protection lane is part of the launch. |
+| Expected first-cycle premium volume | Numeric input | Set the initial committed amount for the premium-income line. | Required only when a protection lane is part of the launch. |
+| Protection posture disclosure | Disclosure | Show the structured public metadata that will be committed for coverage posture. | Must summarize coverage path, settlement style, and public legal/disclosure references; this data must remain readable after launch. |
+
+##### Step 6: final review and launch
+
+| Element | Type | Required functionality | Required states / rules |
+| --- | --- | --- | --- |
+| Launch summary list | Read-only summary | Show launch intent, membership posture, verification policy, reward-lane state, protection-lane state, and workspace links. | Must stay human-readable first and clearly separate plan-root facts from lane-specific facts. |
+| `Create canonical launch` | Primary button | Submit the neutral `HealthPlan`, each required `PolicySeries`, and the initial reward/protection funding lines. | Disabled until every required step is valid and a wallet is connected. |
+| Created artifact list | Read-only summary | Show the resulting `HealthPlan`, reward `PolicySeries`, protection `PolicySeries`, sponsor-budget line, and premium-income line addresses when created. | Must update after signature confirmation and expose explorer links. |
+| `Open workspace` | Secondary button | Open the new plan in its canonical route context after creation. | Hidden until launch succeeds. |
+| Protocol and accounting details disclosure | Disclosure | Show payout mint, base-unit previews, PDA derivations, and hash commitments. | Must stay collapsed by default and must not describe any retired root product-type field. |
+| Coverage references disclosure | Disclosure | Show the structured protection posture metadata and link into the post-launch coverage workspace. | Only for launches with a protection lane. |
+| Recent transactions disclosure | Disclosure | Show create/configure transaction history with explorer links. | Append-only for the current session. |
 | `Refresh on-chain choices` | Secondary button | Reload oracle and schema selectors. | Safe retry action. |
 | Step tabs | Tab group | Jump between steps while preserving draft state. | Show active step, completed step, and total progress. |
 | `Back` / `Next step` | Secondary buttons | Move between steps without losing form state. | Hidden or disabled at flow edges. |

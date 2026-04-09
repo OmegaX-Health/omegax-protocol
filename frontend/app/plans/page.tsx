@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Suspense } from "react";
-
 import { PlansWorkbench } from "@/components/plans-workbench";
+import { type RouteSearchParams } from "@/lib/search-params";
 
-export default function PlansPage() {
-  return (
-    <Suspense fallback={<div className="workbench-page"><section className="workbench-main-column"><div className="workbench-inline-card glass-panel"><strong>Loading plans workbench...</strong></div></section></div>}>
-      <PlansWorkbench />
-    </Suspense>
-  );
+type PlansPageProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export default function PlansPage({ searchParams = {} }: PlansPageProps) {
+  return <PlansWorkbench searchParams={searchParams} />;
 }

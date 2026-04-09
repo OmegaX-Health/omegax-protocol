@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { FieldHint } from "@/components/field-hint";
 import { cn } from "@/lib/cn";
@@ -44,6 +44,7 @@ export function MultiOraclePicker({
   disabled,
 }: MultiOraclePickerProps) {
   const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const [candidateOracle, setCandidateOracle] = useState("");
   const filtered = useMemo(() => {
     const needle = normalize(search);
     if (!needle) return options;
@@ -53,6 +54,20 @@ export function MultiOraclePicker({
       ),
     );
   }, [options, search]);
+  const available = useMemo(
+    () => filtered.filter((entry) => !selectedSet.has(entry.oracle)),
+    [filtered, selectedSet],
+  );
+
+  useEffect(() => {
+    if (candidateOracle && available.some((entry) => entry.oracle === candidateOracle)) return;
+    setCandidateOracle(available[0]?.oracle ?? "");
+  }, [available, candidateOracle]);
+
+  function handleAddCandidate() {
+    if (!candidateOracle) return;
+    onToggle(candidateOracle);
+  }
 
   return (
     <div className="space-y-3">
@@ -63,31 +78,103 @@ export function MultiOraclePicker({
           side="end"
         />
       </div>
-      <input
-        className="field-input"
-        placeholder="Filter verifiers by address or metadata"
-        value={search}
-        onChange={(event) => onSearchChange(event.target.value)}
-        disabled={disabled}
-      />
-      <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-        {filtered.length === 0 ? <p className="field-help">No matching oracles.</p> : null}
-        {filtered.map((entry) => {
+      <div className="wizard-oracle-picker">
+        <div className="wizard-oracle-picker-toolbar">
+          <label className="field-label">
+            Add verifier from registry
+            <select
+              className="field-input"
+              value={candidateOracle}
+              onChange={(event) => setCandidateOracle(event.target.value)}
+              disabled={disabled || available.length === 0}
+            >
+              <option value="">
+                {available.length > 0 ? "Choose verifier" : "All listed verifiers already selected"}
+              </option>
+              {available.map((entry) => (
+                <option key={entry.oracle} value={entry.oracle}>
+                  {shortAddress(entry.oracle)} · {entry.metadataUri || (entry.active ? "Active registry profile" : "Registry entry")}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="secondary-button w-fit"
+            onClick={handleAddCandidate}
+            disabled={disabled || !candidateOracle}
+          >
+            Add verifier
+          </button>
+        </div>
+        <input
+          className="field-input"
+          placeholder="Filter registry by address or metadata"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          disabled={disabled}
+        />
+        {filtered.length === 0 ? <p className="field-help">No matching verifiers in the registry.</p> : null}
+        {available.length === 0 && filtered.length > 0 ? (
+          <p className="field-help">Every verifier in the current filter is already selected.</p>
+        ) : null}
+      </div>
+      <div className="space-y-2">
+        {selected.length === 0 ? <p className="field-help">No verifiers selected yet.</p> : null}
+        {selected.map((oracle) => {
+          const entry = options.find((option) => option.oracle === oracle);
+          const isRequired = Boolean(requiredOracle) && oracle === requiredOracle;
+          const toggleDisabled = Boolean(disabled) || Boolean(lockRequiredOracle && isRequired);
+          return (
+            <div
+              key={oracle}
+              className={cn(
+                "wizard-select-row",
+                "wizard-select-row-active",
+                isRequired && "wizard-select-row-required",
+                toggleDisabled && "opacity-90",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-[var(--foreground)]">{shortAddress(oracle)}</p>
+                <div className="flex items-center gap-1.5">
+                  {isRequired ? <span className="status-pill status-ok">Required</span> : null}
+                  <span className={`status-pill ${entry?.active ? "status-ok" : "status-off"}`}>
+                    {entry?.active ? "Active" : "Manual"}
+                  </span>
+                </div>
+              </div>
+              <p className="wizard-inline-copy mt-1 break-all">
+                {entry?.metadataUri || "Selected verifier"}
+              </p>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  className="secondary-button w-fit"
+                  onClick={() => onToggle(oracle)}
+                  disabled={toggleDisabled}
+                >
+                  {isRequired && lockRequiredOracle ? "Locked verifier" : "Remove verifier"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <details className="wizard-oracle-registry">
+        <summary className="wizard-oracle-registry-summary">Preview registry entries</summary>
+        <div className="mt-2 max-h-56 space-y-2 overflow-y-auto pr-1">
+          {filtered.map((entry) => {
           const isSelected = selectedSet.has(entry.oracle);
           const isRequired = Boolean(requiredOracle) && entry.oracle === requiredOracle;
-          const toggleDisabled = Boolean(disabled) || Boolean(lockRequiredOracle && isRequired && isSelected);
           return (
-            <button
+            <div
               key={entry.oracle}
-              type="button"
               className={cn(
                 "wizard-select-row",
                 isSelected && "wizard-select-row-active",
                 isRequired && "wizard-select-row-required",
-                toggleDisabled && "cursor-not-allowed opacity-90",
               )}
-              onClick={() => onToggle(entry.oracle)}
-              disabled={toggleDisabled}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-[var(--foreground)]">{shortAddress(entry.oracle)}</p>
@@ -99,22 +186,11 @@ export function MultiOraclePicker({
               <p className="wizard-inline-copy mt-1 break-all">
                 {entry.metadataUri || "No metadata URI"}
               </p>
-            </button>
+            </div>
           );
         })}
-      </div>
-      {selected.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {selected.map((oracle) => (
-            <span key={oracle} className={`status-pill ${oracle === requiredOracle ? "status-ok" : "status-off"}`}>
-              {shortAddress(oracle)}
-              {oracle === requiredOracle ? " (required)" : ""}
-            </span>
-          ))}
         </div>
-      ) : (
-        <p className="field-help">No verifiers selected yet.</p>
-      )}
+      </details>
       {lockRequiredOracle && requiredOracle ? <p className="wizard-inline-copy">The required verifier stays locked for this launch path.</p> : null}
     </div>
   );

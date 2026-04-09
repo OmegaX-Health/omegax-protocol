@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Suspense } from "react";
-
 import { GovernanceWorkbench } from "@/components/governance-workbench";
+import { type RouteSearchParams } from "@/lib/search-params";
 
-export default function GovernancePage() {
-  return (
-    <Suspense fallback={<div className="workbench-page"><section className="workbench-main-column"><div className="workbench-inline-card glass-panel"><strong>Loading governance workbench...</strong></div></section></div>}>
-      <GovernanceWorkbench />
-    </Suspense>
-  );
+type GovernancePageProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export default function GovernancePage({ searchParams = {} }: GovernancePageProps) {
+  return <GovernanceWorkbench searchParams={searchParams} />;
 }

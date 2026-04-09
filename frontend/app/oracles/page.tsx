@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Suspense } from "react";
-
 import { OraclesWorkbench } from "@/components/oracles-workbench";
+import { type RouteSearchParams } from "@/lib/search-params";
 
-export default function OraclesPage() {
-  return (
-    <Suspense fallback={<div className="workbench-page"><section className="workbench-main-column"><div className="workbench-inline-card glass-panel"><strong>Loading oracle workbench...</strong></div></section></div>}>
-      <OraclesWorkbench />
-    </Suspense>
-  );
+type OraclesPageProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export default function OraclesPage({ searchParams = {} }: OraclesPageProps) {
+  return <OraclesWorkbench searchParams={searchParams} />;
 }

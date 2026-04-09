@@ -74,6 +74,14 @@ export function FieldHint({
         side === "end" && "field-hint-wrap-end",
         className,
       )}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={closeIfUnpinned}
+      onFocusCapture={() => setOpen(true)}
+      onBlurCapture={(event) => {
+        if (!rootRef.current?.contains(event.relatedTarget)) {
+          closeIfUnpinned();
+        }
+      }}
     >
       <button
         type="button"
@@ -81,14 +89,6 @@ export function FieldHint({
         aria-label={label}
         aria-expanded={open}
         aria-controls={popoverId}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={closeIfUnpinned}
-        onFocus={() => setOpen(true)}
-        onBlur={(event) => {
-          if (!rootRef.current?.contains(event.relatedTarget)) {
-            closeIfUnpinned();
-          }
-        }}
         onClick={(event) => {
           event.preventDefault();
           setPinned((current) => {

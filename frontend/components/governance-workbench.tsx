@@ -4,12 +4,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
 
 import { useWorkspacePersona } from "@/components/workspace-persona";
+import { GovernanceQueueSkeleton } from "@/components/governance-queue-skeleton";
 import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
 import { formatRpcError } from "@/lib/rpc-errors";
+import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 import {
   buildAuditTrail,
   buildGovernanceQueue,
@@ -106,11 +108,14 @@ function humanizeRole(role: string): string {
 
 /* ── Component ──────────────────────────────────────── */
 
-export function GovernanceWorkbench() {
+type GovernanceWorkbenchProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchProps) {
   const { connection } = useConnection();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [proposalQueueLoaded, setProposalQueueLoaded] = useState(false);
@@ -119,10 +124,10 @@ export function GovernanceWorkbench() {
 
   /* ── Selection state ── */
 
-  const requestedTab = searchParams.get("tab");
+  const requestedTab = firstSearchParamValue(searchParams.tab);
   const activeTab = (GOVERNANCE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("governance", effectivePersona)) as GovernanceTabId;
-  const queryProposal = searchParams.get("proposal")?.trim() ?? "";
+  const queryProposal = firstSearchParamValue(searchParams.proposal)?.trim() ?? "";
   const selectedProposal = queue.find((proposal) => proposal.proposal === queryProposal) ?? queue[0] ?? null;
 
   /* ── Derived data ── */
@@ -156,7 +161,7 @@ export function GovernanceWorkbench() {
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = toURLSearchParams(searchParams);
       for (const [key, value] of Object.entries(updates)) {
         if (value) params.set(key, value);
         else params.delete(key);
@@ -230,6 +235,7 @@ export function GovernanceWorkbench() {
   const { eyebrow: heroEyebrow, subtitle: heroSubtitle } = personaHeroCopy(effectivePersona);
   const queueLoading = !proposalQueueLoaded;
   const queueFailed = Boolean(proposalQueueError);
+  const showQueueSkeleton = queueLoading && queue.length === 0;
   const queueLiveLabel = queueLoading
     ? "Syncing"
     : queueFailed
@@ -265,17 +271,19 @@ export function GovernanceWorkbench() {
             <label
               className={cn(
                 "plans-hero-select",
-                queue.length === 0 && "plans-hero-select-disabled",
+                (queue.length === 0 || showQueueSkeleton) && "plans-hero-select-disabled",
               )}
             >
               <span className="plans-hero-select-eyebrow">ACTIVE_PROPOSAL</span>
               <div className="plans-hero-select-body">
                 <div className="plans-hero-select-copy">
                   <span className="plans-hero-select-label">
-                    {selectedProposal?.title ?? queueStatus.emptyTitle}
+                    {showQueueSkeleton ? "Loading proposal queue" : selectedProposal?.title ?? queueStatus.emptyTitle}
                   </span>
                   <span className="plans-hero-select-meta">
-                    {selectedProposal
+                    {showQueueSkeleton
+                      ? "Fetching current governance proposals"
+                      : selectedProposal
                       ? `${selectedProposal.template} · ${selectedProposal.status}`
                       : queueStatus.emptyMeta}
                   </span>
@@ -285,7 +293,7 @@ export function GovernanceWorkbench() {
               <select
                 className="plans-hero-select-native"
                 value={selectedProposal?.proposal ?? ""}
-                disabled={queue.length === 0}
+                disabled={queue.length === 0 || showQueueSkeleton}
                 onChange={(event) => updateParams({ proposal: event.target.value || null })}
                 aria-label="Active proposal"
               >
@@ -305,10 +313,16 @@ export function GovernanceWorkbench() {
           <div className="plans-kpi-metric">
             <span className="plans-kpi-label">PROPOSAL_QUEUE</span>
             <span className="plans-kpi-value" aria-live="polite" aria-label={queueStatus.metricAriaLabel}>
-              {queueIsLive ? <span className="plans-kpi-pulse" aria-hidden="true" /> : null}
-              {queueStatus.metricValue}
+              {showQueueSkeleton ? <span className="governance-queue-skeleton-line governance-queue-skeleton-line-kpi" aria-hidden="true" /> : (
+                <>
+                  {queueIsLive ? <span className="plans-kpi-pulse" aria-hidden="true" /> : null}
+                  {queueStatus.metricValue}
+                </>
+              )}
             </span>
-            <span className="plans-kpi-meta">{queueLiveLabel}</span>
+            <span className="plans-kpi-meta">
+              {showQueueSkeleton ? <span className="governance-queue-skeleton-line governance-queue-skeleton-line-kpi-meta" aria-hidden="true" /> : queueLiveLabel}
+            </span>
           </div>
           <div className="plans-kpi-metric">
             <span className="plans-kpi-label">AUTHORITIES</span>
@@ -369,10 +383,12 @@ export function GovernanceWorkbench() {
                     <div>
                       <p className="plans-card-eyebrow">PROPOSAL_PULSE</p>
                       <h2 className="plans-card-title plans-card-title-display">
-                        {selectedProposal?.title ?? queueStatus.emptyTitle}
+                        {showQueueSkeleton ? "Loading proposal pulse" : selectedProposal?.title ?? queueStatus.emptyTitle}
                       </h2>
                     </div>
-                    {selectedProposal ? (
+                    {showQueueSkeleton ? (
+                      <span className="plans-card-meta">SYNCING</span>
+                    ) : selectedProposal ? (
                       <span className="plans-card-meta">
                         <span className="plans-live-dot" aria-hidden="true" />
                         {selectedProposal.status}
@@ -381,30 +397,36 @@ export function GovernanceWorkbench() {
                       <span className="plans-card-meta">{queueStatus.emptyMeta}</span>
                     )}
                   </div>
-                  <p className="plans-card-body">
-                    {selectedProposal
-                      ? `${selectedProposal.stage}. Authority routes through ${selectedProposal.authority} under the ${selectedProposal.template} template.`
-                      : queueStatus.emptyDetail}
-                  </p>
+                  {showQueueSkeleton ? (
+                    <GovernanceQueueSkeleton shape="card" />
+                  ) : (
+                    <>
+                      <p className="plans-card-body">
+                        {selectedProposal
+                          ? `${selectedProposal.stage}. Authority routes through ${selectedProposal.authority} under the ${selectedProposal.template} template.`
+                          : queueStatus.emptyDetail}
+                      </p>
 
-                  <div className="plans-vitality-stats">
-                    <div className="plans-vitality-stat">
-                      <span className="plans-vitality-stat-value">{queueStatus.metricValue}</span>
-                      <span className="plans-vitality-stat-label">Live proposals</span>
-                    </div>
-                    <div className="plans-vitality-stat">
-                      <span className="plans-vitality-stat-value">{configuredAuthorityWallets.length}</span>
-                      <span className="plans-vitality-stat-label">Authorities</span>
-                    </div>
-                    <div className="plans-vitality-stat">
-                      <span className="plans-vitality-stat-value plans-vitality-stat-value-accent">
-                        {GOVERNANCE_TEMPLATE_ROWS.length}
-                      </span>
-                      <span className="plans-vitality-stat-label">Templates</span>
-                    </div>
-                  </div>
+                      <div className="plans-vitality-stats">
+                        <div className="plans-vitality-stat">
+                          <span className="plans-vitality-stat-value">{queueStatus.metricValue}</span>
+                          <span className="plans-vitality-stat-label">Live proposals</span>
+                        </div>
+                        <div className="plans-vitality-stat">
+                          <span className="plans-vitality-stat-value">{configuredAuthorityWallets.length}</span>
+                          <span className="plans-vitality-stat-label">Authorities</span>
+                        </div>
+                        <div className="plans-vitality-stat">
+                          <span className="plans-vitality-stat-value plans-vitality-stat-value-accent">
+                            {GOVERNANCE_TEMPLATE_ROWS.length}
+                          </span>
+                          <span className="plans-vitality-stat-label">Templates</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
-                  {queueStateCounts.length > 0 ? (
+                  {!showQueueSkeleton && queueStateCounts.length > 0 ? (
                     <div className="plans-vitality-chart" aria-label="Proposal queue state distribution">
                       <div className="plans-vitality-chart-head">
                         <span className="plans-chart-label">QUEUE_STATE</span>
@@ -493,7 +515,9 @@ export function GovernanceWorkbench() {
                     </div>
                     <span className="plans-card-meta">{queue.length} {queue.length === 1 ? "proposal" : "proposals"}</span>
                   </div>
-                  {queue.length > 0 ? (
+                  {showQueueSkeleton ? (
+                    <GovernanceQueueSkeleton shape="list" rows={4} />
+                  ) : queue.length > 0 ? (
                     <div className="plans-lane-stack">
                       {queue.map((proposal) => {
                         const isSelected = selectedProposal?.proposal === proposal.proposal;
@@ -530,7 +554,7 @@ export function GovernanceWorkbench() {
                   <div>
                     <p className="plans-card-eyebrow">PROPOSAL_REGISTER</p>
                     <h2 className="plans-card-title plans-card-title-display">
-                      {queue.length} live <em>{queue.length === 1 ? "proposal" : "proposals"}</em>
+                      {showQueueSkeleton ? <>Loading <em>proposals</em></> : <>{queue.length} live <em>{queue.length === 1 ? "proposal" : "proposals"}</em></>}
                     </h2>
                   </div>
                   <span className="plans-card-meta">
@@ -538,7 +562,9 @@ export function GovernanceWorkbench() {
                     {queueLiveLabel}
                   </span>
                 </div>
-                {queue.length > 0 ? (
+                {showQueueSkeleton ? (
+                  <GovernanceQueueSkeleton shape="table" rows={5} />
+                ) : queue.length > 0 ? (
                   <div className="plans-table-wrap">
                     <table className="plans-table">
                       <thead>
@@ -677,10 +703,12 @@ export function GovernanceWorkbench() {
                 <span className="plans-rail-tag">SELECTED_PROPOSAL</span>
                 <span className="plans-rail-subtag">
                   <span className="plans-live-dot" aria-hidden="true" />
-                  {selectedProposal ? selectedProposal.status : queueLiveLabel}
+                  {showQueueSkeleton ? "SYNCING" : selectedProposal ? selectedProposal.status : queueLiveLabel}
                 </span>
               </div>
-              {selectedProposal ? (
+              {showQueueSkeleton ? (
+                <GovernanceQueueSkeleton shape="card" className="governance-queue-skeleton-rail" />
+              ) : selectedProposal ? (
                 <>
                   <div className="plans-rail-hero">
                     <span className="plans-rail-hero-val">{selectedProposal.title}</span>

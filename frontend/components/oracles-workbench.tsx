@@ -3,11 +3,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { claimCasesForOracleContext, formatAmount, seriesForPool } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
+import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 import { buildAuditTrail, defaultTabForPersona, ORACLE_TABS, type OracleTabId } from "@/lib/workbench";
 import {
   describeClaimStatus,
@@ -142,20 +143,23 @@ function HeroSelector<T extends { address: string }>(props: HeroSelectorProps<T>
 
 /* ── Component ──────────────────────────────────────── */
 
-export function OraclesWorkbench() {
+type OraclesWorkbenchProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
 
   /* ── Selection state ── */
 
-  const requestedTab = searchParams.get("tab");
+  const requestedTab = firstSearchParamValue(searchParams.tab);
   const activeTab = (ORACLE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("oracles", effectivePersona)) as OracleTabId;
 
   const allPools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
-  const queryPool = searchParams.get("pool")?.trim() ?? "";
+  const queryPool = firstSearchParamValue(searchParams.pool)?.trim() ?? "";
   const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
   const hasInvalidPool = Boolean(queryPool) && !matchedPool;
   const selectedPool = useMemo(() => {
@@ -164,7 +168,7 @@ export function OraclesWorkbench() {
   }, [allPools, hasInvalidPool, matchedPool]);
 
   const boundSeries = useMemo(() => (selectedPool ? seriesForPool(selectedPool.address) : []), [selectedPool]);
-  const querySeries = searchParams.get("series")?.trim() ?? "";
+  const querySeries = firstSearchParamValue(searchParams.series)?.trim() ?? "";
   const matchedSeries = useMemo(
     () => boundSeries.find((series) => series.address === querySeries) ?? null,
     [boundSeries, querySeries],
@@ -261,7 +265,7 @@ export function OraclesWorkbench() {
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = toURLSearchParams(searchParams);
       for (const [key, value] of Object.entries(updates)) {
         if (value) params.set(key, value);
         else params.delete(key);
@@ -316,8 +320,11 @@ export function OraclesWorkbench() {
             </h1>
             <p className="plans-hero-subtitle">{heroSubtitle}</p>
           </div>
+        </header>
 
-          <div className="plans-hero-selectors liquid-glass">
+        {/* ── Context bar ────────────────────── */}
+        <div className="plans-context-bar">
+          <div className="plans-context-selectors liquid-glass">
             <HeroSelector
               eyebrow="POOL_CONTEXT"
               label="Pool context"
@@ -328,7 +335,7 @@ export function OraclesWorkbench() {
               placeholder="Choose pool"
               onChange={(value) => updateParams({ pool: value, series: null })}
             />
-            <span className="plans-hero-selectors-divider" aria-hidden="true" />
+            <span className="plans-context-divider" aria-hidden="true" />
             <HeroSelector
               eyebrow="POLICY_SERIES"
               label="Policy series"
@@ -341,7 +348,7 @@ export function OraclesWorkbench() {
               onChange={(value) => updateParams({ series: value })}
             />
           </div>
-        </header>
+        </div>
 
         {/* ── KPI strip ─────────────────────── */}
         <section className="plans-kpi-strip" aria-label="Oracle workspace telemetry">

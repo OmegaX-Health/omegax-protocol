@@ -114,14 +114,20 @@ export function StepVerification({
 
       <div className="space-y-3">
         <label className="wizard-toggle-row">
-          <span>
+          <span className="wizard-toggle-copy">
             <span className="wizard-section-label">Only use verified schemas</span>
-            <span className="wizard-inline-copy block">
-              Keep payout rules tied to governance-verified outcome schemas.
+            <span className="wizard-toggle-title-row">
+              <span className="wizard-inline-copy block">
+                Keep payout rules tied to governance-verified outcome schemas.
+              </span>
+              <span className="wizard-toggle-badge">
+                {requireVerifiedSchema ? "ENFORCED" : "OPTIONAL"}
+              </span>
             </span>
           </span>
           <input
             type="checkbox"
+            className="wizard-toggle-switch"
             checked={requireVerifiedSchema}
             onChange={(event) => onRequireVerifiedSchemaChange(event.target.checked)}
             disabled={disabledInputs}
@@ -129,14 +135,20 @@ export function StepVerification({
         </label>
 
         <label className="wizard-toggle-row">
-          <span>
+          <span className="wizard-toggle-copy">
             <span className="wizard-section-label">Allow delegated reward claims</span>
-            <span className="wizard-inline-copy block">
-              Let a sponsor or service submit reward claims for members.
+            <span className="wizard-toggle-title-row">
+              <span className="wizard-inline-copy block">
+                Let a sponsor or service submit reward claims for members.
+              </span>
+              <span className="wizard-toggle-badge">
+                {allowDelegateClaim ? "ENABLED" : "LOCKED"}
+              </span>
             </span>
           </span>
           <input
             type="checkbox"
+            className="wizard-toggle-switch"
             checked={allowDelegateClaim}
             onChange={(event) => onAllowDelegateClaimChange(event.target.checked)}
             disabled={disabledInputs}

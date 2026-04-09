@@ -546,19 +546,6 @@
     width: 100%;
   }
 
-  .wallet-surface-inline-actions--disconnected .wallet-surface-chip {
-    width: 2.45rem;
-    height: 2.45rem;
-    padding: 0;
-    justify-content: center;
-    border-radius: 999px;
-  }
-
-  .wallet-surface-inline-actions--disconnected .wallet-surface-chip svg {
-    width: 1rem;
-    height: 1rem;
-  }
-
   .wallet-surface-chip {
     display: inline-flex;
     align-items: center;
@@ -1415,6 +1402,216 @@
     letter-spacing: 0.02em;
   }
 
+  .wizard-toggle-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, var(--accent) 14%);
+    border-radius: 1.1rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(243, 246, 248, 0.94));
+    box-shadow:
+      0 14px 28px rgba(10, 21, 37, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.76);
+    cursor: pointer;
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background 180ms ease;
+  }
+
+  .wizard-toggle-row:hover,
+  .wizard-toggle-row:focus-within {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--cyan-ink) 24%, var(--border));
+    box-shadow:
+      0 18px 32px rgba(10, 21, 37, 0.06),
+      0 0 0 4px color-mix(in oklab, var(--signal-soft) 34%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .dark .wizard-toggle-row {
+    background:
+      linear-gradient(180deg, rgba(18, 30, 48, 0.96), rgba(13, 23, 37, 0.95));
+    box-shadow:
+      0 20px 36px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .wizard-toggle-copy {
+    display: grid;
+    gap: 0.42rem;
+    min-width: 0;
+  }
+
+  .wizard-toggle-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .wizard-toggle-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    padding: 0.28rem 0.58rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--cyan-ink) 18%, var(--border));
+    background: color-mix(in oklab, var(--signal-soft) 70%, transparent);
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .wizard-toggle-switch {
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 3.35rem;
+    height: 1.95rem;
+    margin: 0;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 18%, var(--border));
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 90%, transparent), color-mix(in oklab, var(--surface) 96%, var(--background) 4%));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.68),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.08);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+      background 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .wizard-toggle-switch::before {
+    content: "";
+    position: absolute;
+    top: 0.19rem;
+    left: 0.22rem;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(235, 240, 243, 0.92));
+    box-shadow:
+      0 8px 16px -10px rgba(10, 21, 37, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    transition:
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      background 180ms ease;
+  }
+
+  .wizard-toggle-switch:checked {
+    border-color: color-mix(in oklab, var(--cyan-ink) 34%, var(--border));
+    background:
+      linear-gradient(180deg, rgba(0, 229, 255, 0.3), rgba(51, 197, 244, 0.18));
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, var(--signal-soft) 38%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+
+  .wizard-toggle-switch:checked::before {
+    transform: translateX(1.38rem);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(228, 251, 255, 0.94));
+  }
+
+  .wizard-toggle-switch:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 4px color-mix(in oklab, var(--signal-soft) 54%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+
+  .wizard-toggle-switch:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .dark .wizard-toggle-switch {
+    background:
+      linear-gradient(180deg, rgba(16, 27, 44, 0.98), rgba(10, 18, 31, 0.98));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.16);
+  }
+
+  .dark .wizard-toggle-switch::before {
+    background:
+      linear-gradient(180deg, rgba(242, 247, 249, 0.96), rgba(201, 214, 222, 0.88));
+  }
+
+  .dark .wizard-toggle-switch:checked {
+    background:
+      linear-gradient(180deg, rgba(0, 229, 255, 0.28), rgba(17, 84, 110, 0.44));
+    box-shadow:
+      0 0 0 3px rgba(0, 229, 255, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .wizard-oracle-picker {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, var(--accent) 14%);
+    border-radius: 1.1rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(243, 246, 248, 0.94));
+    box-shadow:
+      0 14px 28px rgba(10, 21, 37, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  }
+
+  .dark .wizard-oracle-picker {
+    background:
+      linear-gradient(180deg, rgba(18, 30, 48, 0.96), rgba(13, 23, 37, 0.95));
+    box-shadow:
+      0 20px 36px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .wizard-oracle-picker-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.85rem;
+  }
+
+  .wizard-oracle-registry {
+    padding-top: 0.1rem;
+  }
+
+  .wizard-oracle-registry-summary {
+    cursor: pointer;
+    list-style: none;
+    color: var(--accent);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .wizard-oracle-registry-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .wizard-oracle-registry-summary:hover,
+  .wizard-oracle-registry[open] .wizard-oracle-registry-summary {
+    color: var(--cyan-ink);
+  }
+
   .protocol-workspace-panel,
   .protocol-register-panel,
   .protocol-rail-panel,
@@ -1864,6 +2061,125 @@
     gap: 0.75rem;
   }
 
+  .field-hint-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .field-hint-wrap-end {
+    justify-content: flex-end;
+  }
+
+  .field-hint-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 18%, var(--border));
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 95%, white 5%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    box-shadow:
+      0 10px 22px -18px rgba(10, 21, 37, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+    color: var(--cyan-ink);
+    cursor: pointer;
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease,
+      background 180ms ease;
+  }
+
+  .field-hint-button:hover,
+  .field-hint-button:focus-visible,
+  .field-hint-button[aria-expanded="true"] {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--cyan-ink) 28%, var(--border));
+    color: var(--accent);
+    box-shadow:
+      0 14px 28px -18px rgba(10, 21, 37, 0.28),
+      0 0 0 4px color-mix(in oklab, var(--signal-soft) 46%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+  }
+
+  .field-hint-button:focus-visible {
+    outline: none;
+  }
+
+  .field-hint-popover {
+    position: absolute;
+    top: calc(100% + 0.7rem);
+    left: 0;
+    z-index: 80;
+    width: min(21rem, calc(100vw - 2rem));
+    padding: 0.9rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 22%, var(--border));
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at top right, color-mix(in oklab, var(--signal-soft) 44%, transparent), transparent 42%),
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 94%, white 6%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    box-shadow:
+      0 22px 42px rgba(10, 21, 37, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    color: var(--foreground);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  .field-hint-popover::before {
+    content: "";
+    position: absolute;
+    top: -0.4rem;
+    left: 1.15rem;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-top: 1px solid color-mix(in oklab, var(--border-strong) 22%, var(--border));
+    border-left: 1px solid color-mix(in oklab, var(--border-strong) 22%, var(--border));
+    background: color-mix(in oklab, var(--surface-elevated) 94%, white 6%);
+    transform: rotate(45deg);
+  }
+
+  .field-hint-popover-end {
+    left: auto;
+    right: 0;
+  }
+
+  .field-hint-popover-end::before {
+    left: auto;
+    right: 1.15rem;
+  }
+
+  .dark .field-hint-button {
+    background:
+      linear-gradient(180deg, rgba(22, 35, 55, 0.96), rgba(14, 24, 39, 0.96));
+    box-shadow:
+      0 12px 24px -18px rgba(0, 0, 0, 0.36),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.16);
+  }
+
+  .dark .field-hint-popover {
+    background:
+      radial-gradient(circle at top right, rgba(0, 229, 255, 0.1), transparent 42%),
+      linear-gradient(180deg, rgba(19, 31, 49, 0.97), rgba(11, 20, 34, 0.98));
+    box-shadow:
+      0 24px 44px rgba(0, 0, 0, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .dark .field-hint-popover::before {
+    background: rgba(19, 31, 49, 0.97);
+  }
+
   .monitor-row {
     color: var(--muted-foreground);
     font-family: var(--font-mono), "Fira Code", monospace;
@@ -1895,6 +2211,31 @@
       align-items: start;
     }
 
+  }
+
+  @media (max-width: 767px) {
+    .wizard-toggle-row {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .wizard-toggle-title-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .wizard-oracle-picker-toolbar {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .wizard-inline-head {
+      align-items: flex-start;
+    }
+
+    .field-hint-popover {
+      width: min(18rem, calc(100vw - 2rem));
+    }
   }
 
   @media (max-width: 767px) {
@@ -3069,6 +3410,218 @@
     display: grid;
     gap: 0.55rem;
     padding: 1rem;
+  }
+
+  .governance-queue-skeleton,
+  .governance-queue-skeleton-list,
+  .governance-queue-skeleton-table {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .governance-queue-skeleton::after,
+  .governance-queue-skeleton-list::after,
+  .governance-queue-skeleton-table::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background:
+      linear-gradient(
+        100deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 32%,
+        rgba(255, 255, 255, 0.28) 48%,
+        rgba(120, 220, 255, 0.12) 56%,
+        rgba(255, 255, 255, 0) 70%,
+        transparent 100%
+      );
+    animation: governance-queue-shimmer 1.9s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .dark .governance-queue-skeleton::after,
+  .dark .governance-queue-skeleton-list::after,
+  .dark .governance-queue-skeleton-table::after {
+    background:
+      linear-gradient(
+        100deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 28%,
+        rgba(255, 255, 255, 0.08) 46%,
+        rgba(115, 225, 255, 0.11) 54%,
+        rgba(255, 255, 255, 0) 70%,
+        transparent 100%
+      );
+  }
+
+  .governance-queue-skeleton,
+  .governance-queue-skeleton-list,
+  .governance-queue-skeleton-table,
+  .governance-queue-skeleton-metric,
+  .governance-queue-skeleton-list-row,
+  .governance-queue-skeleton-table-head,
+  .governance-queue-skeleton-table-row {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .governance-queue-skeleton {
+    margin-top: 0.2rem;
+  }
+
+  .governance-queue-skeleton-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.4rem;
+  }
+
+  .governance-queue-skeleton-list {
+    gap: 0.8rem;
+  }
+
+  .governance-queue-skeleton-list-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+    background: color-mix(in oklab, var(--surface-elevated) 88%, transparent);
+  }
+
+  .dark .governance-queue-skeleton-list-row {
+    background: color-mix(in oklab, var(--surface-elevated) 24%, transparent);
+    border-color: color-mix(in oklab, var(--border) 30%, transparent);
+  }
+
+  .governance-queue-skeleton-list-copy {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .governance-queue-skeleton-table {
+    gap: 0.85rem;
+  }
+
+  .governance-queue-skeleton-table-head {
+    grid-template-columns: 2.1fr 1.1fr 1.1fr 0.8fr;
+    padding: 0 0.25rem;
+  }
+
+  .governance-queue-skeleton-table-body {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .governance-queue-skeleton-table-row {
+    grid-template-columns: 2.1fr 1.1fr 1.1fr 0.8fr;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+    background: color-mix(in oklab, var(--surface-elevated) 88%, transparent);
+  }
+
+  .dark .governance-queue-skeleton-table-row {
+    background: color-mix(in oklab, var(--surface-elevated) 24%, transparent);
+    border-color: color-mix(in oklab, var(--border) 30%, transparent);
+  }
+
+  .governance-queue-skeleton-line,
+  .governance-queue-skeleton-pill {
+    display: block;
+    position: relative;
+    z-index: 0;
+    border-radius: 999px;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--foreground) 9%, transparent),
+        color-mix(in oklab, var(--foreground) 5%, transparent)
+      );
+  }
+
+  .dark .governance-queue-skeleton-line,
+  .dark .governance-queue-skeleton-pill {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, white 12%, transparent),
+        color-mix(in oklab, white 7%, transparent)
+      );
+  }
+
+  .governance-queue-skeleton-line-title {
+    width: min(18rem, 72%);
+    height: 1rem;
+  }
+
+  .governance-queue-skeleton-line-copy {
+    width: 100%;
+    height: 0.8rem;
+  }
+
+  .governance-queue-skeleton-line-copy-short {
+    width: 72%;
+  }
+
+  .governance-queue-skeleton-line-label {
+    width: 4.25rem;
+    height: 0.55rem;
+  }
+
+  .governance-queue-skeleton-line-value,
+  .governance-queue-skeleton-line-kpi {
+    width: 5.4rem;
+    height: 1.2rem;
+  }
+
+  .governance-queue-skeleton-line-kpi {
+    margin-inline: auto;
+  }
+
+  .governance-queue-skeleton-line-kpi-meta {
+    width: 4.25rem;
+    height: 0.72rem;
+    margin-inline: auto;
+  }
+
+  .governance-queue-skeleton-line-header {
+    width: 70%;
+    height: 0.65rem;
+  }
+
+  .governance-queue-skeleton-line-header-short {
+    width: 55%;
+  }
+
+  .governance-queue-skeleton-pill {
+    width: 5.5rem;
+    height: 1.7rem;
+    justify-self: end;
+  }
+
+  .governance-queue-skeleton-rail {
+    margin-top: 0.2rem;
+  }
+
+  @keyframes governance-queue-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .governance-queue-skeleton::after,
+    .governance-queue-skeleton-list::after,
+    .governance-queue-skeleton-table::after {
+      animation: none;
+      opacity: 0.4;
+      transform: none;
+    }
   }
 
   .workbench-tabs {
@@ -4501,6 +5054,11 @@
     min-width: 0;
   }
 
+  .plans-context-selectors-single {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: min(100%, 32rem);
+  }
+
   .plans-context-selectors .plans-hero-select {
     padding: 0.3rem 0.55rem;
   }
@@ -5109,6 +5667,202 @@
     padding: 0.25rem;
     border-radius: 999px;
     background: color-mix(in oklab, var(--accent) 22%, transparent);
+  }
+
+  /* ── Governance template detail ── */
+
+  .gov-template-detail-shell {
+    overflow: visible;
+  }
+
+  .gov-template-detail-hero {
+    min-height: 11rem;
+  }
+
+  .gov-template-context {
+    max-width: min(100%, 46rem);
+  }
+
+  .gov-template-context-cell {
+    display: grid;
+    gap: 0.18rem;
+    align-content: center;
+    padding: 0.3rem 0.1rem;
+    min-width: 0;
+  }
+
+  .gov-template-context-value {
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .gov-template-context-meta {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.04em;
+  }
+
+  .gov-template-detail-body {
+    align-items: start;
+  }
+
+  .gov-template-detail-purpose {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 54ch;
+  }
+
+  .gov-template-detail-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .gov-template-feature-cell {
+    display: grid;
+    gap: 0.18rem;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--surface-elevated) 84%, transparent);
+  }
+
+  .gov-template-feature-label {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .gov-template-feature-cell strong {
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--foreground);
+  }
+
+  .gov-template-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+
+  .gov-template-detail-card {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem 1rem 1.05rem;
+    border-radius: 1.15rem;
+    align-content: start;
+    min-height: 100%;
+    overflow: hidden;
+  }
+
+  .gov-template-detail-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding-bottom: 0.1rem;
+  }
+
+  .gov-template-detail-step,
+  .gov-template-detail-pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .gov-template-detail-step {
+    padding: 0.28rem 0.5rem;
+    background: color-mix(in oklab, var(--signal-soft) 58%, transparent);
+    color: var(--accent);
+  }
+
+  .gov-template-detail-pill {
+    padding: 0.28rem 0.52rem;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .gov-template-detail-card-title,
+  .gov-template-guardrail-title {
+    margin: 0;
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+  }
+
+  .gov-template-detail-card-title {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .gov-template-detail-card-copy,
+  .gov-template-guardrail-copy,
+  .gov-template-rail-copy {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.83rem;
+    line-height: 1.55;
+  }
+
+  .gov-template-guardrail-list {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .gov-template-guardrail-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.8rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+    border-radius: 1.15rem;
+    background: color-mix(in oklab, var(--surface-elevated) 84%, transparent);
+  }
+
+  .gov-template-guardrail-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    margin-top: 0.35rem;
+    background: var(--signal);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+  }
+
+  .gov-template-role-list {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .gov-template-role-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .gov-template-role-item span:first-child {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .gov-template-role-item span:last-child {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   /* ── Overview tab: asymmetric bento (governance workbench) ── */
@@ -5864,6 +6618,14 @@
     padding-right: 0;
   }
 
+  .plans-table td:first-child {
+    padding-left: 0.75rem;
+  }
+
+  .plans-table th:first-child {
+    padding-left: 0.75rem;
+  }
+
   .plans-table tbody tr:last-child td {
     border-bottom: none;
   }
@@ -5880,8 +6642,17 @@
     background: color-mix(in oklab, var(--signal-soft) 62%, transparent);
   }
 
+  .plans-table-row-active td {
+    padding-right: 1rem;
+  }
+
+  .plans-table-row-active td:last-child {
+    padding-right: 0.75rem;
+  }
+
   .plans-table-row-active td:first-child {
-    box-shadow: inset 2px 0 0 var(--accent);
+    box-shadow: inset 3px 0 0 var(--accent);
+    padding-left: 1rem;
   }
 
   .plans-table-mono {
@@ -6780,6 +7551,655 @@
     font-family: var(--font-mono), "Fira Code", monospace;
   }
 
+  .plans-wizard-support-grid {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .plans-wizard-support-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--surface-elevated) 62%, transparent);
+    box-shadow:
+      0 10px 24px rgba(10, 21, 37, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  .dark .plans-wizard-support-card {
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .plans-wizard-support-title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .plans-wizard-support-copy,
+  .plans-wizard-support-note {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+
+  .plans-wizard-support-actions,
+  .plans-wizard-log-list {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .plans-wizard-log-card {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.9rem 0.95rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent);
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.44);
+  }
+
+  .dark .plans-wizard-log-card {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .plans-launch-preview-disclosure {
+    border-radius: 1.2rem;
+    border-color: color-mix(in oklab, var(--border) 78%, var(--accent) 22%);
+    background:
+      radial-gradient(circle at top right, color-mix(in oklab, var(--signal-soft) 40%, transparent), transparent 40%),
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 92%, white 8%), color-mix(in oklab, var(--surface) 96%, var(--background) 4%));
+    box-shadow:
+      0 20px 44px rgba(10, 21, 37, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  }
+
+  .dark .plans-launch-preview-disclosure {
+    background:
+      radial-gradient(circle at top right, rgba(0, 229, 255, 0.09), transparent 38%),
+      linear-gradient(180deg, rgba(20, 31, 49, 0.94), rgba(12, 21, 35, 0.96));
+    box-shadow:
+      0 24px 54px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .wizard-detail-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.96rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
+    border-radius: 1rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(242, 245, 246, 0.96)),
+      var(--panel-ceramic);
+    box-shadow:
+      0 18px 36px rgba(10, 21, 37, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    text-align: left;
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      box-shadow 220ms ease,
+      background 180ms ease;
+  }
+
+  .wizard-detail-trigger:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--accent) 34%, var(--border));
+    box-shadow:
+      0 20px 38px rgba(10, 21, 37, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  }
+
+  .wizard-detail-trigger:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+    outline-offset: 3px;
+  }
+
+  .dark .wizard-detail-trigger {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+      var(--panel-ceramic);
+    box-shadow:
+      0 22px 42px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .dark .wizard-detail-trigger:hover {
+    box-shadow:
+      0 26px 44px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .wizard-detail-trigger-compact {
+    padding: 0.78rem 0.9rem;
+    border-radius: 0.9rem;
+  }
+
+  .wizard-detail-trigger-copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .wizard-detail-trigger-title {
+    color: var(--foreground);
+    font-size: 0.96rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .wizard-detail-trigger-summary {
+    color: var(--muted-foreground);
+    font-size: 0.86rem;
+    line-height: 1.5;
+    max-width: 56ch;
+  }
+
+  .wizard-detail-trigger-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-left: auto;
+    min-width: 0;
+  }
+
+  .wizard-detail-trigger-meta,
+  .wizard-detail-sheet-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.42rem;
+  }
+
+  .wizard-detail-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.34rem 0.58rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--cyan-ink) 18%, var(--border));
+    background: color-mix(in oklab, var(--signal-soft) 74%, transparent);
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .wizard-detail-chip-accent {
+    border-color: color-mix(in oklab, var(--accent) 38%, var(--border));
+    background: color-mix(in oklab, var(--signal-soft) 88%, transparent);
+    color: var(--cyan-ink);
+  }
+
+  .wizard-detail-chip-muted {
+    border-color: color-mix(in oklab, var(--border-strong) 18%, var(--border));
+    background: color-mix(in oklab, var(--surface-elevated) 74%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .wizard-detail-trigger-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    color: var(--cyan-ink);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .wizard-detail-trigger-open .material-symbols-outlined {
+    font-size: 1rem;
+  }
+
+  .wizard-detail-sheet-root {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    pointer-events: none;
+  }
+
+  .wizard-detail-sheet-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(7, 13, 22, 0.42);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    pointer-events: auto;
+  }
+
+  .wizard-detail-sheet-panel {
+    position: relative;
+    margin-left: auto;
+    width: min(46rem, calc(100vw - 1.5rem));
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 1px solid color-mix(in oklab, var(--accent) 20%, var(--border));
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+      var(--panel-heavy);
+    box-shadow:
+      -28px 0 64px rgba(10, 21, 37, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    pointer-events: auto;
+  }
+
+  .wizard-detail-sheet-panel-wide {
+    width: min(58rem, calc(100vw - 1.5rem));
+  }
+
+  .wizard-detail-sheet-header {
+    position: relative;
+    z-index: 1;
+    padding: 1.1rem 1.2rem 1rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08)),
+      color-mix(in oklab, var(--surface-elevated) 78%, transparent);
+    box-shadow: 0 14px 24px rgba(10, 21, 37, 0.08);
+  }
+
+  .dark .wizard-detail-sheet-header {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+      color-mix(in oklab, var(--surface-elevated) 16%, transparent);
+    box-shadow: 0 18px 32px rgba(0, 0, 0, 0.18);
+  }
+
+  .wizard-detail-sheet-header-copy {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .wizard-detail-sheet-heading-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .wizard-detail-sheet-heading {
+    min-width: 0;
+    display: grid;
+    gap: 0.38rem;
+  }
+
+  .wizard-detail-sheet-eyebrow,
+  .wizard-detail-card-eyebrow {
+    margin: 0;
+    color: var(--accent);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .wizard-detail-sheet-title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 1.14rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+
+  .wizard-detail-sheet-summary {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--muted-foreground);
+    font-size: 0.93rem;
+    line-height: 1.6;
+  }
+
+  .wizard-detail-sheet-close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 22%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface-elevated) 76%, transparent);
+    color: var(--foreground);
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      background 180ms ease;
+  }
+
+  .wizard-detail-sheet-close:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--accent) 36%, var(--border));
+  }
+
+  .wizard-detail-sheet-close:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+    outline-offset: 3px;
+  }
+
+  .wizard-detail-sheet-close .material-symbols-outlined {
+    font-size: 1.1rem;
+  }
+
+  .wizard-detail-sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.15rem 1.2rem 1.35rem;
+  }
+
+  .wizard-detail-stack {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .wizard-detail-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+
+  .wizard-detail-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--surface-elevated) 68%, transparent);
+    box-shadow:
+      0 10px 24px rgba(10, 21, 37, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  .dark .wizard-detail-card {
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow:
+      0 16px 32px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .wizard-detail-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .wizard-detail-card-title {
+    margin: 0.25rem 0 0;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .wizard-detail-hash {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  .wizard-detail-code-block {
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    border-radius: 0.95rem;
+    background: rgba(7, 15, 24, 0.06);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.7rem;
+    line-height: 1.72;
+    overflow: auto;
+  }
+
+  .dark .wizard-detail-code-block {
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .wizard-detail-form-row {
+    align-items: start;
+  }
+
+  .plans-launch-preview-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .plans-launch-preview-compact-head {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    border-radius: 1.05rem;
+    background: color-mix(in oklab, var(--surface-elevated) 68%, transparent);
+    box-shadow:
+      0 10px 24px rgba(10, 21, 37, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  .dark .plans-launch-preview-compact-head {
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow:
+      0 16px 30px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .plans-launch-preview-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .plans-launch-preview-eyebrow,
+  .plans-launch-preview-panel-eyebrow {
+    margin: 0;
+    color: var(--accent);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .plans-launch-preview-title {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-body), "Space Grotesk", system-ui, sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .plans-launch-preview-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+  }
+
+  .plans-launch-preview-tag,
+  .plans-launch-preview-panel-badge,
+  .plans-launch-preview-rail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.34rem 0.58rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--cyan-ink) 18%, var(--border));
+    background: color-mix(in oklab, var(--signal-soft) 78%, transparent);
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .plans-launch-preview-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .plans-launch-preview-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.56);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  .dark .plans-launch-preview-metric {
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .plans-launch-preview-metric-label {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .plans-launch-preview-metric-value {
+    color: var(--foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .plans-launch-preview-metric-detail {
+    color: var(--cyan-ink);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.58rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .plans-launch-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+
+  .plans-launch-preview-panel,
+  .plans-launch-preview-overrides {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    min-width: 0;
+    padding: 0.95rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, var(--accent) 16%);
+    border-radius: 0.95rem;
+    background: color-mix(in oklab, var(--surface-elevated) 68%, transparent);
+    box-shadow:
+      0 10px 24px rgba(10, 21, 37, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  }
+
+  .dark .plans-launch-preview-panel,
+  .dark .plans-launch-preview-overrides {
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow:
+      0 16px 32px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .plans-launch-preview-panel-head,
+  .plans-launch-preview-overrides-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .plans-launch-preview-panel-title {
+    margin: 0.28rem 0 0;
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+
+  .plans-launch-preview-list {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .plans-launch-preview-row {
+    display: grid;
+    grid-template-columns: minmax(0, 8.2rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 42%, transparent);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.64rem;
+    line-height: 1.55;
+  }
+
+  .plans-launch-preview-row:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .plans-launch-preview-value,
+  .plans-launch-preview-overrides-copy,
+  .plans-launch-preview-empty {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.64rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .plans-launch-preview-rail-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
   .plans-wizard-footer {
     display: flex;
     align-items: center;
@@ -6941,6 +8361,46 @@
       grid-template-columns: 1fr;
     }
 
+    .wizard-detail-trigger {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .wizard-detail-trigger-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .wizard-detail-trigger-meta {
+      justify-content: flex-start;
+    }
+
+    .wizard-detail-sheet-panel,
+    .wizard-detail-sheet-panel-wide {
+      width: 100vw;
+      max-width: none;
+    }
+
+    .wizard-detail-sheet-header,
+    .wizard-detail-sheet-body {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .wizard-detail-card-grid,
+    .plans-launch-preview-metrics,
+    .plans-launch-preview-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .plans-launch-preview-row {
+      grid-template-columns: 1fr;
+    }
+
+    .plans-launch-preview-tags {
+      justify-content: flex-start;
+    }
+
     .plans-wizard-footer {
       flex-direction: column-reverse;
       align-items: stretch;
@@ -7090,6 +8550,21 @@
 
     .plans-rail {
       grid-template-columns: 1fr;
+    }
+
+    .gov-template-detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .gov-template-context {
+      grid-template-columns: 1fr;
+      max-width: none;
+    }
+
+    .gov-template-context .plans-context-divider {
+      width: 100%;
+      height: 1px;
+      margin: 0.15rem 0;
     }
 
     .plans-vitality-stats {
@@ -7372,6 +8847,10 @@
       min-height: 2.85rem;
       width: 100%;
       min-width: 0;
+    }
+
+    .gov-template-detail-summary {
+      grid-template-columns: 1fr;
     }
 
     .plans-card {

@@ -537,7 +537,7 @@ export function WalletButton({ className, mobile = false }: WalletButtonProps) {
                     </button>
                   </div>
                 ) : (
-                  <div className="wallet-surface-inline-actions wallet-surface-inline-actions--disconnected">
+                  <div className="wallet-surface-inline-actions">
                     <button type="button" className="wallet-surface-chip" onClick={() => setActiveView("settings")}>
                       <Settings2 className="h-3.5 w-3.5" strokeWidth={1.8} />
                       <span>Connection settings</span>

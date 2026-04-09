@@ -4,12 +4,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount, seriesOutcomeCount } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE, isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
+import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 import {
   buildAuditTrail,
   defaultTabForPersona,
@@ -165,21 +166,24 @@ function HeroSelector<T extends { address: string }>(props: HeroSelectorProps<T>
 
 /* ── Component ──────────────────────────────────────── */
 
-export function PlansWorkbench() {
+type PlansWorkbenchProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
 
   /* ── Selection state ── */
 
-  const requestedTab = searchParams.get("tab");
+  const requestedTab = firstSearchParamValue(searchParams.tab);
   const activeTab = (PLAN_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("plans", effectivePersona)) as PlanTabId;
 
   const allPlans = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans;
-  const queryPlan = searchParams.get("plan")?.trim() ?? "";
+  const queryPlan = firstSearchParamValue(searchParams.plan)?.trim() ?? "";
   const matchedPlan = useMemo(() => allPlans.find((plan) => plan.address === queryPlan) ?? null, [allPlans, queryPlan]);
   const hasInvalidPlan = Boolean(queryPlan) && !matchedPlan;
   const selectedPlan = useMemo(() => {
@@ -192,7 +196,7 @@ export function PlansWorkbench() {
     return DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === selectedPlan.address);
   }, [selectedPlan]);
 
-  const querySeries = searchParams.get("series")?.trim() ?? "";
+  const querySeries = firstSearchParamValue(searchParams.series)?.trim() ?? "";
   const seriesSelectionOptional = SERIES_OPTIONAL_TABS.has(activeTab);
   const matchedSeries = useMemo(
     () => planSeries.find((series) => series.address === querySeries) ?? null,
@@ -270,7 +274,7 @@ export function PlansWorkbench() {
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = toURLSearchParams(searchParams);
       for (const [key, value] of Object.entries(updates)) {
         if (value) params.set(key, value);
         else params.delete(key);

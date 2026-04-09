@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Suspense } from "react";
-
 import { CapitalWorkbench } from "@/components/capital-workbench";
+import { type RouteSearchParams } from "@/lib/search-params";
 
-export default function CapitalPage() {
-  return (
-    <Suspense fallback={<div className="workbench-page"><section className="workbench-main-column"><div className="workbench-inline-card glass-panel"><strong>Loading capital workbench...</strong></div></section></div>}>
-      <CapitalWorkbench />
-    </Suspense>
-  );
+type CapitalPageProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export default function CapitalPage({ searchParams = {} }: CapitalPageProps) {
+  return <CapitalWorkbench searchParams={searchParams} />;
 }

@@ -4,98 +4,1534 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PublicKey, Transaction } from "@solana/web3.js";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
+import { MultiOraclePicker, type MultiOracleOption } from "@/components/multi-oracle-picker";
+import { WizardDetailSheet, WizardDetailTriggerRow, type WizardDetailMetaItem } from "@/components/wizard-detail-sheet";
 import { cn } from "@/lib/cn";
+import { DEVNET_PROTOCOL_FIXTURE_STATE, isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
+import {
+  buildCreateHealthPlanInstruction,
+  buildCreatePolicySeriesInstruction,
+  buildOpenFundingLineInstruction,
+  deriveLaunchLedgerAddresses,
+} from "@/lib/plan-launch-tx";
+import {
+  buildLaunchAddressPreview,
+  buildLaunchReviewLinks,
+  dedupeOracleOptions,
+  defaultPayoutMintForIntent,
+  defaultReserveDomainAddress,
+  listReserveDomainRailMints,
+  requiresProtectionLane,
+  requiresRewardLane,
+  reserveDomainSupportsMint,
+  serializeProtectionPosture,
+  STANDARD_LAUNCH_SCHEMA,
+  validateLaunchBasics,
+  validateLaunchMembership,
+  validateLaunchVerification,
+  validateProtectionLane,
+  validateRewardLane,
+  type CoveragePathway,
+  type DefiSettlementMode,
+  type LaunchIntent,
+  type MembershipMode,
+  type PayoutAssetMode,
+} from "@/lib/plan-launch";
+import { executeProtocolTransaction } from "@/lib/protocol-action";
+import {
+  deriveFundingLinePda,
+  deriveHealthPlanPda,
+  derivePolicySeriesPda,
+  FUNDING_LINE_TYPE_PREMIUM_INCOME,
+  FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+  SERIES_MODE_PROTECTION,
+  SERIES_MODE_REWARD,
+  SERIES_STATUS_ACTIVE,
+  toExplorerAddressLink,
+  ZERO_PUBKEY,
+} from "@/lib/protocol";
+import {
+  fetchSchemaMetadata,
+  parseSchemaOutcomes,
+  type SchemaOutcomeOption,
+} from "@/lib/schema-metadata";
+import { getMintDecimals, parseUiAmountToBaseUnits } from "@/lib/spl";
+import { stableSha256Hex, stableStringify } from "@/lib/stable-hash";
 
-type StepId = "basics" | "membership" | "verification" | "outcome" | "funding";
+type StepId =
+  | "basics"
+  | "membership"
+  | "verification"
+  | "reward-lane"
+  | "protection-lane"
+  | "review";
 
-const STEPS: Array<{ id: StepId; number: string; label: string }> = [
-  { id: "basics", number: "01", label: "Basics" },
-  { id: "membership", number: "02", label: "Membership" },
-  { id: "verification", number: "03", label: "Verification" },
-  { id: "outcome", number: "04", label: "Outcome Rules" },
-  { id: "funding", number: "05", label: "Funding Review" },
-];
+type StepDescriptor = {
+  id: StepId;
+  number: string;
+  label: string;
+};
 
-const STEP_COPY: Record<StepId, { headline: string; emphasis: string; body: string; tip: string }> = {
+type StepCopy = {
+  headline: string;
+  emphasis: string;
+  body: string;
+  tip: string;
+};
+
+type ActionLog = {
+  id: string;
+  action: string;
+  message: string;
+  explorerUrl?: string;
+  signature?: string;
+};
+
+type CreatedArtifacts = {
+  healthPlanAddress: string;
+  rewardSeriesAddress: string | null;
+  protectionSeriesAddress: string | null;
+  rewardFundingLineAddress: string | null;
+  protectionFundingLineAddress: string | null;
+};
+
+type RulePreview = {
+  derivedRuleHashHex: string;
+  derivedPayoutHashHex: string;
+};
+
+type WizardDetailState =
+  | { key: "launch-preview" }
+  | { key: "rule-commitments"; outcomeId: string }
+  | { key: "protection-posture" };
+
+const ZERO_HASH = "0".repeat(64);
+const SOL_DECIMALS = 9;
+
+const STEP_COPY: Record<StepId, StepCopy> = {
   basics: {
-    headline: "Define the fundamental objectives for your",
-    emphasis: "Clinical Protocol.",
-    body: "Every protocol starts with a clear mandate. Establish the identity and scope before configuring membership and outcome logic.",
-    tip: "Descriptive titles increase operator clarity by 40%. Use precise medical or administrative nomenclature.",
+    headline: "Set up the foundation for your",
+    emphasis: "Health Plan.",
+    body: "Start with the core details for your plan. You’ll choose the reward and protection options it should launch with in the next steps.",
+    tip: "Choose a plan name, reserve domain, and public metadata you’ll be comfortable keeping long term. You can fine-tune rewards and coverage after this.",
   },
   membership: {
-    headline: "Specify who can enlist into your",
-    emphasis: "Cohort.",
-    body: "Decide eligibility constraints, delegated rights, and enrolment windows. Membership rules are enforced on-chain at enlistment.",
-    tip: "Narrow cohorts with precise rights produce cleaner comparability bands and faster claim adjudication.",
+    headline: "Set the enrollment posture for your",
+    emphasis: "Membership Surface.",
+    body: "Enrollment rules live on the plan root and apply before members can participate in any attached reward or protection lane.",
+    tip: "Keep the first launch simple. You can tighten enrollment later, but confusing membership posture creates support load immediately.",
   },
   verification: {
-    headline: "Anchor the verification stack for",
-    emphasis: "Claims & Outcomes.",
-    body: "Pick the oracle attestation path and evidence schema. This determines how submitted claims are trusted by the protocol.",
-    tip: "Multi-source verification reduces dispute rate. Pair attestors across jurisdictions when possible.",
+    headline: "Anchor a real verifier set for",
+    emphasis: "Oracle Policy.",
+    body: "The selected verifiers and quorum are committed into plan-level policy hashes so lane behavior stays tied back to one verification baseline.",
+    tip: "Pick enough verifiers to avoid single-operator fragility, but keep quorum understandable for launch-day operations.",
   },
-  outcome: {
-    headline: "Program the comparability logic and",
-    emphasis: "Outcome Rules.",
-    body: "Bind outcome templates, settlement curves, and payout triggers. These rules form the deterministic core of your plan.",
-    tip: "Start with conservative thresholds — outcome rules are harder to amend once the plan is live.",
+  "reward-lane": {
+    headline: "Create the initial incentive lane for",
+    emphasis: "Rewards.",
+    body: "Reward lanes carry outcome selection, rule IDs, payout commitments, and the sponsor-budget line that will fund incentives later.",
+    tip: "Keep the first reward lane narrow. It is better to launch one crisp outcome lane than a broad lane with muddy comparability.",
   },
-  funding: {
-    headline: "Review the funding surface and commit",
-    emphasis: "Capital Lanes.",
-    body: "Confirm the reserve domain, funding lines and initial capital commitments. This is the final step before the plan is activated.",
-    tip: "All commitments are tracked on-chain. You can add lanes later, but the initial seed shapes early velocity.",
+  "protection-lane": {
+    headline: "Wire the first premium rail for",
+    emphasis: "Protection.",
+    body: "Protection posture stays real through structured metadata commitments, a protection policy series, and an initial premium-income funding line.",
+    tip: "Use public terms and disclosure links that people can actually inspect. The hashes should commit to something humans can read.",
+  },
+  review: {
+    headline: "Review every lane, address, and",
+    emphasis: "Launch Artifact.",
+    body: "The final launch sends only canonical plan, series, and funding-line instructions. No stale pool typing survives this step.",
+    tip: "If creation partially succeeds, rerunning is safe for account creation. Existing plan, series, and funding lines are skipped automatically.",
   },
 };
 
-type WizardState = {
+function normalize(value: string): string {
+  return value.trim();
+}
+
+function shortAddress(value: string): string {
+  if (!value || value.length < 12) return value || "n/a";
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function randomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function firstError(errors: string[]): string | null {
+  return errors[0] ?? null;
+}
+
+function toPositiveInt(value: string): number {
+  const parsed = Number.parseInt(normalize(value), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function protocolToken(value: string): string {
+  const normalized = normalize(value)
+    .replace(/[^a-z0-9]+/gi, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+  return normalized || "PENDING";
+}
+
+function seedDefault(value: string, fallback: string): string {
+  const normalized = normalize(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return (normalized || fallback).slice(0, 32);
+}
+
+function seriesDisplayDefault(planDisplayName: string, suffix: string): string {
+  const normalized = normalize(planDisplayName);
+  return normalized ? `${normalized} ${suffix}` : `OmegaX ${suffix}`;
+}
+
+function toAssetPublicKey(value: string): PublicKey | null {
+  try {
+    return new PublicKey(normalize(value));
+  } catch {
+    return null;
+  }
+}
+
+function toUiAmountBaseUnits(value: string, mode: PayoutAssetMode, splDecimals: number | null): bigint {
+  if (mode === "sol") {
+    return parseUiAmountToBaseUnits(value, SOL_DECIMALS);
+  }
+  if (splDecimals === null) {
+    throw new Error("Token decimals are not loaded yet.");
+  }
+  return parseUiAmountToBaseUnits(value, splDecimals);
+}
+
+function baseUnitsPreview(value: string, mode: PayoutAssetMode, splDecimals: number | null): string {
+  try {
+    return toUiAmountBaseUnits(value, mode, splDecimals).toString();
+  } catch {
+    return "n/a";
+  }
+}
+
+function buildWorkflowSteps(intent: LaunchIntent): StepDescriptor[] {
+  const steps: StepDescriptor[] = [
+    { id: "basics", number: "01", label: "Basics" },
+    { id: "membership", number: "02", label: "Membership" },
+    { id: "verification", number: "03", label: "Verification" },
+  ];
+  if (requiresRewardLane(intent)) {
+    steps.push({ id: "reward-lane", number: String(steps.length + 1).padStart(2, "0"), label: "Reward Lane" });
+  }
+  if (requiresProtectionLane(intent)) {
+    steps.push({ id: "protection-lane", number: String(steps.length + 1).padStart(2, "0"), label: "Protection Lane" });
+  }
+  steps.push({ id: "review", number: String(steps.length + 1).padStart(2, "0"), label: "Review" });
+  return steps;
+}
+
+function listLaunchOracleOptions(connectedWallet: string, selectedOracles: string[]): MultiOracleOption[] {
+  const options = new Map<string, MultiOracleOption>();
+
+  for (const wallet of DEVNET_PROTOCOL_FIXTURE_STATE.wallets) {
+    if (wallet.role !== "oracle_operator" || isUnsetDevnetWalletAddress(wallet.address)) continue;
+    options.set(wallet.address, {
+      oracle: wallet.address,
+      active: true,
+      metadataUri: wallet.label,
+    });
+  }
+
+  for (const oracle of selectedOracles) {
+    if (!options.has(oracle)) {
+      options.set(oracle, {
+        oracle,
+        active: true,
+        metadataUri: "Manual oracle entry",
+      });
+    }
+  }
+
+  if (connectedWallet && !options.has(connectedWallet)) {
+    options.set(connectedWallet, {
+      oracle: connectedWallet,
+      active: true,
+      metadataUri: "Connected wallet",
+    });
+  }
+
+  return [...options.values()];
+}
+
+function FieldGroup({
+  label,
+  children,
+}: {
   label: string;
-  velocity: string;
-  governance: string;
-  jurisdiction: "NORTH_AMERICA" | "ASIA_PACIFIC" | "MIDDLE_EAST";
-};
+  children: ReactNode;
+}) {
+  return (
+    <label className="plans-wizard-field-group">
+      <span className="plans-wizard-field-label">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ReviewRow({
+  label,
+  value,
+  muted = false,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className="plans-wizard-review-row">
+      <span className="plans-wizard-review-label">{label}</span>
+      <strong className={cn("plans-wizard-review-value", muted && "opacity-70")}>{value}</strong>
+    </div>
+  );
+}
+
+function LaunchPreviewMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="plans-launch-preview-metric">
+      <span className="plans-launch-preview-metric-label">{label}</span>
+      <strong className="plans-launch-preview-metric-value">{value}</strong>
+      <span className="plans-launch-preview-metric-detail">{detail}</span>
+    </div>
+  );
+}
+
+function wizardDetailKey(detail: WizardDetailState): string {
+  return detail.key === "rule-commitments" ? `rule-commitments:${detail.outcomeId}` : detail.key;
+}
 
 export function PlanCreationWizard() {
   const router = useRouter();
+  const { connection } = useConnection();
+  const { connected, publicKey, sendTransaction } = useWallet();
+
+  const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("hybrid");
   const [stepIndex, setStepIndex] = useState(0);
-  const [state, setState] = useState<WizardState>({
-    label: "",
-    velocity: "Standard Monitoring",
-    governance: "Automated (Oracle Driven)",
-    jurisdiction: "NORTH_AMERICA",
-  });
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusTone, setStatusTone] = useState<"ok" | "error" | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [actionLog, setActionLog] = useState<ActionLog[]>([]);
+  const [createdArtifacts, setCreatedArtifacts] = useState<CreatedArtifacts | null>(null);
 
-  const activeStep = STEPS[stepIndex]!;
-  const copy = STEP_COPY[activeStep.id];
+  const [planId, setPlanId] = useState("nexus-protect-plus");
+  const [displayName, setDisplayName] = useState("Nexus Protect Plus");
+  const [organizationRef, setOrganizationRef] = useState("OmegaX Sponsor Desk");
+  const [reserveDomainAddress, setReserveDomainAddress] = useState(defaultReserveDomainAddress());
+  const [planMetadataUri, setPlanMetadataUri] = useState("https://protocol.omegax.health/plans/holder");
+  const [payoutAssetMode, setPayoutAssetMode] = useState<PayoutAssetMode>("spl");
+  const [payoutMint, setPayoutMint] = useState(defaultPayoutMintForIntent("hybrid"));
+  const [rewardPayoutUi, setRewardPayoutUi] = useState("25");
+  const [termsHashHex, setTermsHashHex] = useState("");
+  const [payoutPolicyHashHex, setPayoutPolicyHashHex] = useState("");
+
+  const [coveragePathway, setCoveragePathway] = useState<CoveragePathway>("defi_native");
+  const [defiSettlementMode, setDefiSettlementMode] = useState<DefiSettlementMode>("onchain_programmatic");
+  const [defiTechnicalTermsUri, setDefiTechnicalTermsUri] = useState("https://protocol.omegax.health/coverage/technical-terms");
+  const [defiRiskDisclosureUri, setDefiRiskDisclosureUri] = useState("https://protocol.omegax.health/coverage/risk-disclosures");
+  const [rwaLegalEntityName, setRwaLegalEntityName] = useState("");
+  const [rwaJurisdiction, setRwaJurisdiction] = useState("");
+  const [rwaPolicyTermsUri, setRwaPolicyTermsUri] = useState("");
+  const [rwaRegulatoryLicenseRef, setRwaRegulatoryLicenseRef] = useState("");
+  const [rwaComplianceContact, setRwaComplianceContact] = useState("");
+
+  const [membershipMode, setMembershipMode] = useState<MembershipMode>("open");
+  const [tokenGateMint, setTokenGateMint] = useState("");
+  const [tokenGateMinBalance, setTokenGateMinBalance] = useState("1");
+  const [inviteIssuer, setInviteIssuer] = useState("");
+
+  const [selectedOracles, setSelectedOracles] = useState<string[]>([]);
+  const [oracleSearch, setOracleSearch] = useState("");
+  const [quorumM, setQuorumM] = useState("1");
+  const [requireVerifiedSchema, setRequireVerifiedSchema] = useState(true);
+  const [allowDelegatedClaims, setAllowDelegatedClaims] = useState(false);
+
+  const [schemaOutcomes, setSchemaOutcomes] = useState<SchemaOutcomeOption[]>([]);
+  const [schemaWarnings, setSchemaWarnings] = useState<string[]>([]);
+  const [schemaMetadataLoading, setSchemaMetadataLoading] = useState(false);
+  const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<string[]>([]);
+  const [outcomeSearch, setOutcomeSearch] = useState("");
+  const [ruleIdsByOutcome, setRuleIdsByOutcome] = useState<Record<string, string>>({});
+  const [ruleHashOverridesByOutcome, setRuleHashOverridesByOutcome] = useState<Record<string, string>>({});
+  const [payoutHashOverridesByOutcome, setPayoutHashOverridesByOutcome] = useState<Record<string, string>>({});
+  const [rulePreviewMap, setRulePreviewMap] = useState<Record<string, RulePreview>>({});
+
+  const [rewardSeriesId, setRewardSeriesId] = useState("");
+  const [rewardSeriesDisplayName, setRewardSeriesDisplayName] = useState("");
+  const [rewardSeriesMetadataUri, setRewardSeriesMetadataUri] = useState("https://protocol.omegax.health/series/rewards");
+  const [rewardFundingLineId, setRewardFundingLineId] = useState("");
+  const [rewardCommittedBudgetUi, setRewardCommittedBudgetUi] = useState("1000");
+
+  const [protectionSeriesId, setProtectionSeriesId] = useState("");
+  const [protectionSeriesDisplayName, setProtectionSeriesDisplayName] = useState("");
+  const [protectionSeriesMetadataUri, setProtectionSeriesMetadataUri] = useState("https://protocol.omegax.health/series/protection");
+  const [protectionFundingLineId, setProtectionFundingLineId] = useState("");
+  const [protectionCadenceDays, setProtectionCadenceDays] = useState("30");
+  const [protectionExpectedPremiumUi, setProtectionExpectedPremiumUi] = useState("250");
+
+  const [splDecimals, setSplDecimals] = useState<number | null>(null);
+  const [activeDetail, setActiveDetail] = useState<WizardDetailState | null>(null);
+  const detailTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const walletAddress = publicKey?.toBase58() ?? "";
+  const steps = useMemo(() => buildWorkflowSteps(launchIntent), [launchIntent]);
+  const activeStep = steps[stepIndex] ?? steps[0]!;
   const isFirstStep = stepIndex === 0;
-  const isLastStep = stepIndex === STEPS.length - 1;
-  const progressPct = ((stepIndex + 1) / STEPS.length) * 100;
+  const progressPct = ((stepIndex + 1) / steps.length) * 100;
+  const copy = STEP_COPY[activeStep.id];
+  const rewardLaneRequired = requiresRewardLane(launchIntent);
+  const protectionLaneRequired = requiresProtectionLane(launchIntent);
+  const payoutAssetAddress = payoutAssetMode === "spl" ? payoutMint : ZERO_PUBKEY;
+  const reserveDomainPk = toAssetPublicKey(reserveDomainAddress);
+  const payoutMintPk = toAssetPublicKey(payoutAssetAddress);
+  const availableRailMints = useMemo(
+    () => listReserveDomainRailMints(reserveDomainAddress),
+    [reserveDomainAddress],
+  );
 
-  const handleNext = () => {
-    if (isLastStep) {
-      router.push("/plans");
+  const openDetail = useCallback((detail: WizardDetailState, trigger: HTMLButtonElement) => {
+    detailTriggerRefs.current[wizardDetailKey(detail)] = trigger;
+    setActiveDetail(detail);
+  }, []);
+
+  const closeActiveDetail = useCallback(() => {
+    if (!activeDetail) return;
+    const trigger = detailTriggerRefs.current[wizardDetailKey(activeDetail)];
+    setActiveDetail(null);
+    window.requestAnimationFrame(() => {
+      trigger?.focus();
+    });
+  }, [activeDetail]);
+
+  useEffect(() => {
+    setPayoutMint((current) => current || defaultPayoutMintForIntent(launchIntent));
+  }, [launchIntent]);
+
+  useEffect(() => {
+    if (!rewardSeriesId) {
+      setRewardSeriesId(seedDefault(`${planId}-rewards`, "reward-series"));
+    }
+  }, [planId, rewardSeriesId]);
+
+  useEffect(() => {
+    if (!rewardFundingLineId) {
+      setRewardFundingLineId(seedDefault(`${planId}-sponsor-budget`, "reward-budget"));
+    }
+  }, [planId, rewardFundingLineId]);
+
+  useEffect(() => {
+    if (!rewardSeriesDisplayName) {
+      setRewardSeriesDisplayName(seriesDisplayDefault(displayName, "Rewards"));
+    }
+  }, [displayName, rewardSeriesDisplayName]);
+
+  useEffect(() => {
+    if (!protectionSeriesId) {
+      setProtectionSeriesId(seedDefault(`${planId}-protection`, "protection-series"));
+    }
+  }, [planId, protectionSeriesId]);
+
+  useEffect(() => {
+    if (!protectionFundingLineId) {
+      setProtectionFundingLineId(seedDefault(`${planId}-member-premiums`, "premium-income"));
+    }
+  }, [planId, protectionFundingLineId]);
+
+  useEffect(() => {
+    if (!protectionSeriesDisplayName) {
+      setProtectionSeriesDisplayName(seriesDisplayDefault(displayName, "Protection"));
+    }
+  }, [displayName, protectionSeriesDisplayName]);
+
+  useEffect(() => {
+    if (selectedOracles.length > 0) return;
+    const preferredFixtureOracle = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) =>
+      wallet.role === "oracle_operator" && !isUnsetDevnetWalletAddress(wallet.address),
+    )?.address;
+    const initial = dedupeOracleOptions([preferredFixtureOracle ?? "", walletAddress]);
+    if (initial.length > 0) {
+      setSelectedOracles(initial);
+      setQuorumM("1");
+    }
+  }, [selectedOracles.length, walletAddress]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSchemaMetadataLoading(true);
+    void (async () => {
+      const fetchResult = await fetchSchemaMetadata(STANDARD_LAUNCH_SCHEMA.metadataUri);
+      if (cancelled) return;
+      if (fetchResult.error) {
+        setSchemaWarnings([fetchResult.error.message]);
+        setSchemaOutcomes([]);
+        setSchemaMetadataLoading(false);
+        return;
+      }
+      const parsed = parseSchemaOutcomes(fetchResult.metadata);
+      setSchemaOutcomes(parsed.outcomes);
+      setSchemaWarnings(parsed.warnings);
+      setSchemaMetadataLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (payoutAssetMode === "sol") {
+      setSplDecimals(SOL_DECIMALS);
       return;
     }
-    setStepIndex((index) => Math.min(STEPS.length - 1, index + 1));
-  };
+    if (!payoutMintPk) {
+      setSplDecimals(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const decimals = await getMintDecimals(connection, payoutMintPk);
+        if (!cancelled) {
+          setSplDecimals(decimals);
+        }
+      } catch {
+        if (!cancelled) {
+          setSplDecimals(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, payoutAssetMode, payoutMintPk]);
 
-  const handleBack = () => {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const nextPreview: Record<string, RulePreview> = {};
+      for (const outcomeId of selectedOutcomeIds) {
+        const outcome = schemaOutcomes.find((entry) => entry.id === outcomeId);
+        const ruleId = normalize(ruleIdsByOutcome[outcomeId] ?? "") || seedDefault(outcomeId, "reward-rule");
+        const ruleOverride = normalize(ruleHashOverridesByOutcome[outcomeId] ?? "");
+        const payoutOverride = normalize(payoutHashOverridesByOutcome[outcomeId] ?? "");
+        const derivedRuleHashHex = ruleOverride || await stableSha256Hex({
+          schemaKey: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          outcomeId,
+          ruleId,
+          launchIntent,
+        });
+        const derivedPayoutHashHex = payoutOverride || await stableSha256Hex({
+          schemaKey: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          outcomeId,
+          rewardPayoutUi: normalize(rewardPayoutUi),
+          outcomeLabel: outcome?.label ?? outcomeId,
+        });
+        nextPreview[outcomeId] = {
+          derivedRuleHashHex,
+          derivedPayoutHashHex,
+        };
+      }
+      if (!cancelled) {
+        setRulePreviewMap(nextPreview);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    launchIntent,
+    payoutHashOverridesByOutcome,
+    rewardPayoutUi,
+    ruleHashOverridesByOutcome,
+    ruleIdsByOutcome,
+    schemaOutcomes,
+    selectedOutcomeIds,
+  ]);
+
+  useEffect(() => {
+    if (stepIndex <= steps.length - 1) return;
+    setStepIndex(steps.length - 1);
+  }, [stepIndex, steps.length]);
+
+  useEffect(() => {
+    setActiveDetail(null);
+  }, [activeStep.id]);
+
+  const addressPreview = useMemo(
+    () => buildLaunchAddressPreview({
+      reserveDomainAddress,
+      planId,
+      rewardSeriesId: rewardLaneRequired ? rewardSeriesId : null,
+      protectionSeriesId: protectionLaneRequired ? protectionSeriesId : null,
+      rewardLineId: rewardLaneRequired ? rewardFundingLineId : null,
+      protectionLineId: protectionLaneRequired ? protectionFundingLineId : null,
+    }),
+    [
+      planId,
+      protectionFundingLineId,
+      protectionLaneRequired,
+      protectionSeriesId,
+      reserveDomainAddress,
+      rewardFundingLineId,
+      rewardLaneRequired,
+      rewardSeriesId,
+    ],
+  );
+
+  const protectionPosture = useMemo(
+    () => serializeProtectionPosture({
+      coveragePathway,
+      defiSettlementMode,
+      defiTechnicalTermsUri,
+      defiRiskDisclosureUri,
+      rwaLegalEntityName,
+      rwaJurisdiction,
+      rwaPolicyTermsUri,
+      rwaRegulatoryLicenseRef,
+      rwaComplianceContact,
+      protectionMetadataUri: protectionSeriesMetadataUri,
+    }),
+    [
+      coveragePathway,
+      defiRiskDisclosureUri,
+      defiSettlementMode,
+      defiTechnicalTermsUri,
+      protectionSeriesMetadataUri,
+      rwaComplianceContact,
+      rwaJurisdiction,
+      rwaLegalEntityName,
+      rwaPolicyTermsUri,
+      rwaRegulatoryLicenseRef,
+    ],
+  );
+
+  const filteredOutcomes = useMemo(() => {
+    const needle = normalize(outcomeSearch).toLowerCase();
+    if (!needle) return schemaOutcomes;
+    return schemaOutcomes.filter((outcome) =>
+      [outcome.id, outcome.label].some((value) => value.toLowerCase().includes(needle)),
+    );
+  }, [outcomeSearch, schemaOutcomes]);
+
+  const oracleOptions = useMemo(
+    () => listLaunchOracleOptions(walletAddress, selectedOracles),
+    [selectedOracles, walletAddress],
+  );
+
+  const basicsErrors = useMemo(
+    () => validateLaunchBasics({
+      launchIntent,
+      planId,
+      displayName,
+      organizationRef,
+      reserveDomainAddress,
+      metadataUri: planMetadataUri,
+      payoutAssetMode,
+      payoutMint,
+      rewardPayoutUi,
+      termsHashHex,
+      payoutPolicyHashHex,
+      coveragePathway,
+      defiSettlementMode,
+      defiTechnicalTermsUri,
+      defiRiskDisclosureUri,
+      rwaLegalEntityName,
+      rwaJurisdiction,
+      rwaPolicyTermsUri,
+      rwaRegulatoryLicenseRef,
+      rwaComplianceContact,
+    }),
+    [
+      coveragePathway,
+      defiRiskDisclosureUri,
+      defiSettlementMode,
+      defiTechnicalTermsUri,
+      displayName,
+      launchIntent,
+      organizationRef,
+      payoutAssetMode,
+      payoutMint,
+      payoutPolicyHashHex,
+      planId,
+      planMetadataUri,
+      reserveDomainAddress,
+      rewardPayoutUi,
+      rwaComplianceContact,
+      rwaJurisdiction,
+      rwaLegalEntityName,
+      rwaPolicyTermsUri,
+      rwaRegulatoryLicenseRef,
+      termsHashHex,
+    ],
+  );
+
+  const membershipErrors = useMemo(
+    () => validateLaunchMembership({
+      membershipMode,
+      tokenGateMint,
+      tokenGateMinBalance,
+      inviteIssuer,
+    }),
+    [inviteIssuer, membershipMode, tokenGateMinBalance, tokenGateMint],
+  );
+
+  const verificationErrors = useMemo(
+    () => validateLaunchVerification({
+      selectedOracles,
+      quorumM,
+    }),
+    [quorumM, selectedOracles],
+  );
+
+  const rewardLaneErrors = useMemo(
+    () => validateRewardLane({
+      required: rewardLaneRequired,
+      seriesId: rewardSeriesId,
+      displayName: rewardSeriesDisplayName,
+      metadataUri: rewardSeriesMetadataUri,
+      sponsorLineId: rewardFundingLineId,
+      selectedOutcomeIds,
+      ruleIdsByOutcome,
+      ruleHashOverridesByOutcome,
+      payoutHashOverridesByOutcome,
+    }),
+    [
+      payoutHashOverridesByOutcome,
+      rewardFundingLineId,
+      rewardLaneRequired,
+      rewardSeriesDisplayName,
+      rewardSeriesId,
+      rewardSeriesMetadataUri,
+      ruleHashOverridesByOutcome,
+      ruleIdsByOutcome,
+      selectedOutcomeIds,
+    ],
+  );
+
+  const protectionLaneErrors = useMemo(
+    () => validateProtectionLane({
+      required: protectionLaneRequired,
+      seriesId: protectionSeriesId,
+      displayName: protectionSeriesDisplayName,
+      metadataUri: protectionSeriesMetadataUri,
+      premiumLineId: protectionFundingLineId,
+      cadenceDays: protectionCadenceDays,
+      expectedPremiumUi: protectionExpectedPremiumUi,
+      posture: {
+        coveragePathway,
+        defiSettlementMode,
+        defiTechnicalTermsUri,
+        defiRiskDisclosureUri,
+        rwaLegalEntityName,
+        rwaJurisdiction,
+        rwaPolicyTermsUri,
+        rwaRegulatoryLicenseRef,
+        rwaComplianceContact,
+        protectionMetadataUri: protectionSeriesMetadataUri,
+      },
+    }),
+    [
+      coveragePathway,
+      defiRiskDisclosureUri,
+      defiSettlementMode,
+      defiTechnicalTermsUri,
+      protectionCadenceDays,
+      protectionExpectedPremiumUi,
+      protectionFundingLineId,
+      protectionLaneRequired,
+      protectionSeriesDisplayName,
+      protectionSeriesId,
+      protectionSeriesMetadataUri,
+      rwaComplianceContact,
+      rwaJurisdiction,
+      rwaLegalEntityName,
+      rwaPolicyTermsUri,
+      rwaRegulatoryLicenseRef,
+    ],
+  );
+
+  const reviewErrors = useMemo(() => {
+    const errors = [
+      ...basicsErrors,
+      ...membershipErrors,
+      ...verificationErrors,
+      ...rewardLaneErrors,
+      ...protectionLaneErrors,
+    ];
+
+    if (!connected || !publicKey || !sendTransaction) {
+      errors.push("Connect a wallet with plan-control authority before launch.");
+    }
+    if (!addressPreview.healthPlanAddress) {
+      errors.push("Plan address preview is unavailable. Check the plan ID and reserve domain.");
+    }
+
+    if (!payoutMintPk) {
+      errors.push("Selected payout asset is invalid.");
+    } else if (reserveDomainPk && !reserveDomainSupportsMint(reserveDomainAddress, payoutMintPk.toBase58())) {
+      errors.push("The selected reserve domain does not currently expose a launch rail for the chosen payout mint.");
+    }
+
+    if (payoutAssetMode === "spl" && splDecimals === null) {
+      errors.push("Token mint decimals are not available yet.");
+    }
+
+    return errors;
+  }, [
+    addressPreview.healthPlanAddress,
+    basicsErrors,
+    connected,
+    membershipErrors,
+    payoutAssetMode,
+    payoutMintPk,
+    protectionLaneErrors,
+    publicKey,
+    reserveDomainAddress,
+    reserveDomainPk,
+    rewardLaneErrors,
+    sendTransaction,
+    splDecimals,
+    verificationErrors,
+  ]);
+
+  const currentStepErrors = useMemo(() => {
+    switch (activeStep.id) {
+      case "basics":
+        return basicsErrors;
+      case "membership":
+        return membershipErrors;
+      case "verification":
+        return verificationErrors;
+      case "reward-lane":
+        return rewardLaneErrors;
+      case "protection-lane":
+        return protectionLaneErrors;
+      case "review":
+        return reviewErrors;
+      default:
+        return [];
+    }
+  }, [
+    activeStep.id,
+    basicsErrors,
+    membershipErrors,
+    protectionLaneErrors,
+    reviewErrors,
+    rewardLaneErrors,
+    verificationErrors,
+  ]);
+
+  const reviewLinks = useMemo(
+    () => (createdArtifacts
+      ? buildLaunchReviewLinks({
+        launchIntent,
+        healthPlanAddress: createdArtifacts.healthPlanAddress,
+        rewardSeriesAddress: createdArtifacts.rewardSeriesAddress,
+        protectionSeriesAddress: createdArtifacts.protectionSeriesAddress,
+      })
+      : null),
+    [createdArtifacts, launchIntent],
+  );
+
+  const launchPreviewMeta: WizardDetailMetaItem[] = [
+    {
+      label: `LANES ${String(Number(rewardLaneRequired) + Number(protectionLaneRequired)).padStart(2, "0")}`,
+      tone: "accent",
+    },
+    {
+      label: `RAILS ${String(availableRailMints.length).padStart(2, "0")}`,
+    },
+    {
+      label: `QUORUM ${toPositiveInt(quorumM)}/${selectedOracles.length || 0}`,
+      tone: "muted",
+    },
+  ];
+
+  const activeRuleOutcomeId = activeDetail?.key === "rule-commitments" ? activeDetail.outcomeId : null;
+  const activeRuleOutcome = activeRuleOutcomeId
+    ? schemaOutcomes.find((entry) => entry.id === activeRuleOutcomeId) ?? null
+    : null;
+  const activeRulePreview = activeRuleOutcomeId ? rulePreviewMap[activeRuleOutcomeId] ?? null : null;
+  const activeRuleOverrideCount = activeRuleOutcomeId
+    ? Number(Boolean(normalize(ruleHashOverridesByOutcome[activeRuleOutcomeId] ?? ""))) +
+      Number(Boolean(normalize(payoutHashOverridesByOutcome[activeRuleOutcomeId] ?? "")))
+    : 0;
+
+  const activeDetailTitle =
+    activeDetail?.key === "launch-preview"
+      ? "Launch Preview"
+      : activeDetail?.key === "rule-commitments"
+        ? `${activeRuleOutcome?.label ?? activeRuleOutcomeId ?? "Outcome"} rule commitments`
+        : activeDetail?.key === "protection-posture"
+          ? "Protection posture"
+          : "";
+
+  const activeDetailSummary =
+    activeDetail?.key === "launch-preview"
+      ? "Review the technical plan, lane, rail, and commitment values derived from the launch form before you confirm."
+      : activeDetail?.key === "rule-commitments"
+        ? "Review the derived hashes for this outcome and only set overrides if you need to pin exact commitment values."
+        : activeDetail?.key === "protection-posture"
+          ? "Inspect the structured coverage payload this protection lane will commit to through public metadata and hashes."
+          : undefined;
+
+  const activeDetailMeta: WizardDetailMetaItem[] =
+    activeDetail?.key === "launch-preview"
+      ? launchPreviewMeta
+      : activeDetail?.key === "rule-commitments"
+        ? [
+          {
+            label: activeRulePreview ? "DERIVED READY" : "HASHES PENDING",
+            tone: activeRulePreview ? "accent" : "muted",
+          },
+          {
+            label: `OVERRIDES ${activeRuleOverrideCount}`,
+            tone: activeRuleOverrideCount > 0 ? "accent" : "muted",
+          },
+        ]
+        : activeDetail?.key === "protection-posture"
+          ? [
+            {
+              label: `PATH ${protocolToken(coveragePathway)}`,
+              tone: "accent",
+            },
+            {
+              label: `SETTLEMENT ${protocolToken(
+                coveragePathway === "defi_native" ? defiSettlementMode : coveragePathway,
+              )}`,
+            },
+          ]
+          : [];
+
+  const addActionLog = useCallback((entry: Omit<ActionLog, "id">) => {
+    setActionLog((current) => [
+      {
+        id: randomId(),
+        ...entry,
+      },
+      ...current,
+    ]);
+  }, []);
+
+  const handleToggleOracle = useCallback((oracle: string) => {
+    setSelectedOracles((current) => {
+      const exists = current.includes(oracle);
+      const next = exists
+        ? current.filter((entry) => entry !== oracle)
+        : [...current, oracle];
+      return dedupeOracleOptions(next);
+    });
+  }, []);
+
+  const handleToggleOutcome = useCallback((outcomeId: string) => {
+    setSelectedOutcomeIds((current) => {
+      const exists = current.includes(outcomeId);
+      if (exists) {
+        return current.filter((entry) => entry !== outcomeId);
+      }
+      return [...current, outcomeId];
+    });
+    setRuleIdsByOutcome((current) =>
+      current[outcomeId]
+        ? current
+        : {
+          ...current,
+          [outcomeId]: seedDefault(outcomeId, "reward-rule"),
+        });
+  }, []);
+
+  const openFirstFailingStep = useCallback(() => {
+    const candidates: Array<{ id: StepId; errors: string[] }> = [
+      { id: "basics", errors: basicsErrors },
+      { id: "membership", errors: membershipErrors },
+      { id: "verification", errors: verificationErrors },
+      { id: "reward-lane", errors: rewardLaneErrors },
+      { id: "protection-lane", errors: protectionLaneErrors },
+      { id: "review", errors: reviewErrors },
+    ];
+    const failing = candidates.find((candidate) => candidate.errors.length > 0 && steps.some((step) => step.id === candidate.id));
+    if (!failing) return;
+    const index = steps.findIndex((step) => step.id === failing.id);
+    if (index >= 0) setStepIndex(index);
+  }, [
+    basicsErrors,
+    membershipErrors,
+    protectionLaneErrors,
+    reviewErrors,
+    rewardLaneErrors,
+    steps,
+    verificationErrors,
+  ]);
+
+  const handleLaunch = useCallback(async () => {
+    if (reviewErrors.length > 0) {
+      openFirstFailingStep();
+      setStatusTone("error");
+      setStatusMessage(firstError(reviewErrors));
+      return;
+    }
+    if (!publicKey || !sendTransaction || !reserveDomainPk || !payoutMintPk) {
+      setStatusTone("error");
+      setStatusMessage("Connect a wallet and resolve the reserve domain and payout mint before launch.");
+      return;
+    }
+    if (!addressPreview.healthPlanAddress) {
+      setStatusTone("error");
+      setStatusMessage("Plan address preview is unavailable.");
+      return;
+    }
+
+    const normalizedPlanId = normalize(planId);
+    const normalizedRewardSeriesId = normalize(rewardSeriesId);
+    const normalizedProtectionSeriesId = normalize(protectionSeriesId);
+    const normalizedRewardFundingLineId = normalize(rewardFundingLineId);
+    const normalizedProtectionFundingLineId = normalize(protectionFundingLineId);
+
+    const healthPlanPk = deriveHealthPlanPda({
+      reserveDomain: reserveDomainPk,
+      planId: normalizedPlanId,
+    });
+
+    const rewardSeriesPk = rewardLaneRequired
+      ? derivePolicySeriesPda({
+        healthPlan: healthPlanPk,
+        seriesId: normalizedRewardSeriesId,
+      })
+      : null;
+    const protectionSeriesPk = protectionLaneRequired
+      ? derivePolicySeriesPda({
+        healthPlan: healthPlanPk,
+        seriesId: normalizedProtectionSeriesId,
+      })
+      : null;
+    const rewardFundingLinePk = rewardLaneRequired
+      ? deriveFundingLinePda({
+        healthPlan: healthPlanPk,
+        lineId: normalizedRewardFundingLineId,
+      })
+      : null;
+    const protectionFundingLinePk = protectionLaneRequired
+      ? deriveFundingLinePda({
+        healthPlan: healthPlanPk,
+        lineId: normalizedProtectionFundingLineId,
+      })
+      : null;
+
+    const assetMintPk = payoutMintPk;
+
+    const createTransaction = async (label: string, instruction: ReturnType<typeof buildCreateHealthPlanInstruction>) => {
+      const tx = new Transaction({ feePayer: publicKey }).add(instruction);
+      const result = await executeProtocolTransaction({
+        connection,
+        sendTransaction,
+        tx,
+        label,
+      });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      addActionLog({
+        action: label,
+        message: result.message,
+        explorerUrl: result.explorerUrl,
+        signature: result.signature,
+      });
+    };
+
+    try {
+      setBusyAction("Launching canonical health plan");
+      setStatusMessage(null);
+      setStatusTone(null);
+
+      const railAddresses = [
+        ...new Set([
+          ...(
+            rewardSeriesPk && rewardFundingLinePk
+              ? Object.values(deriveLaunchLedgerAddresses({
+                reserveDomain: reserveDomainPk,
+                healthPlan: healthPlanPk,
+                assetMint: assetMintPk,
+                policySeries: rewardSeriesPk,
+                fundingLine: rewardFundingLinePk,
+              })).map((pk) => pk.toBase58())
+              : []
+          ),
+          ...(
+            protectionSeriesPk && protectionFundingLinePk
+              ? Object.values(deriveLaunchLedgerAddresses({
+                reserveDomain: reserveDomainPk,
+                healthPlan: healthPlanPk,
+                assetMint: assetMintPk,
+                policySeries: protectionSeriesPk,
+                fundingLine: protectionFundingLinePk,
+              })).map((pk) => pk.toBase58())
+              : []
+          ),
+        ]),
+      ].map((value) => new PublicKey(value));
+
+      const preflightTargets = [
+        reserveDomainPk,
+        ...railAddresses,
+      ];
+      const preflightInfos = await connection.getMultipleAccountsInfo(preflightTargets, "confirmed");
+      if (preflightInfos[0] === null) {
+        throw new Error("The selected reserve domain account is not available on the connected cluster.");
+      }
+      const missingRailIndex = preflightInfos.findIndex((info, index) => index > 0 && info === null);
+      if (missingRailIndex >= 0) {
+        throw new Error("The selected reserve domain does not expose every required asset rail for this launch.");
+      }
+
+      const artifactTargets = [
+        healthPlanPk,
+        rewardSeriesPk,
+        protectionSeriesPk,
+        rewardFundingLinePk,
+        protectionFundingLinePk,
+      ].filter((pk): pk is PublicKey => Boolean(pk));
+      const artifactInfos = await connection.getMultipleAccountsInfo(artifactTargets, "confirmed");
+      const artifactExists = new Map<string, boolean>();
+      artifactTargets.forEach((pk, index) => {
+        artifactExists.set(pk.toBase58(), artifactInfos[index] !== null);
+      });
+
+      const rewardCommittedAmount = rewardLaneRequired
+        ? toUiAmountBaseUnits(rewardCommittedBudgetUi, payoutAssetMode, splDecimals)
+        : 0n;
+      const protectionCommittedAmount = protectionLaneRequired
+        ? toUiAmountBaseUnits(protectionExpectedPremiumUi, payoutAssetMode, splDecimals)
+        : 0n;
+
+      const oracleAuthority = new PublicKey(selectedOracles[0]!);
+      const oraclePolicyHashHex = await stableSha256Hex({
+        verifiers: [...selectedOracles].sort(),
+        quorumM: toPositiveInt(quorumM),
+        requireVerifiedSchema,
+        allowDelegatedClaims,
+      });
+      const schemaBindingHashHex = rewardLaneRequired
+        ? await stableSha256Hex({
+          schemaKey: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          version: STANDARD_LAUNCH_SCHEMA.version,
+          outcomes: [...selectedOutcomeIds].sort(),
+        })
+        : ZERO_HASH;
+      const complianceBaselineHashHex = await stableSha256Hex({
+        launchIntent,
+        membershipMode,
+        coveragePathway,
+        reserveDomainAddress,
+        payoutAssetMode,
+        payoutMint: payoutAssetAddress,
+      });
+
+      if (!artifactExists.get(healthPlanPk.toBase58())) {
+        await createTransaction(
+          "Create health plan",
+          buildCreateHealthPlanInstruction({
+            planAdmin: publicKey,
+            reserveDomain: reserveDomainPk,
+            healthPlan: healthPlanPk,
+            args: {
+              planId: normalizedPlanId,
+              displayName: normalize(displayName),
+              organizationRef: normalize(organizationRef),
+              metadataUri: normalize(planMetadataUri),
+              sponsor: publicKey,
+              sponsorOperator: publicKey,
+              claimsOperator: publicKey,
+              oracleAuthority,
+              membershipMode,
+              allowedRailMask: 0xffff,
+              defaultFundingPriority: 0,
+              oraclePolicyHashHex,
+              schemaBindingHashHex,
+              complianceBaselineHashHex,
+              pauseFlags: 0,
+            },
+          }),
+        );
+      } else {
+        addActionLog({
+          action: "Create health plan",
+          message: "Skipped because the health plan PDA already exists.",
+        });
+      }
+
+      if (rewardLaneRequired && rewardSeriesPk && rewardFundingLinePk) {
+        const rewardRuleCommitments = await Promise.all(selectedOutcomeIds.map(async (outcomeId) => ({
+          outcomeId,
+          ruleId: normalize(ruleIdsByOutcome[outcomeId] ?? "") || seedDefault(outcomeId, "reward-rule"),
+          ruleHashHex: normalize(ruleHashOverridesByOutcome[outcomeId] ?? "") || rulePreviewMap[outcomeId]?.derivedRuleHashHex || await stableSha256Hex({ outcomeId, ruleIdsByOutcome }),
+          payoutHashHex: normalize(payoutHashOverridesByOutcome[outcomeId] ?? "") || rulePreviewMap[outcomeId]?.derivedPayoutHashHex || await stableSha256Hex({ outcomeId, rewardPayoutUi }),
+        })));
+
+        const rewardTermsHashHex = normalize(termsHashHex) || await stableSha256Hex({
+          planId: normalizedPlanId,
+          rewardSeriesId: normalizedRewardSeriesId,
+          metadataUri: normalize(rewardSeriesMetadataUri),
+        });
+        const rewardPayoutHashHex = normalize(payoutPolicyHashHex) || await stableSha256Hex({
+          rewardPayoutUi: normalize(rewardPayoutUi),
+          rewardRuleCommitments,
+        });
+        const rewardPricingHashHex = await stableSha256Hex({
+          committedBudgetUi: normalize(rewardCommittedBudgetUi),
+          payoutAssetAddress,
+        });
+        const rewardEvidenceHashHex = await stableSha256Hex({
+          oraclePolicyHashHex,
+          schema: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          outcomes: selectedOutcomeIds,
+        });
+        const rewardComparabilityHashHex = await stableSha256Hex({
+          selectedOutcomes: selectedOutcomeIds,
+        });
+        const rewardPolicyOverridesHashHex = await stableSha256Hex({
+          ruleHashOverridesByOutcome,
+          payoutHashOverridesByOutcome,
+        });
+        const rewardReserveModelHashHex = await stableSha256Hex({
+          lineType: "sponsor_budget",
+          committedAmount: rewardCommittedAmount.toString(),
+          payoutAssetAddress,
+        });
+
+        const rewardLedgers = deriveLaunchLedgerAddresses({
+          reserveDomain: reserveDomainPk,
+          healthPlan: healthPlanPk,
+          assetMint: assetMintPk,
+          policySeries: rewardSeriesPk,
+          fundingLine: rewardFundingLinePk,
+        });
+
+        if (!artifactExists.get(rewardSeriesPk.toBase58())) {
+          await createTransaction(
+            "Create reward lane",
+            buildCreatePolicySeriesInstruction({
+              authority: publicKey,
+              healthPlan: healthPlanPk,
+              policySeries: rewardSeriesPk,
+              seriesReserveLedger: rewardLedgers.seriesReserveLedger,
+              args: {
+                seriesId: normalizedRewardSeriesId,
+                displayName: normalize(rewardSeriesDisplayName),
+                metadataUri: normalize(rewardSeriesMetadataUri),
+                assetMint: assetMintPk,
+                mode: SERIES_MODE_REWARD,
+                status: SERIES_STATUS_ACTIVE,
+                adjudicationMode: 0,
+                termsHashHex: rewardTermsHashHex,
+                pricingHashHex: rewardPricingHashHex,
+                payoutHashHex: rewardPayoutHashHex,
+                reserveModelHashHex: rewardReserveModelHashHex,
+                evidenceRequirementsHashHex: rewardEvidenceHashHex,
+                comparabilityHashHex: rewardComparabilityHashHex,
+                policyOverridesHashHex: rewardPolicyOverridesHashHex,
+                cycleSeconds: BigInt(30 * 86_400),
+                termsVersion: 1,
+              },
+            }),
+          );
+        } else {
+          addActionLog({
+            action: "Create reward lane",
+            message: "Skipped because the reward policy series PDA already exists.",
+          });
+        }
+
+        if (!artifactExists.get(rewardFundingLinePk.toBase58())) {
+          await createTransaction(
+            "Open sponsor budget line",
+            buildOpenFundingLineInstruction({
+              authority: publicKey,
+              reserveDomain: reserveDomainPk,
+              healthPlan: healthPlanPk,
+              assetMint: assetMintPk,
+              fundingLine: rewardFundingLinePk,
+              fundingLineLedger: rewardLedgers.fundingLineLedger,
+              planReserveLedger: rewardLedgers.planReserveLedger,
+              seriesReserveLedger: rewardLedgers.seriesReserveLedger,
+              args: {
+                lineId: normalizedRewardFundingLineId,
+                policySeries: rewardSeriesPk,
+                lineType: FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+                fundingPriority: 0,
+                committedAmount: rewardCommittedAmount,
+                capsHashHex: await stableSha256Hex({
+                  lineId: normalizedRewardFundingLineId,
+                  commitment: rewardCommittedAmount.toString(),
+                }),
+              },
+            }),
+          );
+        } else {
+          addActionLog({
+            action: "Open sponsor budget line",
+            message: "Skipped because the sponsor funding line PDA already exists.",
+          });
+        }
+      }
+
+      if (protectionLaneRequired && protectionSeriesPk && protectionFundingLinePk && protectionPosture) {
+        const protectionTermsHashHex = normalize(termsHashHex) || await stableSha256Hex({
+          planId: normalizedPlanId,
+          protectionSeriesId: normalizedProtectionSeriesId,
+          posture: protectionPosture,
+        });
+        const protectionPricingHashHex = await stableSha256Hex({
+          cadenceDays: toPositiveInt(protectionCadenceDays),
+          expectedPremiumUi: normalize(protectionExpectedPremiumUi),
+          payoutAssetAddress,
+        });
+        const protectionPayoutHashHex = normalize(payoutPolicyHashHex) || await stableSha256Hex({
+          coveragePathway,
+          settlementStyle: defiSettlementMode,
+          metadataUri: normalize(protectionSeriesMetadataUri),
+        });
+        const protectionEvidenceHashHex = await stableSha256Hex({
+          oraclePolicyHashHex,
+          posture: protectionPosture,
+        });
+        const protectionComparabilityHashHex = await stableSha256Hex({
+          lane: "protection",
+          coveragePathway,
+          reserveDomainAddress,
+        });
+        const protectionPolicyOverridesHashHex = await stableSha256Hex(protectionPosture);
+        const protectionReserveModelHashHex = await stableSha256Hex({
+          lineType: "premium_income",
+          cadenceDays: toPositiveInt(protectionCadenceDays),
+          commitment: protectionCommittedAmount.toString(),
+        });
+
+        const protectionLedgers = deriveLaunchLedgerAddresses({
+          reserveDomain: reserveDomainPk,
+          healthPlan: healthPlanPk,
+          assetMint: assetMintPk,
+          policySeries: protectionSeriesPk,
+          fundingLine: protectionFundingLinePk,
+        });
+
+        if (!artifactExists.get(protectionSeriesPk.toBase58())) {
+          await createTransaction(
+            "Create protection lane",
+            buildCreatePolicySeriesInstruction({
+              authority: publicKey,
+              healthPlan: healthPlanPk,
+              policySeries: protectionSeriesPk,
+              seriesReserveLedger: protectionLedgers.seriesReserveLedger,
+              args: {
+                seriesId: normalizedProtectionSeriesId,
+                displayName: normalize(protectionSeriesDisplayName),
+                metadataUri: normalize(protectionSeriesMetadataUri),
+                assetMint: assetMintPk,
+                mode: SERIES_MODE_PROTECTION,
+                status: SERIES_STATUS_ACTIVE,
+                adjudicationMode: 0,
+                termsHashHex: protectionTermsHashHex,
+                pricingHashHex: protectionPricingHashHex,
+                payoutHashHex: protectionPayoutHashHex,
+                reserveModelHashHex: protectionReserveModelHashHex,
+                evidenceRequirementsHashHex: protectionEvidenceHashHex,
+                comparabilityHashHex: protectionComparabilityHashHex,
+                policyOverridesHashHex: protectionPolicyOverridesHashHex,
+                cycleSeconds: BigInt(toPositiveInt(protectionCadenceDays) * 86_400),
+                termsVersion: 1,
+              },
+            }),
+          );
+        } else {
+          addActionLog({
+            action: "Create protection lane",
+            message: "Skipped because the protection policy series PDA already exists.",
+          });
+        }
+
+        if (!artifactExists.get(protectionFundingLinePk.toBase58())) {
+          await createTransaction(
+            "Open premium income line",
+            buildOpenFundingLineInstruction({
+              authority: publicKey,
+              reserveDomain: reserveDomainPk,
+              healthPlan: healthPlanPk,
+              assetMint: assetMintPk,
+              fundingLine: protectionFundingLinePk,
+              fundingLineLedger: protectionLedgers.fundingLineLedger,
+              planReserveLedger: protectionLedgers.planReserveLedger,
+              seriesReserveLedger: protectionLedgers.seriesReserveLedger,
+              args: {
+                lineId: normalizedProtectionFundingLineId,
+                policySeries: protectionSeriesPk,
+                lineType: FUNDING_LINE_TYPE_PREMIUM_INCOME,
+                fundingPriority: 1,
+                committedAmount: protectionCommittedAmount,
+                capsHashHex: await stableSha256Hex({
+                  lineId: normalizedProtectionFundingLineId,
+                  cadenceDays: toPositiveInt(protectionCadenceDays),
+                  commitment: protectionCommittedAmount.toString(),
+                }),
+              },
+            }),
+          );
+        } else {
+          addActionLog({
+            action: "Open premium income line",
+            message: "Skipped because the premium funding line PDA already exists.",
+          });
+        }
+      }
+
+      const nextArtifacts: CreatedArtifacts = {
+        healthPlanAddress: healthPlanPk.toBase58(),
+        rewardSeriesAddress: rewardSeriesPk?.toBase58() ?? null,
+        protectionSeriesAddress: protectionSeriesPk?.toBase58() ?? null,
+        rewardFundingLineAddress: rewardFundingLinePk?.toBase58() ?? null,
+        protectionFundingLineAddress: protectionFundingLinePk?.toBase58() ?? null,
+      };
+      setCreatedArtifacts(nextArtifacts);
+      setStatusTone("ok");
+      setStatusMessage("Canonical health plan launch completed.");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Canonical health plan launch failed.";
+      setStatusTone("error");
+      setStatusMessage(message);
+      if (actionLog.length > 0) {
+        addActionLog({
+          action: "Launch note",
+          message: "Some creation steps already succeeded. Rerunning will skip existing plan, series, and funding-line PDAs.",
+        });
+      }
+    } finally {
+      setBusyAction(null);
+    }
+  }, [
+    actionLog.length,
+    addActionLog,
+    addressPreview.healthPlanAddress,
+    allowDelegatedClaims,
+    connection,
+    coveragePathway,
+    createdArtifacts,
+    defiSettlementMode,
+    displayName,
+    openFirstFailingStep,
+    organizationRef,
+    payoutAssetAddress,
+    payoutAssetMode,
+    payoutHashOverridesByOutcome,
+    payoutMintPk,
+    payoutPolicyHashHex,
+    planId,
+    planMetadataUri,
+    protectionCadenceDays,
+    protectionExpectedPremiumUi,
+    protectionFundingLineId,
+    protectionLaneRequired,
+    protectionPosture,
+    protectionSeriesDisplayName,
+    protectionSeriesId,
+    protectionSeriesMetadataUri,
+    publicKey,
+    quorumM,
+    requireVerifiedSchema,
+    reserveDomainAddress,
+    reserveDomainPk,
+    reviewErrors,
+    rewardCommittedBudgetUi,
+    rewardFundingLineId,
+    rewardLaneRequired,
+    rewardPayoutUi,
+    rewardSeriesDisplayName,
+    rewardSeriesId,
+    rewardSeriesMetadataUri,
+    ruleHashOverridesByOutcome,
+    ruleIdsByOutcome,
+    rulePreviewMap,
+    rwaComplianceContact,
+    rwaJurisdiction,
+    rwaLegalEntityName,
+    rwaPolicyTermsUri,
+    rwaRegulatoryLicenseRef,
+    selectedOracles,
+    selectedOutcomeIds,
+    sendTransaction,
+    splDecimals,
+    statusMessage,
+    termsHashHex,
+  ]);
+
+  const handleNext = useCallback(() => {
+    if (activeStep.id === "review") {
+      if (createdArtifacts && reviewLinks) {
+        router.push(reviewLinks.workspaceHref);
+        return;
+      }
+      void handleLaunch();
+      return;
+    }
+
+    if (currentStepErrors.length > 0) {
+      setStatusTone("error");
+      setStatusMessage(firstError(currentStepErrors));
+      return;
+    }
+
+    setStatusMessage(null);
+    setStatusTone(null);
+    setStepIndex((current) => Math.min(steps.length - 1, current + 1));
+  }, [
+    activeStep.id,
+    createdArtifacts,
+    currentStepErrors,
+    handleLaunch,
+    reviewLinks,
+    router,
+    steps.length,
+  ]);
+
+  const handleBack = useCallback(() => {
     if (isFirstStep) return;
-    setStepIndex((index) => Math.max(0, index - 1));
-  };
+    setStatusMessage(null);
+    setStatusTone(null);
+    setStepIndex((current) => Math.max(0, current - 1));
+  }, [isFirstStep]);
 
   return (
     <div className="plans-shell">
       <div className="plans-wizard-scroll">
-        {/* ── Wizard header strip ─────────── */}
         <header className="plans-wizard-header">
           <div className="plans-wizard-header-ident">
             <span className="plans-wizard-wordmark">PROTOCOL_CONSOLE</span>
             <span className="plans-wizard-header-divider" aria-hidden="true" />
-            <span className="plans-wizard-header-label">New Health Plan Wizard</span>
+            <span className="plans-wizard-header-label">Canonical Plan Launch</span>
           </div>
           <Link href="/plans" className="plans-wizard-cancel">
             <span className="material-symbols-outlined" aria-hidden="true">close</span>
@@ -103,15 +1539,14 @@ export function PlanCreationWizard() {
           </Link>
         </header>
 
-        {/* ── Progress pill ───────────────── */}
         <nav className="plans-wizard-progress-wrap" aria-label="Plan wizard steps">
           <div className="plans-wizard-progress liquid-glass">
             <div
               className="plans-wizard-progress-indicator"
-              style={{ width: `${100 / STEPS.length}%`, transform: `translateX(${stepIndex * 100}%)` }}
+              style={{ width: `${100 / steps.length}%`, transform: `translateX(${stepIndex * 100}%)` }}
               aria-hidden="true"
             />
-            {STEPS.map((step, index) => {
+            {steps.map((step, index) => {
               const isActive = index === stepIndex;
               const isPast = index < stepIndex;
               return (
@@ -133,7 +1568,6 @@ export function PlanCreationWizard() {
           </div>
         </nav>
 
-        {/* ── Body: contextual prompt + form ── */}
         <section className="plans-wizard-body">
           <aside className="plans-wizard-prompt">
             <h1 className="plans-wizard-headline">
@@ -147,26 +1581,763 @@ export function PlanCreationWizard() {
           </aside>
 
           <div className="plans-wizard-form heavy-glass">
-            {activeStep.id === "basics" ? <BasicsStep state={state} setState={setState} /> : null}
-            {activeStep.id === "membership" ? <MembershipStep /> : null}
-            {activeStep.id === "verification" ? <VerificationStep /> : null}
-            {activeStep.id === "outcome" ? <OutcomeStep /> : null}
-            {activeStep.id === "funding" ? <FundingStep state={state} /> : null}
+            {statusMessage ? (
+              <div className={cn(
+                "mb-5 rounded-2xl border px-4 py-3 text-sm",
+                statusTone === "error"
+                  ? "border-[rgba(186,26,26,0.22)] bg-[rgba(186,26,26,0.08)] text-[var(--danger)]"
+                  : "border-[rgba(25,180,122,0.2)] bg-[rgba(25,180,122,0.08)] text-[var(--success)]",
+              )}>
+                {statusMessage}
+              </div>
+            ) : null}
+
+            {activeStep.id === "basics" ? (
+              <div className="plans-wizard-step-body">
+                <FieldGroup label="Launch Intent">
+                  <div className="flex flex-wrap gap-2">
+                    {(["rewards", "insurance", "hybrid"] as const).map((intent) => (
+                      <button
+                        key={intent}
+                        type="button"
+                        className={cn("plans-wizard-chip", launchIntent === intent && "plans-wizard-chip-active")}
+                        onClick={() => setLaunchIntent(intent)}
+                      >
+                        {intent.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </FieldGroup>
+
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Plan ID">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={planId}
+                      onChange={(event) => setPlanId(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Display Name">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Sponsor Label / Organization Reference">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={organizationRef}
+                      onChange={(event) => setOrganizationRef(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Reserve Domain">
+                    <select
+                      className="plans-wizard-input"
+                      value={reserveDomainAddress}
+                      onChange={(event) => setReserveDomainAddress(event.target.value)}
+                    >
+                      {DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.map((domain) => (
+                        <option key={domain.address} value={domain.address}>
+                          {domain.displayName} · {shortAddress(domain.address)}
+                        </option>
+                      ))}
+                    </select>
+                  </FieldGroup>
+                </div>
+
+                <FieldGroup label="Plan Metadata URI">
+                  <input
+                    type="text"
+                    className="plans-wizard-input plans-wizard-input-lg"
+                    value={planMetadataUri}
+                    onChange={(event) => setPlanMetadataUri(event.target.value)}
+                  />
+                </FieldGroup>
+
+                <div className="plans-wizard-divider" aria-hidden="true" />
+
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Payout Asset Mode">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className={cn("plans-wizard-chip", payoutAssetMode === "sol" && "plans-wizard-chip-active")}
+                        onClick={() => setPayoutAssetMode("sol")}
+                      >
+                        SOL
+                      </button>
+                      <button
+                        type="button"
+                        className={cn("plans-wizard-chip", payoutAssetMode === "spl" && "plans-wizard-chip-active")}
+                        onClick={() => setPayoutAssetMode("spl")}
+                      >
+                        SPL TOKEN
+                      </button>
+                    </div>
+                  </FieldGroup>
+                  <FieldGroup label="Payout Mint">
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        className="plans-wizard-input"
+                        value={payoutAssetMode === "spl" ? payoutMint : ZERO_PUBKEY}
+                        onChange={(event) => setPayoutMint(event.target.value)}
+                        disabled={payoutAssetMode === "sol"}
+                      />
+                      <button
+                        type="button"
+                        className="secondary-button w-fit"
+                        onClick={() => setPayoutMint(defaultPayoutMintForIntent(launchIntent))}
+                      >
+                        Use default mint
+                      </button>
+                    </div>
+                  </FieldGroup>
+                </div>
+
+                {rewardLaneRequired ? (
+                  <FieldGroup label="Reward Payout Amount">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.000001"
+                      className="plans-wizard-input"
+                      value={rewardPayoutUi}
+                      onChange={(event) => setRewardPayoutUi(event.target.value)}
+                    />
+                  </FieldGroup>
+                ) : null}
+
+                {protectionLaneRequired ? (
+                  <>
+                    <div className="plans-wizard-divider" aria-hidden="true" />
+                    <FieldGroup label="Coverage Path">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className={cn("plans-wizard-chip", coveragePathway === "defi_native" && "plans-wizard-chip-active")}
+                          onClick={() => setCoveragePathway("defi_native")}
+                        >
+                          DEFI_NATIVE
+                        </button>
+                        <button
+                          type="button"
+                          className={cn("plans-wizard-chip", coveragePathway === "rwa_policy" && "plans-wizard-chip-active")}
+                          onClick={() => setCoveragePathway("rwa_policy")}
+                        >
+                          RWA_POLICY
+                        </button>
+                      </div>
+                    </FieldGroup>
+
+                    {coveragePathway === "defi_native" ? (
+                      <>
+                        <FieldGroup label="Settlement Style">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className={cn("plans-wizard-chip", defiSettlementMode === "onchain_programmatic" && "plans-wizard-chip-active")}
+                              onClick={() => setDefiSettlementMode("onchain_programmatic")}
+                            >
+                              ONCHAIN_PROGRAMMATIC
+                            </button>
+                            <button
+                              type="button"
+                              className={cn("plans-wizard-chip", defiSettlementMode === "hybrid_rails" && "plans-wizard-chip-active")}
+                              onClick={() => setDefiSettlementMode("hybrid_rails")}
+                            >
+                              HYBRID_RAILS
+                            </button>
+                          </div>
+                        </FieldGroup>
+
+                        <div className="plans-wizard-row">
+                          <FieldGroup label="Technical Terms URL">
+                            <input
+                              type="text"
+                              className="plans-wizard-input"
+                              value={defiTechnicalTermsUri}
+                              onChange={(event) => setDefiTechnicalTermsUri(event.target.value)}
+                            />
+                          </FieldGroup>
+                          <FieldGroup label="Risk Disclosure URL">
+                            <input
+                              type="text"
+                              className="plans-wizard-input"
+                              value={defiRiskDisclosureUri}
+                              onChange={(event) => setDefiRiskDisclosureUri(event.target.value)}
+                            />
+                          </FieldGroup>
+                        </div>
+                      </>
+                    ) : null}
+
+                    {coveragePathway === "rwa_policy" ? (
+                      <>
+                        <div className="plans-wizard-row">
+                          <FieldGroup label="Issuer Legal Name">
+                            <input
+                              type="text"
+                              className="plans-wizard-input"
+                              value={rwaLegalEntityName}
+                              onChange={(event) => setRwaLegalEntityName(event.target.value)}
+                            />
+                          </FieldGroup>
+                          <FieldGroup label="Jurisdiction">
+                            <input
+                              type="text"
+                              className="plans-wizard-input"
+                              value={rwaJurisdiction}
+                              onChange={(event) => setRwaJurisdiction(event.target.value)}
+                            />
+                          </FieldGroup>
+                        </div>
+                        <div className="plans-wizard-row">
+                          <FieldGroup label="Policy Terms URI">
+                            <input
+                              type="text"
+                              className="plans-wizard-input"
+                              value={rwaPolicyTermsUri}
+                              onChange={(event) => setRwaPolicyTermsUri(event.target.value)}
+                            />
+                          </FieldGroup>
+                          <FieldGroup label="License Reference">
+                            <input
+                              type="text"
+                              className="plans-wizard-input"
+                              value={rwaRegulatoryLicenseRef}
+                              onChange={(event) => setRwaRegulatoryLicenseRef(event.target.value)}
+                            />
+                          </FieldGroup>
+                        </div>
+                        <FieldGroup label="Compliance Contact">
+                          <input
+                            type="text"
+                            className="plans-wizard-input"
+                            value={rwaComplianceContact}
+                            onChange={(event) => setRwaComplianceContact(event.target.value)}
+                          />
+                        </FieldGroup>
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+
+                <WizardDetailTriggerRow
+                  title="Launch Preview"
+                  summary="See the technical plan, lane, rail, and commitment values derived from your current setup."
+                  meta={launchPreviewMeta}
+                  triggerRef={(node) => {
+                    detailTriggerRefs.current["launch-preview"] = node;
+                  }}
+                  onOpen={(trigger) => openDetail({ key: "launch-preview" }, trigger)}
+                />
+              </div>
+            ) : null}
+
+            {activeStep.id === "membership" ? (
+              <div className="plans-wizard-step-body">
+                <FieldGroup label="Membership Mode">
+                  <div className="flex flex-wrap gap-2">
+                    {(["open", "token_gate", "invite_only"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className={cn("plans-wizard-chip", membershipMode === mode && "plans-wizard-chip-active")}
+                        onClick={() => setMembershipMode(mode)}
+                      >
+                        {mode.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </FieldGroup>
+
+                {membershipMode === "token_gate" ? (
+                  <div className="plans-wizard-row">
+                    <FieldGroup label="Token Gate Mint">
+                      <input
+                        type="text"
+                        className="plans-wizard-input"
+                        value={tokenGateMint}
+                        onChange={(event) => setTokenGateMint(event.target.value)}
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="Minimum Balance">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        className="plans-wizard-input"
+                        value={tokenGateMinBalance}
+                        onChange={(event) => setTokenGateMinBalance(event.target.value)}
+                      />
+                    </FieldGroup>
+                  </div>
+                ) : null}
+
+                {membershipMode === "invite_only" ? (
+                  <FieldGroup label="Invite Issuer Wallet">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={inviteIssuer}
+                      onChange={(event) => setInviteIssuer(event.target.value)}
+                    />
+                  </FieldGroup>
+                ) : null}
+
+                <div className="plans-wizard-review-grid">
+                  <ReviewRow label="MEMBERSHIP_POSTURE" value={membershipMode.toUpperCase()} />
+                  <ReviewRow
+                    label="JOIN_GATING"
+                    value={
+                      membershipMode === "token_gate"
+                        ? `${shortAddress(tokenGateMint)} · ${tokenGateMinBalance}`
+                        : membershipMode === "invite_only"
+                          ? shortAddress(inviteIssuer)
+                          : "OPEN"
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {activeStep.id === "verification" ? (
+              <div className="plans-wizard-step-body">
+                <div className="space-y-4">
+                  <MultiOraclePicker
+                    options={oracleOptions}
+                    search={oracleSearch}
+                    onSearchChange={setOracleSearch}
+                    selected={selectedOracles}
+                    onToggle={handleToggleOracle}
+                  />
+
+                  <div className="plans-wizard-row">
+                    <FieldGroup label="Required Confirmations">
+                      <input
+                        type="number"
+                        min="1"
+                        className="plans-wizard-input"
+                        value={quorumM}
+                        onChange={(event) => setQuorumM(event.target.value)}
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="Selected Verifier Count">
+                      <input
+                        type="number"
+                        min="1"
+                        className="plans-wizard-input"
+                        value={String(selectedOracles.length)}
+                        disabled
+                      />
+                    </FieldGroup>
+                  </div>
+
+                  <label className="wizard-toggle-row">
+                    <span className="wizard-toggle-copy">
+                      <span className="wizard-section-label">Only use verified schemas</span>
+                      <span className="wizard-toggle-title-row">
+                        <span className="wizard-inline-copy block">
+                          Reward lanes keep their schema commitments tied to the verified catalog.
+                        </span>
+                        <span className="wizard-toggle-badge">
+                          {requireVerifiedSchema ? "ENFORCED" : "OPTIONAL"}
+                        </span>
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="wizard-toggle-switch"
+                      checked={requireVerifiedSchema}
+                      onChange={(event) => setRequireVerifiedSchema(event.target.checked)}
+                    />
+                  </label>
+
+                  <label className="wizard-toggle-row">
+                    <span className="wizard-toggle-copy">
+                      <span className="wizard-section-label">Allow delegated reward claims</span>
+                      <span className="wizard-toggle-title-row">
+                        <span className="wizard-inline-copy block">
+                          Permit sponsor-side services to initiate reward claims when the lane allows it.
+                        </span>
+                        <span className="wizard-toggle-badge">
+                          {allowDelegatedClaims ? "ENABLED" : "LOCKED"}
+                        </span>
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="wizard-toggle-switch"
+                      checked={allowDelegatedClaims}
+                      onChange={(event) => setAllowDelegatedClaims(event.target.checked)}
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
+
+            {activeStep.id === "reward-lane" ? (
+              <div className="plans-wizard-step-body">
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Reward Series ID">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={rewardSeriesId}
+                      onChange={(event) => setRewardSeriesId(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Reward Display Name">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={rewardSeriesDisplayName}
+                      onChange={(event) => setRewardSeriesDisplayName(event.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Reward Metadata URI">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={rewardSeriesMetadataUri}
+                      onChange={(event) => setRewardSeriesMetadataUri(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Sponsor Funding Line ID">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={rewardFundingLineId}
+                      onChange={(event) => setRewardFundingLineId(event.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <FieldGroup label="Committed Sponsor Budget">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                    className="plans-wizard-input"
+                    value={rewardCommittedBudgetUi}
+                    onChange={(event) => setRewardCommittedBudgetUi(event.target.value)}
+                  />
+                </FieldGroup>
+
+                <div className="plans-wizard-divider" aria-hidden="true" />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="plans-wizard-field-label">Outcome Schema</span>
+                    <span className="status-pill status-off">{STANDARD_LAUNCH_SCHEMA.label}</span>
+                  </div>
+                  {schemaMetadataLoading ? <p className="wizard-inline-copy">Loading standard outcome schema…</p> : null}
+                  {schemaWarnings.length > 0 ? (
+                    <div className="wizard-note">
+                      {schemaWarnings.map((warning) => (
+                        <p key={warning} className="wizard-inline-copy">{warning}</p>
+                      ))}
+                    </div>
+                  ) : null}
+                  <input
+                    className="field-input"
+                    value={outcomeSearch}
+                    onChange={(event) => setOutcomeSearch(event.target.value)}
+                    placeholder="Filter outcomes by name or ID"
+                  />
+                  <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
+                    {filteredOutcomes.length === 0 ? (
+                      <p className="wizard-inline-copy">No outcomes match the current filter.</p>
+                    ) : null}
+                    {filteredOutcomes.map((outcome) => {
+                      const isSelected = selectedOutcomeIds.includes(outcome.id);
+                      return (
+                        <button
+                          key={outcome.id}
+                          type="button"
+                          className={cn("wizard-select-row", isSelected && "wizard-select-row-active")}
+                          onClick={() => handleToggleOutcome(outcome.id)}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-[var(--foreground)]">{outcome.label}</p>
+                            {isSelected ? <span className="status-pill status-ok">Selected</span> : null}
+                          </div>
+                          <p className="wizard-inline-copy mt-1">{outcome.id}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {selectedOutcomeIds.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedOutcomeIds.map((outcomeId) => {
+                      const outcome = schemaOutcomes.find((entry) => entry.id === outcomeId);
+                      const preview = rulePreviewMap[outcomeId];
+                      return (
+                        <div key={outcomeId} className="wizard-rule-row">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-[var(--foreground)]">{outcome?.label ?? outcomeId}</p>
+                            <p className="wizard-inline-copy">{outcomeId}</p>
+                          </div>
+                          <label className="field-label">
+                            Rule ID
+                            <input
+                              className="field-input"
+                              value={ruleIdsByOutcome[outcomeId] ?? ""}
+                              onChange={(event) =>
+                                setRuleIdsByOutcome((current) => ({ ...current, [outcomeId]: event.target.value }))}
+                            />
+                          </label>
+                          <WizardDetailTriggerRow
+                            title="Rule commitments"
+                            summary="Open the derived hashes and optional overrides for this outcome."
+                            meta={[
+                              {
+                                label: preview ? "DERIVED READY" : "HASHES PENDING",
+                                tone: preview ? "accent" : "muted",
+                              },
+                              {
+                                label: `OVERRIDES ${
+                                  Number(Boolean(normalize(ruleHashOverridesByOutcome[outcomeId] ?? ""))) +
+                                  Number(Boolean(normalize(payoutHashOverridesByOutcome[outcomeId] ?? "")))
+                                }`,
+                                tone:
+                                  normalize(ruleHashOverridesByOutcome[outcomeId] ?? "") ||
+                                  normalize(payoutHashOverridesByOutcome[outcomeId] ?? "")
+                                    ? "accent"
+                                    : "muted",
+                              },
+                            ]}
+                            className="wizard-detail-trigger-compact"
+                            triggerRef={(node) => {
+                              detailTriggerRefs.current[`rule-commitments:${outcomeId}`] = node;
+                            }}
+                            onOpen={(trigger) => openDetail({ key: "rule-commitments", outcomeId }, trigger)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {activeStep.id === "protection-lane" ? (
+              <div className="plans-wizard-step-body">
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Protection Series ID">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={protectionSeriesId}
+                      onChange={(event) => setProtectionSeriesId(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Protection Display Name">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={protectionSeriesDisplayName}
+                      onChange={(event) => setProtectionSeriesDisplayName(event.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Protection Metadata URI">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={protectionSeriesMetadataUri}
+                      onChange={(event) => setProtectionSeriesMetadataUri(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Premium Funding Line ID">
+                    <input
+                      type="text"
+                      className="plans-wizard-input"
+                      value={protectionFundingLineId}
+                      onChange={(event) => setProtectionFundingLineId(event.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <div className="plans-wizard-row">
+                  <FieldGroup label="Premium Cadence (Days)">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      className="plans-wizard-input"
+                      value={protectionCadenceDays}
+                      onChange={(event) => setProtectionCadenceDays(event.target.value)}
+                    />
+                  </FieldGroup>
+                  <FieldGroup label="Expected First-Cycle Premium Volume">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.000001"
+                      className="plans-wizard-input"
+                      value={protectionExpectedPremiumUi}
+                      onChange={(event) => setProtectionExpectedPremiumUi(event.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                <WizardDetailTriggerRow
+                  title="Protection posture"
+                  summary="Review the structured coverage payload this protection lane will commit to."
+                  meta={[
+                    {
+                      label: `PATH ${protocolToken(coveragePathway)}`,
+                      tone: "accent",
+                    },
+                    {
+                      label: `SETTLEMENT ${protocolToken(
+                        coveragePathway === "defi_native" ? defiSettlementMode : coveragePathway,
+                      )}`,
+                    },
+                  ]}
+                  triggerRef={(node) => {
+                    detailTriggerRefs.current["protection-posture"] = node;
+                  }}
+                  onOpen={(trigger) => openDetail({ key: "protection-posture" }, trigger)}
+                />
+              </div>
+            ) : null}
+
+            {activeStep.id === "review" ? (
+              <div className="plans-wizard-step-body">
+                <div className="plans-wizard-review-grid">
+                  <ReviewRow label="LAUNCH_INTENT" value={launchIntent.toUpperCase()} />
+                  <ReviewRow label="LANES" value={requiresRewardLane(launchIntent) && requiresProtectionLane(launchIntent) ? "REWARD + PROTECTION" : requiresRewardLane(launchIntent) ? "REWARD" : "PROTECTION"} />
+                  <ReviewRow label="HEALTH_PLAN" value={addressPreview.healthPlanAddress ?? "pending"} muted={!addressPreview.healthPlanAddress} />
+                  <ReviewRow label="REWARD_SERIES" value={addressPreview.rewardSeriesAddress ?? "n/a"} muted={!addressPreview.rewardSeriesAddress} />
+                  <ReviewRow label="PROTECTION_SERIES" value={addressPreview.protectionSeriesAddress ?? "n/a"} muted={!addressPreview.protectionSeriesAddress} />
+                  <ReviewRow label="SPONSOR_LINE" value={addressPreview.rewardFundingLineAddress ?? "n/a"} muted={!addressPreview.rewardFundingLineAddress} />
+                  <ReviewRow label="PREMIUM_LINE" value={addressPreview.protectionFundingLineAddress ?? "n/a"} muted={!addressPreview.protectionFundingLineAddress} />
+                  <ReviewRow label="REWARD_COMMITMENT" value={rewardLaneRequired ? baseUnitsPreview(rewardCommittedBudgetUi, payoutAssetMode, splDecimals) : "n/a"} muted={!rewardLaneRequired} />
+                  <ReviewRow label="PREMIUM_COMMITMENT" value={protectionLaneRequired ? baseUnitsPreview(protectionExpectedPremiumUi, payoutAssetMode, splDecimals) : "n/a"} muted={!protectionLaneRequired} />
+                </div>
+
+                <div className="plans-wizard-divider" aria-hidden="true" />
+
+                <div className="plans-wizard-support-grid">
+                  <section className="plans-wizard-support-card">
+                    <div className="space-y-1">
+                      <h3 className="plans-wizard-support-title">Review links</h3>
+                      <p className="plans-wizard-support-copy">
+                        New artifacts open with the created plan and series context after the launch confirms.
+                      </p>
+                    </div>
+                    {reviewLinks ? (
+                      <div className="plans-wizard-support-actions">
+                        <Link href={reviewLinks.workspaceHref} className="secondary-button inline-flex w-fit">
+                          Open plan workspace
+                        </Link>
+                        {reviewLinks.rewardLaneHref ? (
+                          <Link href={reviewLinks.rewardLaneHref} className="secondary-button inline-flex w-fit">
+                            Open reward lane context
+                          </Link>
+                        ) : null}
+                        {reviewLinks.coverageWorkspaceHref ? (
+                          <Link href={reviewLinks.coverageWorkspaceHref} className="secondary-button inline-flex w-fit">
+                            Open protection lane context
+                          </Link>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="plans-wizard-support-note">Links appear after the launch confirms.</p>
+                    )}
+                  </section>
+
+                  <section className="plans-wizard-support-card">
+                    <div className="space-y-1">
+                      <h3 className="plans-wizard-support-title">Explorer and transaction trail</h3>
+                      <p className="plans-wizard-support-copy">
+                        Every confirmed create or open instruction is recorded here with explorer links.
+                      </p>
+                    </div>
+                    {createdArtifacts ? (
+                      <div className="plans-wizard-support-actions">
+                        <a href={toExplorerAddressLink(createdArtifacts.healthPlanAddress)} target="_blank" rel="noreferrer" className="secondary-button inline-flex w-fit">
+                          View health plan on explorer
+                        </a>
+                        {createdArtifacts.rewardSeriesAddress ? (
+                          <a href={toExplorerAddressLink(createdArtifacts.rewardSeriesAddress)} target="_blank" rel="noreferrer" className="secondary-button inline-flex w-fit">
+                            View reward series on explorer
+                          </a>
+                        ) : null}
+                        {createdArtifacts.protectionSeriesAddress ? (
+                          <a href={toExplorerAddressLink(createdArtifacts.protectionSeriesAddress)} target="_blank" rel="noreferrer" className="secondary-button inline-flex w-fit">
+                            View protection series on explorer
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {actionLog.length === 0 ? (
+                      <p className="plans-wizard-support-note">No launch transactions yet.</p>
+                    ) : (
+                      <div className="plans-wizard-log-list">
+                        {actionLog.map((entry) => (
+                          <div key={entry.id} className="plans-wizard-log-card">
+                            <p className="text-sm font-semibold text-[var(--foreground)]">{entry.action}</p>
+                            <p className="wizard-inline-copy">{entry.message}</p>
+                            {entry.explorerUrl ? (
+                              <a href={entry.explorerUrl} target="_blank" rel="noreferrer" className="wizard-inline-copy inline-flex">
+                                View transaction
+                              </a>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+            ) : null}
 
             <div className="plans-wizard-footer">
               <button
                 type="button"
                 className="plans-wizard-back"
                 onClick={handleBack}
-                disabled={isFirstStep}
+                disabled={isFirstStep || Boolean(busyAction)}
               >
                 <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-                {isFirstStep ? "SAVE_AS_DRAFT" : "PREVIOUS"}
+                PREVIOUS
               </button>
-              <button type="button" className="plans-wizard-next" onClick={handleNext}>
-                <span className="material-symbols-outlined" aria-hidden="true">{isLastStep ? "bolt" : "arrow_forward"}</span>
+              <button
+                type="button"
+                className="plans-wizard-next"
+                onClick={handleNext}
+                disabled={Boolean(busyAction)}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  {activeStep.id === "review" ? (createdArtifacts ? "open_in_new" : "bolt") : "arrow_forward"}
+                </span>
                 <span className="plans-wizard-next-label">
-                  {isLastStep ? "ACTIVATE_PLAN" : `NEXT · ${STEPS[stepIndex + 1]!.label.toUpperCase()}`}
+                  {busyAction
+                    ? busyAction.toUpperCase()
+                    : activeStep.id === "review"
+                      ? createdArtifacts
+                        ? "OPEN_WORKSPACE"
+                        : "LAUNCH_CANONICAL_PLAN"
+                      : `NEXT · ${steps[stepIndex + 1]!.label.toUpperCase()}`}
                 </span>
               </button>
             </div>
@@ -174,239 +2345,276 @@ export function PlanCreationWizard() {
         </section>
 
         <div className="plans-wizard-progress-meta" aria-hidden="true">
-          <span>STEP {activeStep.number} / 05</span>
+          <span>STEP {activeStep.number} / {String(steps.length).padStart(2, "0")}</span>
           <span>{Math.round(progressPct)}% COMPLETE</span>
         </div>
       </div>
-    </div>
-  );
-}
 
-/* ── Step bodies ────────────────────────── */
+      <WizardDetailSheet
+        title={activeDetailTitle}
+        summary={activeDetailSummary}
+        meta={activeDetailMeta}
+        open={Boolean(activeDetail)}
+        size={activeDetail?.key === "launch-preview" ? "wide" : "default"}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeActiveDetail();
+          }
+        }}
+      >
+        {activeDetail?.key === "launch-preview" ? (
+          <div className="plans-launch-preview-shell">
+            <section className="plans-launch-preview-compact-head">
+              <div className="plans-launch-preview-heading">
+                <div className="space-y-2">
+                  <p className="plans-launch-preview-eyebrow">LAUNCH_PREVIEW</p>
+                  <h3 className="plans-launch-preview-title">
+                    {displayName || "Awaiting plan identity"}
+                  </h3>
+                </div>
+                <div className="plans-launch-preview-tags">
+                  <span className="plans-launch-preview-tag">{protocolToken(launchIntent)}</span>
+                  <span className="plans-launch-preview-tag">{protocolToken(membershipMode)}</span>
+                  <span className="plans-launch-preview-tag">
+                    {toPositiveInt(quorumM)}-OF-{selectedOracles.length || 0}
+                  </span>
+                </div>
+              </div>
+              <div className="plans-launch-preview-metrics">
+                <LaunchPreviewMetric
+                  label="Plan"
+                  value={addressPreview.healthPlanAddress ? shortAddress(addressPreview.healthPlanAddress) : "Pending"}
+                  detail={protocolToken(planId)}
+                />
+                <LaunchPreviewMetric
+                  label="Lanes"
+                  value={String(Number(rewardLaneRequired) + Number(protectionLaneRequired)).padStart(2, "0")}
+                  detail={
+                    rewardLaneRequired && protectionLaneRequired
+                      ? "Reward + Protection"
+                      : rewardLaneRequired
+                        ? "Reward only"
+                        : protectionLaneRequired
+                          ? "Protection only"
+                          : "Root only"
+                  }
+                />
+                <LaunchPreviewMetric
+                  label="Rails"
+                  value={String(availableRailMints.length).padStart(2, "0")}
+                  detail={availableRailMints.length > 0 ? availableRailMints.join(" // ") : "None exposed"}
+                />
+                <LaunchPreviewMetric
+                  label="Payout"
+                  value={payoutAssetMode === "sol" ? "SOL" : "SPL"}
+                  detail={baseUnitsPreview(rewardPayoutUi, payoutAssetMode, splDecimals)}
+                />
+              </div>
+            </section>
 
-function BasicsStep({ state, setState }: { state: WizardState; setState: (update: (prev: WizardState) => WizardState) => void }) {
-  return (
-    <div className="plans-wizard-step-body">
-      <FieldGroup label="Plan Identity Label">
-        <div className="plans-wizard-field plans-wizard-field-bar">
-          <input
-            type="text"
-            className="plans-wizard-input plans-wizard-input-lg"
-            placeholder="e.g. OMEGA-IV-DIABETES-REDUCTION"
-            value={state.label}
-            onChange={(event) => setState((prev) => ({ ...prev, label: event.target.value }))}
-          />
-        </div>
-      </FieldGroup>
+            <div className="plans-launch-preview-grid">
+              <article className="plans-launch-preview-panel">
+                <div className="plans-launch-preview-panel-head">
+                  <div>
+                    <p className="plans-launch-preview-panel-eyebrow">PLAN_ROOT</p>
+                    <h4 className="plans-launch-preview-panel-title">Canonical health plan</h4>
+                  </div>
+                  <span className="plans-launch-preview-panel-badge">{protocolToken(organizationRef || "sponsor")}</span>
+                </div>
+                <div className="plans-launch-preview-list">
+                  <div className="plans-launch-preview-row">
+                    <span>Health plan PDA</span>
+                    <span className="protocol-address">{addressPreview.healthPlanAddress ?? "pending"}</span>
+                  </div>
+                  <div className="plans-launch-preview-row">
+                    <span>Reserve domain</span>
+                    <span className="protocol-address">{reserveDomainAddress}</span>
+                  </div>
+                  <div className="plans-launch-preview-row">
+                    <span>Metadata URI</span>
+                    <span className="plans-launch-preview-value">{planMetadataUri}</span>
+                  </div>
+                </div>
+              </article>
 
-      <div className="plans-wizard-row">
-        <FieldGroup label="Protocol Velocity">
-          <select
-            className="plans-wizard-input"
-            value={state.velocity}
-            onChange={(event) => setState((prev) => ({ ...prev, velocity: event.target.value }))}
-          >
-            <option>Standard Monitoring</option>
-            <option>High-Intensity (Real-time)</option>
-            <option>Long-tail (Quarterly)</option>
-          </select>
-        </FieldGroup>
+              {rewardLaneRequired ? (
+                <article className="plans-launch-preview-panel">
+                  <div className="plans-launch-preview-panel-head">
+                    <div>
+                      <p className="plans-launch-preview-panel-eyebrow">REWARD_LANE</p>
+                      <h4 className="plans-launch-preview-panel-title">{rewardSeriesDisplayName || "Reward lane pending"}</h4>
+                    </div>
+                    <span className="plans-launch-preview-panel-badge">{selectedOutcomeIds.length} outcomes</span>
+                  </div>
+                  <div className="plans-launch-preview-list">
+                    <div className="plans-launch-preview-row">
+                      <span>Series PDA</span>
+                      <span className="protocol-address">{addressPreview.rewardSeriesAddress ?? "pending"}</span>
+                    </div>
+                    <div className="plans-launch-preview-row">
+                      <span>Sponsor line</span>
+                      <span className="protocol-address">{addressPreview.rewardFundingLineAddress ?? "pending"}</span>
+                    </div>
+                    <div className="plans-launch-preview-row">
+                      <span>Rule namespace</span>
+                      <span className="plans-launch-preview-value">{protocolToken(rewardSeriesId || "reward-series")}</span>
+                    </div>
+                  </div>
+                </article>
+              ) : null}
 
-        <FieldGroup label="Governance Level">
-          <select
-            className="plans-wizard-input"
-            value={state.governance}
-            onChange={(event) => setState((prev) => ({ ...prev, governance: event.target.value }))}
-          >
-            <option>Automated (Oracle Driven)</option>
-            <option>Human-in-the-loop</option>
-            <option>Peer Review Consensus</option>
-          </select>
-        </FieldGroup>
-      </div>
+              {protectionLaneRequired ? (
+                <article className="plans-launch-preview-panel">
+                  <div className="plans-launch-preview-panel-head">
+                    <div>
+                      <p className="plans-launch-preview-panel-eyebrow">PROTECTION_LANE</p>
+                      <h4 className="plans-launch-preview-panel-title">
+                        {protectionSeriesDisplayName || "Protection lane pending"}
+                      </h4>
+                    </div>
+                    <span className="plans-launch-preview-panel-badge">{protocolToken(coveragePathway)}</span>
+                  </div>
+                  <div className="plans-launch-preview-list">
+                    <div className="plans-launch-preview-row">
+                      <span>Series PDA</span>
+                      <span className="protocol-address">{addressPreview.protectionSeriesAddress ?? "pending"}</span>
+                    </div>
+                    <div className="plans-launch-preview-row">
+                      <span>Premium line</span>
+                      <span className="protocol-address">{addressPreview.protectionFundingLineAddress ?? "pending"}</span>
+                    </div>
+                    <div className="plans-launch-preview-row">
+                      <span>Settlement posture</span>
+                      <span className="plans-launch-preview-value">
+                        {coveragePathway === "defi_native" ? protocolToken(defiSettlementMode) : protocolToken(coveragePathway)}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ) : null}
 
-      <div className="plans-wizard-divider" aria-hidden="true" />
-
-      <h3 className="plans-wizard-section-label">REGIONAL_COMPLIANCE</h3>
-
-      <div className="plans-wizard-disabled-card">
-        <div className="plans-wizard-disabled-head">
-          <div>
-            <span className="plans-wizard-field-label">Cross-Border Verification</span>
-            <div className="plans-wizard-disabled-value">
-              <span className="material-symbols-outlined" aria-hidden="true">lock</span>
-              European Economic Area (EEA)
+              <article className="plans-launch-preview-panel plans-launch-preview-panel-rails">
+                <div className="plans-launch-preview-panel-head">
+                  <div>
+                    <p className="plans-launch-preview-panel-eyebrow">RAIL_SUPPORT</p>
+                    <h4 className="plans-launch-preview-panel-title">Reserve-domain launch rails</h4>
+                  </div>
+                  <span className="plans-launch-preview-panel-badge">{availableRailMints.length || 0} live</span>
+                </div>
+                <div className="plans-launch-preview-rail-list">
+                  {availableRailMints.length > 0 ? (
+                    availableRailMints.map((mint) => (
+                      <span key={mint} className="plans-launch-preview-rail-chip">
+                        {mint}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="plans-launch-preview-empty">No reserve rails exposed yet.</span>
+                  )}
+                </div>
+              </article>
             </div>
+
+            <section className="plans-launch-preview-overrides">
+              <div className="plans-launch-preview-overrides-head">
+                <div>
+                  <p className="plans-launch-preview-panel-eyebrow">COMMITMENT_OVERRIDES</p>
+                  <h4 className="plans-launch-preview-panel-title">Protocol hash overrides</h4>
+                </div>
+                <span className="plans-launch-preview-overrides-copy">Optional 32-byte hex values</span>
+              </div>
+              <div className="plans-wizard-row">
+                <FieldGroup label="Terms hash override">
+                  <input
+                    className="plans-wizard-input"
+                    value={termsHashHex}
+                    onChange={(event) => setTermsHashHex(event.target.value)}
+                    placeholder="Optional 32-byte hex"
+                  />
+                </FieldGroup>
+                <FieldGroup label="Payout policy hash override">
+                  <input
+                    className="plans-wizard-input"
+                    value={payoutPolicyHashHex}
+                    onChange={(event) => setPayoutPolicyHashHex(event.target.value)}
+                    placeholder="Optional 32-byte hex"
+                  />
+                </FieldGroup>
+              </div>
+            </section>
           </div>
-          <span className="plans-wizard-disabled-badge">Disabled</span>
-        </div>
-        <p className="plans-wizard-disabled-reason">
-          REASON: Data residency module for EEA requires &apos;Level 3 Encryption&apos; certification which is currently missing from your
-          laboratory profile.
-        </p>
-      </div>
+        ) : null}
 
-      <FieldGroup label="Primary Jurisdiction">
-        <div className="plans-wizard-chips">
-          {(["NORTH_AMERICA", "ASIA_PACIFIC", "MIDDLE_EAST"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={cn("plans-wizard-chip", state.jurisdiction === key && "plans-wizard-chip-active")}
-              onClick={() => setState((prev) => ({ ...prev, jurisdiction: key }))}
-            >
-              {key}
-            </button>
-          ))}
-        </div>
-      </FieldGroup>
-    </div>
-  );
-}
+        {activeDetail?.key === "rule-commitments" ? (
+          <div className="wizard-detail-stack">
+            <div className="wizard-detail-card-grid">
+              <article className="wizard-detail-card">
+                <div className="wizard-detail-card-head">
+                  <div>
+                    <p className="wizard-detail-card-eyebrow">DERIVED_RULE_HASH</p>
+                    <h3 className="wizard-detail-card-title">Outcome rule commitment</h3>
+                  </div>
+                  <span className="wizard-detail-chip wizard-detail-chip-accent">AUTO</span>
+                </div>
+                <p className="wizard-detail-hash">{activeRulePreview?.derivedRuleHashHex ?? "pending"}</p>
+              </article>
 
-function MembershipStep() {
-  return (
-    <div className="plans-wizard-step-body">
-      <FieldGroup label="Cohort Strategy">
-        <select className="plans-wizard-input" defaultValue="Open Enrolment">
-          <option>Open Enrolment</option>
-          <option>Invite Only</option>
-          <option>Governance Gated</option>
-        </select>
-      </FieldGroup>
+              <article className="wizard-detail-card">
+                <div className="wizard-detail-card-head">
+                  <div>
+                    <p className="wizard-detail-card-eyebrow">DERIVED_PAYOUT_HASH</p>
+                    <h3 className="wizard-detail-card-title">Payout commitment</h3>
+                  </div>
+                  <span className="wizard-detail-chip wizard-detail-chip-accent">AUTO</span>
+                </div>
+                <p className="wizard-detail-hash">{activeRulePreview?.derivedPayoutHashHex ?? "pending"}</p>
+              </article>
+            </div>
 
-      <div className="plans-wizard-row">
-        <FieldGroup label="Max Cohort Size">
-          <input type="number" className="plans-wizard-input" placeholder="e.g. 5000" defaultValue="5000" />
-        </FieldGroup>
-        <FieldGroup label="Delegated Rights">
-          <select className="plans-wizard-input" defaultValue="Read · Claim">
-            <option>Read · Claim</option>
-            <option>Read · Claim · Attest</option>
-            <option>Read Only</option>
-          </select>
-        </FieldGroup>
-      </div>
+            {activeRuleOutcomeId ? (
+              <div className="plans-wizard-row wizard-detail-form-row">
+                <FieldGroup label="Rule hash override">
+                  <input
+                    className="plans-wizard-input"
+                    value={ruleHashOverridesByOutcome[activeRuleOutcomeId] ?? ""}
+                    onChange={(event) =>
+                      setRuleHashOverridesByOutcome((current) => ({ ...current, [activeRuleOutcomeId]: event.target.value }))}
+                    placeholder="Optional 32-byte hex"
+                  />
+                </FieldGroup>
+                <FieldGroup label="Payout hash override">
+                  <input
+                    className="plans-wizard-input"
+                    value={payoutHashOverridesByOutcome[activeRuleOutcomeId] ?? ""}
+                    onChange={(event) =>
+                      setPayoutHashOverridesByOutcome((current) => ({ ...current, [activeRuleOutcomeId]: event.target.value }))}
+                    placeholder="Optional 32-byte hex"
+                  />
+                </FieldGroup>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
-      <FieldGroup label="Enrolment Window">
-        <div className="plans-wizard-row">
-          <input type="date" className="plans-wizard-input" defaultValue="2026-04-15" />
-          <input type="date" className="plans-wizard-input" defaultValue="2026-10-15" />
-        </div>
-      </FieldGroup>
-    </div>
-  );
-}
-
-function VerificationStep() {
-  return (
-    <div className="plans-wizard-step-body">
-      <FieldGroup label="Attestation Source">
-        <select className="plans-wizard-input" defaultValue="Multi-source Oracle (recommended)">
-          <option>Multi-source Oracle (recommended)</option>
-          <option>Single Trusted Attestor</option>
-          <option>Peer Network Consensus</option>
-        </select>
-      </FieldGroup>
-
-      <FieldGroup label="Evidence Schema">
-        <select className="plans-wizard-input" defaultValue="Clinical Outcome v2">
-          <option>Clinical Outcome v2</option>
-          <option>Research Milestone v1</option>
-          <option>Custom Schema</option>
-        </select>
-      </FieldGroup>
-
-      <FieldGroup label="Dispute Window (hours)">
-        <input type="number" className="plans-wizard-input" placeholder="72" defaultValue="72" />
-      </FieldGroup>
-    </div>
-  );
-}
-
-function OutcomeStep() {
-  return (
-    <div className="plans-wizard-step-body">
-      <FieldGroup label="Comparability Key">
-        <input type="text" className="plans-wizard-input" placeholder="e.g. HbA1c_REDUCTION_90D" defaultValue="HbA1c_REDUCTION_90D" />
-      </FieldGroup>
-
-      <div className="plans-wizard-row">
-        <FieldGroup label="Settlement Curve">
-          <select className="plans-wizard-input" defaultValue="Linear">
-            <option>Linear</option>
-            <option>Stepped</option>
-            <option>Bonded</option>
-          </select>
-        </FieldGroup>
-        <FieldGroup label="Payout Trigger">
-          <select className="plans-wizard-input" defaultValue="Outcome Verified">
-            <option>Outcome Verified</option>
-            <option>Time-based Unlock</option>
-            <option>Hybrid</option>
-          </select>
-        </FieldGroup>
-      </div>
-
-      <FieldGroup label="Outcome Count">
-        <input type="number" className="plans-wizard-input" placeholder="e.g. 3" defaultValue="3" />
-      </FieldGroup>
-    </div>
-  );
-}
-
-function FundingStep({ state }: { state: WizardState }) {
-  return (
-    <div className="plans-wizard-step-body">
-      <div className="plans-wizard-review-grid">
-        <ReviewRow label="PLAN_IDENTITY" value={state.label || "— not set —"} />
-        <ReviewRow label="PROTOCOL_VELOCITY" value={state.velocity} />
-        <ReviewRow label="GOVERNANCE" value={state.governance} />
-        <ReviewRow label="JURISDICTION" value={state.jurisdiction} />
-      </div>
-
-      <div className="plans-wizard-divider" aria-hidden="true" />
-
-      <FieldGroup label="Initial Commitment (USDC)">
-        <input type="number" className="plans-wizard-input plans-wizard-input-lg" placeholder="250000" defaultValue="250000" />
-      </FieldGroup>
-
-      <div className="plans-wizard-row">
-        <FieldGroup label="Reserve Domain">
-          <select className="plans-wizard-input" defaultValue="Auto (sponsor operator)">
-            <option>Auto (sponsor operator)</option>
-            <option>Shared Domain</option>
-            <option>Custom Domain</option>
-          </select>
-        </FieldGroup>
-        <FieldGroup label="Funding Line Type">
-          <select className="plans-wizard-input" defaultValue="Primary Reserve">
-            <option>Primary Reserve</option>
-            <option>Catastrophe Layer</option>
-            <option>Dispute Buffer</option>
-          </select>
-        </FieldGroup>
-      </div>
-    </div>
-  );
-}
-
-/* ── Reusable bits ──────────────────────── */
-
-function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="plans-wizard-field-group">
-      <span className="plans-wizard-field-label">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="plans-wizard-review-row">
-      <span className="plans-wizard-review-label">{label}</span>
-      <strong className="plans-wizard-review-value">{value}</strong>
+        {activeDetail?.key === "protection-posture" ? (
+          <div className="wizard-detail-stack">
+            <article className="wizard-detail-card">
+              <div className="wizard-detail-card-head">
+                <div>
+                  <p className="wizard-detail-card-eyebrow">POSTURE_PAYLOAD</p>
+                  <h3 className="wizard-detail-card-title">Structured protection commitment</h3>
+                </div>
+                <span className={cn("wizard-detail-chip", protectionPosture ? "wizard-detail-chip-accent" : "wizard-detail-chip-muted")}>
+                  {protectionPosture ? "READY" : "INCOMPLETE"}
+                </span>
+              </div>
+              <pre className="wizard-detail-code-block">
+                {protectionPosture ? stableStringify(protectionPosture) : "Protection posture is incomplete."}
+              </pre>
+            </article>
+          </div>
+        ) : null}
+      </WizardDetailSheet>
     </div>
   );
 }

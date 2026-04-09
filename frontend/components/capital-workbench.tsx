@@ -4,12 +4,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 import {
   buildAuditTrail,
   CAPITAL_TABS,
@@ -166,21 +167,24 @@ function HeroSelector<T extends { address: string }>(props: HeroSelectorProps<T>
 
 /* ── Component ──────────────────────────────────────── */
 
-export function CapitalWorkbench() {
+type CapitalWorkbenchProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { effectivePersona } = useWorkspacePersona();
   const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
 
   /* ── Selection state ── */
 
-  const requestedTab = searchParams.get("tab");
+  const requestedTab = firstSearchParamValue(searchParams.tab);
   const activeTab = (CAPITAL_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("capital", effectivePersona)) as CapitalTabId;
 
   const allPools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
-  const queryPool = searchParams.get("pool")?.trim() ?? "";
+  const queryPool = firstSearchParamValue(searchParams.pool)?.trim() ?? "";
   const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
   const hasInvalidPool = Boolean(queryPool) && !matchedPool;
   const selectedPool = useMemo(() => {
@@ -196,7 +200,7 @@ export function CapitalWorkbench() {
     [selectedPool],
   );
 
-  const queryClass = searchParams.get("class")?.trim() ?? "";
+  const queryClass = firstSearchParamValue(searchParams.class)?.trim() ?? "";
   const matchedClass = useMemo(
     () => poolClasses.find((capitalClass) => capitalClass.address === queryClass) ?? null,
     [poolClasses, queryClass],
@@ -244,7 +248,7 @@ export function CapitalWorkbench() {
 
   const updateParams = useCallback(
     (updates: Record<string, string | null | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = toURLSearchParams(searchParams);
       for (const [key, value] of Object.entries(updates)) {
         if (value) params.set(key, value);
         else params.delete(key);
