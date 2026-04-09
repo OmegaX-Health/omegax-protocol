@@ -29,6 +29,13 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - yield and impairment attribution live at the pool, class, and allocation level
 - wrapper-mediated or regulated participation layers through reserve domains and capital classes instead of a forked protocol
 
+## Frontend release notes
+
+- the protocol console governance workspace now uses the plans-language redesign, including a telemetry-first KPI strip, asymmetric overview layout, and refreshed notice states
+- the oracles workspace now matches the same plans and overview visual system so governance and oracle operations read as one shared control surface
+- the hosted frontend keeps the canonical `v0.3.0` surface while improving workbench readability, queue visibility, and operator-facing chrome for the public deployment
+- publish the matching docs update alongside the frontend deployment so [docs.omegax.health](https://docs.omegax.health/docs) reflects the current console experience
+
 ## Reviewer checklist
 
 Before treating `v0.3.0` as publish-ready, confirm:
