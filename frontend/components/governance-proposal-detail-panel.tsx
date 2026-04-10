@@ -19,6 +19,9 @@ import {
 } from "@/lib/governance";
 import { formatRpcError } from "@/lib/rpc-errors";
 import { toExplorerAddressLink } from "@/lib/protocol";
+import safeExternalUrl from "@/lib/safe-external-url";
+
+const { resolveSafeExternalHref } = safeExternalUrl;
 
 type GovernanceProposalDetailPanelProps = {
   proposalAddress: string;
@@ -75,6 +78,11 @@ export function GovernanceProposalDetailPanel({
     }
     return null;
   }, [publicKey, sendTransaction]);
+
+  const safeDescriptionLink = useMemo(
+    () => resolveSafeExternalHref(detail?.proposal.descriptionLink),
+    [detail?.proposal.descriptionLink],
+  );
 
   async function onCastVote(approve: boolean) {
     if (!publicKey || !sendTransaction) return;
@@ -292,9 +300,9 @@ export function GovernanceProposalDetailPanel({
         <article className="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface)] p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <p className="metric-label">Description</p>
-            {detail.proposal.descriptionLink ? (
+            {safeDescriptionLink ? (
               <a
-                href={detail.proposal.descriptionLink}
+                href={safeDescriptionLink}
                 target="_blank"
                 rel="noreferrer"
                 className="text-sm text-[var(--accent)] hover:underline"
