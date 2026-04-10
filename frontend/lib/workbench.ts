@@ -124,6 +124,8 @@ export type GovernanceQueueStatusCopy = {
   metricValue: string;
 };
 
+export type GovernanceStatusVariant = "success" | "warning" | "danger" | "info" | "muted";
+
 export type WorkbenchAuditItem = {
   id: string;
   tone: "verified" | "pending" | "signal";
@@ -260,6 +262,63 @@ export function describeGovernanceQueueStatus(input: {
     metricAriaLabel: `${input.count} live governance ${proposalLabel}.`,
     metricValue: input.count.toString(),
   };
+}
+
+export function governanceStatusVariant(label: string): GovernanceStatusVariant {
+  const normalizedLabel = label.toLowerCase();
+  if (
+    normalizedLabel.includes("error")
+    || normalizedLabel.includes("fail")
+    || normalizedLabel.includes("defeat")
+    || normalizedLabel.includes("cancel")
+    || normalizedLabel.includes("veto")
+  ) {
+    return "danger";
+  }
+  if (
+    normalizedLabel.includes("succeed")
+    || normalizedLabel.includes("approved")
+    || normalizedLabel.includes("completed")
+  ) {
+    return "success";
+  }
+  if (normalizedLabel.includes("execut") || normalizedLabel.includes("vot") || normalizedLabel.includes("active")) {
+    return "info";
+  }
+  if (normalizedLabel.includes("draft") || normalizedLabel.includes("review") || normalizedLabel.includes("signing")) {
+    return "warning";
+  }
+  return "muted";
+}
+
+export function resolveGovernanceProposalSelection(
+  queue: GovernanceQueueItem[],
+  queryProposal?: string | null,
+): GovernanceQueueItem | null {
+  const normalizedProposal = queryProposal?.trim() ?? "";
+  return queue.find((proposal) => proposal.proposal === normalizedProposal) ?? queue[0] ?? null;
+}
+
+export function canonicalizeGovernanceWorkbenchParams(input: {
+  activeTab: GovernanceTabId;
+  loaded: boolean;
+  queryProposal?: string | null;
+  requestedTab?: string | null;
+  selectedProposal: GovernanceQueueItem | null;
+}): Record<string, string | null | undefined> {
+  const nextUpdates: Record<string, string | null | undefined> = {};
+  if (input.requestedTab !== input.activeTab) nextUpdates.tab = input.activeTab;
+
+  const normalizedProposal = input.queryProposal?.trim() ?? "";
+  if (input.selectedProposal) {
+    if (normalizedProposal !== input.selectedProposal.proposal) {
+      nextUpdates.proposal = input.selectedProposal.proposal;
+    }
+  } else if (input.loaded && normalizedProposal) {
+    nextUpdates.proposal = null;
+  }
+
+  return nextUpdates;
 }
 
 function authorityLabelForProposal(proposal: GovernanceProposalSummary): string {

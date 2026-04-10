@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 10cf548fd9221511a40aafb2952640e41d16ce2c7e28b89a3f4acaf11613947b
+// contract_sha256: a9034c2cfe96235af9882c7a63ca150dc8df175df478a89c0354e9516a1df603
 
 package com.omegax.protocol
 
@@ -38,6 +38,7 @@ object ProtocolContract {
         "update_allocation_caps" to byteArrayOf(224u.toByte(), 101u.toByte(), 103u.toByte(), 146u.toByte(), 78u.toByte(), 5u.toByte(), 48u.toByte(), 132u.toByte()),
         "update_capital_class_controls" to byteArrayOf(34u.toByte(), 4u.toByte(), 113u.toByte(), 70u.toByte(), 79u.toByte(), 197u.toByte(), 244u.toByte(), 109u.toByte()),
         "update_health_plan_controls" to byteArrayOf(108u.toByte(), 11u.toByte(), 28u.toByte(), 140u.toByte(), 226u.toByte(), 164u.toByte(), 239u.toByte(), 113u.toByte()),
+        "update_lp_position_credentialing" to byteArrayOf(54u.toByte(), 194u.toByte(), 211u.toByte(), 94u.toByte(), 197u.toByte(), 61u.toByte(), 228u.toByte(), 202u.toByte()),
         "update_member_eligibility" to byteArrayOf(254u.toByte(), 66u.toByte(), 68u.toByte(), 244u.toByte(), 98u.toByte(), 157u.toByte(), 111u.toByte(), 191u.toByte()),
         "update_reserve_domain_controls" to byteArrayOf(3u.toByte(), 60u.toByte(), 38u.toByte(), 233u.toByte(), 198u.toByte(), 167u.toByte(), 116u.toByte(), 197u.toByte()),
         "version_policy_series" to byteArrayOf(64u.toByte(), 76u.toByte(), 132u.toByte(), 253u.toByte(), 41u.toByte(), 220u.toByte(), 169u.toByte(), 146u.toByte()),

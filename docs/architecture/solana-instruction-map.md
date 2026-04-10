@@ -50,7 +50,8 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | --- | --- |
 | `create_liquidity_pool` | create an LP-facing capital sleeve inside a reserve domain |
 | `create_capital_class` | create a class-specific investor instrument inside a pool |
-| `deposit_into_capital_class` | mint or expand LP exposure into a class |
+| `update_lp_position_credentialing` | grant or revoke managed LP access for restricted classes |
+| `deposit_into_capital_class` | mint or expand LP exposure into a class using on-chain LP credential state |
 | `request_redemption` | queue a class redemption request |
 | `process_redemption_queue` | settle queued redemptions when capacity allows |
 | `create_allocation_position` | bridge a capital class into a plan funding line |

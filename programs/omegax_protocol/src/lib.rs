@@ -1212,6 +1212,37 @@ pub mod omegax_protocol {
         Ok(())
     }
 
+    pub fn update_lp_position_credentialing(
+        ctx: Context<UpdateLpPositionCredentialing>,
+        args: UpdateLpPositionCredentialingArgs,
+    ) -> Result<()> {
+        require_curator_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.liquidity_pool,
+        )?;
+
+        let capital_class_key = ctx.accounts.capital_class.key();
+        let lp_position = &mut ctx.accounts.lp_position;
+        ensure_lp_position_binding(
+            lp_position,
+            capital_class_key,
+            args.owner,
+            ctx.bumps.lp_position,
+        )?;
+        update_lp_position_credentialing_state(lp_position, args.credentialed)?;
+
+        emit!(LPPositionCredentialingUpdatedEvent {
+            capital_class: capital_class_key,
+            owner: args.owner,
+            authority: ctx.accounts.authority.key(),
+            credentialed: args.credentialed,
+            reason_hash: args.reason_hash,
+        });
+
+        Ok(())
+    }
+
     pub fn deposit_into_capital_class(
         ctx: Context<DepositIntoCapitalClass>,
         args: DepositIntoCapitalClassArgs,
@@ -1224,7 +1255,6 @@ pub mod omegax_protocol {
             ctx.accounts.capital_class.pause_flags & PAUSE_FLAG_CAPITAL_SUBSCRIPTIONS == 0,
             OmegaXProtocolError::CapitalSubscriptionsPaused
         );
-        require_class_access(&ctx.accounts.capital_class, args.credentialed)?;
 
         let amount = args.amount;
         let shares = if args.shares == 0 {
@@ -1232,24 +1262,16 @@ pub mod omegax_protocol {
         } else {
             args.shares
         };
+        let owner = ctx.accounts.owner.key();
+        let capital_class_key = ctx.accounts.capital_class.key();
+        let restriction_mode = ctx.accounts.capital_class.restriction_mode;
+        let min_lockup_seconds = ctx.accounts.capital_class.min_lockup_seconds;
+        let now_ts = Clock::get()?.unix_timestamp;
 
         let lp_position = &mut ctx.accounts.lp_position;
-        lp_position.capital_class = ctx.accounts.capital_class.key();
-        lp_position.owner = ctx.accounts.owner.key();
-        lp_position.shares = checked_add(lp_position.shares, shares)?;
-        lp_position.subscription_basis = checked_add(lp_position.subscription_basis, amount)?;
-        lp_position.pending_redemption_shares = 0;
-        lp_position.realized_distributions = 0;
-        lp_position.impaired_principal = 0;
-        lp_position.lockup_ends_at =
-            Clock::get()?.unix_timestamp + ctx.accounts.capital_class.min_lockup_seconds;
-        lp_position.credentialed = args.credentialed;
-        lp_position.queue_status = LP_QUEUE_STATUS_NONE;
-        lp_position.bump = if lp_position.bump == 0 {
-            ctx.bumps.lp_position
-        } else {
-            lp_position.bump
-        };
+        ensure_lp_position_binding(lp_position, capital_class_key, owner, ctx.bumps.lp_position)?;
+        require_class_access_mode(restriction_mode, lp_position.credentialed)?;
+        apply_lp_position_deposit(lp_position, amount, shares, min_lockup_seconds, now_ts)?;
 
         let capital_class = &mut ctx.accounts.capital_class;
         capital_class.total_shares = checked_add(capital_class.total_shares, shares)?;
@@ -2128,6 +2150,28 @@ pub struct UpdateCapitalClassControls<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(args: UpdateLpPositionCredentialingArgs)]
+pub struct UpdateLpPositionCredentialing<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[account(seeds = [SEED_CAPITAL_CLASS, liquidity_pool.key().as_ref(), capital_class.class_id.as_bytes()], bump = capital_class.bump)]
+    pub capital_class: Account<'info, CapitalClass>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = 8 + LPPosition::INIT_SPACE,
+        seeds = [SEED_LP_POSITION, capital_class.key().as_ref(), args.owner.as_ref()],
+        bump
+    )]
+    pub lp_position: Account<'info, LPPosition>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct DepositIntoCapitalClass<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -2934,10 +2978,16 @@ pub struct UpdateCapitalClassControlsArgs {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct UpdateLpPositionCredentialingArgs {
+    pub owner: Pubkey,
+    pub credentialed: bool,
+    pub reason_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct DepositIntoCapitalClassArgs {
     pub amount: u64,
     pub shares: u64,
-    pub credentialed: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -3051,6 +3101,15 @@ pub struct CapitalClassDepositEvent {
     pub owner: Pubkey,
     pub asset_amount: u64,
     pub shares: u64,
+}
+
+#[event]
+pub struct LPPositionCredentialingUpdatedEvent {
+    pub capital_class: Pubkey,
+    pub owner: Pubkey,
+    pub authority: Pubkey,
+    pub credentialed: bool,
+    pub reason_hash: [u8; 32],
 }
 
 #[event]
@@ -3173,6 +3232,8 @@ pub enum OmegaXProtocolError {
     AmountExceedsPendingRedemption,
     #[msg("Restricted capital class access failed")]
     RestrictedCapitalClass,
+    #[msg("LP position with active capital cannot be decredentialed")]
+    LPPositionHasActiveCapital,
     #[msg("Capital class lockup is still active")]
     LockupActive,
     #[msg("Allocation cap exceeded")]
@@ -3258,6 +3319,18 @@ fn require_pool_control(
     }
 }
 
+fn require_curator_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    pool: &LiquidityPool,
+) -> Result<()> {
+    if *authority == pool.curator || *authority == governance.governance_authority {
+        Ok(())
+    } else {
+        err!(OmegaXProtocolError::Unauthorized)
+    }
+}
+
 fn require_allocator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
@@ -3274,7 +3347,11 @@ fn require_allocator(
 }
 
 fn require_class_access(capital_class: &CapitalClass, credentialed: bool) -> Result<()> {
-    match capital_class.restriction_mode {
+    require_class_access_mode(capital_class.restriction_mode, credentialed)
+}
+
+fn require_class_access_mode(restriction_mode: u8, credentialed: bool) -> Result<()> {
+    match restriction_mode {
         CAPITAL_CLASS_RESTRICTION_OPEN => Ok(()),
         CAPITAL_CLASS_RESTRICTION_RESTRICTED | CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY => {
             require!(credentialed, OmegaXProtocolError::RestrictedCapitalClass);
@@ -3282,6 +3359,71 @@ fn require_class_access(capital_class: &CapitalClass, credentialed: bool) -> Res
         }
         _ => err!(OmegaXProtocolError::RestrictedCapitalClass),
     }
+}
+
+fn ensure_lp_position_binding(
+    lp_position: &mut LPPosition,
+    capital_class: Pubkey,
+    owner: Pubkey,
+    bump: u8,
+) -> Result<()> {
+    if lp_position.owner == ZERO_PUBKEY && lp_position.capital_class == ZERO_PUBKEY {
+        lp_position.capital_class = capital_class;
+        lp_position.owner = owner;
+        lp_position.shares = 0;
+        lp_position.subscription_basis = 0;
+        lp_position.pending_redemption_shares = 0;
+        lp_position.realized_distributions = 0;
+        lp_position.impaired_principal = 0;
+        lp_position.lockup_ends_at = 0;
+        lp_position.credentialed = false;
+        lp_position.queue_status = LP_QUEUE_STATUS_NONE;
+        lp_position.bump = bump;
+        return Ok(());
+    }
+
+    require_keys_eq!(
+        lp_position.capital_class,
+        capital_class,
+        OmegaXProtocolError::Unauthorized
+    );
+    require_keys_eq!(lp_position.owner, owner, OmegaXProtocolError::Unauthorized);
+
+    if lp_position.bump == 0 {
+        lp_position.bump = bump;
+    }
+
+    Ok(())
+}
+
+fn update_lp_position_credentialing_state(
+    lp_position: &mut LPPosition,
+    credentialed: bool,
+) -> Result<()> {
+    if !credentialed {
+        require!(
+            lp_position.shares == 0 && lp_position.pending_redemption_shares == 0,
+            OmegaXProtocolError::LPPositionHasActiveCapital
+        );
+    }
+
+    lp_position.credentialed = credentialed;
+    Ok(())
+}
+
+fn apply_lp_position_deposit(
+    lp_position: &mut LPPosition,
+    amount: u64,
+    shares: u64,
+    min_lockup_seconds: i64,
+    now_ts: i64,
+) -> Result<()> {
+    lp_position.shares = checked_add(lp_position.shares, shares)?;
+    lp_position.subscription_basis = checked_add(lp_position.subscription_basis, amount)?;
+    lp_position.lockup_ends_at = now_ts
+        .checked_add(min_lockup_seconds)
+        .ok_or(OmegaXProtocolError::ArithmeticError)?;
+    Ok(())
 }
 
 fn checked_add(lhs: u64, rhs: u64) -> Result<u64> {
@@ -3644,6 +3786,90 @@ fn book_settlement_from_delivery(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn class_access_requires_credential_for_restricted_modes() {
+        assert!(require_class_access_mode(CAPITAL_CLASS_RESTRICTION_OPEN, false).is_ok());
+        assert!(require_class_access_mode(CAPITAL_CLASS_RESTRICTION_RESTRICTED, false).is_err());
+        assert!(require_class_access_mode(CAPITAL_CLASS_RESTRICTION_RESTRICTED, true).is_ok());
+        assert!(require_class_access_mode(CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY, false).is_err());
+        assert!(require_class_access_mode(CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY, true).is_ok());
+    }
+
+    #[test]
+    fn lp_credentialing_cannot_revoke_active_position() {
+        let mut lp_position = LPPosition {
+            capital_class: Pubkey::new_unique(),
+            owner: Pubkey::new_unique(),
+            shares: 10,
+            subscription_basis: 10,
+            pending_redemption_shares: 1,
+            realized_distributions: 0,
+            impaired_principal: 0,
+            lockup_ends_at: 0,
+            credentialed: true,
+            queue_status: LP_QUEUE_STATUS_PENDING,
+            bump: 7,
+        };
+
+        assert!(update_lp_position_credentialing_state(&mut lp_position, false).is_err());
+        assert!(lp_position.credentialed);
+    }
+
+    #[test]
+    fn lp_position_binding_initializes_fresh_position() {
+        let mut lp_position = LPPosition {
+            capital_class: ZERO_PUBKEY,
+            owner: ZERO_PUBKEY,
+            shares: 0,
+            subscription_basis: 0,
+            pending_redemption_shares: 0,
+            realized_distributions: 0,
+            impaired_principal: 0,
+            lockup_ends_at: 0,
+            credentialed: false,
+            queue_status: 0,
+            bump: 0,
+        };
+        let capital_class = Pubkey::new_unique();
+        let owner = Pubkey::new_unique();
+
+        ensure_lp_position_binding(&mut lp_position, capital_class, owner, 9).unwrap();
+
+        assert_eq!(lp_position.capital_class, capital_class);
+        assert_eq!(lp_position.owner, owner);
+        assert_eq!(lp_position.queue_status, LP_QUEUE_STATUS_NONE);
+        assert_eq!(lp_position.bump, 9);
+        assert!(!lp_position.credentialed);
+    }
+
+    #[test]
+    fn lp_deposit_top_up_preserves_existing_state() {
+        let mut lp_position = LPPosition {
+            capital_class: Pubkey::new_unique(),
+            owner: Pubkey::new_unique(),
+            shares: 100,
+            subscription_basis: 90,
+            pending_redemption_shares: 12,
+            realized_distributions: 7,
+            impaired_principal: 3,
+            lockup_ends_at: 50,
+            credentialed: true,
+            queue_status: LP_QUEUE_STATUS_PENDING,
+            bump: 4,
+        };
+
+        apply_lp_position_deposit(&mut lp_position, 25, 30, 120, 1_000).unwrap();
+
+        assert_eq!(lp_position.shares, 130);
+        assert_eq!(lp_position.subscription_basis, 115);
+        assert_eq!(lp_position.pending_redemption_shares, 12);
+        assert_eq!(lp_position.realized_distributions, 7);
+        assert_eq!(lp_position.impaired_principal, 3);
+        assert_eq!(lp_position.queue_status, LP_QUEUE_STATUS_PENDING);
+        assert!(lp_position.credentialed);
+        assert_eq!(lp_position.lockup_ends_at, 1_120);
+    }
 
     #[test]
     fn balance_sheet_recompute_preserves_free_and_redeemable() {

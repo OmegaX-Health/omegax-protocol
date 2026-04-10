@@ -36,6 +36,8 @@ The active public object model is:
 - `AllocationPosition`
 - `AllocationLedger`
 
+Restricted and wrapper-only capital classes now rely on managed `LPPosition` credentialing. Direct deposits do not carry a caller-supplied credential flag; access is granted on-chain through the canonical LP position for that class and owner.
+
 ## Important reviewer rule
 
 Older module files still exist in the tree for historical context, but the canonical public program surface is the one declared in `src/lib.rs`. Review the current architecture and instruction map docs before treating older pool-first modules as active design truth.
