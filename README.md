@@ -30,7 +30,7 @@ This repository now treats the earlier pool-first surface as retired devnet hist
 - sponsor budgets are not LP capital
 - reward and protection reconcile through one reserve kernel
 - reserve truth is ledger-based, not implied by scattered treasuries
-- restricted or wrapper-mediated participation is layered through reserve domains and capital classes, not fake parallel protocols
+- restricted or wrapper-mediated participation is layered through reserve domains, capital classes, and managed LP credentialing, not fake parallel protocols
 
 ## Release Status
 

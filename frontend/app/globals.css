@@ -8867,6 +8867,19 @@
       gap: 0.5rem;
     }
 
+    .plans-overview-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+
+    .plans-vitality,
+    .plans-pressure,
+    .plans-velocity,
+    .plans-lanes {
+      grid-column: auto;
+      grid-row: auto;
+    }
+
     .plans-table {
       min-width: 0;
       display: block;

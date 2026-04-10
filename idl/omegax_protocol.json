@@ -6390,6 +6390,173 @@
       ]
     },
     {
+      "name": "update_lp_position_credentialing",
+      "discriminator": [
+        54,
+        194,
+        211,
+        94,
+        197,
+        61,
+        228,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "capital_class",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  112,
+                  105,
+                  116,
+                  97,
+                  108,
+                  95,
+                  99,
+                  108,
+                  97,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "capital_class.class_id",
+                "account": "CapitalClass"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lp_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital_class"
+              },
+              {
+                "kind": "arg",
+                "path": "args.owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateLpPositionCredentialingArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "update_member_eligibility",
       "discriminator": [
         254,
@@ -7169,6 +7336,19 @@
       ]
     },
     {
+      "name": "LPPositionCredentialingUpdatedEvent",
+      "discriminator": [
+        215,
+        90,
+        105,
+        53,
+        22,
+        8,
+        19,
+        82
+      ]
+    },
+    {
       "name": "LedgerInitializedEvent",
       "discriminator": [
         155,
@@ -7394,21 +7574,26 @@
     },
     {
       "code": 6021,
+      "name": "LPPositionHasActiveCapital",
+      "msg": "LP position with active capital cannot be decredentialed"
+    },
+    {
+      "code": 6022,
       "name": "LockupActive",
       "msg": "Capital class lockup is still active"
     },
     {
-      "code": 6022,
+      "code": 6023,
       "name": "AllocationCapExceeded",
       "msg": "Allocation cap exceeded"
     },
     {
-      "code": 6023,
+      "code": 6024,
       "name": "InsufficientFreeAllocationCapacity",
       "msg": "Insufficient free allocation capacity"
     },
     {
-      "code": 6024,
+      "code": 6025,
       "name": "ArithmeticError",
       "msg": "Arithmetic overflow or underflow"
     }
@@ -8395,10 +8580,6 @@
           {
             "name": "shares",
             "type": "u64"
-          },
-          {
-            "name": "credentialed",
-            "type": "bool"
           }
         ]
       }
@@ -8836,6 +9017,39 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LPPositionCredentialingUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "capital_class",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "credentialed",
+            "type": "bool"
+          },
+          {
+            "name": "reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }
@@ -10086,6 +10300,31 @@
           },
           {
             "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateLpPositionCredentialingArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "credentialed",
             "type": "bool"
           },
           {

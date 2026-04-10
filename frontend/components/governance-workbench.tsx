@@ -15,10 +15,13 @@ import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from
 import {
   buildAuditTrail,
   buildGovernanceQueue,
+  canonicalizeGovernanceWorkbenchParams,
   defaultTabForPersona,
   describeGovernanceQueueStatus,
   GOVERNANCE_TABS,
   GOVERNANCE_TEMPLATE_ROWS,
+  governanceStatusVariant,
+  resolveGovernanceProposalSelection,
   type GovernanceQueueItem,
   type GovernanceTabId,
 } from "@/lib/workbench";
@@ -34,8 +37,6 @@ import { shortenAddress } from "@/lib/protocol";
 import { cn } from "@/lib/cn";
 
 /* ── Constants ──────────────────────────────────────── */
-
-const PROPOSAL_CONTEXT_TABS = new Set<GovernanceTabId>(["overview", "queue"]);
 
 const TAB_ICONS: Record<GovernanceTabId, string> = {
   overview: "dashboard",
@@ -78,17 +79,8 @@ function personaHeroCopy(persona: string): { eyebrow: string; subtitle: string }
   }
 }
 
-function statusVariant(label: string): "success" | "warning" | "danger" | "info" | "muted" {
-  const l = label.toLowerCase();
-  if (l.includes("succeed") || l.includes("approved") || l.includes("completed")) return "success";
-  if (l.includes("execut") || l.includes("vot") || l.includes("active")) return "info";
-  if (l.includes("draft") || l.includes("review") || l.includes("signing")) return "warning";
-  if (l.includes("defeat") || l.includes("cancel") || l.includes("fail")) return "danger";
-  return "muted";
-}
-
 function StatusBadge({ label }: { label: string }) {
-  return <span className={`plans-badge plans-badge-${statusVariant(label)}`}>{label}</span>;
+  return <span className={`plans-badge plans-badge-${governanceStatusVariant(label)}`}>{label}</span>;
 }
 
 function buildQueueStateCounts(queue: GovernanceQueueItem[]) {
@@ -128,7 +120,10 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
   const activeTab = (GOVERNANCE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("governance", effectivePersona)) as GovernanceTabId;
   const queryProposal = firstSearchParamValue(searchParams.proposal)?.trim() ?? "";
-  const selectedProposal = queue.find((proposal) => proposal.proposal === queryProposal) ?? queue[0] ?? null;
+  const selectedProposal = useMemo(
+    () => resolveGovernanceProposalSelection(queue, queryProposal),
+    [queue, queryProposal],
+  );
 
   /* ── Derived data ── */
 
@@ -173,10 +168,10 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
 
   const handleTabChange = useCallback((tab: string) => {
     const nextTab = tab as GovernanceTabId;
-    const nextProposal = selectedProposal?.proposal || queryProposal || undefined;
+    const nextProposal = selectedProposal?.proposal || queryProposal || null;
     updateParams({
       tab: nextTab,
-      proposal: PROPOSAL_CONTEXT_TABS.has(nextTab) ? nextProposal : null,
+      proposal: nextProposal,
     });
   }, [queryProposal, selectedProposal, updateParams]);
 
@@ -210,15 +205,15 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
   }, [connection]);
 
   useEffect(() => {
-    const nextUpdates: Record<string, string | null | undefined> = {};
-    if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
-    if (PROPOSAL_CONTEXT_TABS.has(activeTab)) {
-      if (selectedProposal && queryProposal !== selectedProposal.proposal) nextUpdates.proposal = selectedProposal.proposal;
-    } else if (queryProposal) {
-      nextUpdates.proposal = null;
-    }
+    const nextUpdates = canonicalizeGovernanceWorkbenchParams({
+      activeTab,
+      loaded: proposalQueueLoaded,
+      queryProposal,
+      requestedTab,
+      selectedProposal,
+    });
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
-  }, [activeTab, queryProposal, requestedTab, selectedProposal, updateParams]);
+  }, [activeTab, proposalQueueLoaded, queryProposal, requestedTab, selectedProposal, updateParams]);
 
   /* ── Scroll tab into view ── */
 

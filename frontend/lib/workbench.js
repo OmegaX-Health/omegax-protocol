@@ -152,6 +152,48 @@ export function describeGovernanceQueueStatus(input) {
         metricValue: input.count.toString(),
     };
 }
+export function governanceStatusVariant(label) {
+    const normalizedLabel = label.toLowerCase();
+    if (normalizedLabel.includes("error")
+        || normalizedLabel.includes("fail")
+        || normalizedLabel.includes("defeat")
+        || normalizedLabel.includes("cancel")
+        || normalizedLabel.includes("veto")) {
+        return "danger";
+    }
+    if (normalizedLabel.includes("succeed")
+        || normalizedLabel.includes("approved")
+        || normalizedLabel.includes("completed")) {
+        return "success";
+    }
+    if (normalizedLabel.includes("execut") || normalizedLabel.includes("vot") || normalizedLabel.includes("active"))
+        return "info";
+    if (normalizedLabel.includes("draft")
+        || normalizedLabel.includes("review")
+        || normalizedLabel.includes("signing")) {
+        return "warning";
+    }
+    return "muted";
+}
+export function resolveGovernanceProposalSelection(queue, queryProposal) {
+    const normalizedProposal = queryProposal?.trim() ?? "";
+    return queue.find((proposal) => proposal.proposal === normalizedProposal) ?? queue[0] ?? null;
+}
+export function canonicalizeGovernanceWorkbenchParams(input) {
+    const nextUpdates = {};
+    if (input.requestedTab !== input.activeTab)
+        nextUpdates.tab = input.activeTab;
+    const normalizedProposal = input.queryProposal?.trim() ?? "";
+    if (input.selectedProposal) {
+        if (normalizedProposal !== input.selectedProposal.proposal) {
+            nextUpdates.proposal = input.selectedProposal.proposal;
+        }
+    }
+    else if (input.loaded && normalizedProposal) {
+        nextUpdates.proposal = null;
+    }
+    return nextUpdates;
+}
 function authorityLabelForProposal(proposal) {
     if (proposal.ownerWalletAddress)
         return shortenGovernanceAddress(proposal.ownerWalletAddress);

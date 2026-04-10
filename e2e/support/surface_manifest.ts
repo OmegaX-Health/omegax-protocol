@@ -75,10 +75,11 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
   },
   liquidity_pool_and_capital_class_lifecycle: {
     title: "Liquidity Pool and Capital Class Lifecycle",
-    focus: "LP capital enters through explicit pools, classes, and LP positions rather than plan-side sponsor budgets.",
+    focus: "LP capital enters through explicit pools, classes, managed credentialing, and LP positions rather than plan-side sponsor budgets.",
     instructions: [
       "create_liquidity_pool",
       "create_capital_class",
+      "update_lp_position_credentialing",
       "deposit_into_capital_class",
       "request_redemption",
       "process_redemption_queue",

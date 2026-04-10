@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 10cf548fd9221511a40aafb2952640e41d16ce2c7e28b89a3f4acaf11613947b
+// contract_sha256: a9034c2cfe96235af9882c7a63ca150dc8df175df478a89c0354e9516a1df603
 
 export type ProtocolInstructionName =
   | "adjudicate_claim_case"
@@ -33,6 +33,7 @@ export type ProtocolInstructionName =
   | "update_allocation_caps"
   | "update_capital_class_controls"
   | "update_health_plan_controls"
+  | "update_lp_position_credentialing"
   | "update_member_eligibility"
   | "update_reserve_domain_controls"
   | "version_policy_series";
@@ -84,6 +85,7 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "update_allocation_caps": Uint8Array.from([224, 101, 103, 146, 78, 5, 48, 132]),
   "update_capital_class_controls": Uint8Array.from([34, 4, 113, 70, 79, 197, 244, 109]),
   "update_health_plan_controls": Uint8Array.from([108, 11, 28, 140, 226, 164, 239, 113]),
+  "update_lp_position_credentialing": Uint8Array.from([54, 194, 211, 94, 197, 61, 228, 202]),
   "update_member_eligibility": Uint8Array.from([254, 66, 68, 244, 98, 157, 111, 191]),
   "update_reserve_domain_controls": Uint8Array.from([3, 60, 38, 233, 198, 167, 116, 197]),
   "version_policy_series": Uint8Array.from([64, 76, 132, 253, 41, 220, 169, 146]),
@@ -179,6 +181,9 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   ],
   "update_health_plan_controls": [
       { name: "args", type: {"defined":{"name":"UpdateHealthPlanControlsArgs"}} },
+  ],
+  "update_lp_position_credentialing": [
+      { name: "args", type: {"defined":{"name":"UpdateLpPositionCredentialingArgs"}} },
   ],
   "update_member_eligibility": [
       { name: "args", type: {"defined":{"name":"UpdateMemberEligibilityArgs"}} },
@@ -472,6 +477,14 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
       { name: "health_plan", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
+  ],
+  "update_lp_position_credentialing": [
+      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
+      { name: "liquidity_pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 112, 111, 111, 108] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "liquidity_pool.pool_id" }] },
+      { name: "capital_class", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 97, 112, 105, 116, 97, 108, 95, 99, 108, 97, 115, 115] }, { kind: "account", path: "liquidity_pool" }, { kind: "account", path: "capital_class.class_id" }] },
+      { name: "lp_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [108, 112, 95, 112, 111, 115, 105, 116, 105, 111, 110] }, { kind: "account", path: "capital_class" }, { kind: "arg", path: "args.owner" }] },
+      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "update_member_eligibility": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
