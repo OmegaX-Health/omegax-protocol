@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: a9034c2cfe96235af9882c7a63ca150dc8df175df478a89c0354e9516a1df603
+// contract_sha256: 2ac563571b3e71264fc36092364e6f4a192fc3caeba9131652b272a3303ed0c9
 
 package com.omegax.protocol
 
@@ -54,6 +54,7 @@ object ProtocolContract {
         "policy_series" to listOf("policy_series", "<health_plan>", "<series_id>"),
         "series_reserve_ledger" to listOf("series_reserve_ledger", "<policy_series>", "<asset_mint>"),
         "member_position" to listOf("member_position", "<health_plan>", "<wallet>", "<series_scope>"),
+        "membership_anchor_seat" to listOf("membership_anchor_seat", "<health_plan>", "<anchor_ref>"),
         "funding_line" to listOf("funding_line", "<health_plan>", "<line_id>"),
         "funding_line_ledger" to listOf("funding_line_ledger", "<funding_line>", "<asset_mint>"),
         "claim_case" to listOf("claim_case", "<health_plan>", "<claim_id>"),
@@ -79,6 +80,7 @@ object ProtocolContract {
         "LiquidityPool" to byteArrayOf(66u.toByte(), 38u.toByte(), 17u.toByte(), 64u.toByte(), 188u.toByte(), 80u.toByte(), 68u.toByte(), 129u.toByte()),
         "LPPosition" to byteArrayOf(196u.toByte(), 56u.toByte(), 115u.toByte(), 198u.toByte(), 14u.toByte(), 117u.toByte(), 32u.toByte(), 224u.toByte()),
         "MemberPosition" to byteArrayOf(88u.toByte(), 118u.toByte(), 224u.toByte(), 251u.toByte(), 240u.toByte(), 186u.toByte(), 123u.toByte(), 175u.toByte()),
+        "MembershipAnchorSeat" to byteArrayOf(36u.toByte(), 200u.toByte(), 103u.toByte(), 9u.toByte(), 158u.toByte(), 27u.toByte(), 35u.toByte(), 104u.toByte()),
         "Obligation" to byteArrayOf(168u.toByte(), 206u.toByte(), 141u.toByte(), 106u.toByte(), 88u.toByte(), 76u.toByte(), 172u.toByte(), 167u.toByte()),
         "PlanReserveLedger" to byteArrayOf(243u.toByte(), 245u.toByte(), 230u.toByte(), 224u.toByte(), 27u.toByte(), 105u.toByte(), 48u.toByte(), 128u.toByte()),
         "PolicySeries" to byteArrayOf(196u.toByte(), 117u.toByte(), 121u.toByte(), 249u.toByte(), 37u.toByte(), 71u.toByte(), 245u.toByte(), 23u.toByte()),

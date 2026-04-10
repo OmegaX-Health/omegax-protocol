@@ -7,6 +7,7 @@ import {
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   REDEMPTION_POLICY_QUEUE_ONLY,
+  SERIES_MODE_PROTECTION,
   describeClaimStatus,
   describeFundingLineType,
   describeObligationStatus,
@@ -46,6 +47,7 @@ export const WORKBENCH_NAV: Array<{
 
 export const PLAN_TABS = [
   { id: "overview", label: "Overview" },
+  { id: "coverage", label: "Coverage" },
   { id: "members", label: "Members" },
   { id: "claims", label: "Claims" },
   { id: "treasury", label: "Treasury" },
@@ -479,6 +481,15 @@ export function planAddressForSeries(seriesAddress?: string | null): string | nu
 export function firstSeriesAddressForPlan(planAddress?: string | null): string | null {
   return (
     DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.healthPlan === (planAddress ?? ""))?.address
+    ?? null
+  );
+}
+
+export function firstProtectionSeriesAddressForPlan(planAddress?: string | null): string | null {
+  return (
+    DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
+      (series) => series.healthPlan === (planAddress ?? "") && series.mode === SERIES_MODE_PROTECTION,
+    )?.address
     ?? null
   );
 }

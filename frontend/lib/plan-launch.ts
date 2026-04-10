@@ -3,6 +3,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
+import { deriveLaunchLedgerAddresses } from "@/lib/plan-launch-tx";
 import {
   deriveFundingLinePda,
   deriveHealthPlanPda,
@@ -18,6 +19,7 @@ import {
 export type LaunchIntent = "rewards" | "insurance" | "hybrid";
 export type LaneKind = "reward" | "protection";
 export type MembershipMode = "open" | "token_gate" | "invite_only";
+export type MembershipGateKind = "open" | "invite_only" | "nft_anchor" | "stake_anchor" | "fungible_snapshot";
 export type PayoutAssetMode = "sol" | "spl";
 export type CoveragePathway = "" | "defi_native" | "rwa_policy";
 export type DefiSettlementMode = "" | "onchain_programmatic" | "hybrid_rails";
@@ -99,7 +101,9 @@ export type LaunchBasicsValidationInput = {
 };
 
 export type LaunchMembershipValidationInput = {
+  launchIntent: LaunchIntent;
   membershipMode: MembershipMode;
+  membershipGateKind: MembershipGateKind;
   tokenGateMint: string;
   tokenGateMinBalance: string;
   inviteIssuer: string;
@@ -148,6 +152,9 @@ function normalize(value: string): string {
 function isHttpOrIpfsUri(value: string): boolean {
   const normalized = normalize(value);
   if (!normalized) return false;
+  if (normalized.startsWith("/")) {
+    return normalized.length > 1;
+  }
   if (normalized.startsWith("ipfs://")) {
     return normalized.length > "ipfs://".length;
   }
@@ -192,7 +199,7 @@ function validateSeedId(value: string, label: string): string | null {
 function validateRequiredUri(value: string, label: string): string | null {
   const normalized = normalize(value);
   if (!normalized) return `${label} is required.`;
-  if (!isHttpOrIpfsUri(normalized)) return `${label} must be an http(s) or ipfs URI.`;
+  if (!isHttpOrIpfsUri(normalized)) return `${label} must be an http(s), ipfs, or root-relative public URI.`;
   return null;
 }
 
@@ -366,6 +373,37 @@ export function parseProtectionPosture(value: unknown): SerializedProtectionPost
   return candidate as SerializedProtectionPosture;
 }
 
+export function deriveLaunchPreflightAccountAddresses(params: {
+  reserveDomain: PublicKey;
+  healthPlan: PublicKey;
+  assetMint: PublicKey;
+  rewardSeries?: PublicKey | null;
+  rewardFundingLine?: PublicKey | null;
+  protectionSeries?: PublicKey | null;
+  protectionFundingLine?: PublicKey | null;
+}): PublicKey[] {
+  const addresses = new Map<string, PublicKey>();
+  addresses.set(params.reserveDomain.toBase58(), params.reserveDomain);
+
+  const registerLane = (policySeries?: PublicKey | null, fundingLine?: PublicKey | null) => {
+    if (!policySeries || !fundingLine) return;
+    const { domainAssetVault, domainAssetLedger } = deriveLaunchLedgerAddresses({
+      reserveDomain: params.reserveDomain,
+      healthPlan: params.healthPlan,
+      assetMint: params.assetMint,
+      policySeries,
+      fundingLine,
+    });
+    addresses.set(domainAssetVault.toBase58(), domainAssetVault);
+    addresses.set(domainAssetLedger.toBase58(), domainAssetLedger);
+  };
+
+  registerLane(params.rewardSeries, params.rewardFundingLine);
+  registerLane(params.protectionSeries, params.protectionFundingLine);
+
+  return [...addresses.values()];
+}
+
 export function buildLaunchReviewLinks(params: {
   launchIntent: LaunchIntent;
   healthPlanAddress: string;
@@ -385,7 +423,7 @@ export function buildLaunchReviewLinks(params: {
     ? `/plans?plan=${plan}&series=${rewardSeries}&tab=overview`
     : null;
   const protectionLaneHref = protectionSeries
-    ? `/plans?plan=${plan}&series=${protectionSeries}&tab=overview`
+    ? `/plans?plan=${plan}&series=${protectionSeries}&tab=coverage`
     : null;
 
   return {
@@ -455,15 +493,28 @@ export function validateLaunchBasics(input: LaunchBasicsValidationInput): string
 export function validateLaunchMembership(input: LaunchMembershipValidationInput): string[] {
   const errors: string[] = [];
 
+  if (input.membershipMode === "open" && input.membershipGateKind !== "open") {
+    errors.push("Open enrollment must use the open gate class.");
+  }
+
   if (input.membershipMode === "token_gate") {
+    if (!["fungible_snapshot", "nft_anchor", "stake_anchor"].includes(input.membershipGateKind)) {
+      errors.push("Choose a token gate class for token-gated enrollment.");
+    }
     const mintResult = validatePublicKey(input.tokenGateMint);
     if (!mintResult.ok) errors.push("Token gate mint must be a valid public key.");
     if (!isPositiveInteger(input.tokenGateMinBalance)) {
       errors.push("Token gate minimum balance must be greater than zero.");
     }
+    if (requiresProtectionLane(input.launchIntent) && input.membershipGateKind === "fungible_snapshot") {
+      errors.push("Protection launches cannot use fungible snapshot gating. Choose NFT anchor, stake anchor, open, or invite-only enrollment.");
+    }
   }
 
   if (input.membershipMode === "invite_only") {
+    if (input.membershipGateKind !== "invite_only") {
+      errors.push("Invite-only enrollment must use the invite-only gate class.");
+    }
     const inviteResult = validatePublicKey(input.inviteIssuer);
     if (!inviteResult.ok) errors.push("Invite issuer must be a valid public key.");
   }

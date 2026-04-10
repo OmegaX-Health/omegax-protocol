@@ -153,11 +153,12 @@ The launch workspace must be a single canonical on-chain launch wizard. The UI m
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Membership mode | Segmented control | Choose `Open`, `Token-gated`, or `Invite-only`. | Changes downstream required fields. |
-| Token gate mint | Text input | Capture qualifying token mint for gated enrollment. | Required only in token-gated mode. |
-| Token gate minimum balance | Numeric input | Set the minimum qualifying balance. | Required only in token-gated mode; must be greater than zero. |
+| Membership mode | Segmented control | Choose `Open`, `Token-gated`, or `Invite-only`. | Changes downstream required fields and the proof mode used later during member enrollment. |
+| Token gate class | Segmented control | Choose `Fungible snapshot`, `NFT anchor`, or `Stake anchor` when token-gated enrollment is selected. | Required only in token-gated mode. `Fungible snapshot` is valid for reward-only launches but must be rejected for launches that include a protection lane. Anchor-backed classes define one active protection seat per anchor, not live claim-time possession checks. |
+| Token gate mint | Text input | Capture the qualifying mint or anchor mint for gated enrollment. | Required only in token-gated mode. |
+| Token gate minimum balance | Numeric input | Set the qualifying balance threshold used by the selected token-gate class. | Required only in token-gated mode; must be greater than zero. |
 | Invite issuer wallet | Text input | Capture the wallet allowed to issue invites. | Required only in invite-only mode; must be a valid public key. |
-| Membership helper text | Inline helper/error text | Explain the selected enrollment posture and why the current step is blocked if invalid. | Must be explicit and actionable. |
+| Membership helper text | Inline helper/error text | Explain the selected enrollment posture, gate-class semantics, and why the current step is blocked if invalid. | Must be explicit and actionable, and must explain that protection seats rely on enrollment and coverage status rather than live possession checks at claim time. |
 
 ##### Step 3: verification network
 
@@ -209,11 +210,11 @@ This step is required only for `Insurance` and `Hybrid` launches.
 | RWA compliance contact | Text input | Capture public contact for compliance follow-up. | Must accept email or public URI only. |
 | Protection series id | Text input | Define the seed-safe id for the initial protection `PolicySeries`. | Required only when a protection lane is part of the launch. |
 | Protection series display name | Text input | Capture the human-readable label for the protection lane. | Required only when a protection lane is part of the launch. |
-| Protection metadata URI | Text input | Store the public metadata entrypoint for the protection lane. | Required only when a protection lane is part of the launch. |
+| Protection metadata URI | Text input | Store the public metadata entrypoint for the protection lane. | Required only when a protection lane is part of the launch. The URI must resolve to a structured public JSON document that matches the selected protection posture before launch is allowed to proceed. |
 | Premium funding line id | Text input | Define the seed-safe id for the initial premium-income funding line. | Required only when a protection lane is part of the launch. |
 | Premium cadence | Numeric input | Capture the expected cadence for premium collection. | Required only when a protection lane is part of the launch. |
 | Expected first-cycle premium volume | Numeric input | Set the initial committed amount for the premium-income line. | Required only when a protection lane is part of the launch. |
-| Protection posture disclosure | Disclosure | Show the structured public metadata that will be committed for coverage posture. | Must summarize coverage path, settlement style, and public legal/disclosure references; this data must remain readable after launch. |
+| Protection posture disclosure | Disclosure | Show the structured public metadata document that will be committed for coverage posture. | Must summarize coverage path, settlement style, and public legal/disclosure references; the fetched document must remain readable after launch and the committed hashes must derive from this validated document rather than transient local state alone. |
 
 ##### Step 6: final review and launch
 
@@ -224,7 +225,7 @@ This step is required only for `Insurance` and `Hybrid` launches.
 | Created artifact list | Read-only summary | Show the resulting `HealthPlan`, reward `PolicySeries`, protection `PolicySeries`, sponsor-budget line, and premium-income line addresses when created. | Must update after signature confirmation and expose explorer links. |
 | `Open workspace` | Secondary button | Open the new plan in its canonical route context after creation. | Hidden until launch succeeds. |
 | Protocol and accounting details disclosure | Disclosure | Show payout mint, base-unit previews, PDA derivations, and hash commitments. | Must stay collapsed by default and must not describe any retired root product-type field. |
-| Coverage references disclosure | Disclosure | Show the structured protection posture metadata and link into the post-launch coverage workspace. | Only for launches with a protection lane. |
+| Coverage references disclosure | Disclosure | Show the structured protection posture metadata and link into the post-launch coverage tab. | Only for launches with a protection lane. The post-launch link must open `/plans?...&tab=coverage`, not a generic overview route. |
 | Recent transactions disclosure | Disclosure | Show create/configure transaction history with explorer links. | Append-only for the current session. |
 | `Refresh on-chain choices` | Secondary button | Reload oracle and schema selectors. | Safe retry action. |
 | Step tabs | Tab group | Jump between steps while preserving draft state. | Show active step, completed step, and total progress. |
@@ -396,8 +397,9 @@ Required page sections:
 | Derived member position address | Read-only field | Show the predicted `MemberPosition` PDA for the current wallet, plan, and series. | Updates live. |
 | Membership model | Read-only/meta field | Show the selected plan's enrollment rule. | Must match plan configuration. |
 | Existing position field | Read-only field | Show whether the enrollment already exists. | Distinguish new draft vs existing position. |
+| Enrollment proof mode | Read-only/meta field | Show whether the current enrollment posture resolves to `open`, `token_gate`, or `invite_permit`. | Must stay aligned with the selected plan configuration and the proof accounts required by the protocol surface. |
 | Rights chips | Status chips | Show the default rights implied by the selected series mode. | Example: reward claim vs claim review rights. |
-| `Enroll member` | Primary button | Create the member position when the wallet and enrollment rule allow it. | Disabled with reason when blocked by token gate, invite-only, or missing wallet. |
+| `Enroll member` | Primary button | Create the member position when the wallet and enrollment rule allow it. | Disabled with reason when blocked by token gate, invite-only, missing wallet, or duplicate anchor-backed seat usage. |
 | `View participation history` | Secondary button | Open a history/detail view for prior plan participations. | Target-state requirement. |
 
 #### `/members` panel: Delegation

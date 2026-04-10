@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { PlanCoveragePanel } from "@/components/plan-coverage-panel";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleState } from "@/lib/console-model";
 import { formatAmount, seriesOutcomeCount } from "@/lib/canonical-ui";
@@ -24,6 +25,7 @@ import {
   describeObligationStatus,
   describeSeriesMode,
   describeSeriesStatus,
+  SERIES_MODE_PROTECTION,
   shortenAddress,
 } from "@/lib/protocol";
 import { cn } from "@/lib/cn";
@@ -34,9 +36,10 @@ const SERIES_OPTIONAL_TABS = new Set<PlanTabId>(["members", "claims", "treasury"
 
 const TAB_NUMBERS: Record<PlanTabId, string> = {
   overview: "01",
-  members: "02",
-  claims: "03",
-  treasury: "04",
+  coverage: "02",
+  members: "03",
+  claims: "04",
+  treasury: "05",
 };
 
 type TabHero = { eyebrow: string; title: string; emphasis: string; tail: string; subtitle: string };
@@ -49,6 +52,14 @@ const TAB_HEROES: Record<PlanTabId, TabHero> = {
     tail: "",
     subtitle:
       "A single operational heartbeat for your plan — capital velocity, claim activity and reserve depth across every lane.",
+  },
+  coverage: {
+    eyebrow: "PROTECTION_AND_PREMIUM_WORKSPACE",
+    title: "Coverage",
+    emphasis: "&",
+    tail: "Protection.",
+    subtitle:
+      "Structured protection posture, premium rails, and linked capital context for the active protection lane. This tab only appears when the plan actually has coverage lanes.",
   },
   members: {
     eyebrow: "MEMBER_ELIGIBILITY_REGISTER",
@@ -179,9 +190,6 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   /* ── Selection state ── */
 
   const requestedTab = firstSearchParamValue(searchParams.tab);
-  const activeTab = (PLAN_TABS.find((tab) => tab.id === requestedTab)?.id
-    ?? defaultTabForPersona("plans", effectivePersona)) as PlanTabId;
-
   const allPlans = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans;
   const queryPlan = firstSearchParamValue(searchParams.plan)?.trim() ?? "";
   const matchedPlan = useMemo(() => allPlans.find((plan) => plan.address === queryPlan) ?? null, [allPlans, queryPlan]);
@@ -195,6 +203,19 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     if (!selectedPlan) return [];
     return DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === selectedPlan.address);
   }, [selectedPlan]);
+  const planProtectionSeries = useMemo(
+    () => planSeries.filter((series) => series.mode === SERIES_MODE_PROTECTION),
+    [planSeries],
+  );
+  const availablePlanTabs = useMemo(
+    () => PLAN_TABS.filter((tab) => tab.id !== "coverage" || planProtectionSeries.length > 0),
+    [planProtectionSeries.length],
+  );
+  const defaultTab = defaultTabForPersona("plans", effectivePersona) as PlanTabId;
+  const activeTab = (availablePlanTabs.find((tab) => tab.id === requestedTab)?.id
+    ?? availablePlanTabs.find((tab) => tab.id === defaultTab)?.id
+    ?? availablePlanTabs[0]?.id
+    ?? "overview") as PlanTabId;
 
   const querySeries = firstSearchParamValue(searchParams.series)?.trim() ?? "";
   const seriesSelectionOptional = SERIES_OPTIONAL_TABS.has(activeTab);
@@ -205,10 +226,11 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   const hasInvalidSeries = Boolean(querySeries) && !matchedSeries;
   const selectedSeries = useMemo(() => {
     if (hasInvalidSeries) return null;
-    if (matchedSeries) return matchedSeries;
+    if (matchedSeries && (activeTab !== "coverage" || matchedSeries.mode === SERIES_MODE_PROTECTION)) return matchedSeries;
+    if (activeTab === "coverage") return planProtectionSeries[0] ?? null;
     if (seriesSelectionOptional) return null;
     return planSeries[0] ?? null;
-  }, [hasInvalidSeries, matchedSeries, planSeries, seriesSelectionOptional]);
+  }, [activeTab, hasInvalidSeries, matchedSeries, planProtectionSeries, planSeries, seriesSelectionOptional]);
 
   /* ── Derived data ── */
 
@@ -244,6 +266,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     () => (selectedSeries ? planMembers.filter((position) => position.policySeries === selectedSeries.address) : planMembers),
     [planMembers, selectedSeries],
   );
+  const seriesSelectorOptions = activeTab === "coverage" ? planProtectionSeries : planSeries;
   const auditTrail = useMemo(
     () => buildAuditTrail({
       section: "plans",
@@ -387,11 +410,11 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               eyebrow="POLICY_SERIES"
               label="Policy series"
               value={selectedSeries}
-              options={planSeries}
+              options={seriesSelectorOptions}
               renderLabel={(series) => series.displayName}
               renderMeta={(series) => `${series.seriesId} · ${describeSeriesMode(series.mode)}`}
-              placeholder={planSeries.length > 0 ? "All series" : "No series"}
-              disabled={!selectedPlan || planSeries.length === 0}
+              placeholder={seriesSelectorOptions.length > 0 ? (activeTab === "coverage" ? "Choose protection lane" : "All series") : "No series"}
+              disabled={!selectedPlan || seriesSelectorOptions.length === 0}
               onChange={(value) => updateParams({ series: value || null })}
             />
           </div>
@@ -400,7 +423,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
         {/* ── Tab bar ───────────────────────── */}
         <nav className="plans-tabs liquid-glass" aria-label="Plan workspace sections">
           <div ref={tabBarRef} className="plans-tabs-inner">
-            {PLAN_TABS.map((tab) => {
+            {availablePlanTabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
@@ -534,6 +557,16 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                     )}
                   </article>
                 </div>
+              ) : null}
+
+              {/* ── COVERAGE ── */}
+              {activeTab === "coverage" && selectedPlan ? (
+                <PlanCoveragePanel
+                  planAddress={selectedPlan.address}
+                  policySeries={planSeries}
+                  activeSeriesAddress={selectedSeries?.address}
+                  fundingLines={planFundingLines}
+                />
               ) : null}
 
               {/* ── MEMBERS ── */}

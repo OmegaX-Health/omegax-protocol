@@ -125,6 +125,10 @@ function resolveMetadataFetchUrl(metadataUri: string): { urls: string[]; error: 
     return { urls: ipfsResolved, error: null };
   }
 
+  if (uri.startsWith("/")) {
+    return { urls: [uri], error: null };
+  }
+
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(uri);

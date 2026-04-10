@@ -15,6 +15,7 @@ export const SEED_PLAN_RESERVE_LEDGER = "plan_reserve_ledger";
 export const SEED_POLICY_SERIES = "policy_series";
 export const SEED_SERIES_RESERVE_LEDGER = "series_reserve_ledger";
 export const SEED_MEMBER_POSITION = "member_position";
+export const SEED_MEMBERSHIP_ANCHOR_SEAT = "membership_anchor_seat";
 export const SEED_FUNDING_LINE = "funding_line";
 export const SEED_FUNDING_LINE_LEDGER = "funding_line_ledger";
 export const SEED_CLAIM_CASE = "claim_case";
@@ -173,6 +174,13 @@ export function deriveMemberPositionPda(params) {
         toPublicKey(params.healthPlan).toBytes(),
         toPublicKey(params.wallet).toBytes(),
         toPublicKey(params.seriesScope ?? ZERO_PUBKEY_KEY).toBytes(),
+    ], params.programId ?? PROGRAM_ID);
+}
+export function deriveMembershipAnchorSeatPda(params) {
+    return derivePda([
+        TEXT_ENCODER.encode(SEED_MEMBERSHIP_ANCHOR_SEAT),
+        toPublicKey(params.healthPlan).toBytes(),
+        toPublicKey(params.anchorRef).toBytes(),
     ], params.programId ?? PROGRAM_ID);
 }
 export function deriveFundingLinePda(params) {

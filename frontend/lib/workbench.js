@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "./devnet-fixtures";
-import { availableFundingLineBalance, CLAIM_INTAKE_APPROVED, OBLIGATION_STATUS_CLAIMABLE_PAYABLE, OBLIGATION_STATUS_RESERVED, REDEMPTION_POLICY_QUEUE_ONLY, describeClaimStatus, describeFundingLineType, describeObligationStatus, describeSeriesMode, describeSeriesStatus, hasPendingRedemptionQueue, isActiveClaimStatus, isObligationOnDisputeWatch, toBigIntAmount, } from "./protocol";
+import { availableFundingLineBalance, CLAIM_INTAKE_APPROVED, OBLIGATION_STATUS_CLAIMABLE_PAYABLE, OBLIGATION_STATUS_RESERVED, REDEMPTION_POLICY_QUEUE_ONLY, SERIES_MODE_PROTECTION, describeClaimStatus, describeFundingLineType, describeObligationStatus, describeSeriesMode, describeSeriesStatus, hasPendingRedemptionQueue, isActiveClaimStatus, isObligationOnDisputeWatch, toBigIntAmount, } from "./protocol";
 export const WORKBENCH_VERSION_STAMP = "Shared protocol operations";
 export const WORKBENCH_NAV = [
     { id: "overview", href: "/overview", label: "Overview", icon: "overview" },
@@ -11,6 +11,7 @@ export const WORKBENCH_NAV = [
 ];
 export const PLAN_TABS = [
     { id: "overview", label: "Overview" },
+    { id: "coverage", label: "Coverage" },
     { id: "members", label: "Members" },
     { id: "claims", label: "Claims" },
     { id: "treasury", label: "Treasury" },
@@ -337,6 +338,10 @@ export function planAddressForSeries(seriesAddress) {
 }
 export function firstSeriesAddressForPlan(planAddress) {
     return (DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.healthPlan === (planAddress ?? ""))?.address
+        ?? null);
+}
+export function firstProtectionSeriesAddressForPlan(planAddress) {
+    return (DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.healthPlan === (planAddress ?? "") && series.mode === SERIES_MODE_PROTECTION)?.address
         ?? null);
 }
 export function buildGovernanceQueue(proposals = []) {

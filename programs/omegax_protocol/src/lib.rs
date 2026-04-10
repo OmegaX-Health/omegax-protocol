@@ -3,6 +3,7 @@
 //! Canonical OmegaX health capital markets program surface.
 
 use anchor_lang::prelude::*;
+use anchor_spl::token_interface::TokenAccount;
 
 declare_id!("Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B");
 
@@ -21,6 +22,7 @@ pub const SEED_PLAN_RESERVE_LEDGER: &[u8] = b"plan_reserve_ledger";
 pub const SEED_POLICY_SERIES: &[u8] = b"policy_series";
 pub const SEED_SERIES_RESERVE_LEDGER: &[u8] = b"series_reserve_ledger";
 pub const SEED_MEMBER_POSITION: &[u8] = b"member_position";
+pub const SEED_MEMBERSHIP_ANCHOR_SEAT: &[u8] = b"membership_anchor_seat";
 pub const SEED_FUNDING_LINE: &[u8] = b"funding_line";
 pub const SEED_FUNDING_LINE_LEDGER: &[u8] = b"funding_line_ledger";
 pub const SEED_CLAIM_CASE: &[u8] = b"claim_case";
@@ -57,6 +59,20 @@ pub const ELIGIBILITY_PENDING: u8 = 0;
 pub const ELIGIBILITY_ELIGIBLE: u8 = 1;
 pub const ELIGIBILITY_PAUSED: u8 = 2;
 pub const ELIGIBILITY_CLOSED: u8 = 3;
+
+pub const MEMBERSHIP_MODE_OPEN: u8 = 0;
+pub const MEMBERSHIP_MODE_TOKEN_GATE: u8 = 1;
+pub const MEMBERSHIP_MODE_INVITE_ONLY: u8 = 2;
+
+pub const MEMBERSHIP_GATE_KIND_OPEN: u8 = 0;
+pub const MEMBERSHIP_GATE_KIND_INVITE_ONLY: u8 = 1;
+pub const MEMBERSHIP_GATE_KIND_NFT_ANCHOR: u8 = 2;
+pub const MEMBERSHIP_GATE_KIND_STAKE_ANCHOR: u8 = 3;
+pub const MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT: u8 = 4;
+
+pub const MEMBERSHIP_PROOF_MODE_OPEN: u8 = 0;
+pub const MEMBERSHIP_PROOF_MODE_TOKEN_GATE: u8 = 1;
+pub const MEMBERSHIP_PROOF_MODE_INVITE_PERMIT: u8 = 2;
 
 pub const CLAIM_INTAKE_OPEN: u8 = 0;
 pub const CLAIM_INTAKE_UNDER_REVIEW: u8 = 1;
@@ -262,6 +278,7 @@ pub mod omegax_protocol {
             ctx.accounts.reserve_domain.active,
             OmegaXProtocolError::ReserveDomainInactive
         );
+        validate_membership_gate_config(&args)?;
 
         let plan = &mut ctx.accounts.health_plan;
         plan.reserve_domain = ctx.accounts.reserve_domain.key();
@@ -275,6 +292,10 @@ pub mod omegax_protocol {
         plan.organization_ref = args.organization_ref;
         plan.metadata_uri = args.metadata_uri;
         plan.membership_mode = args.membership_mode;
+        plan.membership_gate_kind = args.membership_gate_kind;
+        plan.membership_gate_mint = args.membership_gate_mint;
+        plan.membership_gate_min_amount = args.membership_gate_min_amount;
+        plan.membership_invite_authority = args.membership_invite_authority;
         plan.allowed_rail_mask = args.allowed_rail_mask;
         plan.default_funding_priority = args.default_funding_priority;
         plan.oracle_policy_hash = args.oracle_policy_hash;
@@ -303,11 +324,17 @@ pub mod omegax_protocol {
             &ctx.accounts.protocol_governance,
             &ctx.accounts.health_plan,
         )?;
+        validate_membership_gate_update_config(&args)?;
 
         let plan = &mut ctx.accounts.health_plan;
         plan.sponsor_operator = args.sponsor_operator;
         plan.claims_operator = args.claims_operator;
         plan.oracle_authority = args.oracle_authority;
+        plan.membership_mode = args.membership_mode;
+        plan.membership_gate_kind = args.membership_gate_kind;
+        plan.membership_gate_mint = args.membership_gate_mint;
+        plan.membership_gate_min_amount = args.membership_gate_min_amount;
+        plan.membership_invite_authority = args.membership_invite_authority;
         plan.allowed_rail_mask = args.allowed_rail_mask;
         plan.default_funding_priority = args.default_funding_priority;
         plan.oracle_policy_hash = args.oracle_policy_hash;
@@ -461,6 +488,37 @@ pub mod omegax_protocol {
             ctx.accounts.health_plan.pause_flags & PAUSE_FLAG_PLAN_OPERATIONS == 0,
             OmegaXProtocolError::HealthPlanPaused
         );
+        validate_membership_proof(&ctx, &args)?;
+
+        let now_ts = Clock::get()?.unix_timestamp;
+        let resolved_anchor_ref = resolved_membership_anchor_ref(
+            &ctx.accounts.health_plan,
+            ctx.accounts
+                .token_gate_account
+                .as_ref()
+                .map(|account| account.key()),
+            args.anchor_ref,
+        )?;
+        if membership_gate_kind_requires_anchor_seat(
+            ctx.accounts.health_plan.membership_mode,
+            ctx.accounts.health_plan.membership_gate_kind,
+        ) {
+            let anchor_seat = ctx
+                .accounts
+                .membership_anchor_seat
+                .as_deref_mut()
+                .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
+            activate_membership_anchor_seat(
+                anchor_seat,
+                ctx.accounts.health_plan.key(),
+                resolved_anchor_ref,
+                ctx.accounts.health_plan.membership_gate_kind,
+                ctx.accounts.wallet.key(),
+                ctx.accounts.member_position.key(),
+                now_ts,
+                ctx.bumps.membership_anchor_seat,
+            )?;
+        }
 
         let member_position = &mut ctx.accounts.member_position;
         member_position.health_plan = ctx.accounts.health_plan.key();
@@ -469,8 +527,13 @@ pub mod omegax_protocol {
         member_position.subject_commitment = args.subject_commitment;
         member_position.eligibility_status = args.eligibility_status;
         member_position.delegated_rights = args.delegated_rights;
+        member_position.enrollment_proof_mode = args.proof_mode;
+        member_position.membership_gate_kind = ctx.accounts.health_plan.membership_gate_kind;
+        member_position.membership_anchor_ref = resolved_anchor_ref;
+        member_position.gate_amount_snapshot = args.token_gate_amount_snapshot;
+        member_position.invite_id_hash = args.invite_id_hash;
         member_position.active = true;
-        member_position.opened_at = Clock::get()?.unix_timestamp;
+        member_position.opened_at = now_ts;
         member_position.updated_at = member_position.opened_at;
         member_position.bump = ctx.bumps.member_position;
 
@@ -492,6 +555,31 @@ pub mod omegax_protocol {
         member_position.delegated_rights = args.delegated_rights;
         member_position.active = args.active;
         member_position.updated_at = Clock::get()?.unix_timestamp;
+
+        if !args.active
+            && membership_gate_kind_requires_anchor_seat(
+                health_plan_membership_mode(&ctx.accounts.health_plan),
+                member_position.membership_gate_kind,
+            )
+        {
+            let anchor_seat = ctx
+                .accounts
+                .membership_anchor_seat
+                .as_deref_mut()
+                .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
+            require_keys_eq!(
+                anchor_seat.health_plan,
+                ctx.accounts.health_plan.key(),
+                OmegaXProtocolError::MembershipAnchorSeatMismatch
+            );
+            require_keys_eq!(
+                anchor_seat.anchor_ref,
+                member_position.membership_anchor_ref,
+                OmegaXProtocolError::MembershipAnchorSeatMismatch
+            );
+            anchor_seat.active = false;
+            anchor_seat.updated_at = member_position.updated_at;
+        }
 
         Ok(())
     }
@@ -1794,6 +1882,16 @@ pub struct OpenMemberPosition<'info> {
         bump
     )]
     pub member_position: Account<'info, MemberPosition>,
+    #[account(
+        init_if_needed,
+        payer = wallet,
+        space = 8 + MembershipAnchorSeat::INIT_SPACE,
+        seeds = [SEED_MEMBERSHIP_ANCHOR_SEAT, health_plan.key().as_ref(), args.anchor_ref.as_ref()],
+        bump
+    )]
+    pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,
+    pub token_gate_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    pub invite_authority: Option<Signer<'info>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1806,6 +1904,7 @@ pub struct UpdateMemberEligibility<'info> {
     pub health_plan: Account<'info, HealthPlan>,
     #[account(mut, seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()], bump = member_position.bump)]
     pub member_position: Account<'info, MemberPosition>,
+    pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,
 }
 
 #[derive(Accounts)]
@@ -2398,6 +2497,10 @@ pub struct HealthPlan {
     #[max_len(MAX_URI_LEN)]
     pub metadata_uri: String,
     pub membership_mode: u8,
+    pub membership_gate_kind: u8,
+    pub membership_gate_mint: Pubkey,
+    pub membership_gate_min_amount: u64,
+    pub membership_invite_authority: Pubkey,
     pub allowed_rail_mask: u16,
     pub default_funding_priority: u8,
     pub oracle_policy_hash: [u8; 32],
@@ -2449,6 +2552,25 @@ pub struct MemberPosition {
     pub subject_commitment: [u8; 32],
     pub eligibility_status: u8,
     pub delegated_rights: u32,
+    pub enrollment_proof_mode: u8,
+    pub membership_gate_kind: u8,
+    pub membership_anchor_ref: Pubkey,
+    pub gate_amount_snapshot: u64,
+    pub invite_id_hash: [u8; 32],
+    pub active: bool,
+    pub opened_at: i64,
+    pub updated_at: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct MembershipAnchorSeat {
+    pub health_plan: Pubkey,
+    pub anchor_ref: Pubkey,
+    pub gate_kind: u8,
+    pub holder_wallet: Pubkey,
+    pub member_position: Pubkey,
     pub active: bool,
     pub opened_at: i64,
     pub updated_at: i64,
@@ -2767,6 +2889,10 @@ pub struct CreateHealthPlanArgs {
     pub claims_operator: Pubkey,
     pub oracle_authority: Pubkey,
     pub membership_mode: u8,
+    pub membership_gate_kind: u8,
+    pub membership_gate_mint: Pubkey,
+    pub membership_gate_min_amount: u64,
+    pub membership_invite_authority: Pubkey,
     pub allowed_rail_mask: u16,
     pub default_funding_priority: u8,
     pub oracle_policy_hash: [u8; 32],
@@ -2780,6 +2906,11 @@ pub struct UpdateHealthPlanControlsArgs {
     pub sponsor_operator: Pubkey,
     pub claims_operator: Pubkey,
     pub oracle_authority: Pubkey,
+    pub membership_mode: u8,
+    pub membership_gate_kind: u8,
+    pub membership_gate_mint: Pubkey,
+    pub membership_gate_min_amount: u64,
+    pub membership_invite_authority: Pubkey,
     pub allowed_rail_mask: u16,
     pub default_funding_priority: u8,
     pub oracle_policy_hash: [u8; 32],
@@ -2839,6 +2970,11 @@ pub struct OpenMemberPositionArgs {
     pub subject_commitment: [u8; 32],
     pub eligibility_status: u8,
     pub delegated_rights: u32,
+    pub proof_mode: u8,
+    pub token_gate_amount_snapshot: u64,
+    pub invite_id_hash: [u8; 32],
+    pub invite_expires_at: i64,
+    pub anchor_ref: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -3242,6 +3378,30 @@ pub enum OmegaXProtocolError {
     InsufficientFreeAllocationCapacity,
     #[msg("Arithmetic overflow or underflow")]
     ArithmeticError,
+    #[msg("Membership gate configuration is invalid")]
+    MembershipGateConfigurationInvalid,
+    #[msg("Membership proof mode does not match the configured plan posture")]
+    MembershipProofModeMismatch,
+    #[msg("Invite authority is missing or invalid for this plan")]
+    MembershipInviteAuthorityInvalid,
+    #[msg("Invite permit is expired")]
+    MembershipInvitePermitExpired,
+    #[msg("Token-gate proof account is missing")]
+    MembershipTokenGateAccountMissing,
+    #[msg("Token-gate proof account owner does not match the enrolling wallet")]
+    MembershipTokenGateOwnerMismatch,
+    #[msg("Token-gate proof account mint does not match the configured gate mint")]
+    MembershipTokenGateMintMismatch,
+    #[msg("Token-gate proof amount is below the configured minimum")]
+    MembershipTokenGateAmountTooLow,
+    #[msg("Anchor-backed membership requires an anchor seat account")]
+    MembershipAnchorSeatRequired,
+    #[msg("Anchor-backed membership seat is already active")]
+    MembershipAnchorSeatAlreadyActive,
+    #[msg("Anchor-backed membership seat does not match the provided anchor reference")]
+    MembershipAnchorSeatMismatch,
+    #[msg("Anchor-backed membership requires a non-zero anchor reference")]
+    MembershipAnchorReferenceMissing,
 }
 
 fn require_id(value: &str) -> Result<()> {
@@ -3286,6 +3446,291 @@ fn require_plan_control(
     } else {
         err!(OmegaXProtocolError::Unauthorized)
     }
+}
+
+fn health_plan_membership_mode(plan: &HealthPlan) -> u8 {
+    plan.membership_mode
+}
+
+fn membership_mode_requires_token_gate(mode: u8) -> bool {
+    mode == MEMBERSHIP_MODE_TOKEN_GATE
+}
+
+fn membership_gate_kind_requires_anchor_seat(mode: u8, gate_kind: u8) -> bool {
+    membership_mode_requires_token_gate(mode)
+        && (gate_kind == MEMBERSHIP_GATE_KIND_NFT_ANCHOR
+            || gate_kind == MEMBERSHIP_GATE_KIND_STAKE_ANCHOR)
+}
+
+fn validate_membership_gate_fields(
+    membership_mode: u8,
+    membership_gate_kind: u8,
+    membership_gate_mint: Pubkey,
+    membership_gate_min_amount: u64,
+    membership_invite_authority: Pubkey,
+) -> Result<()> {
+    match membership_mode {
+        MEMBERSHIP_MODE_OPEN => {
+            require!(
+                membership_gate_kind == MEMBERSHIP_GATE_KIND_OPEN
+                    && membership_gate_mint == ZERO_PUBKEY
+                    && membership_gate_min_amount == 0
+                    && membership_invite_authority == ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+        }
+        MEMBERSHIP_MODE_INVITE_ONLY => {
+            require!(
+                membership_gate_kind == MEMBERSHIP_GATE_KIND_INVITE_ONLY
+                    && membership_gate_mint == ZERO_PUBKEY
+                    && membership_gate_min_amount == 0
+                    && membership_invite_authority != ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+        }
+        MEMBERSHIP_MODE_TOKEN_GATE => {
+            require!(
+                membership_gate_kind == MEMBERSHIP_GATE_KIND_NFT_ANCHOR
+                    || membership_gate_kind == MEMBERSHIP_GATE_KIND_STAKE_ANCHOR
+                    || membership_gate_kind == MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+            require!(
+                membership_gate_mint != ZERO_PUBKEY && membership_gate_min_amount > 0,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+            require!(
+                membership_invite_authority == ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+        }
+        _ => return err!(OmegaXProtocolError::MembershipGateConfigurationInvalid),
+    }
+
+    Ok(())
+}
+
+fn validate_membership_gate_config(args: &CreateHealthPlanArgs) -> Result<()> {
+    validate_membership_gate_fields(
+        args.membership_mode,
+        args.membership_gate_kind,
+        args.membership_gate_mint,
+        args.membership_gate_min_amount,
+        args.membership_invite_authority,
+    )
+}
+
+fn validate_membership_gate_update_config(args: &UpdateHealthPlanControlsArgs) -> Result<()> {
+    validate_membership_gate_fields(
+        args.membership_mode,
+        args.membership_gate_kind,
+        args.membership_gate_mint,
+        args.membership_gate_min_amount,
+        args.membership_invite_authority,
+    )
+}
+
+fn validate_membership_proof(
+    ctx: &Context<OpenMemberPosition>,
+    args: &OpenMemberPositionArgs,
+) -> Result<()> {
+    validate_membership_proof_inputs(&MembershipProofValidationInput {
+        membership_mode: ctx.accounts.health_plan.membership_mode,
+        membership_gate_mint: ctx.accounts.health_plan.membership_gate_mint,
+        membership_gate_min_amount: ctx.accounts.health_plan.membership_gate_min_amount,
+        membership_invite_authority: ctx.accounts.health_plan.membership_invite_authority,
+        wallet: ctx.accounts.wallet.key(),
+        proof_mode: args.proof_mode,
+        token_gate_amount_snapshot: args.token_gate_amount_snapshot,
+        invite_expires_at: args.invite_expires_at,
+        token_gate_owner: ctx
+            .accounts
+            .token_gate_account
+            .as_ref()
+            .map(|account| account.owner),
+        token_gate_mint: ctx
+            .accounts
+            .token_gate_account
+            .as_ref()
+            .map(|account| account.mint),
+        token_gate_amount: ctx
+            .accounts
+            .token_gate_account
+            .as_ref()
+            .map(|account| account.amount),
+        invite_authority: ctx
+            .accounts
+            .invite_authority
+            .as_ref()
+            .map(|authority| authority.key()),
+        now_ts: Clock::get()?.unix_timestamp,
+    })
+}
+
+struct MembershipProofValidationInput {
+    membership_mode: u8,
+    membership_gate_mint: Pubkey,
+    membership_gate_min_amount: u64,
+    membership_invite_authority: Pubkey,
+    wallet: Pubkey,
+    proof_mode: u8,
+    token_gate_amount_snapshot: u64,
+    invite_expires_at: i64,
+    token_gate_owner: Option<Pubkey>,
+    token_gate_mint: Option<Pubkey>,
+    token_gate_amount: Option<u64>,
+    invite_authority: Option<Pubkey>,
+    now_ts: i64,
+}
+
+fn validate_membership_proof_inputs(input: &MembershipProofValidationInput) -> Result<()> {
+    match input.membership_mode {
+        MEMBERSHIP_MODE_OPEN => {
+            require!(
+                input.proof_mode == MEMBERSHIP_PROOF_MODE_OPEN,
+                OmegaXProtocolError::MembershipProofModeMismatch
+            );
+        }
+        MEMBERSHIP_MODE_INVITE_ONLY => {
+            require!(
+                input.proof_mode == MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
+                OmegaXProtocolError::MembershipProofModeMismatch
+            );
+            let invite_authority = input
+                .invite_authority
+                .ok_or(OmegaXProtocolError::MembershipInviteAuthorityInvalid)?;
+            require_keys_eq!(
+                invite_authority,
+                input.membership_invite_authority,
+                OmegaXProtocolError::MembershipInviteAuthorityInvalid
+            );
+            require!(
+                input.invite_expires_at == 0 || input.invite_expires_at >= input.now_ts,
+                OmegaXProtocolError::MembershipInvitePermitExpired
+            );
+        }
+        MEMBERSHIP_MODE_TOKEN_GATE => {
+            require!(
+                input.proof_mode == MEMBERSHIP_PROOF_MODE_TOKEN_GATE,
+                OmegaXProtocolError::MembershipProofModeMismatch
+            );
+            let token_gate_owner = input
+                .token_gate_owner
+                .ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
+            let token_gate_mint = input
+                .token_gate_mint
+                .ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
+            let token_gate_amount = input
+                .token_gate_amount
+                .ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
+            require_keys_eq!(
+                token_gate_owner,
+                input.wallet,
+                OmegaXProtocolError::MembershipTokenGateOwnerMismatch
+            );
+            require_keys_eq!(
+                token_gate_mint,
+                input.membership_gate_mint,
+                OmegaXProtocolError::MembershipTokenGateMintMismatch
+            );
+            require!(
+                token_gate_amount >= input.membership_gate_min_amount,
+                OmegaXProtocolError::MembershipTokenGateAmountTooLow
+            );
+            require!(
+                input.token_gate_amount_snapshot >= input.membership_gate_min_amount,
+                OmegaXProtocolError::MembershipTokenGateAmountTooLow
+            );
+        }
+        _ => return err!(OmegaXProtocolError::MembershipGateConfigurationInvalid),
+    }
+
+    Ok(())
+}
+
+fn resolved_membership_anchor_ref(
+    plan: &HealthPlan,
+    token_gate_account: Option<Pubkey>,
+    anchor_ref: Pubkey,
+) -> Result<Pubkey> {
+    match plan.membership_gate_kind {
+        MEMBERSHIP_GATE_KIND_NFT_ANCHOR => {
+            require!(
+                anchor_ref != ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipAnchorReferenceMissing
+            );
+            require_keys_eq!(
+                anchor_ref,
+                plan.membership_gate_mint,
+                OmegaXProtocolError::MembershipAnchorSeatMismatch
+            );
+            Ok(anchor_ref)
+        }
+        MEMBERSHIP_GATE_KIND_STAKE_ANCHOR => {
+            let token_gate_account =
+                token_gate_account.ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
+            require!(
+                anchor_ref != ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipAnchorReferenceMissing
+            );
+            require_keys_eq!(
+                anchor_ref,
+                token_gate_account,
+                OmegaXProtocolError::MembershipAnchorSeatMismatch
+            );
+            Ok(anchor_ref)
+        }
+        _ => Ok(ZERO_PUBKEY),
+    }
+}
+
+fn activate_membership_anchor_seat(
+    anchor_seat: &mut MembershipAnchorSeat,
+    health_plan: Pubkey,
+    anchor_ref: Pubkey,
+    gate_kind: u8,
+    holder_wallet: Pubkey,
+    member_position: Pubkey,
+    now_ts: i64,
+    bump: Option<u8>,
+) -> Result<()> {
+    if anchor_seat.health_plan == ZERO_PUBKEY {
+        anchor_seat.health_plan = health_plan;
+        anchor_seat.anchor_ref = anchor_ref;
+        anchor_seat.gate_kind = gate_kind;
+        anchor_seat.holder_wallet = holder_wallet;
+        anchor_seat.member_position = member_position;
+        anchor_seat.active = true;
+        anchor_seat.opened_at = now_ts;
+        anchor_seat.updated_at = now_ts;
+        anchor_seat.bump = bump.unwrap_or(anchor_seat.bump);
+        return Ok(());
+    }
+
+    require_keys_eq!(
+        anchor_seat.health_plan,
+        health_plan,
+        OmegaXProtocolError::MembershipAnchorSeatMismatch
+    );
+    require_keys_eq!(
+        anchor_seat.anchor_ref,
+        anchor_ref,
+        OmegaXProtocolError::MembershipAnchorSeatMismatch
+    );
+    require!(
+        !anchor_seat.active,
+        OmegaXProtocolError::MembershipAnchorSeatAlreadyActive
+    );
+    anchor_seat.gate_kind = gate_kind;
+    anchor_seat.holder_wallet = holder_wallet;
+    anchor_seat.member_position = member_position;
+    anchor_seat.active = true;
+    anchor_seat.updated_at = now_ts;
+    if anchor_seat.opened_at == 0 {
+        anchor_seat.opened_at = now_ts;
+    }
+
+    Ok(())
 }
 
 fn require_claim_operator(
@@ -3917,5 +4362,164 @@ mod tests {
         book_impairment(&mut sheet, 100).unwrap();
         assert_eq!(sheet.free, 750);
         assert_eq!(sheet.redeemable, 350);
+    }
+
+    fn membership_proof_input(
+        membership_mode: u8,
+        proof_mode: u8,
+    ) -> MembershipProofValidationInput {
+        MembershipProofValidationInput {
+            membership_mode,
+            membership_gate_mint: Pubkey::new_unique(),
+            membership_gate_min_amount: 1,
+            membership_invite_authority: Pubkey::new_unique(),
+            wallet: Pubkey::new_unique(),
+            proof_mode,
+            token_gate_amount_snapshot: 1,
+            invite_expires_at: 0,
+            token_gate_owner: None,
+            token_gate_mint: None,
+            token_gate_amount: None,
+            invite_authority: None,
+            now_ts: 100,
+        }
+    }
+
+    fn health_plan_with_membership_gate(gate_kind: u8, gate_mint: Pubkey) -> HealthPlan {
+        HealthPlan {
+            reserve_domain: Pubkey::new_unique(),
+            sponsor: Pubkey::new_unique(),
+            plan_admin: Pubkey::new_unique(),
+            sponsor_operator: Pubkey::new_unique(),
+            claims_operator: Pubkey::new_unique(),
+            oracle_authority: Pubkey::new_unique(),
+            health_plan_id: String::new(),
+            display_name: String::new(),
+            organization_ref: String::new(),
+            metadata_uri: String::new(),
+            membership_mode: MEMBERSHIP_MODE_TOKEN_GATE,
+            membership_gate_kind: gate_kind,
+            membership_gate_mint: gate_mint,
+            membership_gate_min_amount: 1,
+            membership_invite_authority: ZERO_PUBKEY,
+            allowed_rail_mask: 0,
+            default_funding_priority: 0,
+            oracle_policy_hash: [0; 32],
+            schema_binding_hash: [0; 32],
+            compliance_baseline_hash: [0; 32],
+            pause_flags: 0,
+            active: true,
+            audit_nonce: 0,
+            bump: 1,
+        }
+    }
+
+    #[test]
+    fn membership_proof_validation_accepts_open_and_invite_modes() {
+        let open_input = membership_proof_input(MEMBERSHIP_MODE_OPEN, MEMBERSHIP_PROOF_MODE_OPEN);
+        assert!(validate_membership_proof_inputs(&open_input).is_ok());
+
+        let mut invite_input = membership_proof_input(
+            MEMBERSHIP_MODE_INVITE_ONLY,
+            MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
+        );
+        invite_input.invite_authority = Some(invite_input.membership_invite_authority);
+        invite_input.invite_expires_at = invite_input.now_ts + 10;
+        assert!(validate_membership_proof_inputs(&invite_input).is_ok());
+    }
+
+    #[test]
+    fn membership_proof_validation_accepts_token_gate_variants() {
+        let mut snapshot_input =
+            membership_proof_input(MEMBERSHIP_MODE_TOKEN_GATE, MEMBERSHIP_PROOF_MODE_TOKEN_GATE);
+        snapshot_input.membership_gate_min_amount = 500;
+        snapshot_input.token_gate_amount_snapshot = 500;
+        snapshot_input.token_gate_owner = Some(snapshot_input.wallet);
+        snapshot_input.token_gate_mint = Some(snapshot_input.membership_gate_mint);
+        snapshot_input.token_gate_amount = Some(500);
+        assert!(validate_membership_proof_inputs(&snapshot_input).is_ok());
+
+        let nft_anchor_ref = resolved_membership_anchor_ref(
+            &health_plan_with_membership_gate(
+                MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
+                snapshot_input.membership_gate_mint,
+            ),
+            None,
+            snapshot_input.membership_gate_mint,
+        )
+        .unwrap();
+        assert_eq!(nft_anchor_ref, snapshot_input.membership_gate_mint);
+
+        let stake_anchor_account = Pubkey::new_unique();
+        let stake_anchor_ref = resolved_membership_anchor_ref(
+            &health_plan_with_membership_gate(
+                MEMBERSHIP_GATE_KIND_STAKE_ANCHOR,
+                snapshot_input.membership_gate_mint,
+            ),
+            Some(stake_anchor_account),
+            stake_anchor_account,
+        )
+        .unwrap();
+        assert_eq!(stake_anchor_ref, stake_anchor_account);
+    }
+
+    #[test]
+    fn membership_anchor_seat_cannot_be_activated_twice_while_live() {
+        let health_plan = Pubkey::new_unique();
+        let anchor_ref = Pubkey::new_unique();
+        let mut anchor_seat = MembershipAnchorSeat {
+            health_plan: ZERO_PUBKEY,
+            anchor_ref: ZERO_PUBKEY,
+            gate_kind: MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
+            holder_wallet: ZERO_PUBKEY,
+            member_position: ZERO_PUBKEY,
+            active: false,
+            opened_at: 0,
+            updated_at: 0,
+            bump: 0,
+        };
+
+        assert!(activate_membership_anchor_seat(
+            &mut anchor_seat,
+            health_plan,
+            anchor_ref,
+            MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            50,
+            Some(9),
+        )
+        .is_ok());
+        assert!(anchor_seat.active);
+        assert_eq!(anchor_seat.health_plan, health_plan);
+        assert_eq!(anchor_seat.anchor_ref, anchor_ref);
+
+        assert!(activate_membership_anchor_seat(
+            &mut anchor_seat,
+            health_plan,
+            anchor_ref,
+            MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            60,
+            Some(9),
+        )
+        .is_err());
+
+        anchor_seat.active = false;
+        assert!(activate_membership_anchor_seat(
+            &mut anchor_seat,
+            health_plan,
+            anchor_ref,
+            MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            70,
+            Some(9),
+        )
+        .is_ok());
+        assert!(anchor_seat.active);
+        assert_eq!(anchor_seat.opened_at, 50);
+        assert_eq!(anchor_seat.updated_at, 70);
     }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { firstSeriesAddressForPlan, linkedContextForPool } from "@/lib/workbench";
+import { firstProtectionSeriesAddressForPlan, firstSeriesAddressForPlan, linkedContextForPool } from "@/lib/workbench";
 export function buildCanonicalPoolHref(poolAddress, { panel, section } = {}) {
     const params = new URLSearchParams();
     const linked = linkedContextForPool(poolAddress);
@@ -30,7 +30,7 @@ export function buildCanonicalPoolHref(poolAddress, { panel, section } = {}) {
         case "coverage":
         case "settings":
             pathname = "/plans";
-            resolvedPanel ||= section === "coverage" ? "series" : "settings";
+            resolvedPanel ||= section === "coverage" ? "coverage" : "settings";
             break;
         case "treasury":
             pathname = "/capital";
@@ -50,7 +50,11 @@ export function buildCanonicalPoolHref(poolAddress, { panel, section } = {}) {
     if (pathname === "/plans") {
         if (linked.plan)
             params.set("plan", linked.plan);
-        const resolvedSeries = linked.series || (resolvedPanel === "schemas" ? firstSeriesAddressForPlan(linked.plan) : null);
+        const resolvedSeries = linked.series || (resolvedPanel === "schemas"
+            ? firstSeriesAddressForPlan(linked.plan)
+            : resolvedPanel === "coverage"
+                ? firstProtectionSeriesAddressForPlan(linked.plan)
+                : null);
         if (resolvedSeries)
             params.set("series", resolvedSeries);
     }

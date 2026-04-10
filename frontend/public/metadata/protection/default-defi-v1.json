@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "lane": "protection",
+  "metadataUri": "/metadata/protection/default-defi-v1.json",
+  "coveragePathway": "defi_native",
+  "defi": {
+    "settlementStyle": "onchain_programmatic",
+    "technicalTermsUri": "https://protocol.omegax.health/coverage/technical-terms",
+    "riskDisclosureUri": "https://protocol.omegax.health/coverage/risk-disclosures"
+  }
+}

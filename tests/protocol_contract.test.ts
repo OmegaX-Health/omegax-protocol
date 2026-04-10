@@ -34,6 +34,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(accountNames.includes("ReserveDomain"));
   assert(accountNames.includes("HealthPlan"));
   assert(accountNames.includes("PolicySeries"));
+  assert(accountNames.includes("MembershipAnchorSeat"));
   assert(accountNames.includes("FundingLine"));
   assert(accountNames.includes("LiquidityPool"));
   assert(accountNames.includes("CapitalClass"));
@@ -43,6 +44,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(!instructionNames.includes("create_pool"));
   assert(!instructionNames.includes("set_pool_status"));
   assert(!serializedAccounts.includes("pool_type"));
+  assert(serializedAccounts.includes("membership_anchor_seat"));
   assert(PROTOCOL_INSTRUCTION_ARGS.deposit_into_capital_class.length === 1);
   assert(idl.instructions.some((instruction) => instruction.name === "update_lp_position_credentialing"));
   assert.equal(depositArgs?.type.kind, "struct");

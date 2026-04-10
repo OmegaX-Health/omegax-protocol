@@ -21,6 +21,7 @@ import {
 } from "@/lib/plan-launch-tx";
 import {
   buildLaunchAddressPreview,
+  deriveLaunchPreflightAccountAddresses,
   buildLaunchReviewLinks,
   dedupeOracleOptions,
   defaultPayoutMintForIntent,
@@ -39,9 +40,11 @@ import {
   type CoveragePathway,
   type DefiSettlementMode,
   type LaunchIntent,
+  type MembershipGateKind,
   type MembershipMode,
   type PayoutAssetMode,
 } from "@/lib/plan-launch";
+import { validateProtectionMetadataAgainstPosture } from "@/lib/protection-metadata";
 import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
   deriveFundingLinePda,
@@ -112,6 +115,14 @@ type WizardDetailState =
 
 const ZERO_HASH = "0".repeat(64);
 const SOL_DECIMALS = 9;
+const DEFAULT_PROTECTION_METADATA_URIS = {
+  defi_native: "/metadata/protection/default-defi-v1.json",
+  rwa_policy: "/metadata/protection/default-rwa-v1.json",
+} as const;
+
+function defaultProtectionMetadataUri(pathway: Exclude<CoveragePathway, "">): string {
+  return DEFAULT_PROTECTION_METADATA_URIS[pathway];
+}
 
 const STEP_COPY: Record<StepId, StepCopy> = {
   basics: {
@@ -362,6 +373,7 @@ export function PlanCreationWizard() {
   const [rwaComplianceContact, setRwaComplianceContact] = useState("");
 
   const [membershipMode, setMembershipMode] = useState<MembershipMode>("open");
+  const [membershipGateKind, setMembershipGateKind] = useState<MembershipGateKind>("open");
   const [tokenGateMint, setTokenGateMint] = useState("");
   const [tokenGateMinBalance, setTokenGateMinBalance] = useState("1");
   const [inviteIssuer, setInviteIssuer] = useState("");
@@ -390,7 +402,7 @@ export function PlanCreationWizard() {
 
   const [protectionSeriesId, setProtectionSeriesId] = useState("");
   const [protectionSeriesDisplayName, setProtectionSeriesDisplayName] = useState("");
-  const [protectionSeriesMetadataUri, setProtectionSeriesMetadataUri] = useState("https://protocol.omegax.health/series/protection");
+  const [protectionSeriesMetadataUri, setProtectionSeriesMetadataUri] = useState(defaultProtectionMetadataUri("defi_native"));
   const [protectionFundingLineId, setProtectionFundingLineId] = useState("");
   const [protectionCadenceDays, setProtectionCadenceDays] = useState("30");
   const [protectionExpectedPremiumUi, setProtectionExpectedPremiumUi] = useState("250");
@@ -418,6 +430,37 @@ export function PlanCreationWizard() {
   const openDetail = useCallback((detail: WizardDetailState, trigger: HTMLButtonElement) => {
     detailTriggerRefs.current[wizardDetailKey(detail)] = trigger;
     setActiveDetail(detail);
+  }, []);
+
+  const handleMembershipModeChange = useCallback((nextMode: MembershipMode) => {
+    setMembershipMode(nextMode);
+    if (nextMode === "open") {
+      setMembershipGateKind("open");
+      return;
+    }
+    if (nextMode === "invite_only") {
+      setMembershipGateKind("invite_only");
+      return;
+    }
+    setMembershipGateKind((current) =>
+      current === "nft_anchor" || current === "stake_anchor" || current === "fungible_snapshot"
+        ? current
+        : "fungible_snapshot");
+  }, []);
+
+  const handleCoveragePathwayChange = useCallback((nextPathway: Exclude<CoveragePathway, "">) => {
+    setCoveragePathway(nextPathway);
+    setProtectionSeriesMetadataUri((current) => {
+      const normalizedCurrent = normalize(current);
+      if (
+        !normalizedCurrent
+        || normalizedCurrent === normalize(defaultProtectionMetadataUri("defi_native"))
+        || normalizedCurrent === normalize(defaultProtectionMetadataUri("rwa_policy"))
+      ) {
+        return defaultProtectionMetadataUri(nextPathway);
+      }
+      return current;
+    });
   }, []);
 
   const closeActiveDetail = useCallback(() => {
@@ -693,12 +736,14 @@ export function PlanCreationWizard() {
 
   const membershipErrors = useMemo(
     () => validateLaunchMembership({
+      launchIntent,
       membershipMode,
+      membershipGateKind,
       tokenGateMint,
       tokenGateMinBalance,
       inviteIssuer,
     }),
-    [inviteIssuer, membershipMode, tokenGateMinBalance, tokenGateMint],
+    [inviteIssuer, launchIntent, membershipGateKind, membershipMode, tokenGateMinBalance, tokenGateMint],
   );
 
   const verificationErrors = useMemo(
@@ -1069,44 +1114,22 @@ export function PlanCreationWizard() {
       setStatusMessage(null);
       setStatusTone(null);
 
-      const railAddresses = [
-        ...new Set([
-          ...(
-            rewardSeriesPk && rewardFundingLinePk
-              ? Object.values(deriveLaunchLedgerAddresses({
-                reserveDomain: reserveDomainPk,
-                healthPlan: healthPlanPk,
-                assetMint: assetMintPk,
-                policySeries: rewardSeriesPk,
-                fundingLine: rewardFundingLinePk,
-              })).map((pk) => pk.toBase58())
-              : []
-          ),
-          ...(
-            protectionSeriesPk && protectionFundingLinePk
-              ? Object.values(deriveLaunchLedgerAddresses({
-                reserveDomain: reserveDomainPk,
-                healthPlan: healthPlanPk,
-                assetMint: assetMintPk,
-                policySeries: protectionSeriesPk,
-                fundingLine: protectionFundingLinePk,
-              })).map((pk) => pk.toBase58())
-              : []
-          ),
-        ]),
-      ].map((value) => new PublicKey(value));
-
-      const preflightTargets = [
-        reserveDomainPk,
-        ...railAddresses,
-      ];
+      const preflightTargets = deriveLaunchPreflightAccountAddresses({
+        reserveDomain: reserveDomainPk,
+        healthPlan: healthPlanPk,
+        assetMint: assetMintPk,
+        rewardSeries: rewardSeriesPk,
+        rewardFundingLine: rewardFundingLinePk,
+        protectionSeries: protectionSeriesPk,
+        protectionFundingLine: protectionFundingLinePk,
+      });
       const preflightInfos = await connection.getMultipleAccountsInfo(preflightTargets, "confirmed");
       if (preflightInfos[0] === null) {
         throw new Error("The selected reserve domain account is not available on the connected cluster.");
       }
       const missingRailIndex = preflightInfos.findIndex((info, index) => index > 0 && info === null);
       if (missingRailIndex >= 0) {
-        throw new Error("The selected reserve domain does not expose every required asset rail for this launch.");
+        throw new Error("The selected reserve domain does not expose the required domain asset vault and ledger for this launch asset.");
       }
 
       const artifactTargets = [
@@ -1128,6 +1151,37 @@ export function PlanCreationWizard() {
       const protectionCommittedAmount = protectionLaneRequired
         ? toUiAmountBaseUnits(protectionExpectedPremiumUi, payoutAssetMode, splDecimals)
         : 0n;
+      const membershipGateMintPk = membershipMode === "token_gate"
+        ? new PublicKey(normalize(tokenGateMint))
+        : new PublicKey(ZERO_PUBKEY);
+      const membershipInviteAuthorityPk = membershipMode === "invite_only"
+        ? new PublicKey(normalize(inviteIssuer))
+        : new PublicKey(ZERO_PUBKEY);
+      const membershipGateMinAmount = membershipMode === "token_gate"
+        ? BigInt(normalize(tokenGateMinBalance) || "0")
+        : 0n;
+      const validatedProtectionMetadata = protectionLaneRequired
+        ? await validateProtectionMetadataAgainstPosture(
+          normalize(protectionSeriesMetadataUri),
+          {
+            coveragePathway,
+            defiSettlementMode,
+            defiTechnicalTermsUri,
+            defiRiskDisclosureUri,
+            rwaLegalEntityName,
+            rwaJurisdiction,
+            rwaPolicyTermsUri,
+            rwaRegulatoryLicenseRef,
+            rwaComplianceContact,
+            protectionMetadataUri: protectionSeriesMetadataUri,
+          },
+        )
+        : null;
+      if (protectionLaneRequired && (!validatedProtectionMetadata || validatedProtectionMetadata.error || !validatedProtectionMetadata.document)) {
+        throw new Error(
+          `Protection metadata validation failed: ${validatedProtectionMetadata?.error?.message ?? "The protection metadata URI must resolve to a matching structured JSON document."}`,
+        );
+      }
 
       const oracleAuthority = new PublicKey(selectedOracles[0]!);
       const oraclePolicyHashHex = await stableSha256Hex({
@@ -1146,6 +1200,10 @@ export function PlanCreationWizard() {
       const complianceBaselineHashHex = await stableSha256Hex({
         launchIntent,
         membershipMode,
+        membershipGateKind,
+        membershipGateMint: membershipGateMintPk.toBase58(),
+        membershipGateMinAmount: membershipGateMinAmount.toString(),
+        membershipInviteAuthority: membershipInviteAuthorityPk.toBase58(),
         coveragePathway,
         reserveDomainAddress,
         payoutAssetMode,
@@ -1169,6 +1227,10 @@ export function PlanCreationWizard() {
               claimsOperator: publicKey,
               oracleAuthority,
               membershipMode,
+              membershipGateKind,
+              membershipGateMint: membershipGateMintPk,
+              membershipGateMinAmount,
+              membershipInviteAuthority: membershipInviteAuthorityPk,
               allowedRailMask: 0xffff,
               defaultFundingPriority: 0,
               oraclePolicyHashHex,
@@ -1300,32 +1362,35 @@ export function PlanCreationWizard() {
         }
       }
 
-      if (protectionLaneRequired && protectionSeriesPk && protectionFundingLinePk && protectionPosture) {
+      if (
+        protectionLaneRequired
+        && protectionSeriesPk
+        && protectionFundingLinePk
+        && protectionPosture
+        && validatedProtectionMetadata?.document
+      ) {
         const protectionTermsHashHex = normalize(termsHashHex) || await stableSha256Hex({
           planId: normalizedPlanId,
           protectionSeriesId: normalizedProtectionSeriesId,
-          posture: protectionPosture,
+          protectionMetadata: validatedProtectionMetadata.document,
         });
         const protectionPricingHashHex = await stableSha256Hex({
           cadenceDays: toPositiveInt(protectionCadenceDays),
           expectedPremiumUi: normalize(protectionExpectedPremiumUi),
           payoutAssetAddress,
         });
-        const protectionPayoutHashHex = normalize(payoutPolicyHashHex) || await stableSha256Hex({
-          coveragePathway,
-          settlementStyle: defiSettlementMode,
-          metadataUri: normalize(protectionSeriesMetadataUri),
-        });
+        const protectionPayoutHashHex = normalize(payoutPolicyHashHex) || await stableSha256Hex(validatedProtectionMetadata.document);
         const protectionEvidenceHashHex = await stableSha256Hex({
           oraclePolicyHashHex,
-          posture: protectionPosture,
+          protectionMetadata: validatedProtectionMetadata.document,
         });
         const protectionComparabilityHashHex = await stableSha256Hex({
           lane: "protection",
-          coveragePathway,
+          coveragePathway: validatedProtectionMetadata.document.coveragePathway,
+          metadataUri: validatedProtectionMetadata.document.metadataUri,
           reserveDomainAddress,
         });
-        const protectionPolicyOverridesHashHex = await stableSha256Hex(protectionPosture);
+        const protectionPolicyOverridesHashHex = await stableSha256Hex(validatedProtectionMetadata.document);
         const protectionReserveModelHashHex = await stableSha256Hex({
           lineType: "premium_income",
           cadenceDays: toPositiveInt(protectionCadenceDays),
@@ -1439,9 +1504,11 @@ export function PlanCreationWizard() {
     allowDelegatedClaims,
     connection,
     coveragePathway,
-    createdArtifacts,
     defiSettlementMode,
     displayName,
+    inviteIssuer,
+    membershipGateKind,
+    membershipMode,
     openFirstFailingStep,
     organizationRef,
     payoutAssetAddress,
@@ -1484,7 +1551,8 @@ export function PlanCreationWizard() {
     selectedOutcomeIds,
     sendTransaction,
     splDecimals,
-    statusMessage,
+    tokenGateMinBalance,
+    tokenGateMint,
     termsHashHex,
   ]);
 
@@ -1723,14 +1791,14 @@ export function PlanCreationWizard() {
                         <button
                           type="button"
                           className={cn("plans-wizard-chip", coveragePathway === "defi_native" && "plans-wizard-chip-active")}
-                          onClick={() => setCoveragePathway("defi_native")}
+                          onClick={() => handleCoveragePathwayChange("defi_native")}
                         >
                           DEFI_NATIVE
                         </button>
                         <button
                           type="button"
                           className={cn("plans-wizard-chip", coveragePathway === "rwa_policy" && "plans-wizard-chip-active")}
-                          onClick={() => setCoveragePathway("rwa_policy")}
+                          onClick={() => handleCoveragePathwayChange("rwa_policy")}
                         >
                           RWA_POLICY
                         </button>
@@ -1851,7 +1919,7 @@ export function PlanCreationWizard() {
                         key={mode}
                         type="button"
                         className={cn("plans-wizard-chip", membershipMode === mode && "plans-wizard-chip-active")}
-                        onClick={() => setMembershipMode(mode)}
+                        onClick={() => handleMembershipModeChange(mode)}
                       >
                         {mode.toUpperCase()}
                       </button>
@@ -1860,46 +1928,79 @@ export function PlanCreationWizard() {
                 </FieldGroup>
 
                 {membershipMode === "token_gate" ? (
-                  <div className="plans-wizard-row">
-                    <FieldGroup label="Token Gate Mint">
-                      <input
-                        type="text"
-                        className="plans-wizard-input"
-                        value={tokenGateMint}
-                        onChange={(event) => setTokenGateMint(event.target.value)}
-                      />
+                  <>
+                    <FieldGroup label="Token Gate Class">
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { value: "fungible_snapshot", label: "FUNGIBLE SNAPSHOT" },
+                          { value: "nft_anchor", label: "NFT ANCHOR" },
+                          { value: "stake_anchor", label: "STAKE ANCHOR" },
+                        ] as const).map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={cn("plans-wizard-chip", membershipGateKind === option.value && "plans-wizard-chip-active")}
+                            onClick={() => setMembershipGateKind(option.value)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </FieldGroup>
-                    <FieldGroup label="Minimum Balance">
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        className="plans-wizard-input"
-                        value={tokenGateMinBalance}
-                        onChange={(event) => setTokenGateMinBalance(event.target.value)}
-                      />
-                    </FieldGroup>
-                  </div>
+                    <div className="plans-wizard-row">
+                      <FieldGroup label="Token Gate Mint">
+                        <input
+                          type="text"
+                          className="plans-wizard-input"
+                          value={tokenGateMint}
+                          onChange={(event) => setTokenGateMint(event.target.value)}
+                        />
+                      </FieldGroup>
+                      <FieldGroup label={membershipGateKind === "fungible_snapshot" ? "Minimum Balance" : "Minimum Locked Amount"}>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          className="plans-wizard-input"
+                          value={tokenGateMinBalance}
+                          onChange={(event) => setTokenGateMinBalance(event.target.value)}
+                        />
+                      </FieldGroup>
+                    </div>
+                    <p className="plans-wizard-inline-copy">
+                      {membershipGateKind === "fungible_snapshot"
+                        ? "Rewards-only launches may use a simple balance snapshot gate. Protection launches must use open, invite-only, NFT anchor, or stake anchor enrollment."
+                        : membershipGateKind === "nft_anchor"
+                          ? "NFT anchor protection uses one active coverage seat per configured NFT anchor. Claims depend on active coverage state, not live possession checks at claim time."
+                          : "Stake anchor protection binds one active coverage seat to the chosen stake account anchor until the seat is deactivated."}
+                    </p>
+                  </>
                 ) : null}
 
                 {membershipMode === "invite_only" ? (
-                  <FieldGroup label="Invite Issuer Wallet">
-                    <input
-                      type="text"
-                      className="plans-wizard-input"
-                      value={inviteIssuer}
-                      onChange={(event) => setInviteIssuer(event.target.value)}
-                    />
-                  </FieldGroup>
+                  <>
+                    <FieldGroup label="Invite Issuer Wallet">
+                      <input
+                        type="text"
+                        className="plans-wizard-input"
+                        value={inviteIssuer}
+                        onChange={(event) => setInviteIssuer(event.target.value)}
+                      />
+                    </FieldGroup>
+                    <p className="plans-wizard-inline-copy">
+                      Invite-only protection still evaluates claims against active coverage and premium status. The invite gate decides who can enroll, not whether an active member can claim mid-cycle.
+                    </p>
+                  </>
                 ) : null}
 
                 <div className="plans-wizard-review-grid">
                   <ReviewRow label="MEMBERSHIP_POSTURE" value={membershipMode.toUpperCase()} />
+                  <ReviewRow label="GATE_CLASS" value={membershipGateKind.toUpperCase()} />
                   <ReviewRow
                     label="JOIN_GATING"
                     value={
                       membershipMode === "token_gate"
-                        ? `${shortAddress(tokenGateMint)} · ${tokenGateMinBalance}`
+                        ? `${membershipGateKind.toUpperCase()} · ${shortAddress(tokenGateMint)} · ${tokenGateMinBalance}`
                         : membershipMode === "invite_only"
                           ? shortAddress(inviteIssuer)
                           : "OPEN"
@@ -2255,7 +2356,7 @@ export function PlanCreationWizard() {
                         ) : null}
                         {reviewLinks.coverageWorkspaceHref ? (
                           <Link href={reviewLinks.coverageWorkspaceHref} className="secondary-button inline-flex w-fit">
-                            Open protection lane context
+                            Open coverage workspace
                           </Link>
                         ) : null}
                       </div>
@@ -2266,9 +2367,9 @@ export function PlanCreationWizard() {
 
                   <section className="plans-wizard-support-card">
                     <div className="space-y-1">
-                      <h3 className="plans-wizard-support-title">Explorer and transaction trail</h3>
+                      <h3 className="plans-wizard-support-title">Membership and transaction trail</h3>
                       <p className="plans-wizard-support-copy">
-                        Every confirmed create or open instruction is recorded here with explorer links.
+                        Protection enrollment gates decide who can activate coverage seats. Active-cycle claim rights follow coverage and premium status, not live wallet possession checks at claim time.
                       </p>
                     </div>
                     {createdArtifacts ? (

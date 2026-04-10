@@ -88,6 +88,7 @@ const PDA_SEEDS: Record<string, string[]> = {
   policy_series: ['policy_series', '<health_plan>', '<series_id>'],
   series_reserve_ledger: ['series_reserve_ledger', '<policy_series>', '<asset_mint>'],
   member_position: ['member_position', '<health_plan>', '<wallet>', '<series_scope>'],
+  membership_anchor_seat: ['membership_anchor_seat', '<health_plan>', '<anchor_ref>'],
   funding_line: ['funding_line', '<health_plan>', '<line_id>'],
   funding_line_ledger: ['funding_line_ledger', '<funding_line>', '<asset_mint>'],
   claim_case: ['claim_case', '<health_plan>', '<claim_id>'],

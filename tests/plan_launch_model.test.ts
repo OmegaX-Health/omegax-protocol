@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Keypair } from "@solana/web3.js";
 
 import planLaunchModule from "../frontend/lib/plan-launch.ts";
 import type {
   LaunchBasicsValidationInput,
+  LaunchMembershipValidationInput,
   ProtectionLaneValidationInput,
   ProtectionPostureInput,
   RewardLaneValidationInput,
@@ -11,12 +13,14 @@ import type {
 
 const {
   buildLaunchReviewLinks,
+  deriveLaunchPreflightAccountAddresses,
   parseProtectionPosture,
   requiresProtectionLane,
   requiresRewardLane,
   resolveLaunchLaneBlueprints,
   serializeProtectionPosture,
   validateLaunchBasics,
+  validateLaunchMembership,
   validateProtectionLane,
   validateRewardLane,
 } = planLaunchModule as typeof import("../frontend/lib/plan-launch.ts");
@@ -88,6 +92,17 @@ function createProtectionLane(required: boolean, pathway: ProtectionPostureInput
   };
 }
 
+function createMembership(intent: LaunchMembershipValidationInput["launchIntent"]): LaunchMembershipValidationInput {
+  return {
+    launchIntent: intent,
+    membershipMode: "open",
+    membershipGateKind: "open",
+    tokenGateMint: "",
+    tokenGateMinBalance: "",
+    inviteIssuer: "",
+  };
+}
+
 test("launch intent maps to lane blueprints without reintroducing root product types", () => {
   const rewardLanes = resolveLaunchLaneBlueprints("rewards");
   const insuranceLanes = resolveLaunchLaneBlueprints("insurance");
@@ -140,6 +155,63 @@ test("launch validation stays conditional by lane instead of a root pool type", 
   assert(validateProtectionLane(invalidProtectionLane).includes("Premium funding line ID is required."));
 });
 
+test("membership validation blocks unsupported protection gate combinations while keeping reward-only token gating available", () => {
+  const rewardOnly = createMembership("rewards");
+  rewardOnly.membershipMode = "token_gate";
+  rewardOnly.membershipGateKind = "fungible_snapshot";
+  rewardOnly.tokenGateMint = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+  rewardOnly.tokenGateMinBalance = "1000";
+  assert.deepEqual(validateLaunchMembership(rewardOnly), []);
+
+  const protection = createMembership("insurance");
+  protection.membershipMode = "token_gate";
+  protection.membershipGateKind = "fungible_snapshot";
+  protection.tokenGateMint = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+  protection.tokenGateMinBalance = "1000";
+  assert(
+    validateLaunchMembership(protection).includes(
+      "Protection launches cannot use fungible snapshot gating. Choose NFT anchor, stake anchor, open, or invite-only enrollment.",
+    ),
+  );
+
+  const protectionAnchor = createMembership("hybrid");
+  protectionAnchor.membershipMode = "token_gate";
+  protectionAnchor.membershipGateKind = "nft_anchor";
+  protectionAnchor.tokenGateMint = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+  protectionAnchor.tokenGateMinBalance = "1";
+  assert.deepEqual(validateLaunchMembership(protectionAnchor), []);
+});
+
+test("launch preflight only requires the reserve domain plus domain asset vaults and ledgers", () => {
+  const reserveDomain = Keypair.generate().publicKey;
+  const healthPlan = Keypair.generate().publicKey;
+  const assetMint = Keypair.generate().publicKey;
+  const rewardSeries = Keypair.generate().publicKey;
+  const rewardFundingLine = Keypair.generate().publicKey;
+  const protectionSeries = Keypair.generate().publicKey;
+  const protectionFundingLine = Keypair.generate().publicKey;
+
+  const targets = deriveLaunchPreflightAccountAddresses({
+    reserveDomain,
+    healthPlan,
+    assetMint,
+    rewardSeries,
+    rewardFundingLine,
+    protectionSeries,
+    protectionFundingLine,
+  });
+
+  assert.equal(targets.length, 3);
+  assert.equal(targets[0]?.toBase58(), reserveDomain.toBase58());
+  const targetSet = new Set(targets.map((value) => value.toBase58()));
+  assert.equal(targetSet.size, 3);
+  assert.equal(targetSet.has(healthPlan.toBase58()), false);
+  assert.equal(targetSet.has(rewardSeries.toBase58()), false);
+  assert.equal(targetSet.has(protectionSeries.toBase58()), false);
+  assert.equal(targetSet.has(rewardFundingLine.toBase58()), false);
+  assert.equal(targetSet.has(protectionFundingLine.toBase58()), false);
+});
+
 test("protection posture metadata survives serialization and parsing for defi and rwa coverage", () => {
   const defiPosture = createProtectionPosture("defi_native");
   const serializedDefi = serializeProtectionPosture(defiPosture);
@@ -173,7 +245,7 @@ test("review links point into the correct workspace context for reward and prote
     protectionSeriesAddress: "protection-series-2",
   });
   assert.equal(insuranceOnly.workspaceHref, "/plans?plan=health-plan-2&series=protection-series-2&tab=overview");
-  assert.equal(insuranceOnly.coverageWorkspaceHref, "/plans?plan=health-plan-2&series=protection-series-2&tab=overview");
+  assert.equal(insuranceOnly.coverageWorkspaceHref, "/plans?plan=health-plan-2&series=protection-series-2&tab=coverage");
 
   const hybrid = buildLaunchReviewLinks({
     launchIntent: "hybrid",
@@ -183,6 +255,6 @@ test("review links point into the correct workspace context for reward and prote
   });
   assert.equal(hybrid.workspaceHref, "/plans?plan=health-plan-3&series=reward-series-3&tab=overview");
   assert.equal(hybrid.rewardLaneHref, "/plans?plan=health-plan-3&series=reward-series-3&tab=overview");
-  assert.equal(hybrid.protectionLaneHref, "/plans?plan=health-plan-3&series=protection-series-3&tab=overview");
-  assert.equal(hybrid.coverageWorkspaceHref, "/plans?plan=health-plan-3&series=protection-series-3&tab=overview");
+  assert.equal(hybrid.protectionLaneHref, "/plans?plan=health-plan-3&series=protection-series-3&tab=coverage");
+  assert.equal(hybrid.coverageWorkspaceHref, "/plans?plan=health-plan-3&series=protection-series-3&tab=coverage");
 });

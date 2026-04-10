@@ -12,6 +12,7 @@ const {
 const {
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
+  deriveMembershipAnchorSeatPda,
   deriveProtocolGovernancePda,
   deriveReserveDomainPda,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
@@ -36,6 +37,13 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
   assert.equal(
     deriveLiquidityPoolPda({ reserveDomain: pool.reserveDomain, poolId: pool.poolId }).toBase58(),
     DEFAULT_LIQUIDITY_POOL_ADDRESS,
+  );
+  assert.match(
+    deriveMembershipAnchorSeatPda({
+      healthPlan: seekerPlan.address,
+      anchorRef: seekerPlan.address,
+    }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   );
   assert.match(deriveProtocolGovernancePda().toBase58(), /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
 });

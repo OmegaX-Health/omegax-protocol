@@ -12,12 +12,13 @@ import {
   deriveDomainAssetLedgerPda,
   deriveDomainAssetVaultPda,
   deriveFundingLineLedgerPda,
+  deriveMembershipAnchorSeatPda,
   derivePlanReserveLedgerPda,
   deriveProtocolGovernancePda,
   deriveSeriesReserveLedgerPda,
   getProgramId,
 } from "@/lib/protocol";
-import type { MembershipMode } from "@/lib/plan-launch";
+import type { MembershipGateKind, MembershipMode } from "@/lib/plan-launch";
 
 const TEXT_ENCODER = new TextEncoder();
 
@@ -35,6 +36,10 @@ type CreateHealthPlanInstructionParams = {
     claimsOperator: PublicKey;
     oracleAuthority: PublicKey;
     membershipMode: MembershipMode;
+    membershipGateKind: MembershipGateKind;
+    membershipGateMint: PublicKey;
+    membershipGateMinAmount: bigint;
+    membershipInviteAuthority: PublicKey;
     allowedRailMask: number;
     defaultFundingPriority: number;
     oraclePolicyHashHex: string;
@@ -158,6 +163,14 @@ function membershipModeValue(mode: MembershipMode): number {
   return 2;
 }
 
+function membershipGateKindValue(kind: MembershipGateKind): number {
+  if (kind === "open") return 0;
+  if (kind === "invite_only") return 1;
+  if (kind === "nft_anchor") return 2;
+  if (kind === "stake_anchor") return 3;
+  return 4;
+}
+
 export function buildCreateHealthPlanInstruction(params: CreateHealthPlanInstructionParams): TransactionInstruction {
   const programId = getProgramId();
   const protocolGovernance = deriveProtocolGovernancePda();
@@ -173,6 +186,10 @@ export function buildCreateHealthPlanInstruction(params: CreateHealthPlanInstruc
       encodePubkey(params.args.claimsOperator),
       encodePubkey(params.args.oracleAuthority),
       encodeU8(membershipModeValue(params.args.membershipMode)),
+      encodeU8(membershipGateKindValue(params.args.membershipGateKind)),
+      encodePubkey(params.args.membershipGateMint),
+      encodeU64(params.args.membershipGateMinAmount),
+      encodePubkey(params.args.membershipInviteAuthority),
       encodeU16(params.args.allowedRailMask),
       encodeU8(params.args.defaultFundingPriority),
       encodeHex32(params.args.oraclePolicyHashHex),
@@ -305,4 +322,14 @@ export function deriveLaunchLedgerAddresses(params: {
       assetMint: params.assetMint,
     }),
   };
+}
+
+export function deriveLaunchMembershipAnchorSeat(params: {
+  healthPlan: PublicKey;
+  anchorRef: PublicKey;
+}) {
+  return deriveMembershipAnchorSeatPda({
+    healthPlan: params.healthPlan,
+    anchorRef: params.anchorRef,
+  });
 }

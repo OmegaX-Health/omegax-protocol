@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "lane": "protection",
+  "metadataUri": "/metadata/protection/default-rwa-v1.json",
+  "coveragePathway": "rwa_policy",
+  "rwa": {
+    "legalEntityName": "OmegaX Risk SPC",
+    "jurisdiction": "ADGM",
+    "policyTermsUri": "https://protocol.omegax.health/rwa/policy-terms",
+    "regulatoryLicenseRef": "FSRA-2026-001",
+    "complianceContact": "compliance@omegax.health"
+  }
+}

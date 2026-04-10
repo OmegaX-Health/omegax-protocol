@@ -4145,6 +4145,63 @@
           }
         },
         {
+          "name": "membership_anchor_seat",
+          "writable": true,
+          "signer": false,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112,
+                  95,
+                  97,
+                  110,
+                  99,
+                  104,
+                  111,
+                  114,
+                  95,
+                  115,
+                  101,
+                  97,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "arg",
+                "path": "args.anchor_ref"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_gate_account",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "invite_authority",
+          "writable": false,
+          "signer": true,
+          "optional": true
+        },
+        {
           "name": "system_program",
           "writable": false,
           "signer": false,
@@ -7176,6 +7233,12 @@
               }
             ]
           }
+        },
+        {
+          "name": "membership_anchor_seat",
+          "writable": false,
+          "signer": false,
+          "optional": true
         }
       ]
     },
@@ -7626,6 +7689,16 @@
       123,
       175
     ],
+    "MembershipAnchorSeat": [
+      36,
+      200,
+      103,
+      9,
+      158,
+      27,
+      35,
+      104
+    ],
     "Obligation": [
       168,
       206,
@@ -7740,6 +7813,11 @@
       "<health_plan>",
       "<wallet>",
       "<series_scope>"
+    ],
+    "membership_anchor_seat": [
+      "membership_anchor_seat",
+      "<health_plan>",
+      "<anchor_ref>"
     ],
     "funding_line": [
       "funding_line",
