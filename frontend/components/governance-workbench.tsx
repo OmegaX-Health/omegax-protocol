@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
 
 import { GovernanceConsole } from "@/components/governance-console";
+import { ProtocolBootstrapPanel } from "@/components/protocol-bootstrap-panel";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { GovernanceQueueSkeleton } from "@/components/governance-queue-skeleton";
 import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
@@ -148,7 +149,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
-  const { snapshot, loading: protocolLoading, error: protocolError } = useProtocolConsoleSnapshot();
+  const { snapshot, loading: protocolLoading, error: protocolError, refresh } = useProtocolConsoleSnapshot();
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [proposalQueueLoaded, setProposalQueueLoaded] = useState(false);
   const [proposalQueueError, setProposalQueueError] = useState<string | null>(null);
@@ -541,6 +542,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
             {/* ── Overview tab ── */}
             {activeTab === "overview" ? (
               <div className="plans-overview-grid">
+                <ProtocolBootstrapPanel snapshot={snapshot} onRefresh={refresh} />
                 <article className="plans-card plans-vitality heavy-glass">
                   <div className="plans-card-head">
                     <div>

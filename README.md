@@ -45,6 +45,10 @@ This is the first publishable canonical OmegaX health-capital-markets surface.
 - liquidity pools and capital classes define LP-facing exposure, yield, impairment, and redemption rights
 - allocation positions bridge capital sleeves into plan-side liabilities without hiding attribution
 - the canonical console now mounts `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas` against live snapshot-backed protocol reads
+- `/plans/new` now launches from live reserve-domain, vault-rail, oracle, and schema registry data rather than fixture-only defaults
+- `/governance` now exposes mounted protocol bootstrap actions for governance, reserve domains, and domain asset vaults
+- `/members` now leads with self-serve enrollment and `/claims` now leads with self-serve claim intake on the canonical model
+- mounted workbenches now include sponsor-side post-launch series and funding-line actions, LP credentialing updates, and claim impairment handling
 - the protocol now includes first-class oracle registry and outcome-schema registry accounts with checked-in generated artifacts
 
 Read the canonical design set first:

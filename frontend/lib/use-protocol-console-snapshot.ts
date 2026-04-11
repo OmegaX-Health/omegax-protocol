@@ -11,6 +11,7 @@ import { formatRpcError } from "@/lib/rpc-errors";
 const EMPTY_PROTOCOL_CONSOLE_SNAPSHOT: ProtocolConsoleSnapshot = {
   protocolGovernance: null,
   reserveDomains: [],
+  domainAssetVaults: [],
   domainAssetLedgers: [],
   healthPlans: [],
   policySeries: [],

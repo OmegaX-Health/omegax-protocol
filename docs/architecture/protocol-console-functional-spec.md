@@ -321,8 +321,8 @@ Required page sections:
 
 1. Hero with route narrative
 2. Route snapshot rail
-3. Claim draft workspace
-4. Liability register
+3. Self-serve claim-intake workspace
+4. Operator adjudication and liability workspace
 5. Claim and obligation side rails
 
 #### `/claims` route-level controls
@@ -331,39 +331,39 @@ Required page sections:
 | --- | --- | --- | --- |
 | Plan selector | Searchable selector | Select the active `HealthPlan` in the current pool context. | Must react to `pool` filtering when present. |
 | Series selector | Searchable selector | Select the active `PolicySeries` for the selected plan. | Reset when plan changes. |
-| Panel tabs | Segment buttons | Switch between `Claim draft` and `Liability register`. | Reads/writes `panel` in the URL. |
+| Operator panel tabs | Segment buttons | Switch the operator workspace between `Intake`, `Adjudication`, `Reserve`, and `Impairment`. | Reads/writes `panel` in the URL without hiding the self-serve intake card. |
 | Claimant posture card | Read-only card | Show wallet, recognized role, and current participation count. | Observer mode must remain useful. |
 | Context card | Read-only card | Show pool filter, canonical route, and cross-link to member rights. | Pool filter should say `all pools` when unset. |
 
-#### `/claims` panel: Claim draft
+#### `/claims` panel: Claim intake
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Claim case id | Text input | Capture the canonical `ClaimCase` id seed. | Required before final submission. |
-| Evidence reference | Text input | Capture a public pointer such as `ipfs://...` or another stable off-chain manifest reference. | Must reject raw file uploads to chain-bound state. |
-| Derived claim case address | Read-only field | Show the derived PDA before submission. | Updates live from plan + claim id. |
-| Matching member position | Read-only field | Show whether the selected wallet already has a member position for the selected plan/series. | Must warn when no matching position exists. |
-| Evidence pointer preview | Read-only field | Echo the evidence reference that will be recorded. | Must support long-value wrapping. |
-| `Save draft` | Secondary button | Save a local or session draft without sending a transaction. | Target-state requirement. |
-| `Submit claim` | Primary button | Create the claim on-chain with the selected plan, series, claimant, and evidence reference. | Must be blocked until the wallet is eligible and required fields are present. |
-| `Open related member rights` | Cross-route button | Take the user to the relevant member surface. | Preserve plan/pool context when possible. |
+| Claim case id | Text input | Capture the canonical `ClaimCase` id seed. | Required before final submission; may be preseeded locally for convenience. |
+| Claimant field | Read-only field | Show the connected wallet that will own the submission. | Read-only for the self-serve flow. |
+| Member position selector | Select | Choose one of the connected wallet's enrolled `MemberPosition` records. | Must show an empty state when no self-owned member position exists for the selected plan context. |
+| Funding line selector | Select | Choose the plan-side `FundingLine` the claim should open against. | Must be drawn from the selected plan context. |
+| Initial evidence reference | Text input | Capture a public pointer such as `ipfs://...`, URI, CID, or digest seed. | Must reject raw file uploads to chain-bound state. |
+| Eligibility notice | Inline notice | Explain when the connected wallet cannot submit because no eligible member position exists. | Must remain visible before the primary action. |
+| `Open claim case` | Primary button | Create the claim on-chain with the selected plan, member position, funding line, claimant, and evidence reference. | Must be blocked until wallet, member position, and funding line are all present. |
 
-#### `/claims` panel: Liability register
+#### `/claims` panel: Operator liability workspace
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
 | Claim card | Data card | Show claim id, claim address, intake status, paid state, reserve state, and claimant. | One card per filtered claim. |
 | Obligation card | Data card | Show obligation id, status, health plan, policy series, and linked claim case when present. | One card per filtered obligation. |
-| Claim status filter | Filter | Narrow the register by status. | Target-state requirement. |
-| `Open obligation detail` | Secondary button | Expand or route to a detailed liability view. | Target-state requirement. |
-| `Reserve liability` | Operator action | For authorized operators, book reserve against the obligation. | Must be explicit about economic consequence. |
-| `Record payout` | Operator action | Record payout completion against the obligation/claim path. | Must expose irreversible effects before signature. |
+| Claim selection control | Selectable row | Drive the active operator subform from the selected claim case. | Must preserve route state in the URL when possible. |
+| Intake form | Operator action form | Attach evidence references and set intake review posture. | Must support controlled review-state changes before adjudication. |
+| Adjudication form | Operator action form | Approve or deny amounts and create the linked obligation when warranted. | Must surface the beneficiary, obligation id, and delivery mode before signature. |
+| Reserve and settlement form | Operator action form | Reserve liabilities, release reserve, settle claim cases, and settle obligations. | Must make irreversible economic actions explicit before signature. |
+| Impairment form | Operator action form | Mark impairment against the selected funding-line or obligation context. | Must stay claim-operator scoped and explain the linked liability consequence. |
 
 ### 3.5 `/members`
 
 Purpose:
 
-- Member-rights route for enrollment, active rights, and delegation.
+- Member-rights route for self-serve enrollment, active rights, and operator review.
 
 Primary users:
 
@@ -376,8 +376,8 @@ Required page sections:
 
 1. Hero with route narrative
 2. Route snapshot rail
-3. Enrollment workspace
-4. Delegation workspace
+3. Self-serve enrollment workspace
+4. Member review and eligibility workspace
 5. Rights posture rail
 
 #### `/members` route-level controls
@@ -386,32 +386,26 @@ Required page sections:
 | --- | --- | --- | --- |
 | Plan selector | Searchable selector | Choose the active `HealthPlan` context. | Respect optional pool filter. |
 | Series selector | Searchable selector | Choose the active `PolicySeries`. | Reset when plan changes. |
-| Panel tabs | Segment buttons | Switch between `Enrollment` and `Delegation`. | Reads/writes `panel` in the URL. |
 | Member posture card | Read-only card | Show wallet, role, and current participation count. | Observer mode supported. |
+| Selected member control | Route state | Focus the operator review workspace on one `MemberPosition` when applicable. | Reads/writes `member` and supporting panel state in the URL. |
 | Cross-route card | Action card | Link to `Claims` and `Capital context` for the same pool when applicable. | Must explain that pool context does not own member rights. |
 
 #### `/members` panel: Enrollment
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Derived member position address | Read-only field | Show the predicted `MemberPosition` PDA for the current wallet, plan, and series. | Updates live. |
+| Connected wallet | Read-only field | Show the wallet that will own the member position. | Required for self-serve clarity. |
+| Series scope | Read-only/meta field | Show the selected lane or `plan root` when no series is selected. | Must match the plan/series context used by the transaction. |
 | Membership model | Read-only/meta field | Show the selected plan's enrollment rule. | Must match plan configuration. |
 | Existing position field | Read-only field | Show whether the enrollment already exists. | Distinguish new draft vs existing position. |
 | Enrollment proof mode | Read-only/meta field | Show whether the current enrollment posture resolves to `open`, `token_gate`, or `invite_permit`. | Must stay aligned with the selected plan configuration and the proof accounts required by the protocol surface. |
-| Rights chips | Status chips | Show the default rights implied by the selected series mode. | Example: reward claim vs claim review rights. |
-| `Enroll member` | Primary button | Create the member position when the wallet and enrollment rule allow it. | Disabled with reason when blocked by token gate, invite-only, missing wallet, or duplicate anchor-backed seat usage. |
-| `View participation history` | Secondary button | Open a history/detail view for prior plan participations. | Target-state requirement. |
+| Subject commitment | Text input | Capture an optional subject commitment or digest seed for the new position. | Optional; must normalize digest input before send. |
+| Token-gate evidence fields | Conditional inputs | Capture token-account and observed balance context when the selected plan is token-gated. | Visible only for token-gated membership models. |
+| Invite fields | Conditional inputs | Capture invite reference and expiry when the selected plan is invite-gated. | Visible only for invite-only membership models. |
+| Delegated-rights posture | Status chips / register field | Show any delegated rights already recorded on existing member positions. | Read-only on this route for the current canonical model. |
+| `Open member position` | Primary button | Create the member position when the wallet and enrollment rule allow it. | Disabled with reason when blocked by token gate, invite-only authority mismatch, missing wallet, or duplicate member position. |
 
-#### `/members` panel: Delegation
-
-| Element | Type | Required functionality | Required states / rules |
-| --- | --- | --- | --- |
-| Delegate wallet | Text input | Capture the wallet to receive delegated rights. | Validate as a public key before submission. |
-| Current rights list | Data list | Show the rights that will be delegated or are already delegated for the selected member position. | Must stay narrow and explicit. |
-| Rights checklist | Checklist | Allow the delegator to select which rights to grant or revoke. | Target-state requirement; do not assume full delegation. |
-| `Grant delegation` | Primary button | Grant selected rights to the delegate wallet. | Must show selected rights and affected member position before signature. |
-| `Revoke delegation` | Secondary/destructive button | Remove delegated rights. | Must support partial or full revoke. |
-| Delegate status badge | Status pill | Show whether a delegation already exists and whether it matches the draft. | Target-state requirement. |
+Standalone grant/revoke delegation is not part of the current mounted self-serve route because the live canonical program does not expose that as a separate member-facing transaction surface.
 
 ### 3.6 `/governance`
 
@@ -430,7 +424,7 @@ Required page sections:
 
 1. Hero with route narrative
 2. Route snapshot rail
-3. Scoped controls / authorities / templates tabs
+3. Bootstrap and scoped controls / authorities / templates tabs
 4. DAO operations workspace
 5. Proposal queue
 
@@ -444,6 +438,21 @@ Required page sections:
 | Linked-record buttons | Link buttons | Open template records and the current proposal route. | Must route to canonical governance detail pages. |
 | Authority cards | Data cards | Show each operator wallet, role, address, and allowed action chips. | Connected wallet should be visually highlighted when it matches an authority. |
 | Template rows | Register rows | Show available governance templates and buttons to open template/proposal pages. | One row per canonical template. |
+
+#### `/governance` bootstrap workspace
+
+| Element | Type | Required functionality | Required states / rules |
+| --- | --- | --- | --- |
+| Governance readiness card | Summary card | Show whether protocol governance is initialized plus reserve-domain and domain-vault counts. | Read-only posture summary for fresh and already-bootstrapped environments. |
+| Protocol fee field | Numeric input | Capture the initial protocol fee basis points for governance bootstrap. | Used only when governance is missing. |
+| Emergency pause toggle | Toggle | Set the initial emergency pause posture during governance bootstrap. | Must mirror the canonical governance initializer fields. |
+| `Initialize governance` | Primary / secondary button | Run `initialize_protocol_governance` when the protocol governance account is absent. | Must be disabled once governance is already initialized. |
+| Reserve-domain form | Structured form | Capture domain id, display name, admin, settlement mode, rail mask, pause flags, and optional legal/compliance hashes. | Enabled only after governance exists. |
+| `Create reserve domain` | Primary button | Run `create_reserve_domain` for a new settlement domain. | Must not require rerunning governance bootstrap. |
+| Domain-vault selector | Select | Choose an existing reserve domain for a new rail. | Must be driven from live snapshot state. |
+| Asset mint field | Text input | Capture the mint for the new `DomainAssetVault`. | Required before creating the rail. |
+| Existing rail notice | Inline notice | Show the currently configured vault rails for the selected domain and warn on duplicates. | Must prevent duplicate domain/mint rails. |
+| `Create domain asset vault` | Primary button | Run `create_domain_asset_vault` for the selected reserve domain and mint. | Enabled only when governance exists and the domain/mint pair is missing. |
 
 #### `/governance` DAO operations workspace
 
@@ -535,7 +544,7 @@ Required page sections:
 
 Purpose:
 
-- Verification and settlement-gating route for oracle operators and policy bindings.
+- Registry, readiness, and settlement-gating route for oracle operators and pool policy bindings.
 
 Primary users:
 
@@ -549,7 +558,7 @@ Required page sections:
 1. Hero with route narrative
 2. Route snapshot rail
 3. Pool context selector
-4. Oracle panels
+4. Registry, binding, and posture panels
 5. Operator register rail
 
 #### `/oracles` route-level controls
@@ -558,7 +567,7 @@ Required page sections:
 | --- | --- | --- | --- |
 | Pool selector | Searchable selector | Choose the active pool context. | Reads/writes `pool` in URL. |
 | Pool search input | Text input | Filter pools by id, address, or thesis. | Empty-match message required. |
-| Panel tabs | Segment buttons | Switch between `Registry`, `Staking access`, and `Policy bindings` in the current build, with room for `Attestations` and `Disputes` in the target state. | Reads/writes `panel` in URL. |
+| Panel tabs | Segment buttons | Switch between `Registry`, `Bindings`, `Attestations`, `Disputes`, and `Posture`. | Reads/writes `panel` in URL. |
 | Oracle boundary card | Read-only card | Show selected pool, bound series count, and settlement-linked lane count. | Public-safe summary. |
 | Connected-role badge | Status pill | Show connected wallet or observer posture. | Must not imply write access without real authorization. |
 
@@ -566,38 +575,27 @@ Required page sections:
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Operator card | Data card | Show oracle or claims operator wallet, role, status, and allowed actions. | Connected wallet should highlight if it matches a listed operator. |
-| `View operator detail` | Secondary button | Open a detail view for metadata URI, historical attestations, and policy bindings. | Target-state requirement. |
+| Registry verification panel | Embedded action panel | Support register, claim, and profile/readiness maintenance for oracle operators. | Must stay mounted above pool-specific approval and policy posture. |
+| Pool approval panel | Embedded action panel | Support approval, permissions, and policy binding for the selected pool. | Must use the current pool context instead of reviving standalone pool pages. |
+| Operator card | Data card | Show oracle wallet, claim/readiness posture, approval status, permissions, and address. | Connected wallet should highlight if it matches a listed operator. |
 
-#### `/oracles` panel: Staking access
+#### `/oracles` panel: Posture
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
 | Access checklist | Data card | Show role gate, pool scope, and schema coverage. | Read-only. |
 | Finality note | Informational card | Explain how oracle participation affects settlement and why it does not imply broad spend rights. | Required explanatory copy. |
 | `Review claims impact` | Cross-route button | Open the claims route in the same pool context. | Required. |
-| `Stake / top up stake` | Primary button | Allow authorized oracle operators to lock required stake. | Target-state requirement. |
-| `Unstake request` | Secondary button | Start an unstake flow if protocol rules allow it. | Target-state requirement. |
+| Staking and external posture note | Informational card | Explain where staking or external participation requirements still sit outside the mounted route when applicable. | Must not imply a native on-route stake composer if the live program does not expose one here. |
 
 #### `/oracles` panel: Policy bindings
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Bound-series card | Data card | Show mode, series display name, address, terms version, comparability key, and linked pool. | One card per bound series. |
-| `Open schema` | Secondary button | Open the schema inspector for the selected series. | Target-state requirement. |
-| `Open claim rules` | Secondary button | Open related claim or payout rule context. | Target-state requirement. |
+| Approved-operator register | Register rows | Show pool approvals, claimed-profile posture, permission masks, and schema-gate posture for each visible oracle. | Must stay consistent with the registry tab's approval state. |
+| Empty-state notice | Inline empty state | Explain when the selected pool has no pool-level oracle approvals yet. | Must keep the current pool context visible. |
 
-#### Target-state additions for `/oracles`
-
-- `Attestations` panel:
-  - list pending verification tasks
-  - collect public proof reference or hash
-  - submit attestation
-  - revoke/correct attestation if protocol rules allow
-- `Disputes` panel:
-  - show contested attestations
-  - show current dispute stage
-  - route to governance or claims review when escalation is required
+The mounted route also includes `Attestations` and `Disputes` tabs for live telemetry and watch-state review, even when specific write actions still depend on narrower operator authority or future expansions.
 
 ### 3.10 `/schemas`
 

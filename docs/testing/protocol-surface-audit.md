@@ -13,6 +13,7 @@ It validates three things against the checked-in contract and canonical fixture 
 - the live instruction surface is fully owned by the canonical scenario manifest
 - retired pool-era instructions do not reappear in the live contract
 - deterministic reserve, plan, claim, and capital fixtures still line up with the current public model
+- the bootstrap-to-self-serve journey still holds together across governance, launch, oracle, member, claim, and capital actions
 
 ## Source of truth
 
@@ -43,6 +44,10 @@ The current manifest assigns every live instruction to one scenario family:
 
 Each family owns a specific subset of instruction names and a matching deterministic fixture assertion path.
 
+The manifest also includes one cross-scenario release-candidate journey:
+
+- `bootstrap_to_self_serve_plan_journey`, which verifies the canonical path from protocol bootstrap through launch, oracle onboarding, member enrollment, claim intake, LP credentialing, and impairment handling
+
 ## What the audit enforces
 
 The heavy audit fails if:
@@ -70,6 +75,12 @@ Useful environment variables:
 - `OMEGAX_E2E_KEEP_ARTIFACTS=1` preserves validator logs and the JSON summary
 - `OMEGAX_E2E_SCENARIO=<scenario_name>` reruns one canonical scenario family
 
+For the focused self-serve release-candidate path:
+
+```bash
+OMEGAX_E2E_SCENARIO=bootstrap_to_self_serve_plan_journey npm run test:e2e:localnet
+```
+
 The runner writes a timestamped summary under `artifacts/`.
 
 ## Summary output
@@ -82,6 +93,7 @@ The JSON summary includes:
 - missing, duplicate, or unexpected ownership entries
 - any retired legacy instructions that reappeared
 - canonical fixture counts for domains, plans, series, pools, classes, obligations, and claims
+- cross-scenario bootstrap and self-serve readiness for the mounted canonical console path
 
 ## Relationship to the fast gate
 

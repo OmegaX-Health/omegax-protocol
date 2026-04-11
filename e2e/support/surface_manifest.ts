@@ -5,6 +5,7 @@ export const SCENARIO_ORDER = [
   "oracle_registry_and_pool_control_lifecycle",
   "schema_registry_and_binding_lifecycle",
   "reserve_domain_and_vault_setup",
+  "bootstrap_to_self_serve_plan_journey",
   "sponsor_funded_plan_lifecycle",
   "reward_obligation_lifecycle",
   "protection_claim_lifecycle",
@@ -62,6 +63,12 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
       "create_reserve_domain",
       "create_domain_asset_vault",
     ],
+  },
+  bootstrap_to_self_serve_plan_journey: {
+    title: "Bootstrap to Self-Serve Plan Journey",
+    focus:
+      "Fresh bootstrap state, canonical launch rails, oracle onboarding, member enrollment, claim intake, and LP capital all stay connected as one end-to-end operating path.",
+    instructions: [],
   },
   sponsor_funded_plan_lifecycle: {
     title: "Sponsor-Funded Plan Lifecycle",

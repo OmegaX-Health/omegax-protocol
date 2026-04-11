@@ -243,7 +243,7 @@ export function OracleRegistryVerificationPanel() {
   const policiesByPool = useMemo(() => {
     const set = new Set<string>();
     for (const policy of policies) {
-      set.add(policy.pool);
+      set.add(policy.liquidityPool);
     }
     return set;
   }, [policies]);
@@ -461,8 +461,8 @@ export function OracleRegistryVerificationPanel() {
       setSnapshotAt(null);
       return;
     }
-    if (!verificationApprovals.some((row) => row.pool === verificationPoolAddress)) {
-      setVerificationPoolAddress(verificationApprovals[0].pool);
+    if (!verificationApprovals.some((row) => row.liquidityPool === verificationPoolAddress)) {
+      setVerificationPoolAddress(verificationApprovals[0].liquidityPool);
       setSnapshot(null);
       setSnapshotAt(null);
     }
@@ -836,7 +836,9 @@ export function OracleRegistryVerificationPanel() {
               const profile = row.profile;
               const isSelected = row.oracle === selectedOracleAddress;
               const oracleApprovals = approvals.filter((entry) => entry.oracle === row.oracle);
-              const policiesConfigured = oracleApprovals.filter((entry) => policiesByPool.has(entry.pool)).length;
+              const policiesConfigured = oracleApprovals.filter((entry) =>
+                policiesByPool.has(entry.liquidityPool)
+              ).length;
               return (
                 <button
                   key={row.address}
@@ -1314,10 +1316,10 @@ export function OracleRegistryVerificationPanel() {
               onChange={(event) => setVerificationPoolAddress(event.target.value)}
             >
               {verificationApprovals.map((approval) => {
-                const pool = poolByAddress.get(approval.pool);
+                const pool = poolByAddress.get(approval.liquidityPool);
                 return (
-                  <option key={approval.address} value={approval.pool}>
-                    {pool?.poolId || shortAddress(approval.pool)}
+                  <option key={approval.address} value={approval.liquidityPool}>
+                    {pool?.poolId || shortAddress(approval.liquidityPool)}
                   </option>
                 );
               })}

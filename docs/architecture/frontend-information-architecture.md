@@ -20,10 +20,10 @@ The public UI should treat these as first-order objects:
 - `/overview` is the editorial systems-map entrypoint for the protocol workbench
 - `/plans` is the sponsor/operator view
 - `/capital` is the LP and capital-markets view
-- `/claims` is the liability and adjudication view
-- `/members` is the member-rights view
-- `/governance` is the scoped-control and authority view
-- `/oracles` explains the OmegaX Health event-production boundary
+- `/claims` is the member claim-intake plus operator liability and adjudication view
+- `/members` is the self-serve enrollment and member-rights posture view
+- `/governance` is the scoped-control, bootstrap, and authority view
+- `/oracles` is the oracle registry, readiness, and pool-binding view
 - `/schemas` explains comparability and series versioning
 
 Legacy `/pools/*` routes are retained only as redirects to avoid carrying pool-first concepts forward in the main UX.

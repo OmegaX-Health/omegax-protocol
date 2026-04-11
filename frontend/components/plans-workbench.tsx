@@ -7,7 +7,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { PlanCoveragePanel } from "@/components/plan-coverage-panel";
-import { ClaimsOperatorPanel, MembersOperatorPanel, TreasuryOperatorPanel } from "@/components/workbench-action-panels";
+import {
+  ClaimIntakePanel,
+  ClaimsOperatorPanel,
+  MemberSelfServePanel,
+  MembersOperatorPanel,
+  TreasuryOperatorPanel,
+} from "@/components/workbench-action-panels";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount, plansForPool, seriesOutcomeCount } from "@/lib/canonical-ui";
@@ -661,6 +667,12 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── MEMBERS ── */}
               {activeTab === "members" ? (
                 <div className="plans-stack">
+                  <MemberSelfServePanel
+                    plan={selectedPlan}
+                    series={selectedSeries}
+                    members={filteredMembers}
+                    onRefresh={refresh}
+                  />
                   <MembersOperatorPanel
                     plan={selectedPlan}
                     series={selectedSeries}
@@ -762,6 +774,13 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── CLAIMS ── */}
               {activeTab === "claims" ? (
                 <div className="plans-stack">
+                  <ClaimIntakePanel
+                    plan={selectedPlan}
+                    series={selectedSeries}
+                    members={filteredMembers}
+                    fundingLines={planFundingLines}
+                    onRefresh={refresh}
+                  />
                   <ClaimsOperatorPanel
                     plan={selectedPlan}
                     series={selectedSeries}
@@ -924,6 +943,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                   <TreasuryOperatorPanel
                     plan={selectedPlan}
                     series={selectedSeries}
+                    seriesOptions={planSeries}
                     reserveDomain={selectedReserveDomain}
                     fundingLines={planFundingLines}
                     allocations={snapshot.allocationPositions.filter((allocation) => allocation.healthPlan === selectedPlan?.address)}

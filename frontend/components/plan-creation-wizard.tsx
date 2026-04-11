@@ -12,7 +12,6 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { MultiOraclePicker, type MultiOracleOption } from "@/components/multi-oracle-picker";
 import { WizardDetailSheet, WizardDetailTriggerRow, type WizardDetailMetaItem } from "@/components/wizard-detail-sheet";
 import { cn } from "@/lib/cn";
-import { DEVNET_PROTOCOL_FIXTURE_STATE, isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
 import {
   buildCreateHealthPlanInstruction,
   buildCreatePolicySeriesInstruction,
@@ -24,14 +23,9 @@ import {
   deriveLaunchPreflightAccountAddresses,
   buildLaunchReviewLinks,
   dedupeOracleOptions,
-  defaultPayoutMintForIntent,
-  defaultReserveDomainAddress,
-  listReserveDomainRailMints,
   requiresProtectionLane,
   requiresRewardLane,
-  reserveDomainSupportsMint,
   serializeProtectionPosture,
-  STANDARD_LAUNCH_SCHEMA,
   validateLaunchBasics,
   validateLaunchMembership,
   validateLaunchVerification,
@@ -65,6 +59,7 @@ import {
 } from "@/lib/schema-metadata";
 import { getMintDecimals, parseUiAmountToBaseUnits } from "@/lib/spl";
 import { stableSha256Hex, stableStringify } from "@/lib/stable-hash";
+import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 
 type StepId =
   | "basics"
@@ -251,15 +246,17 @@ function buildWorkflowSteps(intent: LaunchIntent): StepDescriptor[] {
   return steps;
 }
 
-function listLaunchOracleOptions(connectedWallet: string, selectedOracles: string[]): MultiOracleOption[] {
+function buildLaunchOracleOptions(
+  liveProfiles: Array<{ oracle: string; active: boolean; metadataUri: string }>,
+  selectedOracles: string[],
+): MultiOracleOption[] {
   const options = new Map<string, MultiOracleOption>();
 
-  for (const wallet of DEVNET_PROTOCOL_FIXTURE_STATE.wallets) {
-    if (wallet.role !== "oracle_operator" || isUnsetDevnetWalletAddress(wallet.address)) continue;
-    options.set(wallet.address, {
-      oracle: wallet.address,
-      active: true,
-      metadataUri: wallet.label,
+  for (const profile of liveProfiles) {
+    options.set(profile.oracle, {
+      oracle: profile.oracle,
+      active: profile.active,
+      metadataUri: profile.metadataUri,
     });
   }
 
@@ -271,14 +268,6 @@ function listLaunchOracleOptions(connectedWallet: string, selectedOracles: strin
         metadataUri: "Manual oracle entry",
       });
     }
-  }
-
-  if (connectedWallet && !options.has(connectedWallet)) {
-    options.set(connectedWallet, {
-      oracle: connectedWallet,
-      active: true,
-      metadataUri: "Connected wallet",
-    });
   }
 
   return [...options.values()];
@@ -342,6 +331,7 @@ export function PlanCreationWizard() {
   const router = useRouter();
   const { connection } = useConnection();
   const { connected, publicKey, sendTransaction } = useWallet();
+  const { snapshot } = useProtocolConsoleSnapshot();
 
   const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("hybrid");
   const [stepIndex, setStepIndex] = useState(0);
@@ -354,10 +344,10 @@ export function PlanCreationWizard() {
   const [planId, setPlanId] = useState("nexus-protect-plus");
   const [displayName, setDisplayName] = useState("Nexus Protect Plus");
   const [organizationRef, setOrganizationRef] = useState("OmegaX Sponsor Desk");
-  const [reserveDomainAddress, setReserveDomainAddress] = useState(defaultReserveDomainAddress());
+  const [reserveDomainAddress, setReserveDomainAddress] = useState("");
   const [planMetadataUri, setPlanMetadataUri] = useState("https://protocol.omegax.health/plans/holder");
   const [payoutAssetMode, setPayoutAssetMode] = useState<PayoutAssetMode>("spl");
-  const [payoutMint, setPayoutMint] = useState(defaultPayoutMintForIntent("hybrid"));
+  const [payoutMint, setPayoutMint] = useState("");
   const [rewardPayoutUi, setRewardPayoutUi] = useState("25");
   const [termsHashHex, setTermsHashHex] = useState("");
   const [payoutPolicyHashHex, setPayoutPolicyHashHex] = useState("");
@@ -383,6 +373,8 @@ export function PlanCreationWizard() {
   const [quorumM, setQuorumM] = useState("1");
   const [requireVerifiedSchema, setRequireVerifiedSchema] = useState(true);
   const [allowDelegatedClaims, setAllowDelegatedClaims] = useState(false);
+  const [selectedSchemaAddress, setSelectedSchemaAddress] = useState("");
+  const [showAllSchemas, setShowAllSchemas] = useState(false);
 
   const [schemaOutcomes, setSchemaOutcomes] = useState<SchemaOutcomeOption[]>([]);
   const [schemaWarnings, setSchemaWarnings] = useState<string[]>([]);
@@ -412,6 +404,32 @@ export function PlanCreationWizard() {
   const detailTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const walletAddress = publicKey?.toBase58() ?? "";
+  const liveReserveDomains = useMemo(
+    () => snapshot.reserveDomains.filter((domain) => domain.active),
+    [snapshot.reserveDomains],
+  );
+  const liveReserveDomainOptions = liveReserveDomains.length > 0 ? liveReserveDomains : snapshot.reserveDomains;
+  const liveDomainAssetVaults = snapshot.domainAssetVaults;
+  const liveSchemaOptions = useMemo(
+    () => (showAllSchemas ? snapshot.outcomeSchemas : snapshot.outcomeSchemas.filter((schema) => schema.verified)),
+    [showAllSchemas, snapshot.outcomeSchemas],
+  );
+  const selectedSchema = useMemo(
+    () => liveSchemaOptions.find((schema) => schema.address === selectedSchemaAddress)
+      ?? snapshot.outcomeSchemas.find((schema) => schema.address === selectedSchemaAddress)
+      ?? null,
+    [liveSchemaOptions, selectedSchemaAddress, snapshot.outcomeSchemas],
+  );
+  const liveOracleProfiles = useMemo(
+    () => snapshot.oracleProfiles
+      .filter((profile) => profile.claimed)
+      .map((profile) => ({
+        oracle: profile.oracle,
+        active: profile.active,
+        metadataUri: profile.displayName || profile.websiteUrl || profile.appUrl || profile.legalName || profile.oracle,
+      })),
+    [snapshot.oracleProfiles],
+  );
   const steps = useMemo(() => buildWorkflowSteps(launchIntent), [launchIntent]);
   const activeStep = steps[stepIndex] ?? steps[0]!;
   const isFirstStep = stepIndex === 0;
@@ -423,8 +441,18 @@ export function PlanCreationWizard() {
   const reserveDomainPk = toAssetPublicKey(reserveDomainAddress);
   const payoutMintPk = toAssetPublicKey(payoutAssetAddress);
   const availableRailMints = useMemo(
-    () => listReserveDomainRailMints(reserveDomainAddress),
-    [reserveDomainAddress],
+    () => {
+      const seen = new Set<string>();
+      const mints: string[] = [];
+      for (const vault of liveDomainAssetVaults) {
+        if (vault.reserveDomain !== reserveDomainAddress) continue;
+        if (seen.has(vault.assetMint)) continue;
+        seen.add(vault.assetMint);
+        mints.push(vault.assetMint);
+      }
+      return mints;
+    },
+    [liveDomainAssetVaults, reserveDomainAddress],
   );
 
   const openDetail = useCallback((detail: WizardDetailState, trigger: HTMLButtonElement) => {
@@ -473,8 +501,28 @@ export function PlanCreationWizard() {
   }, [activeDetail]);
 
   useEffect(() => {
-    setPayoutMint((current) => current || defaultPayoutMintForIntent(launchIntent));
-  }, [launchIntent]);
+    if (reserveDomainAddress) return;
+    const nextReserveDomain = liveReserveDomainOptions[0]?.address ?? "";
+    if (nextReserveDomain) {
+      setReserveDomainAddress(nextReserveDomain);
+    }
+  }, [liveReserveDomainOptions, reserveDomainAddress]);
+
+  useEffect(() => {
+    if (!selectedSchemaAddress) {
+      const preferredSchema = snapshot.outcomeSchemas.find((schema) => schema.verified) ?? snapshot.outcomeSchemas[0] ?? null;
+      if (preferredSchema) {
+        setSelectedSchemaAddress(preferredSchema.address);
+      }
+    }
+  }, [selectedSchemaAddress, snapshot.outcomeSchemas]);
+
+  useEffect(() => {
+    if (payoutMint && availableRailMints.includes(payoutMint)) return;
+    if (availableRailMints[0]) {
+      setPayoutMint(availableRailMints[0]);
+    }
+  }, [availableRailMints, payoutMint]);
 
   useEffect(() => {
     if (!rewardSeriesId) {
@@ -514,21 +562,26 @@ export function PlanCreationWizard() {
 
   useEffect(() => {
     if (selectedOracles.length > 0) return;
-    const preferredFixtureOracle = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) =>
-      wallet.role === "oracle_operator" && !isUnsetDevnetWalletAddress(wallet.address),
-    )?.address;
-    const initial = dedupeOracleOptions([preferredFixtureOracle ?? "", walletAddress]);
+    const initial = dedupeOracleOptions(
+      liveOracleProfiles.filter((profile) => profile.active).map((profile) => profile.oracle),
+    );
     if (initial.length > 0) {
       setSelectedOracles(initial);
       setQuorumM("1");
     }
-  }, [selectedOracles.length, walletAddress]);
+  }, [liveOracleProfiles, selectedOracles.length]);
 
   useEffect(() => {
     let cancelled = false;
     setSchemaMetadataLoading(true);
     void (async () => {
-      const fetchResult = await fetchSchemaMetadata(STANDARD_LAUNCH_SCHEMA.metadataUri);
+      if (!selectedSchema?.metadataUri) {
+        setSchemaWarnings(["Select an outcome schema with a reachable metadata URI before configuring reward lanes."]);
+        setSchemaOutcomes([]);
+        setSchemaMetadataLoading(false);
+        return;
+      }
+      const fetchResult = await fetchSchemaMetadata(selectedSchema.metadataUri);
       if (cancelled) return;
       if (fetchResult.error) {
         setSchemaWarnings([fetchResult.error.message]);
@@ -545,7 +598,14 @@ export function PlanCreationWizard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedSchema?.metadataUri]);
+
+  useEffect(() => {
+    setSelectedOutcomeIds([]);
+    setRuleIdsByOutcome({});
+    setRuleHashOverridesByOutcome({});
+    setPayoutHashOverridesByOutcome({});
+  }, [selectedSchemaAddress]);
 
   useEffect(() => {
     if (payoutAssetMode === "sol") {
@@ -584,13 +644,13 @@ export function PlanCreationWizard() {
         const ruleOverride = normalize(ruleHashOverridesByOutcome[outcomeId] ?? "");
         const payoutOverride = normalize(payoutHashOverridesByOutcome[outcomeId] ?? "");
         const derivedRuleHashHex = ruleOverride || await stableSha256Hex({
-          schemaKey: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          schemaKey: selectedSchema?.schemaKey ?? "",
           outcomeId,
           ruleId,
           launchIntent,
         });
         const derivedPayoutHashHex = payoutOverride || await stableSha256Hex({
-          schemaKey: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          schemaKey: selectedSchema?.schemaKey ?? "",
           outcomeId,
           rewardPayoutUi: normalize(rewardPayoutUi),
           outcomeLabel: outcome?.label ?? outcomeId,
@@ -614,6 +674,7 @@ export function PlanCreationWizard() {
     ruleHashOverridesByOutcome,
     ruleIdsByOutcome,
     schemaOutcomes,
+    selectedSchema?.schemaKey,
     selectedOutcomeIds,
   ]);
 
@@ -683,8 +744,8 @@ export function PlanCreationWizard() {
   }, [outcomeSearch, schemaOutcomes]);
 
   const oracleOptions = useMemo(
-    () => listLaunchOracleOptions(walletAddress, selectedOracles),
-    [selectedOracles, walletAddress],
+    () => buildLaunchOracleOptions(liveOracleProfiles, selectedOracles),
+    [liveOracleProfiles, selectedOracles],
   );
 
   const basicsErrors = useMemo(
@@ -839,8 +900,12 @@ export function PlanCreationWizard() {
 
     if (!payoutMintPk) {
       errors.push("Selected payout asset is invalid.");
-    } else if (reserveDomainPk && !reserveDomainSupportsMint(reserveDomainAddress, payoutMintPk.toBase58())) {
+    } else if (reserveDomainPk && !availableRailMints.includes(payoutMintPk.toBase58())) {
       errors.push("The selected reserve domain does not currently expose a launch rail for the chosen payout mint.");
+    }
+
+    if (rewardLaneRequired && !selectedSchema) {
+      errors.push("Select a live outcome schema for the reward lane.");
     }
 
     if (payoutAssetMode === "spl" && splDecimals === null) {
@@ -859,8 +924,11 @@ export function PlanCreationWizard() {
     publicKey,
     reserveDomainAddress,
     reserveDomainPk,
+    availableRailMints,
     rewardLaneErrors,
+    rewardLaneRequired,
     sendTransaction,
+    selectedSchema,
     splDecimals,
     verificationErrors,
   ]);
@@ -1046,6 +1114,11 @@ export function PlanCreationWizard() {
       setStatusMessage("Connect a wallet and resolve the reserve domain and payout mint before launch.");
       return;
     }
+    if (rewardLaneRequired && !selectedSchema) {
+      setStatusTone("error");
+      setStatusMessage("Select a live outcome schema before launching a reward lane.");
+      return;
+    }
     if (!addressPreview.healthPlanAddress) {
       setStatusTone("error");
       setStatusMessage("Plan address preview is unavailable.");
@@ -1192,8 +1265,8 @@ export function PlanCreationWizard() {
       });
       const schemaBindingHashHex = rewardLaneRequired
         ? await stableSha256Hex({
-          schemaKey: STANDARD_LAUNCH_SCHEMA.schemaKey,
-          version: STANDARD_LAUNCH_SCHEMA.version,
+          schemaKey: selectedSchema?.schemaKey ?? "",
+          version: selectedSchema?.version ?? 0,
           outcomes: [...selectedOutcomeIds].sort(),
         })
         : ZERO_HASH;
@@ -1270,7 +1343,7 @@ export function PlanCreationWizard() {
         });
         const rewardEvidenceHashHex = await stableSha256Hex({
           oraclePolicyHashHex,
-          schema: STANDARD_LAUNCH_SCHEMA.schemaKey,
+          schema: selectedSchema?.schemaKey ?? "",
           outcomes: selectedOutcomeIds,
         });
         const rewardComparabilityHashHex = await stableSha256Hex({
@@ -1547,6 +1620,7 @@ export function PlanCreationWizard() {
     rwaLegalEntityName,
     rwaPolicyTermsUri,
     rwaRegulatoryLicenseRef,
+    selectedSchema,
     selectedOracles,
     selectedOutcomeIds,
     sendTransaction,
@@ -1711,7 +1785,8 @@ export function PlanCreationWizard() {
                       value={reserveDomainAddress}
                       onChange={(event) => setReserveDomainAddress(event.target.value)}
                     >
-                      {DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.map((domain) => (
+                      {liveReserveDomainOptions.length === 0 ? <option value="">No live reserve domains</option> : null}
+                      {liveReserveDomainOptions.map((domain) => (
                         <option key={domain.address} value={domain.address}>
                           {domain.displayName} · {shortAddress(domain.address)}
                         </option>
@@ -1762,9 +1837,9 @@ export function PlanCreationWizard() {
                       <button
                         type="button"
                         className="secondary-button w-fit"
-                        onClick={() => setPayoutMint(defaultPayoutMintForIntent(launchIntent))}
+                        onClick={() => setPayoutMint(availableRailMints[0] ?? "")}
                       >
-                        Use default mint
+                        Use domain rail
                       </button>
                     </div>
                   </FieldGroup>
@@ -2013,6 +2088,12 @@ export function PlanCreationWizard() {
             {activeStep.id === "verification" ? (
               <div className="plans-wizard-step-body">
                 <div className="space-y-4">
+                  {liveOracleProfiles.length === 0 ? (
+                    <p className="wizard-inline-copy">
+                      No claimed oracle profiles are currently visible on-chain. Register and claim an oracle from{" "}
+                      <Link href="/oracles" className="plans-table-link">/oracles</Link> before launch.
+                    </p>
+                  ) : null}
                   <MultiOraclePicker
                     options={oracleOptions}
                     search={oracleSearch}
@@ -2139,11 +2220,46 @@ export function PlanCreationWizard() {
                 <div className="plans-wizard-divider" aria-hidden="true" />
 
                 <div className="space-y-3">
+                  {snapshot.outcomeSchemas.length === 0 ? (
+                    <p className="wizard-inline-copy">
+                      No outcome schemas are visible on-chain. Register and verify a schema from{" "}
+                      <Link href="/schemas" className="plans-table-link">/schemas</Link> before launching a reward lane.
+                    </p>
+                  ) : null}
                   <div className="flex items-center justify-between gap-2">
                     <span className="plans-wizard-field-label">Outcome Schema</span>
-                    <span className="status-pill status-off">{STANDARD_LAUNCH_SCHEMA.label}</span>
+                    <span className={`status-pill ${selectedSchema?.verified ? "status-ok" : "status-off"}`}>
+                      {selectedSchema?.verified ? "VERIFIED" : "UNVERIFIED"}
+                    </span>
                   </div>
-                  {schemaMetadataLoading ? <p className="wizard-inline-copy">Loading standard outcome schema…</p> : null}
+                  <div className="space-y-2">
+                    <select
+                      className="plans-wizard-input"
+                      value={selectedSchemaAddress}
+                      onChange={(event) => setSelectedSchemaAddress(event.target.value)}
+                    >
+                      {liveSchemaOptions.length === 0 ? <option value="">No live schemas</option> : null}
+                      {liveSchemaOptions.map((schema) => (
+                        <option key={schema.address} value={schema.address}>
+                          {schema.schemaKey} · v{schema.version} · {schema.verified ? "verified" : "unverified"}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="secondary-button w-fit"
+                      onClick={() => setShowAllSchemas((current) => !current)}
+                    >
+                      {showAllSchemas ? "Show verified only" : "Manual override: show all schemas"}
+                    </button>
+                  </div>
+                  {selectedSchema ? (
+                    <p className="wizard-inline-copy">
+                      {selectedSchema.schemaKey} · version {selectedSchema.version}
+                      {selectedSchema.metadataUri ? ` · ${selectedSchema.metadataUri}` : ""}
+                    </p>
+                  ) : null}
+                  {schemaMetadataLoading ? <p className="wizard-inline-copy">Loading selected outcome schema…</p> : null}
                   {schemaWarnings.length > 0 ? (
                     <div className="wizard-note">
                       {schemaWarnings.map((warning) => (

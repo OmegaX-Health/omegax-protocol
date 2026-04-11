@@ -39,7 +39,12 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 
 - the public console now mounts canonical routes for `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas`
 - mounted workbenches read live protocol snapshot data rather than depending on fixture-only preview state
-- `/oracles` now renders live operator registry, pool approval, permission, policy, attestation, and dispute-watch posture
+- `/plans/new` now sources reserve domains, domain asset vault rails, claimed oracle profiles, and registry schemas from the live canonical snapshot
+- `/governance` now includes mounted bootstrap actions for `initialize_protocol_governance`, `create_reserve_domain`, and `create_domain_asset_vault`
+- `/members` now mounts self-serve `open_member_position` enrollment ahead of the existing operator/member register
+- `/claims` now mounts self-serve `open_claim_case` intake ahead of the operator liability register
+- mounted plan and capital workbenches now include sponsor-side `create_policy_series` and `open_funding_line`, `update_lp_position_credentialing`, and `mark_impairment`
+- `/oracles` now renders live registry, claim/profile readiness, pool approval, permission, and policy binding posture in one mounted route
 - `/schemas` now renders the live versioned schema registry, dependency posture, and shared binding context for policy series
 - the launch flow continues to create plans, policy series, and funding lines through the canonical launch wizard instead of the retired pool-first workspace
 
@@ -58,15 +63,15 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 
 ## Known follow-up work
 
-`v0.3.0` now has the canonical read surface and the new oracle/schema registry wired into the repo, but not every operator write path is yet mounted in the canonical workbench shells.
+`v0.3.0` now has the canonical read surface and the core self-serve and operator write paths mounted in the canonical workbench shells.
 
 The most important follow-ups after this release candidate are:
 
-- finish route-native claim and member detail/action flows on `/claims` and `/members`
-- mount canonical transaction composers for capital operations, funding administration, and governance templates directly in the mounted workbenches
-- complete canonical operator actions for oracle approval/policy management and schema maintenance inside `/oracles` and `/schemas`
+- deepen inline detail/history views for member participation, claims, and obligations without reviving retired legacy route patterns
+- expand mounted schema-maintenance and governance-template authoring flows beyond the current registry and proposal coverage
+- continue localnet and devnet persona sign-off for broader sponsor, oracle, reviewer, and LP operational sequences
 
-These follow-ups do not invalidate the protocol artifact sync, devnet sign-off, or public release packaging, but they should be tracked explicitly before broader production UX claims are made.
+This patch updates the mounted console behavior and verification coverage without introducing a public contract-surface delta unless regenerated artifacts in this release package say otherwise.
 
 ## Reviewer checklist
 

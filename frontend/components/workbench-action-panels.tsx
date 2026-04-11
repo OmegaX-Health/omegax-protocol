@@ -11,6 +11,7 @@ import {
   buildAdjudicateClaimCaseTx,
   buildAllocateCapitalTx,
   buildAttachClaimEvidenceRefTx,
+  buildCreatePolicySeriesTx,
   buildCreateAllocationPositionTx,
   buildCreateCapitalClassTx,
   buildCreateLiquidityPoolTx,
@@ -18,7 +19,9 @@ import {
   buildDepositIntoCapitalClassTx,
   buildDeallocateCapitalTx,
   buildFundSponsorBudgetTx,
+  buildMarkImpairmentTx,
   buildOpenClaimCaseTx,
+  buildOpenFundingLineTx,
   buildOpenMemberPositionTx,
   buildProcessRedemptionQueueTx,
   buildRecordPremiumPaymentTx,
@@ -30,6 +33,7 @@ import {
   buildUpdateAllocationCapsTx,
   buildUpdateCapitalClassControlsTx,
   buildUpdateHealthPlanControlsTx,
+  buildUpdateLpPositionCredentialingTx,
   buildUpdateMemberEligibilityTx,
   buildUpdateReserveDomainControlsTx,
   buildVersionPolicySeriesTx,
@@ -40,8 +44,11 @@ import {
   CLAIM_INTAKE_UNDER_REVIEW,
   ELIGIBILITY_ELIGIBLE,
   ELIGIBILITY_PENDING,
+  FUNDING_LINE_TYPE_BACKSTOP,
+  FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
   FUNDING_LINE_TYPE_PREMIUM_INCOME,
   FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+  FUNDING_LINE_TYPE_SUBSIDY,
   MEMBER_DELEGATED_RIGHT_FLAGS,
   OBLIGATION_DELIVERY_MODE_CLAIMABLE,
   OBLIGATION_STATUS_CANCELED,
@@ -51,6 +58,15 @@ import {
   PAUSE_FLAG_CLAIM_INTAKE,
   REDEMPTION_POLICY_OPEN,
   REDEMPTION_POLICY_QUEUE_ONLY,
+  SERIES_MODE_OTHER,
+  SERIES_MODE_PARAMETRIC,
+  SERIES_MODE_PROTECTION,
+  SERIES_MODE_REIMBURSEMENT,
+  SERIES_MODE_REWARD,
+  SERIES_STATUS_ACTIVE,
+  SERIES_STATUS_CLOSED,
+  SERIES_STATUS_DRAFT,
+  SERIES_STATUS_PAUSED,
   ZERO_PUBKEY,
   hashStringTo32Hex,
   type AllocationPositionSnapshot,
@@ -64,6 +80,10 @@ import {
   type PolicySeriesSnapshot,
   type ReserveDomainSnapshot,
 } from "@/lib/protocol";
+
+const MEMBERSHIP_PROOF_MODE_OPEN = 0;
+const MEMBERSHIP_PROOF_MODE_TOKEN_GATE = 1;
+const MEMBERSHIP_PROOF_MODE_INVITE_PERMIT = 2;
 
 type ActionStatus = {
   tone: "ok" | "error";
@@ -160,6 +180,340 @@ function WalletGuard({ ready }: { ready: boolean }) {
   );
 }
 
+function membershipProofModeForPlan(plan: HealthPlanSnapshot | null): number {
+  if (!plan) return MEMBERSHIP_PROOF_MODE_OPEN;
+  if (plan.membershipModel === "invite_only") return MEMBERSHIP_PROOF_MODE_INVITE_PERMIT;
+  if (plan.membershipModel === "token_gate") return MEMBERSHIP_PROOF_MODE_TOKEN_GATE;
+  return MEMBERSHIP_PROOF_MODE_OPEN;
+}
+
+type MemberSelfServePanelProps = {
+  plan: HealthPlanSnapshot | null;
+  series: PolicySeriesSnapshot | null;
+  members: MemberPositionSnapshot[];
+  onRefresh?: () => Promise<void> | void;
+};
+
+export function MemberSelfServePanel(props: MemberSelfServePanelProps) {
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
+  const canAct = Boolean(publicKey && props.plan);
+  const walletAddress = publicKey?.toBase58() ?? "";
+  const existingPosition = useMemo(
+    () =>
+      props.members.find((member) =>
+        member.wallet === walletAddress && member.policySeries === (props.series?.address ?? ZERO_PUBKEY),
+      ) ?? props.members.find((member) => member.wallet === walletAddress) ?? null,
+    [props.members, props.series?.address, walletAddress],
+  );
+  const proofMode = membershipProofModeForPlan(props.plan);
+  const requiresTokenGate = props.plan?.membershipModel === "token_gate";
+  const requiresInviteAuthority = props.plan?.membershipModel === "invite_only";
+  const usesStakeAnchor = props.plan?.membershipGateKind === "stake_anchor";
+  const usesNftAnchor = props.plan?.membershipGateKind === "nft_anchor";
+
+  const [status, setStatus] = useState<ActionStatus>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [subjectCommitment, setSubjectCommitment] = useState("");
+  const [tokenGateAccount, setTokenGateAccount] = useState("");
+  const [tokenGateSnapshot, setTokenGateSnapshot] = useState(String(props.plan?.membershipGateMinAmount ?? 0));
+  const [inviteId, setInviteId] = useState("");
+  const [inviteExpiresAt, setInviteExpiresAt] = useState("0");
+
+  useEffect(() => {
+    setTokenGateSnapshot(String(props.plan?.membershipGateMinAmount ?? 0));
+  }, [props.plan?.membershipGateMinAmount]);
+
+  async function run(label: string, factory: () => Promise<Transaction>) {
+    if (!publicKey || !sendTransaction || !props.plan) return;
+    setBusy(label);
+    setStatus(null);
+    try {
+      const tx = await factory();
+      const result = await executeProtocolTransaction({ connection, sendTransaction, tx, label });
+      if (!result.ok) {
+        setStatus({ tone: "error", message: result.error });
+        return;
+      }
+      setStatus({ tone: "ok", message: result.message, explorerUrl: result.explorerUrl });
+      await props.onRefresh?.();
+    } catch (error) {
+      setStatus({ tone: "error", message: error instanceof Error ? error.message : `${label} failed.` });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <article className="plans-card heavy-glass">
+      <div className="plans-card-head">
+        <div>
+          <p className="plans-card-eyebrow">MEMBER_SELF_SERVE</p>
+          <h2 className="plans-card-title plans-card-title-display">
+            Join this <em>plan</em>
+          </h2>
+        </div>
+      </div>
+      <WalletGuard ready={canAct} />
+      <StatusBanner status={status} />
+      <p className="plans-card-body">
+        This card uses the live canonical `open_member_position` flow for the connected wallet only.
+      </p>
+      {existingPosition ? (
+        <div className="plans-notice liquid-glass" role="status">
+          <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">person_check</span>
+          <p>
+            The connected wallet already has a member position for this plan
+            {props.series ? " and the selected lane." : "."}
+          </p>
+        </div>
+      ) : null}
+      {requiresInviteAuthority && props.plan?.membershipInviteAuthority && props.plan.membershipInviteAuthority !== walletAddress ? (
+        <div className="plans-notice liquid-glass" role="status">
+          <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">info</span>
+          <p>
+            Invite-only enrollment must be submitted by the configured invite authority wallet:
+            {" "}
+            <span className="plans-table-mono">{props.plan.membershipInviteAuthority}</span>
+          </p>
+        </div>
+      ) : null}
+      <div className="plans-wizard-row">
+        <Field label="CONNECTED_WALLET" value={walletAddress} onChange={() => undefined} />
+        <Field
+          label="SERIES_SCOPE"
+          value={props.series?.displayName ?? "PLAN_ROOT"}
+          onChange={() => undefined}
+        />
+      </div>
+      <Field
+        label="SUBJECT_COMMITMENT"
+        value={subjectCommitment}
+        onChange={setSubjectCommitment}
+        placeholder="Optional hash seed or 32-byte hex"
+      />
+      {requiresTokenGate ? (
+        <>
+          <div className="plans-wizard-row">
+            <Field
+              label={usesStakeAnchor ? "STAKE_ANCHOR_ACCOUNT" : usesNftAnchor ? "TOKEN_ACCOUNT_WITH_NFT" : "TOKEN_GATE_ACCOUNT"}
+              value={tokenGateAccount}
+              onChange={setTokenGateAccount}
+              placeholder="Token account owned by the connected wallet"
+            />
+            <Field
+              label="TOKEN_GATE_SNAPSHOT"
+              value={tokenGateSnapshot}
+              onChange={setTokenGateSnapshot}
+              placeholder="Observed balance snapshot"
+            />
+          </div>
+          <p className="plans-card-body">
+            Token-gated enrollment validates the provided token account against the plan gate before the member
+            position opens.
+          </p>
+        </>
+      ) : null}
+      {requiresInviteAuthority ? (
+        <div className="plans-wizard-row">
+          <Field label="INVITE_REFERENCE" value={inviteId} onChange={setInviteId} placeholder="Invite code or digest seed" />
+          <Field label="INVITE_EXPIRES_AT" value={inviteExpiresAt} onChange={setInviteExpiresAt} placeholder="Unix timestamp or 0" />
+        </div>
+      ) : null}
+      <div className="protocol-actions">
+        <button
+          type="button"
+          className="plans-primary-cta"
+          disabled={
+            !canAct
+            || Boolean(existingPosition)
+            || (requiresTokenGate && !tokenGateAccount.trim())
+            || (requiresInviteAuthority
+              && props.plan?.membershipInviteAuthority
+              && props.plan.membershipInviteAuthority !== walletAddress)
+            || busy === "Open member position"
+          }
+          onClick={() => run("Open member position", async () => {
+            const { blockhash } = await connection.getLatestBlockhash("confirmed");
+            return buildOpenMemberPositionTx({
+              wallet: publicKey!,
+              healthPlanAddress: props.plan!.address,
+              recentBlockhash: blockhash,
+              seriesScopeAddress: props.series?.address ?? ZERO_PUBKEY,
+              subjectCommitmentHashHex: await hashInputToHex(subjectCommitment),
+              eligibilityStatus: ELIGIBILITY_ELIGIBLE,
+              delegatedRightsMask: 0,
+              proofMode,
+              tokenGateAmountSnapshot: requiresTokenGate ? parseBigIntInput(tokenGateSnapshot) : 0n,
+              inviteIdHashHex: requiresInviteAuthority ? await hashInputToHex(inviteId) : undefined,
+              inviteExpiresAt: requiresInviteAuthority ? parseBigIntInput(inviteExpiresAt) : 0n,
+              anchorRefAddress: usesNftAnchor
+                ? props.plan!.membershipGateMint ?? undefined
+                : usesStakeAnchor
+                  ? tokenGateAccount
+                  : undefined,
+              tokenGateAccountAddress: requiresTokenGate ? tokenGateAccount : undefined,
+              inviteAuthorityAddress: requiresInviteAuthority ? publicKey! : undefined,
+            });
+          })}
+        >
+          OPEN_MEMBER_POSITION
+        </button>
+      </div>
+    </article>
+  );
+}
+
+type ClaimIntakePanelProps = {
+  plan: HealthPlanSnapshot | null;
+  series: PolicySeriesSnapshot | null;
+  members: MemberPositionSnapshot[];
+  fundingLines: FundingLineSnapshot[];
+  onRefresh?: () => Promise<void> | void;
+};
+
+export function ClaimIntakePanel(props: ClaimIntakePanelProps) {
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
+  const canAct = Boolean(publicKey && props.plan);
+  const walletAddress = publicKey?.toBase58() ?? "";
+  const selfMembers = useMemo(
+    () => props.members.filter((member) => member.wallet === walletAddress),
+    [props.members, walletAddress],
+  );
+  const [status, setStatus] = useState<ActionStatus>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [claimId, setClaimId] = useState("");
+  const [evidenceRef, setEvidenceRef] = useState("");
+  const [selectedMemberAddress, setSelectedMemberAddress] = useState("");
+  const [selectedFundingLineAddress, setSelectedFundingLineAddress] = useState("");
+
+  useEffect(() => {
+    if (!claimId) setClaimId(`claim-${Date.now().toString(36)}`);
+  }, [claimId]);
+
+  useEffect(() => {
+    setSelectedMemberAddress(selfMembers[0]?.address ?? "");
+  }, [selfMembers]);
+
+  useEffect(() => {
+    setSelectedFundingLineAddress(props.fundingLines[0]?.address ?? "");
+  }, [props.fundingLines]);
+
+  const selectedMember = useMemo(
+    () => selfMembers.find((member) => member.address === selectedMemberAddress) ?? selfMembers[0] ?? null,
+    [selectedMemberAddress, selfMembers],
+  );
+  const selectedFundingLine = useMemo(
+    () => props.fundingLines.find((line) => line.address === selectedFundingLineAddress) ?? props.fundingLines[0] ?? null,
+    [props.fundingLines, selectedFundingLineAddress],
+  );
+
+  async function run(label: string, factory: () => Promise<Transaction>) {
+    if (!publicKey || !sendTransaction || !props.plan) return;
+    setBusy(label);
+    setStatus(null);
+    try {
+      const tx = await factory();
+      const result = await executeProtocolTransaction({ connection, sendTransaction, tx, label });
+      if (!result.ok) {
+        setStatus({ tone: "error", message: result.error });
+        return;
+      }
+      setStatus({ tone: "ok", message: result.message, explorerUrl: result.explorerUrl });
+      await props.onRefresh?.();
+    } catch (error) {
+      setStatus({ tone: "error", message: error instanceof Error ? error.message : `${label} failed.` });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <article className="plans-card heavy-glass">
+      <div className="plans-card-head">
+        <div>
+          <p className="plans-card-eyebrow">CLAIM_SELF_SERVE</p>
+          <h2 className="plans-card-title plans-card-title-display">
+            Open a new <em>claim</em>
+          </h2>
+        </div>
+      </div>
+      <WalletGuard ready={canAct} />
+      <StatusBanner status={status} />
+      {selfMembers.length === 0 ? (
+        <p className="plans-card-body">
+          The connected wallet does not currently have an enrolled member position for this plan and selected lane.
+        </p>
+      ) : null}
+      <div className="plans-wizard-row">
+        <Field label="CLAIM_ID" value={claimId} onChange={setClaimId} />
+        <Field label="CLAIMANT" value={walletAddress} onChange={() => undefined} />
+      </div>
+      <div className="plans-wizard-row">
+        <label className="plans-wizard-field-group">
+          <span className="plans-wizard-field-label">MEMBER_POSITION</span>
+          <span className="plans-wizard-field-bar">
+            <select
+              className="plans-wizard-input"
+              value={selectedMember?.address ?? ""}
+              onChange={(event) => setSelectedMemberAddress(event.target.value)}
+            >
+              {selfMembers.length === 0 ? <option value="">No member positions</option> : null}
+              {selfMembers.map((member) => (
+                <option key={member.address} value={member.address}>
+                  {member.address.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </span>
+        </label>
+        <label className="plans-wizard-field-group">
+          <span className="plans-wizard-field-label">FUNDING_LINE</span>
+          <span className="plans-wizard-field-bar">
+            <select
+              className="plans-wizard-input"
+              value={selectedFundingLine?.address ?? ""}
+              onChange={(event) => setSelectedFundingLineAddress(event.target.value)}
+            >
+              {props.fundingLines.length === 0 ? <option value="">No funding lines</option> : null}
+              {props.fundingLines.map((line) => (
+                <option key={line.address} value={line.address}>
+                  {line.displayName}
+                </option>
+              ))}
+            </select>
+          </span>
+        </label>
+      </div>
+      <Field label="INITIAL_EVIDENCE_REF" value={evidenceRef} onChange={setEvidenceRef} placeholder="URI, CID, or digest seed" />
+      <div className="protocol-actions">
+        <button
+          type="button"
+          className="plans-primary-cta"
+          disabled={!canAct || !selectedMember || !selectedFundingLine || busy === "Open claim case"}
+          onClick={() => run("Open claim case", async () => {
+            const { blockhash } = await connection.getLatestBlockhash("confirmed");
+            return buildOpenClaimCaseTx({
+              authority: publicKey!,
+              healthPlanAddress: props.plan!.address,
+              memberPositionAddress: selectedMember.address,
+              fundingLineAddress: selectedFundingLine.address,
+              recentBlockhash: blockhash,
+              claimId,
+              policySeriesAddress: props.series?.address ?? selectedFundingLine.policySeries ?? null,
+              claimantAddress: publicKey!,
+              evidenceRefHashHex: await hashInputToHex(evidenceRef),
+            });
+          })}
+        >
+          OPEN_CLAIM_CASE
+        </button>
+      </div>
+    </article>
+  );
+}
+
 type ClaimsOperatorPanelProps = {
   plan: HealthPlanSnapshot | null;
   series: PolicySeriesSnapshot | null;
@@ -182,7 +536,7 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
   const { publicKey, sendTransaction } = useWallet();
   const canAct = Boolean(publicKey && props.plan);
   const claimSelection = selectOptions(props.claimCases, props.selectedClaimAddress);
-  const activePanel = props.selectedPanel === "reserve" || props.selectedPanel === "adjudication"
+  const activePanel = props.selectedPanel === "reserve" || props.selectedPanel === "adjudication" || props.selectedPanel === "impairment"
     ? props.selectedPanel
     : "intake";
 
@@ -204,6 +558,8 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
   const [settleClaimAmount, setSettleClaimAmount] = useState("0");
   const [settleObligationAmount, setSettleObligationAmount] = useState("0");
   const [settleObligationStatus, setSettleObligationStatus] = useState(String(OBLIGATION_STATUS_CLAIMABLE_PAYABLE));
+  const [impairmentAmount, setImpairmentAmount] = useState("0");
+  const [impairmentReason, setImpairmentReason] = useState("");
   const [selectedFundingLineAddress, setSelectedFundingLineAddress] = useState("");
   const [selectedMemberAddress, setSelectedMemberAddress] = useState("");
   const [selectedObligationAddress, setSelectedObligationAddress] = useState("");
@@ -295,7 +651,7 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
           </h2>
         </div>
         <div className="protocol-actions">
-          {(["intake", "adjudication", "reserve"] as const).map((panel) => (
+          {(["intake", "adjudication", "reserve", "impairment"] as const).map((panel) => (
             <button
               key={panel}
               type="button"
@@ -642,6 +998,42 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
           </div>
         </>
       ) : null}
+
+      {activePanel === "impairment" ? (
+        <>
+          <div className="plans-wizard-row">
+            <Field label="IMPAIRMENT_AMOUNT" value={impairmentAmount} onChange={setImpairmentAmount} />
+            <Field label="IMPAIRMENT_REASON" value={impairmentReason} onChange={setImpairmentReason} placeholder="Reason hash seed or 32-byte hex" />
+          </div>
+          <div className="protocol-actions">
+            <button
+              type="button"
+              className="plans-primary-cta"
+              disabled={!canAct || !selectedFundingLine || busy === "Mark impairment"}
+              onClick={() => run("Mark impairment", async () => {
+                const { blockhash } = await connection.getLatestBlockhash("confirmed");
+                return buildMarkImpairmentTx({
+                  authority: publicKey!,
+                  healthPlanAddress: props.plan!.address,
+                  reserveDomainAddress: props.plan!.reserveDomain,
+                  fundingLineAddress: selectedFundingLine.address,
+                  assetMint: selectedObligation?.assetMint ?? selectedFundingLine.assetMint,
+                  recentBlockhash: blockhash,
+                  amount: parseBigIntInput(impairmentAmount),
+                  reasonHashHex: await hashInputToHex(impairmentReason),
+                  policySeriesAddress: selectedObligation?.policySeries ?? selectedFundingLine.policySeries ?? null,
+                  capitalClassAddress: selectedObligation?.capitalClass ?? selectedClass?.address ?? null,
+                  allocationPositionAddress: selectedObligation?.allocationPosition ?? selectedAllocation?.address ?? null,
+                  obligationAddress: selectedObligation?.address ?? null,
+                  poolAssetMint: selectedPool?.depositAssetMint ?? null,
+                });
+              })}
+            >
+              MARK_IMPAIRMENT
+            </button>
+          </div>
+        </>
+      ) : null}
     </article>
   );
 }
@@ -880,6 +1272,7 @@ export function MembersOperatorPanel(props: MembersOperatorPanelProps) {
 type TreasuryOperatorPanelProps = {
   plan: HealthPlanSnapshot | null;
   series: PolicySeriesSnapshot | null;
+  seriesOptions: PolicySeriesSnapshot[];
   reserveDomain: ReserveDomainSnapshot | null;
   fundingLines: FundingLineSnapshot[];
   allocations: AllocationPositionSnapshot[];
@@ -906,6 +1299,19 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
   const [cycleSeconds, setCycleSeconds] = useState("0");
   const [active, setActive] = useState(props.plan?.active ?? true);
   const [domainActive, setDomainActive] = useState(props.reserveDomain?.active ?? true);
+  const [newSeriesId, setNewSeriesId] = useState("");
+  const [newSeriesDisplayName, setNewSeriesDisplayName] = useState("");
+  const [newSeriesMetadataUri, setNewSeriesMetadataUri] = useState("");
+  const [newSeriesAssetMint, setNewSeriesAssetMint] = useState("");
+  const [newSeriesMode, setNewSeriesMode] = useState(String(props.series?.mode ?? SERIES_MODE_PROTECTION));
+  const [newSeriesStatus, setNewSeriesStatus] = useState(String(props.series?.status ?? SERIES_STATUS_ACTIVE));
+  const [newSeriesCycleSeconds, setNewSeriesCycleSeconds] = useState("0");
+  const [newFundingLineId, setNewFundingLineId] = useState("");
+  const [newFundingLineAssetMint, setNewFundingLineAssetMint] = useState("");
+  const [newFundingLineType, setNewFundingLineType] = useState(String(FUNDING_LINE_TYPE_SPONSOR_BUDGET));
+  const [newFundingPriority, setNewFundingPriority] = useState("0");
+  const [newFundingCommittedAmount, setNewFundingCommittedAmount] = useState("0");
+  const [selectedFundingSeriesAddress, setSelectedFundingSeriesAddress] = useState("");
 
   useEffect(() => {
     setFundingLineAddress(props.fundingLines[0]?.address ?? "");
@@ -919,6 +1325,18 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
     setDisplayName(props.series?.displayName ?? props.plan?.displayName ?? "");
     setMetadataUri(props.series?.metadataUri ?? "");
     setCycleSeconds(String(props.series?.cycleSeconds ?? 0));
+    setNewSeriesId(props.series ? `${props.series.seriesId}-alt` : "");
+    setNewSeriesDisplayName(props.plan ? `${props.plan.displayName} Series` : "");
+    setNewSeriesMetadataUri(props.series?.metadataUri ?? "");
+    setNewSeriesAssetMint(props.series?.assetMint ?? props.fundingLines[0]?.assetMint ?? "");
+    setNewSeriesMode(String(props.series?.mode ?? SERIES_MODE_PROTECTION));
+    setNewSeriesStatus(String(props.series?.status ?? SERIES_STATUS_ACTIVE));
+    setNewSeriesCycleSeconds(String(props.series?.cycleSeconds ?? 0));
+    setNewFundingLineId(props.series ? `${props.series.seriesId}-line` : "");
+    setNewFundingLineAssetMint(props.series?.assetMint ?? props.fundingLines[0]?.assetMint ?? "");
+    setNewFundingLineType(String(props.series?.mode === SERIES_MODE_PROTECTION ? FUNDING_LINE_TYPE_PREMIUM_INCOME : FUNDING_LINE_TYPE_SPONSOR_BUDGET));
+    setNewFundingPriority(String(props.fundingLines[0]?.fundingPriority ?? 0));
+    setSelectedFundingSeriesAddress(props.series?.address ?? "");
   }, [props.fundingLines, props.plan, props.reserveDomain, props.series]);
 
   const selectedFundingLine = useMemo(
@@ -936,6 +1354,10 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
   const selectedPool = useMemo(
     () => props.pools.find((pool) => pool.address === selectedAllocation?.liquidityPool) ?? null,
     [props.pools, selectedAllocation?.liquidityPool],
+  );
+  const selectedFundingSeries = useMemo(
+    () => props.seriesOptions.find((entry) => entry.address === selectedFundingSeriesAddress) ?? null,
+    [props.seriesOptions, selectedFundingSeriesAddress],
   );
 
   async function run(label: string, factory: () => Promise<Transaction>) {
@@ -1092,44 +1514,169 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
         </button>
       </div>
 
-      {props.series ? (
-        <>
+      <>
           <div className="plans-wizard-divider" />
           <div className="plans-wizard-row">
-            <Field label="NEXT_SERIES_ID" value={seriesId} onChange={setSeriesId} />
-            <Field label="DISPLAY_NAME" value={displayName} onChange={setDisplayName} />
+            <Field label="NEW_SERIES_ID" value={newSeriesId} onChange={setNewSeriesId} />
+            <Field label="NEW_SERIES_DISPLAY_NAME" value={newSeriesDisplayName} onChange={setNewSeriesDisplayName} />
           </div>
           <div className="plans-wizard-row">
-            <Field label="METADATA_URI" value={metadataUri} onChange={setMetadataUri} />
-            <Field label="CYCLE_SECONDS" value={cycleSeconds} onChange={setCycleSeconds} />
+            <Field label="NEW_SERIES_METADATA_URI" value={newSeriesMetadataUri} onChange={setNewSeriesMetadataUri} />
+            <Field label="NEW_SERIES_ASSET_MINT" value={newSeriesAssetMint} onChange={setNewSeriesAssetMint} />
+          </div>
+          <div className="plans-wizard-row">
+            <label className="plans-wizard-field-group">
+              <span className="plans-wizard-field-label">NEW_SERIES_MODE</span>
+              <span className="plans-wizard-field-bar">
+                <select className="plans-wizard-input" value={newSeriesMode} onChange={(event) => setNewSeriesMode(event.target.value)}>
+                  <option value={String(SERIES_MODE_REWARD)}>REWARD</option>
+                  <option value={String(SERIES_MODE_PROTECTION)}>PROTECTION</option>
+                  <option value={String(SERIES_MODE_REIMBURSEMENT)}>REIMBURSEMENT</option>
+                  <option value={String(SERIES_MODE_PARAMETRIC)}>PARAMETRIC</option>
+                  <option value={String(SERIES_MODE_OTHER)}>OTHER</option>
+                </select>
+              </span>
+            </label>
+            <label className="plans-wizard-field-group">
+              <span className="plans-wizard-field-label">NEW_SERIES_STATUS</span>
+              <span className="plans-wizard-field-bar">
+                <select className="plans-wizard-input" value={newSeriesStatus} onChange={(event) => setNewSeriesStatus(event.target.value)}>
+                  <option value={String(SERIES_STATUS_DRAFT)}>DRAFT</option>
+                  <option value={String(SERIES_STATUS_ACTIVE)}>ACTIVE</option>
+                  <option value={String(SERIES_STATUS_PAUSED)}>PAUSED</option>
+                  <option value={String(SERIES_STATUS_CLOSED)}>CLOSED</option>
+                </select>
+              </span>
+            </label>
+          </div>
+          <div className="plans-wizard-row">
+            <Field label="NEW_SERIES_CYCLE_SECONDS" value={newSeriesCycleSeconds} onChange={setNewSeriesCycleSeconds} />
+          </div>
+          <div className="protocol-actions">
+            <button
+              type="button"
+              className="plans-secondary-cta"
+              disabled={!canAct || !newSeriesAssetMint || busy === "Create policy series"}
+              onClick={() => run("Create policy series", async () => {
+                const { blockhash } = await connection.getLatestBlockhash("confirmed");
+                return buildCreatePolicySeriesTx({
+                  authority: publicKey!,
+                  healthPlanAddress: props.plan!.address,
+                  assetMint: newSeriesAssetMint,
+                  recentBlockhash: blockhash,
+                  seriesId: newSeriesId,
+                  displayName: newSeriesDisplayName || newSeriesId,
+                  metadataUri: newSeriesMetadataUri,
+                  mode: Number.parseInt(newSeriesMode, 10) || SERIES_MODE_OTHER,
+                  status: Number.parseInt(newSeriesStatus, 10) || SERIES_STATUS_DRAFT,
+                  adjudicationMode: 0,
+                  cycleSeconds: parseBigIntInput(newSeriesCycleSeconds),
+                  termsVersion: 1,
+                });
+              })}
+            >
+              CREATE_POLICY_SERIES
+            </button>
+          </div>
+
+          {props.series ? (
+            <>
+              <div className="plans-wizard-divider" />
+              <div className="plans-wizard-row">
+                <Field label="NEXT_SERIES_ID" value={seriesId} onChange={setSeriesId} />
+                <Field label="DISPLAY_NAME" value={displayName} onChange={setDisplayName} />
+              </div>
+              <div className="plans-wizard-row">
+                <Field label="METADATA_URI" value={metadataUri} onChange={setMetadataUri} />
+                <Field label="CYCLE_SECONDS" value={cycleSeconds} onChange={setCycleSeconds} />
+              </div>
+              <div className="protocol-actions">
+                <button
+                  type="button"
+                  className="plans-primary-cta"
+                  disabled={!canAct || busy === "Version policy series"}
+                  onClick={() => run("Version policy series", async () => {
+                    const { blockhash } = await connection.getLatestBlockhash("confirmed");
+                    return buildVersionPolicySeriesTx({
+                      authority: publicKey!,
+                      healthPlanAddress: props.plan!.address,
+                      currentPolicySeriesAddress: props.series!.address,
+                      assetMint: props.series!.assetMint,
+                      recentBlockhash: blockhash,
+                      seriesId,
+                      displayName,
+                      metadataUri,
+                      status: props.series!.status,
+                      adjudicationMode: 0,
+                      cycleSeconds: parseBigIntInput(cycleSeconds),
+                    });
+                  })}
+                >
+                  VERSION_POLICY_SERIES
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          <div className="plans-wizard-divider" />
+          <div className="plans-wizard-row">
+            <Field label="NEW_FUNDING_LINE_ID" value={newFundingLineId} onChange={setNewFundingLineId} />
+            <Field label="NEW_FUNDING_LINE_ASSET_MINT" value={newFundingLineAssetMint} onChange={setNewFundingLineAssetMint} />
+          </div>
+          <div className="plans-wizard-row">
+            <label className="plans-wizard-field-group">
+              <span className="plans-wizard-field-label">POLICY_SERIES</span>
+              <span className="plans-wizard-field-bar">
+                <select className="plans-wizard-input" value={selectedFundingSeriesAddress} onChange={(event) => setSelectedFundingSeriesAddress(event.target.value)}>
+                  <option value="">PLAN_ROOT</option>
+                  {props.seriesOptions.map((entry) => (
+                    <option key={entry.address} value={entry.address}>{entry.displayName}</option>
+                  ))}
+                </select>
+              </span>
+            </label>
+            <label className="plans-wizard-field-group">
+              <span className="plans-wizard-field-label">LINE_TYPE</span>
+              <span className="plans-wizard-field-bar">
+                <select className="plans-wizard-input" value={newFundingLineType} onChange={(event) => setNewFundingLineType(event.target.value)}>
+                  <option value={String(FUNDING_LINE_TYPE_SPONSOR_BUDGET)}>SPONSOR_BUDGET</option>
+                  <option value={String(FUNDING_LINE_TYPE_PREMIUM_INCOME)}>PREMIUM_INCOME</option>
+                  <option value={String(FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION)}>POOL_ALLOCATION</option>
+                  <option value={String(FUNDING_LINE_TYPE_BACKSTOP)}>BACKSTOP</option>
+                  <option value={String(FUNDING_LINE_TYPE_SUBSIDY)}>SUBSIDY</option>
+                </select>
+              </span>
+            </label>
+          </div>
+          <div className="plans-wizard-row">
+            <Field label="FUNDING_PRIORITY" value={newFundingPriority} onChange={setNewFundingPriority} />
+            <Field label="COMMITTED_AMOUNT" value={newFundingCommittedAmount} onChange={setNewFundingCommittedAmount} />
           </div>
           <div className="protocol-actions">
             <button
               type="button"
               className="plans-primary-cta"
-              disabled={!canAct || busy === "Version policy series"}
-              onClick={() => run("Version policy series", async () => {
+              disabled={!canAct || !newFundingLineAssetMint || busy === "Open funding line"}
+              onClick={() => run("Open funding line", async () => {
                 const { blockhash } = await connection.getLatestBlockhash("confirmed");
-                return buildVersionPolicySeriesTx({
+                return buildOpenFundingLineTx({
                   authority: publicKey!,
                   healthPlanAddress: props.plan!.address,
-                  currentPolicySeriesAddress: props.series!.address,
-                  assetMint: props.series!.assetMint,
+                  reserveDomainAddress: props.plan!.reserveDomain,
+                  assetMint: newFundingLineAssetMint,
                   recentBlockhash: blockhash,
-                  seriesId,
-                  displayName,
-                  metadataUri,
-                  status: props.series!.status,
-                  adjudicationMode: 0,
-                  cycleSeconds: parseBigIntInput(cycleSeconds),
+                  lineId: newFundingLineId,
+                  policySeriesAddress: selectedFundingSeries?.address ?? null,
+                  lineType: Number.parseInt(newFundingLineType, 10) || FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+                  fundingPriority: Number.parseInt(newFundingPriority, 10) || 0,
+                  committedAmount: parseBigIntInput(newFundingCommittedAmount),
                 });
               })}
             >
-              VERSION_POLICY_SERIES
+              OPEN_FUNDING_LINE
             </button>
           </div>
         </>
-      ) : null}
     </article>
   );
 }
@@ -1151,7 +1698,7 @@ type CapitalOperatorPanelProps = {
 export function CapitalOperatorPanel(props: CapitalOperatorPanelProps) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
-  const canAct = Boolean(publicKey && sendTransaction);
+  const canAct = Boolean(publicKey);
   const [status, setStatus] = useState<ActionStatus>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [reserveDomainAddress, setReserveDomainAddress] = useState(props.selectedPool?.reserveDomain ?? props.reserveDomains[0]?.address ?? "");
@@ -1169,6 +1716,8 @@ export function CapitalOperatorPanel(props: CapitalOperatorPanelProps) {
   const [selectedHealthPlanAddress, setSelectedHealthPlanAddress] = useState(props.plans[0]?.address ?? "");
   const [selectedFundingLineAddress, setSelectedFundingLineAddress] = useState(props.fundingLines[0]?.address ?? "");
   const [selectedLpOwner, setSelectedLpOwner] = useState(props.lpPositions[0]?.owner ?? publicKey?.toBase58() ?? "");
+  const [lpCredentialed, setLpCredentialed] = useState(props.lpPositions[0]?.credentialed ?? true);
+  const [lpCredentialingReason, setLpCredentialingReason] = useState("");
   const [queueOnly, setQueueOnly] = useState(props.selectedClass?.queueOnlyRedemptions ?? false);
   const [classActive, setClassActive] = useState(props.selectedClass?.active ?? true);
   const [classPauseFlags, setClassPauseFlags] = useState(String(props.selectedClass?.active ? 0 : PAUSE_FLAG_CAPITAL_SUBSCRIPTIONS));
@@ -1178,6 +1727,7 @@ export function CapitalOperatorPanel(props: CapitalOperatorPanelProps) {
     setSelectedHealthPlanAddress(props.plans[0]?.address ?? "");
     setSelectedFundingLineAddress(props.fundingLines[0]?.address ?? "");
     setSelectedLpOwner(props.lpPositions[0]?.owner ?? publicKey?.toBase58() ?? "");
+    setLpCredentialed(props.lpPositions[0]?.credentialed ?? true);
     setQueueOnly(props.selectedClass?.queueOnlyRedemptions ?? false);
     setClassActive(props.selectedClass?.active ?? true);
   }, [props.fundingLines, props.lpPositions, props.plans, props.reserveDomains, props.selectedClass, props.selectedPool, publicKey]);
@@ -1351,8 +1901,29 @@ export function CapitalOperatorPanel(props: CapitalOperatorPanelProps) {
       </div>
       <div className="plans-wizard-row">
         <Field label="LP_OWNER" value={selectedLpOwner} onChange={setSelectedLpOwner} />
+        <Field label="LP_CREDENTIAL_REASON" value={lpCredentialingReason} onChange={setLpCredentialingReason} />
       </div>
+      <ToggleRow label="LP_CREDENTIALED" checked={lpCredentialed} onChange={setLpCredentialed} />
       <div className="protocol-actions">
+        <button
+          type="button"
+          className="plans-secondary-cta"
+          disabled={!canAct || !props.selectedPool || !props.selectedClass || !selectedLpOwner || busy === "Update LP credentialing"}
+          onClick={() => run("Update LP credentialing", async () => {
+            const { blockhash } = await connection.getLatestBlockhash("confirmed");
+            return buildUpdateLpPositionCredentialingTx({
+              authority: publicKey!,
+              poolAddress: props.selectedPool!.address,
+              capitalClassAddress: props.selectedClass!.address,
+              ownerAddress: selectedLpOwner,
+              recentBlockhash: blockhash,
+              credentialed: lpCredentialed,
+              reasonHashHex: await hashInputToHex(lpCredentialingReason),
+            });
+          })}
+        >
+          UPDATE_LP_CREDENTIALING
+        </button>
         <button
           type="button"
           className="plans-secondary-cta"

@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { OracleRegistryVerificationPanel } from "@/components/oracle-registry-verification-panel";
 import { PoolOraclesPanel } from "@/components/pool-oracles-panel";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { claimCasesForOracleContext, formatAmount, seriesForPool } from "@/lib/canonical-ui";
@@ -485,6 +486,7 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
               {/* ── Operators / Registry tab ── */}
               {activeTab === "registry" ? (
                 <div className="plans-stack">
+                  <OracleRegistryVerificationPanel />
                   {selectedPool ? <PoolOraclesPanel poolAddress={selectedPool.address} sectionMode="embedded" /> : null}
                   <article className="plans-card heavy-glass">
                     <div className="plans-card-head">
