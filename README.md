@@ -1,13 +1,69 @@
 # OmegaX Protocol
 
-OmegaX Protocol is the shared Solana settlement foundation for health capital markets.
+OmegaX Protocol is a Solana settlement layer for builders creating health apps, oracle services, sponsor programs, and outcome-triggered capital flows.
 
-It separates:
+On Solana devnet beta today, the public surface in this repository can already anchor:
 
-- sponsor/member policy rights
-- plan-side funding sources
-- LP-facing capital rights
-- reserve truth and settlement consequences
+- normalized outcome events produced by OmegaX Health or future compatible oracle operators
+- member enrollment, claim intake, obligations, reserve booking, and payouts
+- sponsor-funded reward or protection lanes
+- LP-facing capital pools, classes, allocations, redemptions, and impairment handling
+
+## Start Here
+
+- [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview)
+- [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started)
+- [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production)
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+- [Repository Documentation Map](./docs/README.md)
+
+## Choose Your Path
+
+### Oracle and event producers
+
+Build normalized event pipelines, oracle operators, and verification services that feed OmegaX-compatible outcomes into the protocol.
+
+Start with:
+
+- [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production)
+- [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview)
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+
+### Health / wallet / app builders
+
+Use the public SDK and read models to integrate member state, claim intake, payout posture, and outcome-triggered experiences into apps, wallets, or agents.
+
+Start with:
+
+- [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started)
+- [SDK Workflows](https://docs.omegax.health/docs/sdk/sdk-workflows)
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+
+### Sponsor and capital integrators
+
+Connect sponsor budgets, policy series, funding lines, pools, classes, and allocations to one reserve-aware settlement kernel.
+
+Start with:
+
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
+- [Release v0.3.0](./docs/operations/release-v0.3.0.md)
+
+## What Exists Today on Devnet Beta
+
+- reserve domains and domain asset vaults define settlement boundaries and payment rails
+- health plans, policy series, and funding lines define sponsor and member-side products
+- member enrollment, claim intake, obligations, settlement, and impairment are mounted in the canonical console
+- liquidity pools, capital classes, allocations, and redemptions define LP-facing exposure and queue behavior
+- oracle registry and schema registry accounts let outside event producers and integrations target the same public surface
+
+## Long-Term Destination
+
+OmegaX Health is the first oracle and the public sponsor/operator console is the first managed experience around the protocol.
+
+The destination is still health capital markets: one shared settlement foundation that can support sponsor programs, coverage products, outside oracle builders, wallet-native health apps, and capital formation without fragmenting the underlying accounting truth.
+
+## Protocol Model
 
 The canonical public model in this repository is:
 
@@ -22,15 +78,14 @@ The canonical public model in this repository is:
 - `CapitalClass`: investor instrument inside a pool
 - `AllocationPosition`: explicit capital-to-plan bridge
 
-## What Changed
+## Current Surface Notes
 
-This repository now treats the earlier pool-first surface as retired devnet history.
+This repository treats the earlier pool-first surface as retired devnet history and improves the current canonical model in place.
 
-- the overloaded pre-rearchitecture root is gone
 - sponsor budgets are not LP capital
 - reward and protection reconcile through one reserve kernel
 - reserve truth is ledger-based, not implied by scattered treasuries
-- restricted or wrapper-mediated participation is layered through reserve domains, capital classes, and managed LP credentialing, not fake parallel protocols
+- restricted or wrapper-mediated participation is layered through reserve domains, capital classes, and managed LP credentialing rather than parallel protocols
 
 ## Release Status
 
@@ -103,9 +158,9 @@ Run the public verification gate:
 npm run verify:public
 ```
 
-## Devnet Migration Helpers
+## Maintainer and Devnet Operations
 
-This redesign is a hard-break devnet migration. The repo now ships manifest-driven helpers rather than legacy bootstrap flows.
+These helpers are for repo maintainers and shared-devnet operators rather than first-time SDK consumers.
 
 - `npm run protocol:bootstrap`
   - writes `devnet/health-capital-markets-manifest.json`

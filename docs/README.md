@@ -2,6 +2,17 @@
 
 This directory contains the public documentation set for `omegax-protocol`.
 
+If you are an external builder, start with the public docs site before diving into the repo-internal architecture notes here.
+
+## External builder start here
+
+- [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview)
+- [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started)
+- [SDK Workflows](https://docs.omegax.health/docs/sdk/sdk-workflows)
+- [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production)
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
+
 ## Sections
 
 ### Architecture
@@ -34,18 +45,23 @@ This directory contains the public documentation set for `omegax-protocol`.
 ### Public Site
 
 - [OmegaX Docs](https://docs.omegax.health/docs)
-- [Why OmegaX](https://docs.omegax.health/docs/thesis/why-omegax)
-- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
-- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
-- [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production)
 - [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview)
 - [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started)
+- [SDK Workflows](https://docs.omegax.health/docs/sdk/sdk-workflows)
+- [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production)
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
+- [Why OmegaX](https://docs.omegax.health/docs/thesis/why-omegax)
 
 ## Audience Guide
 
+- Use [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview) when you want the fastest public explanation of what builders can ship on OmegaX today.
+- Use [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started) when you want to connect a client and choose the right builder workflow on devnet beta.
+- Use [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production) when you are designing an oracle, signal-normalization layer, or event pipeline.
+- Use [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface) when you need the current public protocol boundary before reading repo internals.
 - Use [OmegaX Docs](https://docs.omegax.health/docs) when you want the polished public overview, product story, and external documentation hub rather than repo-specific workflow details.
-- Use [Why OmegaX](https://docs.omegax.health/docs/thesis/why-omegax) when you need the clearest public statement of the protocol’s purpose, problem framing, and long-range destination.
-- Start with [Repository Layout](./architecture/repository-layout.md) if you are new to the repo.
+- Use [Why OmegaX](https://docs.omegax.health/docs/thesis/why-omegax) when you need the clearest public statement of the protocol’s purpose and long-range destination.
+- Start with [Repository Layout](./architecture/repository-layout.md) if you are new to the repo and need the internal file map.
 - Use [Solana Program Architecture](./architecture/solana-program-architecture.md) to understand the on-chain program layout and reviewer read order.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
 - Use [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) when you need the signer model, claim roles, and payout-path rules for reviewed coverage claims.
