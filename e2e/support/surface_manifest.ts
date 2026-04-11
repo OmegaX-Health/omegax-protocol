@@ -2,6 +2,8 @@
 
 export const SCENARIO_ORDER = [
   "governance_and_scoped_controls",
+  "oracle_registry_and_pool_control_lifecycle",
+  "schema_registry_and_binding_lifecycle",
   "reserve_domain_and_vault_setup",
   "sponsor_funded_plan_lifecycle",
   "reward_obligation_lifecycle",
@@ -29,6 +31,28 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
       "update_reserve_domain_controls",
       "update_health_plan_controls",
       "update_capital_class_controls",
+    ],
+  },
+  oracle_registry_and_pool_control_lifecycle: {
+    title: "Oracle Registry and Pool Controls",
+    focus: "Oracle operators register once, then receive explicit pool-scoped approval, permission bits, and policy posture.",
+    instructions: [
+      "register_oracle",
+      "claim_oracle",
+      "update_oracle_profile",
+      "set_pool_oracle",
+      "set_pool_oracle_permissions",
+      "set_pool_oracle_policy",
+    ],
+  },
+  schema_registry_and_binding_lifecycle: {
+    title: "Schema Registry and Binding",
+    focus: "Outcome schemas are published, verified, bound into pool rule dependencies, and retired through canonical governance paths.",
+    instructions: [
+      "register_outcome_schema",
+      "verify_outcome_schema",
+      "backfill_schema_dependency_ledger",
+      "close_outcome_schema",
     ],
   },
   reserve_domain_and_vault_setup: {

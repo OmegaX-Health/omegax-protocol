@@ -354,7 +354,7 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
             <article className="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface)] p-3">
               <p className="metric-label">Dependency ledger</p>
               <ul className="mt-2 space-y-1 text-sm text-[var(--muted-foreground)]">
-                <li>Active rule refcount: {selectedDependency?.activeRuleRefcount ?? 0}</li>
+                <li>Tracked dependencies: {selectedDependency?.poolRuleAddresses.length ?? 0}</li>
                 <li>Pool rules using schema: {matchingRules.length}</li>
                 <li>Metadata: {selectedSchema.metadataUri || "n/a"}</li>
               </ul>

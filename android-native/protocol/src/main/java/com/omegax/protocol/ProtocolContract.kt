@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 2ac563571b3e71264fc36092364e6f4a192fc3caeba9131652b272a3303ed0c9
+// contract_sha256: f512545a44b4cd07682806c2204de24d18e7a9455750b6aed00967f5835acf35
 
 package com.omegax.protocol
 
@@ -11,6 +11,9 @@ object ProtocolContract {
         "adjudicate_claim_case" to byteArrayOf(146u.toByte(), 99u.toByte(), 255u.toByte(), 26u.toByte(), 223u.toByte(), 88u.toByte(), 235u.toByte(), 114u.toByte()),
         "allocate_capital" to byteArrayOf(146u.toByte(), 129u.toByte(), 60u.toByte(), 205u.toByte(), 88u.toByte(), 225u.toByte(), 60u.toByte(), 183u.toByte()),
         "attach_claim_evidence_ref" to byteArrayOf(52u.toByte(), 246u.toByte(), 203u.toByte(), 87u.toByte(), 244u.toByte(), 143u.toByte(), 132u.toByte(), 131u.toByte()),
+        "backfill_schema_dependency_ledger" to byteArrayOf(109u.toByte(), 109u.toByte(), 247u.toByte(), 151u.toByte(), 229u.toByte(), 78u.toByte(), 52u.toByte(), 167u.toByte()),
+        "claim_oracle" to byteArrayOf(1u.toByte(), 252u.toByte(), 166u.toByte(), 132u.toByte(), 45u.toByte(), 24u.toByte(), 23u.toByte(), 233u.toByte()),
+        "close_outcome_schema" to byteArrayOf(196u.toByte(), 81u.toByte(), 8u.toByte(), 61u.toByte(), 95u.toByte(), 145u.toByte(), 225u.toByte(), 2u.toByte()),
         "create_allocation_position" to byteArrayOf(165u.toByte(), 80u.toByte(), 76u.toByte(), 13u.toByte(), 12u.toByte(), 202u.toByte(), 112u.toByte(), 31u.toByte()),
         "create_capital_class" to byteArrayOf(0u.toByte(), 161u.toByte(), 244u.toByte(), 112u.toByte(), 151u.toByte(), 137u.toByte(), 35u.toByte(), 221u.toByte()),
         "create_domain_asset_vault" to byteArrayOf(31u.toByte(), 13u.toByte(), 112u.toByte(), 128u.toByte(), 23u.toByte(), 164u.toByte(), 26u.toByte(), 108u.toByte()),
@@ -29,9 +32,14 @@ object ProtocolContract {
         "open_member_position" to byteArrayOf(161u.toByte(), 42u.toByte(), 115u.toByte(), 196u.toByte(), 30u.toByte(), 87u.toByte(), 104u.toByte(), 236u.toByte()),
         "process_redemption_queue" to byteArrayOf(244u.toByte(), 120u.toByte(), 208u.toByte(), 73u.toByte(), 216u.toByte(), 200u.toByte(), 158u.toByte(), 93u.toByte()),
         "record_premium_payment" to byteArrayOf(196u.toByte(), 182u.toByte(), 182u.toByte(), 56u.toByte(), 146u.toByte(), 87u.toByte(), 170u.toByte(), 29u.toByte()),
+        "register_oracle" to byteArrayOf(176u.toByte(), 200u.toByte(), 234u.toByte(), 37u.toByte(), 199u.toByte(), 129u.toByte(), 164u.toByte(), 111u.toByte()),
+        "register_outcome_schema" to byteArrayOf(187u.toByte(), 68u.toByte(), 109u.toByte(), 211u.toByte(), 168u.toByte(), 181u.toByte(), 105u.toByte(), 32u.toByte()),
         "release_reserve" to byteArrayOf(170u.toByte(), 102u.toByte(), 52u.toByte(), 144u.toByte(), 33u.toByte(), 176u.toByte(), 41u.toByte(), 60u.toByte()),
         "request_redemption" to byteArrayOf(14u.toByte(), 62u.toByte(), 182u.toByte(), 237u.toByte(), 59u.toByte(), 79u.toByte(), 149u.toByte(), 22u.toByte()),
         "reserve_obligation" to byteArrayOf(48u.toByte(), 113u.toByte(), 133u.toByte(), 225u.toByte(), 40u.toByte(), 36u.toByte(), 197u.toByte(), 86u.toByte()),
+        "set_pool_oracle" to byteArrayOf(140u.toByte(), 225u.toByte(), 146u.toByte(), 45u.toByte(), 210u.toByte(), 81u.toByte(), 225u.toByte(), 223u.toByte()),
+        "set_pool_oracle_permissions" to byteArrayOf(168u.toByte(), 14u.toByte(), 22u.toByte(), 106u.toByte(), 118u.toByte(), 145u.toByte(), 105u.toByte(), 44u.toByte()),
+        "set_pool_oracle_policy" to byteArrayOf(190u.toByte(), 13u.toByte(), 51u.toByte(), 113u.toByte(), 230u.toByte(), 140u.toByte(), 103u.toByte(), 82u.toByte()),
         "set_protocol_emergency_pause" to byteArrayOf(180u.toByte(), 209u.toByte(), 92u.toByte(), 144u.toByte(), 227u.toByte(), 14u.toByte(), 97u.toByte(), 94u.toByte()),
         "settle_claim_case" to byteArrayOf(178u.toByte(), 123u.toByte(), 229u.toByte(), 204u.toByte(), 50u.toByte(), 204u.toByte(), 91u.toByte(), 71u.toByte()),
         "settle_obligation" to byteArrayOf(209u.toByte(), 166u.toByte(), 218u.toByte(), 35u.toByte(), 147u.toByte(), 139u.toByte(), 238u.toByte(), 208u.toByte()),
@@ -40,7 +48,9 @@ object ProtocolContract {
         "update_health_plan_controls" to byteArrayOf(108u.toByte(), 11u.toByte(), 28u.toByte(), 140u.toByte(), 226u.toByte(), 164u.toByte(), 239u.toByte(), 113u.toByte()),
         "update_lp_position_credentialing" to byteArrayOf(54u.toByte(), 194u.toByte(), 211u.toByte(), 94u.toByte(), 197u.toByte(), 61u.toByte(), 228u.toByte(), 202u.toByte()),
         "update_member_eligibility" to byteArrayOf(254u.toByte(), 66u.toByte(), 68u.toByte(), 244u.toByte(), 98u.toByte(), 157u.toByte(), 111u.toByte(), 191u.toByte()),
+        "update_oracle_profile" to byteArrayOf(175u.toByte(), 66u.toByte(), 157u.toByte(), 51u.toByte(), 96u.toByte(), 190u.toByte(), 163u.toByte(), 98u.toByte()),
         "update_reserve_domain_controls" to byteArrayOf(3u.toByte(), 60u.toByte(), 38u.toByte(), 233u.toByte(), 198u.toByte(), 167u.toByte(), 116u.toByte(), 197u.toByte()),
+        "verify_outcome_schema" to byteArrayOf(221u.toByte(), 10u.toByte(), 144u.toByte(), 137u.toByte(), 106u.toByte(), 214u.toByte(), 205u.toByte(), 170u.toByte()),
         "version_policy_series" to byteArrayOf(64u.toByte(), 76u.toByte(), 132u.toByte(), 253u.toByte(), 41u.toByte(), 220u.toByte(), 169u.toByte(), 146u.toByte()),
     )
 
@@ -65,6 +75,12 @@ object ProtocolContract {
         "lp_position" to listOf("lp_position", "<capital_class>", "<owner>"),
         "allocation_position" to listOf("allocation_position", "<capital_class>", "<funding_line>"),
         "allocation_ledger" to listOf("allocation_ledger", "<allocation_position>", "<asset_mint>"),
+        "oracle_profile" to listOf("oracle_profile", "<oracle>"),
+        "pool_oracle_approval" to listOf("pool_oracle_approval", "<liquidity_pool>", "<oracle>"),
+        "pool_oracle_policy" to listOf("pool_oracle_policy", "<liquidity_pool>"),
+        "pool_oracle_permission_set" to listOf("pool_oracle_permission_set", "<liquidity_pool>", "<oracle>"),
+        "outcome_schema" to listOf("outcome_schema", "<schema_key_hash>"),
+        "schema_dependency_ledger" to listOf("schema_dependency_ledger", "<schema_key_hash>"),
     )
 
     val accountDiscriminators: Map<String, ByteArray> = mapOf(
@@ -82,11 +98,17 @@ object ProtocolContract {
         "MemberPosition" to byteArrayOf(88u.toByte(), 118u.toByte(), 224u.toByte(), 251u.toByte(), 240u.toByte(), 186u.toByte(), 123u.toByte(), 175u.toByte()),
         "MembershipAnchorSeat" to byteArrayOf(36u.toByte(), 200u.toByte(), 103u.toByte(), 9u.toByte(), 158u.toByte(), 27u.toByte(), 35u.toByte(), 104u.toByte()),
         "Obligation" to byteArrayOf(168u.toByte(), 206u.toByte(), 141u.toByte(), 106u.toByte(), 88u.toByte(), 76u.toByte(), 172u.toByte(), 167u.toByte()),
+        "OracleProfile" to byteArrayOf(232u.toByte(), 217u.toByte(), 185u.toByte(), 162u.toByte(), 237u.toByte(), 208u.toByte(), 114u.toByte(), 142u.toByte()),
+        "OutcomeSchema" to byteArrayOf(243u.toByte(), 62u.toByte(), 72u.toByte(), 224u.toByte(), 198u.toByte(), 100u.toByte(), 29u.toByte(), 58u.toByte()),
         "PlanReserveLedger" to byteArrayOf(243u.toByte(), 245u.toByte(), 230u.toByte(), 224u.toByte(), 27u.toByte(), 105u.toByte(), 48u.toByte(), 128u.toByte()),
         "PolicySeries" to byteArrayOf(196u.toByte(), 117u.toByte(), 121u.toByte(), 249u.toByte(), 37u.toByte(), 71u.toByte(), 245u.toByte(), 23u.toByte()),
         "PoolClassLedger" to byteArrayOf(147u.toByte(), 125u.toByte(), 17u.toByte(), 88u.toByte(), 188u.toByte(), 78u.toByte(), 109u.toByte(), 204u.toByte()),
+        "PoolOracleApproval" to byteArrayOf(116u.toByte(), 241u.toByte(), 25u.toByte(), 184u.toByte(), 205u.toByte(), 21u.toByte(), 153u.toByte(), 29u.toByte()),
+        "PoolOraclePermissionSet" to byteArrayOf(3u.toByte(), 136u.toByte(), 243u.toByte(), 231u.toByte(), 172u.toByte(), 143u.toByte(), 123u.toByte(), 245u.toByte()),
+        "PoolOraclePolicy" to byteArrayOf(246u.toByte(), 134u.toByte(), 133u.toByte(), 108u.toByte(), 100u.toByte(), 203u.toByte(), 226u.toByte(), 43u.toByte()),
         "ProtocolGovernance" to byteArrayOf(71u.toByte(), 235u.toByte(), 253u.toByte(), 251u.toByte(), 202u.toByte(), 254u.toByte(), 132u.toByte(), 177u.toByte()),
         "ReserveDomain" to byteArrayOf(119u.toByte(), 76u.toByte(), 223u.toByte(), 192u.toByte(), 177u.toByte(), 116u.toByte(), 88u.toByte(), 178u.toByte()),
+        "SchemaDependencyLedger" to byteArrayOf(87u.toByte(), 115u.toByte(), 211u.toByte(), 54u.toByte(), 36u.toByte(), 177u.toByte(), 77u.toByte(), 131u.toByte()),
         "SeriesReserveLedger" to byteArrayOf(0u.toByte(), 109u.toByte(), 195u.toByte(), 30u.toByte(), 140u.toByte(), 79u.toByte(), 210u.toByte(), 234u.toByte()),
     )
 }

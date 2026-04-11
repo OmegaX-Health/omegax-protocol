@@ -12,6 +12,9 @@ pub const MAX_NAME_LEN: usize = 64;
 pub const MAX_LONG_NAME_LEN: usize = 96;
 pub const MAX_URI_LEN: usize = 160;
 pub const MAX_ORG_REF_LEN: usize = 64;
+pub const MAX_ORACLE_SUPPORTED_SCHEMAS: usize = 16;
+pub const MAX_SCHEMA_KEY_LEN: usize = 96;
+pub const MAX_SCHEMA_DEPENDENCY_RULES: usize = 32;
 
 pub const SEED_PROTOCOL_GOVERNANCE: &[u8] = b"protocol_governance";
 pub const SEED_RESERVE_DOMAIN: &[u8] = b"reserve_domain";
@@ -33,6 +36,12 @@ pub const SEED_POOL_CLASS_LEDGER: &[u8] = b"pool_class_ledger";
 pub const SEED_LP_POSITION: &[u8] = b"lp_position";
 pub const SEED_ALLOCATION_POSITION: &[u8] = b"allocation_position";
 pub const SEED_ALLOCATION_LEDGER: &[u8] = b"allocation_ledger";
+pub const SEED_ORACLE_PROFILE: &[u8] = b"oracle_profile";
+pub const SEED_POOL_ORACLE_APPROVAL: &[u8] = b"pool_oracle_approval";
+pub const SEED_POOL_ORACLE_POLICY: &[u8] = b"pool_oracle_policy";
+pub const SEED_POOL_ORACLE_PERMISSION_SET: &[u8] = b"pool_oracle_permission_set";
+pub const SEED_OUTCOME_SCHEMA: &[u8] = b"outcome_schema";
+pub const SEED_SCHEMA_DEPENDENCY_LEDGER: &[u8] = b"schema_dependency_ledger";
 
 pub const SERIES_MODE_REWARD: u8 = 0;
 pub const SERIES_MODE_PROTECTION: u8 = 1;
@@ -103,6 +112,20 @@ pub const CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY: u8 = 2;
 pub const LP_QUEUE_STATUS_NONE: u8 = 0;
 pub const LP_QUEUE_STATUS_PENDING: u8 = 1;
 pub const LP_QUEUE_STATUS_PROCESSED: u8 = 2;
+
+pub const ORACLE_TYPE_LAB: u8 = 0;
+pub const ORACLE_TYPE_HOSPITAL_CLINIC: u8 = 1;
+pub const ORACLE_TYPE_HEALTH_APP: u8 = 2;
+pub const ORACLE_TYPE_WEARABLE_DATA_PROVIDER: u8 = 3;
+pub const ORACLE_TYPE_OTHER: u8 = 255;
+
+pub const SCHEMA_FAMILY_KERNEL: u8 = 0;
+pub const SCHEMA_FAMILY_CLINICAL: u8 = 1;
+pub const SCHEMA_FAMILY_CLAIMS_CODING: u8 = 2;
+
+pub const SCHEMA_VISIBILITY_PUBLIC: u8 = 0;
+pub const SCHEMA_VISIBILITY_PRIVATE: u8 = 1;
+pub const SCHEMA_VISIBILITY_RESTRICTED: u8 = 2;
 
 pub const PAUSE_FLAG_PROTOCOL_EMERGENCY: u32 = 1 << 0;
 pub const PAUSE_FLAG_DOMAIN_RAILS: u32 = 1 << 1;
@@ -1699,6 +1722,305 @@ pub mod omegax_protocol {
 
         Ok(())
     }
+
+    pub fn register_oracle(ctx: Context<RegisterOracle>, args: RegisterOracleArgs) -> Result<()> {
+        validate_oracle_profile_fields(&args)?;
+
+        let now_ts = Clock::get()?.unix_timestamp;
+        let profile = &mut ctx.accounts.oracle_profile;
+        profile.oracle = args.oracle;
+        profile.admin = ctx.accounts.admin.key();
+        profile.oracle_type = args.oracle_type;
+        profile.display_name = args.display_name;
+        profile.legal_name = args.legal_name;
+        profile.website_url = args.website_url;
+        profile.app_url = args.app_url;
+        profile.logo_uri = args.logo_uri;
+        profile.webhook_url = args.webhook_url;
+        profile.supported_schema_count = args.supported_schema_key_hashes.len() as u8;
+        write_supported_schema_hashes(
+            &mut profile.supported_schema_key_hashes,
+            &args.supported_schema_key_hashes,
+        );
+        profile.active = true;
+        profile.claimed = ctx.accounts.admin.key() == args.oracle;
+        profile.created_at_ts = now_ts;
+        profile.updated_at_ts = now_ts;
+        profile.bump = ctx.bumps.oracle_profile;
+
+        emit!(OracleProfileRegisteredEvent {
+            oracle_profile: profile.key(),
+            oracle: profile.oracle,
+            admin: profile.admin,
+            oracle_type: profile.oracle_type,
+            claimed: profile.claimed,
+        });
+
+        Ok(())
+    }
+
+    pub fn claim_oracle(ctx: Context<ClaimOracle>) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.oracle.key(),
+            ctx.accounts.oracle_profile.oracle,
+            OmegaXProtocolError::Unauthorized
+        );
+
+        let profile = &mut ctx.accounts.oracle_profile;
+        profile.admin = ctx.accounts.oracle.key();
+        profile.claimed = true;
+        profile.updated_at_ts = Clock::get()?.unix_timestamp;
+
+        emit!(OracleProfileClaimedEvent {
+            oracle_profile: profile.key(),
+            oracle: profile.oracle,
+            admin: profile.admin,
+        });
+
+        Ok(())
+    }
+
+    pub fn update_oracle_profile(
+        ctx: Context<UpdateOracleProfile>,
+        args: UpdateOracleProfileArgs,
+    ) -> Result<()> {
+        require_oracle_profile_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.oracle_profile,
+        )?;
+        validate_oracle_profile_fields_update(&args)?;
+
+        let profile = &mut ctx.accounts.oracle_profile;
+        profile.oracle_type = args.oracle_type;
+        profile.display_name = args.display_name;
+        profile.legal_name = args.legal_name;
+        profile.website_url = args.website_url;
+        profile.app_url = args.app_url;
+        profile.logo_uri = args.logo_uri;
+        profile.webhook_url = args.webhook_url;
+        profile.supported_schema_count = args.supported_schema_key_hashes.len() as u8;
+        write_supported_schema_hashes(
+            &mut profile.supported_schema_key_hashes,
+            &args.supported_schema_key_hashes,
+        );
+        profile.updated_at_ts = Clock::get()?.unix_timestamp;
+
+        emit!(OracleProfileUpdatedEvent {
+            oracle_profile: profile.key(),
+            oracle: profile.oracle,
+            authority: ctx.accounts.authority.key(),
+            oracle_type: profile.oracle_type,
+        });
+
+        Ok(())
+    }
+
+    pub fn set_pool_oracle(ctx: Context<SetPoolOracle>, args: SetPoolOracleArgs) -> Result<()> {
+        require_pool_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.liquidity_pool,
+        )?;
+        if args.active {
+            require!(
+                ctx.accounts.oracle_profile.active,
+                OmegaXProtocolError::OracleProfileInactive
+            );
+        }
+
+        let approval = &mut ctx.accounts.pool_oracle_approval;
+        approval.liquidity_pool = ctx.accounts.liquidity_pool.key();
+        approval.oracle = ctx.accounts.oracle_profile.oracle;
+        approval.active = args.active;
+        approval.updated_at_ts = Clock::get()?.unix_timestamp;
+        approval.bump = ctx.bumps.pool_oracle_approval;
+
+        emit!(PoolOracleApprovalChangedEvent {
+            liquidity_pool: approval.liquidity_pool,
+            oracle: approval.oracle,
+            authority: ctx.accounts.authority.key(),
+            active: approval.active,
+        });
+
+        Ok(())
+    }
+
+    pub fn set_pool_oracle_permissions(
+        ctx: Context<SetPoolOraclePermissions>,
+        args: SetPoolOraclePermissionsArgs,
+    ) -> Result<()> {
+        require_pool_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.liquidity_pool,
+        )?;
+        require!(
+            ctx.accounts.pool_oracle_approval.active || args.permissions == 0,
+            OmegaXProtocolError::PoolOracleApprovalRequired
+        );
+
+        let permission_set = &mut ctx.accounts.pool_oracle_permission_set;
+        permission_set.liquidity_pool = ctx.accounts.liquidity_pool.key();
+        permission_set.oracle = ctx.accounts.oracle_profile.oracle;
+        permission_set.permissions = args.permissions;
+        permission_set.updated_at_ts = Clock::get()?.unix_timestamp;
+        permission_set.bump = ctx.bumps.pool_oracle_permission_set;
+
+        emit!(PoolOraclePermissionsChangedEvent {
+            liquidity_pool: permission_set.liquidity_pool,
+            oracle: permission_set.oracle,
+            authority: ctx.accounts.authority.key(),
+            permissions: permission_set.permissions,
+        });
+
+        Ok(())
+    }
+
+    pub fn set_pool_oracle_policy(
+        ctx: Context<SetPoolOraclePolicy>,
+        args: SetPoolOraclePolicyArgs,
+    ) -> Result<()> {
+        require_pool_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.liquidity_pool,
+        )?;
+        require!(
+            args.quorum_m > 0 && args.quorum_n > 0 && args.quorum_m <= args.quorum_n,
+            OmegaXProtocolError::InvalidOracleQuorum
+        );
+        require!(
+            args.oracle_fee_bps <= 10_000,
+            OmegaXProtocolError::InvalidBps
+        );
+
+        let policy = &mut ctx.accounts.pool_oracle_policy;
+        policy.liquidity_pool = ctx.accounts.liquidity_pool.key();
+        policy.quorum_m = args.quorum_m;
+        policy.quorum_n = args.quorum_n;
+        policy.require_verified_schema = args.require_verified_schema;
+        policy.oracle_fee_bps = args.oracle_fee_bps;
+        policy.allow_delegate_claim = args.allow_delegate_claim;
+        policy.challenge_window_secs = args.challenge_window_secs;
+        policy.updated_at_ts = Clock::get()?.unix_timestamp;
+        policy.bump = ctx.bumps.pool_oracle_policy;
+
+        emit!(PoolOraclePolicyChangedEvent {
+            liquidity_pool: policy.liquidity_pool,
+            authority: ctx.accounts.authority.key(),
+            quorum_m: policy.quorum_m,
+            quorum_n: policy.quorum_n,
+            oracle_fee_bps: policy.oracle_fee_bps,
+        });
+
+        Ok(())
+    }
+
+    pub fn register_outcome_schema(
+        ctx: Context<RegisterOutcomeSchema>,
+        args: RegisterOutcomeSchemaArgs,
+    ) -> Result<()> {
+        validate_outcome_schema_fields(&args)?;
+
+        let now_ts = Clock::get()?.unix_timestamp;
+        let schema = &mut ctx.accounts.outcome_schema;
+        schema.publisher = ctx.accounts.publisher.key();
+        schema.schema_key_hash = args.schema_key_hash;
+        schema.schema_key = args.schema_key;
+        schema.version = args.version;
+        schema.schema_hash = args.schema_hash;
+        schema.schema_family = args.schema_family;
+        schema.visibility = args.visibility;
+        schema.metadata_uri = args.metadata_uri;
+        schema.verified = false;
+        schema.created_at_ts = now_ts;
+        schema.updated_at_ts = now_ts;
+        schema.bump = ctx.bumps.outcome_schema;
+
+        let dependency_ledger = &mut ctx.accounts.schema_dependency_ledger;
+        dependency_ledger.schema_key_hash = args.schema_key_hash;
+        dependency_ledger.pool_rule_addresses = Vec::new();
+        dependency_ledger.updated_at_ts = now_ts;
+        dependency_ledger.bump = ctx.bumps.schema_dependency_ledger;
+
+        emit!(OutcomeSchemaRegisteredEvent {
+            outcome_schema: schema.key(),
+            publisher: schema.publisher,
+            schema_key_hash: schema.schema_key_hash,
+            version: schema.version,
+        });
+
+        Ok(())
+    }
+
+    pub fn verify_outcome_schema(
+        ctx: Context<VerifyOutcomeSchema>,
+        args: VerifyOutcomeSchemaArgs,
+    ) -> Result<()> {
+        require_governance(
+            &ctx.accounts.governance_authority.key(),
+            &ctx.accounts.protocol_governance,
+        )?;
+
+        let schema = &mut ctx.accounts.outcome_schema;
+        schema.verified = args.verified;
+        schema.updated_at_ts = Clock::get()?.unix_timestamp;
+
+        emit!(OutcomeSchemaStateChangedEvent {
+            outcome_schema: schema.key(),
+            governance_authority: ctx.accounts.governance_authority.key(),
+            schema_key_hash: schema.schema_key_hash,
+            verified: schema.verified,
+        });
+
+        Ok(())
+    }
+
+    pub fn backfill_schema_dependency_ledger(
+        ctx: Context<BackfillSchemaDependencyLedger>,
+        args: BackfillSchemaDependencyLedgerArgs,
+    ) -> Result<()> {
+        require_governance(
+            &ctx.accounts.governance_authority.key(),
+            &ctx.accounts.protocol_governance,
+        )?;
+        require!(
+            args.pool_rule_addresses.len() <= MAX_SCHEMA_DEPENDENCY_RULES,
+            OmegaXProtocolError::TooManySchemaDependencies
+        );
+
+        let ledger = &mut ctx.accounts.schema_dependency_ledger;
+        ledger.schema_key_hash = ctx.accounts.outcome_schema.schema_key_hash;
+        ledger.pool_rule_addresses = args.pool_rule_addresses;
+        ledger.updated_at_ts = Clock::get()?.unix_timestamp;
+        ledger.bump = ctx.bumps.schema_dependency_ledger;
+
+        emit!(SchemaDependencyLedgerUpdatedEvent {
+            schema_dependency_ledger: ledger.key(),
+            governance_authority: ctx.accounts.governance_authority.key(),
+            schema_key_hash: ledger.schema_key_hash,
+            dependency_count: ledger.pool_rule_addresses.len() as u16,
+        });
+
+        Ok(())
+    }
+
+    pub fn close_outcome_schema(ctx: Context<CloseOutcomeSchema>) -> Result<()> {
+        require_governance(
+            &ctx.accounts.governance_authority.key(),
+            &ctx.accounts.protocol_governance,
+        )?;
+
+        emit!(OutcomeSchemaClosedEvent {
+            outcome_schema: ctx.accounts.outcome_schema.key(),
+            governance_authority: ctx.accounts.governance_authority.key(),
+            schema_key_hash: ctx.accounts.outcome_schema.schema_key_hash,
+            recipient: ctx.accounts.recipient_system_account.key(),
+        });
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -2440,6 +2762,210 @@ pub struct MarkImpairment<'info> {
     pub obligation: Option<Box<Account<'info, Obligation>>>,
 }
 
+#[derive(Accounts)]
+#[instruction(args: RegisterOracleArgs)]
+pub struct RegisterOracle<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    #[account(
+        init,
+        payer = admin,
+        space = 8 + OracleProfile::INIT_SPACE,
+        seeds = [SEED_ORACLE_PROFILE, args.oracle.as_ref()],
+        bump
+    )]
+    pub oracle_profile: Account<'info, OracleProfile>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimOracle<'info> {
+    pub oracle: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: Account<'info, OracleProfile>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateOracleProfile<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        mut,
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: Account<'info, OracleProfile>,
+}
+
+#[derive(Accounts)]
+pub struct SetPoolOracle<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump
+    )]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: Account<'info, OracleProfile>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = 8 + PoolOracleApproval::INIT_SPACE,
+        seeds = [SEED_POOL_ORACLE_APPROVAL, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
+        bump
+    )]
+    pub pool_oracle_approval: Account<'info, PoolOracleApproval>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetPoolOraclePermissions<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump
+    )]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: Account<'info, OracleProfile>,
+    #[account(
+        seeds = [SEED_POOL_ORACLE_APPROVAL, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
+        bump = pool_oracle_approval.bump
+    )]
+    pub pool_oracle_approval: Account<'info, PoolOracleApproval>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = 8 + PoolOraclePermissionSet::INIT_SPACE,
+        seeds = [SEED_POOL_ORACLE_PERMISSION_SET, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
+        bump
+    )]
+    pub pool_oracle_permission_set: Account<'info, PoolOraclePermissionSet>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetPoolOraclePolicy<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump
+    )]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = 8 + PoolOraclePolicy::INIT_SPACE,
+        seeds = [SEED_POOL_ORACLE_POLICY, liquidity_pool.key().as_ref()],
+        bump
+    )]
+    pub pool_oracle_policy: Account<'info, PoolOraclePolicy>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: RegisterOutcomeSchemaArgs)]
+pub struct RegisterOutcomeSchema<'info> {
+    #[account(mut)]
+    pub publisher: Signer<'info>,
+    #[account(
+        init,
+        payer = publisher,
+        space = 8 + OutcomeSchema::INIT_SPACE,
+        seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
+        bump
+    )]
+    pub outcome_schema: Account<'info, OutcomeSchema>,
+    #[account(
+        init,
+        payer = publisher,
+        space = 8 + SchemaDependencyLedger::INIT_SPACE,
+        seeds = [SEED_SCHEMA_DEPENDENCY_LEDGER, args.schema_key_hash.as_ref()],
+        bump
+    )]
+    pub schema_dependency_ledger: Account<'info, SchemaDependencyLedger>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct VerifyOutcomeSchema<'info> {
+    pub governance_authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        mut,
+        seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump
+    )]
+    pub outcome_schema: Account<'info, OutcomeSchema>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: BackfillSchemaDependencyLedgerArgs)]
+pub struct BackfillSchemaDependencyLedger<'info> {
+    #[account(mut)]
+    pub governance_authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump
+    )]
+    pub outcome_schema: Account<'info, OutcomeSchema>,
+    #[account(
+        init_if_needed,
+        payer = governance_authority,
+        space = 8 + SchemaDependencyLedger::INIT_SPACE,
+        seeds = [SEED_SCHEMA_DEPENDENCY_LEDGER, args.schema_key_hash.as_ref()],
+        bump
+    )]
+    pub schema_dependency_ledger: Account<'info, SchemaDependencyLedger>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CloseOutcomeSchema<'info> {
+    pub governance_authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        mut,
+        seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump,
+        close = recipient_system_account
+    )]
+    pub outcome_schema: Account<'info, OutcomeSchema>,
+    #[account(
+        mut,
+        seeds = [SEED_SCHEMA_DEPENDENCY_LEDGER, outcome_schema.schema_key_hash.as_ref()],
+        bump = schema_dependency_ledger.bump,
+        close = recipient_system_account
+    )]
+    pub schema_dependency_ledger: Account<'info, SchemaDependencyLedger>,
+    #[account(mut)]
+    pub recipient_system_account: SystemAccount<'info>,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct ProtocolGovernance {
@@ -2834,6 +3360,96 @@ pub struct AllocationLedger {
     pub bump: u8,
 }
 
+#[account]
+#[derive(InitSpace)]
+pub struct OracleProfile {
+    pub oracle: Pubkey,
+    pub admin: Pubkey,
+    pub oracle_type: u8,
+    #[max_len(MAX_NAME_LEN)]
+    pub display_name: String,
+    #[max_len(MAX_LONG_NAME_LEN)]
+    pub legal_name: String,
+    #[max_len(MAX_URI_LEN)]
+    pub website_url: String,
+    #[max_len(MAX_URI_LEN)]
+    pub app_url: String,
+    #[max_len(MAX_URI_LEN)]
+    pub logo_uri: String,
+    #[max_len(MAX_URI_LEN)]
+    pub webhook_url: String,
+    pub supported_schema_count: u8,
+    pub supported_schema_key_hashes: [[u8; 32]; MAX_ORACLE_SUPPORTED_SCHEMAS],
+    pub active: bool,
+    pub claimed: bool,
+    pub created_at_ts: i64,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PoolOracleApproval {
+    pub liquidity_pool: Pubkey,
+    pub oracle: Pubkey,
+    pub active: bool,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PoolOraclePolicy {
+    pub liquidity_pool: Pubkey,
+    pub quorum_m: u8,
+    pub quorum_n: u8,
+    pub require_verified_schema: bool,
+    pub oracle_fee_bps: u16,
+    pub allow_delegate_claim: bool,
+    pub challenge_window_secs: u32,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PoolOraclePermissionSet {
+    pub liquidity_pool: Pubkey,
+    pub oracle: Pubkey,
+    pub permissions: u32,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct OutcomeSchema {
+    pub publisher: Pubkey,
+    pub schema_key_hash: [u8; 32],
+    #[max_len(MAX_SCHEMA_KEY_LEN)]
+    pub schema_key: String,
+    pub version: u16,
+    pub schema_hash: [u8; 32],
+    pub schema_family: u8,
+    pub visibility: u8,
+    #[max_len(MAX_URI_LEN)]
+    pub metadata_uri: String,
+    pub verified: bool,
+    pub created_at_ts: i64,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct SchemaDependencyLedger {
+    pub schema_key_hash: [u8; 32],
+    #[max_len(MAX_SCHEMA_DEPENDENCY_RULES)]
+    pub pool_rule_addresses: Vec<Pubkey>,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct InitializeProtocolGovernanceArgs {
     pub protocol_fee_bps: u16,
@@ -3172,6 +3788,90 @@ pub struct MarkImpairmentArgs {
     pub reason_hash: [u8; 32],
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct RegisterOracleArgs {
+    pub oracle: Pubkey,
+    pub oracle_type: u8,
+    #[max_len(MAX_NAME_LEN)]
+    pub display_name: String,
+    #[max_len(MAX_LONG_NAME_LEN)]
+    pub legal_name: String,
+    #[max_len(MAX_URI_LEN)]
+    pub website_url: String,
+    #[max_len(MAX_URI_LEN)]
+    pub app_url: String,
+    #[max_len(MAX_URI_LEN)]
+    pub logo_uri: String,
+    #[max_len(MAX_URI_LEN)]
+    pub webhook_url: String,
+    #[max_len(MAX_ORACLE_SUPPORTED_SCHEMAS)]
+    pub supported_schema_key_hashes: Vec<[u8; 32]>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct UpdateOracleProfileArgs {
+    pub oracle_type: u8,
+    #[max_len(MAX_NAME_LEN)]
+    pub display_name: String,
+    #[max_len(MAX_LONG_NAME_LEN)]
+    pub legal_name: String,
+    #[max_len(MAX_URI_LEN)]
+    pub website_url: String,
+    #[max_len(MAX_URI_LEN)]
+    pub app_url: String,
+    #[max_len(MAX_URI_LEN)]
+    pub logo_uri: String,
+    #[max_len(MAX_URI_LEN)]
+    pub webhook_url: String,
+    #[max_len(MAX_ORACLE_SUPPORTED_SCHEMAS)]
+    pub supported_schema_key_hashes: Vec<[u8; 32]>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct SetPoolOracleArgs {
+    pub active: bool,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct SetPoolOraclePermissionsArgs {
+    pub permissions: u32,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct SetPoolOraclePolicyArgs {
+    pub quorum_m: u8,
+    pub quorum_n: u8,
+    pub require_verified_schema: bool,
+    pub oracle_fee_bps: u16,
+    pub allow_delegate_claim: bool,
+    pub challenge_window_secs: u32,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct RegisterOutcomeSchemaArgs {
+    pub schema_key_hash: [u8; 32],
+    #[max_len(MAX_SCHEMA_KEY_LEN)]
+    pub schema_key: String,
+    pub version: u16,
+    pub schema_hash: [u8; 32],
+    pub schema_family: u8,
+    pub visibility: u8,
+    #[max_len(MAX_URI_LEN)]
+    pub metadata_uri: String,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct VerifyOutcomeSchemaArgs {
+    pub verified: bool,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct BackfillSchemaDependencyLedgerArgs {
+    pub schema_key_hash: [u8; 32],
+    #[max_len(MAX_SCHEMA_DEPENDENCY_RULES)]
+    pub pool_rule_addresses: Vec<Pubkey>,
+}
+
 #[event]
 pub struct ProtocolGovernanceInitializedEvent {
     pub governance_authority: Pubkey,
@@ -3305,6 +4005,87 @@ pub struct LedgerInitializedEvent {
     pub asset_mint: Pubkey,
 }
 
+#[event]
+pub struct OracleProfileRegisteredEvent {
+    pub oracle_profile: Pubkey,
+    pub oracle: Pubkey,
+    pub admin: Pubkey,
+    pub oracle_type: u8,
+    pub claimed: bool,
+}
+
+#[event]
+pub struct OracleProfileClaimedEvent {
+    pub oracle_profile: Pubkey,
+    pub oracle: Pubkey,
+    pub admin: Pubkey,
+}
+
+#[event]
+pub struct OracleProfileUpdatedEvent {
+    pub oracle_profile: Pubkey,
+    pub oracle: Pubkey,
+    pub authority: Pubkey,
+    pub oracle_type: u8,
+}
+
+#[event]
+pub struct PoolOracleApprovalChangedEvent {
+    pub liquidity_pool: Pubkey,
+    pub oracle: Pubkey,
+    pub authority: Pubkey,
+    pub active: bool,
+}
+
+#[event]
+pub struct PoolOraclePermissionsChangedEvent {
+    pub liquidity_pool: Pubkey,
+    pub oracle: Pubkey,
+    pub authority: Pubkey,
+    pub permissions: u32,
+}
+
+#[event]
+pub struct PoolOraclePolicyChangedEvent {
+    pub liquidity_pool: Pubkey,
+    pub authority: Pubkey,
+    pub quorum_m: u8,
+    pub quorum_n: u8,
+    pub oracle_fee_bps: u16,
+}
+
+#[event]
+pub struct OutcomeSchemaRegisteredEvent {
+    pub outcome_schema: Pubkey,
+    pub publisher: Pubkey,
+    pub schema_key_hash: [u8; 32],
+    pub version: u16,
+}
+
+#[event]
+pub struct OutcomeSchemaStateChangedEvent {
+    pub outcome_schema: Pubkey,
+    pub governance_authority: Pubkey,
+    pub schema_key_hash: [u8; 32],
+    pub verified: bool,
+}
+
+#[event]
+pub struct SchemaDependencyLedgerUpdatedEvent {
+    pub schema_dependency_ledger: Pubkey,
+    pub governance_authority: Pubkey,
+    pub schema_key_hash: [u8; 32],
+    pub dependency_count: u16,
+}
+
+#[event]
+pub struct OutcomeSchemaClosedEvent {
+    pub outcome_schema: Pubkey,
+    pub governance_authority: Pubkey,
+    pub schema_key_hash: [u8; 32],
+    pub recipient: Pubkey,
+}
+
 #[derive(Clone, Copy)]
 pub enum ScopeKind {
     ProtocolGovernance = 0,
@@ -3402,6 +4183,18 @@ pub enum OmegaXProtocolError {
     MembershipAnchorSeatMismatch,
     #[msg("Anchor-backed membership requires a non-zero anchor reference")]
     MembershipAnchorReferenceMissing,
+    #[msg("Bounded string field exceeds the canonical maximum")]
+    StringTooLong,
+    #[msg("Oracle quorum configuration is invalid")]
+    InvalidOracleQuorum,
+    #[msg("Too many supported schema hashes were provided for one oracle profile")]
+    TooManyOracleSupportedSchemas,
+    #[msg("Pool oracle approval is required before permissions can be granted")]
+    PoolOracleApprovalRequired,
+    #[msg("Oracle profile is inactive")]
+    OracleProfileInactive,
+    #[msg("Too many schema dependency addresses were provided")]
+    TooManySchemaDependencies,
 }
 
 fn require_id(value: &str) -> Result<()> {
@@ -3409,6 +4202,11 @@ fn require_id(value: &str) -> Result<()> {
         value.len() <= MAX_ID_LEN,
         OmegaXProtocolError::IdentifierTooLong
     );
+    Ok(())
+}
+
+fn require_bounded_string(value: &str, max_len: usize) -> Result<()> {
+    require!(value.len() <= max_len, OmegaXProtocolError::StringTooLong);
     Ok(())
 }
 
@@ -3431,6 +4229,83 @@ fn require_domain_control(
     } else {
         err!(OmegaXProtocolError::Unauthorized)
     }
+}
+
+fn require_oracle_profile_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    oracle_profile: &OracleProfile,
+) -> Result<()> {
+    if *authority == oracle_profile.admin
+        || *authority == oracle_profile.oracle
+        || *authority == governance.governance_authority
+    {
+        Ok(())
+    } else {
+        err!(OmegaXProtocolError::Unauthorized)
+    }
+}
+
+fn validate_oracle_profile_fields(args: &RegisterOracleArgs) -> Result<()> {
+    validate_oracle_profile_strings(
+        &args.display_name,
+        &args.legal_name,
+        &args.website_url,
+        &args.app_url,
+        &args.logo_uri,
+        &args.webhook_url,
+        &args.supported_schema_key_hashes,
+    )
+}
+
+fn validate_oracle_profile_strings(
+    display_name: &str,
+    legal_name: &str,
+    website_url: &str,
+    app_url: &str,
+    logo_uri: &str,
+    webhook_url: &str,
+    supported_schema_key_hashes: &[[u8; 32]],
+) -> Result<()> {
+    require_bounded_string(display_name, MAX_NAME_LEN)?;
+    require_bounded_string(legal_name, MAX_LONG_NAME_LEN)?;
+    require_bounded_string(website_url, MAX_URI_LEN)?;
+    require_bounded_string(app_url, MAX_URI_LEN)?;
+    require_bounded_string(logo_uri, MAX_URI_LEN)?;
+    require_bounded_string(webhook_url, MAX_URI_LEN)?;
+    require!(
+        supported_schema_key_hashes.len() <= MAX_ORACLE_SUPPORTED_SCHEMAS,
+        OmegaXProtocolError::TooManyOracleSupportedSchemas
+    );
+    Ok(())
+}
+
+fn validate_oracle_profile_fields_update(args: &UpdateOracleProfileArgs) -> Result<()> {
+    validate_oracle_profile_strings(
+        &args.display_name,
+        &args.legal_name,
+        &args.website_url,
+        &args.app_url,
+        &args.logo_uri,
+        &args.webhook_url,
+        &args.supported_schema_key_hashes,
+    )
+}
+
+fn write_supported_schema_hashes(
+    destination: &mut [[u8; 32]; MAX_ORACLE_SUPPORTED_SCHEMAS],
+    values: &[[u8; 32]],
+) {
+    *destination = [[0u8; 32]; MAX_ORACLE_SUPPORTED_SCHEMAS];
+    for (index, value) in values.iter().enumerate() {
+        destination[index] = *value;
+    }
+}
+
+fn validate_outcome_schema_fields(args: &RegisterOutcomeSchemaArgs) -> Result<()> {
+    require_bounded_string(&args.schema_key, MAX_SCHEMA_KEY_LEN)?;
+    require_bounded_string(&args.metadata_uri, MAX_URI_LEN)?;
+    Ok(())
 }
 
 fn require_plan_control(

@@ -17,6 +17,26 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | `update_capital_class_controls` | update class-scoped redemption and activity flags |
 | `update_allocation_caps` | change allocation caps, weights, or deallocation-only mode |
 
+## Oracle Registry and Pool Binding
+
+| Instruction | Primary purpose |
+| --- | --- |
+| `register_oracle` | register a first-class oracle operator profile |
+| `claim_oracle` | let the operator wallet claim and control its own profile |
+| `update_oracle_profile` | update the canonical oracle profile metadata and supported schema set |
+| `set_pool_oracle` | approve or deactivate an oracle for a specific liquidity pool |
+| `set_pool_oracle_permissions` | set pool-scoped oracle permission bits |
+| `set_pool_oracle_policy` | configure quorum, schema-verification, fee, and challenge posture for a pool |
+
+## Schema Registry
+
+| Instruction | Primary purpose |
+| --- | --- |
+| `register_outcome_schema` | register a versioned outcome schema and initialize its dependency ledger |
+| `verify_outcome_schema` | mark a schema as verified or unverified through governance authority |
+| `backfill_schema_dependency_ledger` | refresh the schema dependency ledger with the current pool-rule references |
+| `close_outcome_schema` | retire a schema and close its dependency ledger through governance authority |
+
 ## Plan and Product Surface
 
 | Instruction | Primary purpose |

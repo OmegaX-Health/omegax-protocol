@@ -135,6 +135,8 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
           address: approval.address,
           oracle: approval.oracle,
           active: false,
+          claimed: false,
+          admin: approval.oracle,
           bump: approval.bump,
           metadataUri: "",
         });
@@ -146,6 +148,8 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
           address: permissionSet.address,
           oracle: permissionSet.oracle,
           active: false,
+          claimed: false,
+          admin: permissionSet.oracle,
           bump: permissionSet.bump,
           metadataUri: "",
         });
@@ -335,7 +339,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         requireVerifiedSchema,
         oracleFeeBps: Number.parseInt(oracleFeeBps, 10) || 0,
         allowDelegateClaim,
-        challengeWindowSecs: BigInt(challengeWindowSecs || "0"),
+        challengeWindowSecs: Number.parseInt(challengeWindowSecs, 10) || 0,
       });
       const result = await executeProtocolTransaction({
         connection,

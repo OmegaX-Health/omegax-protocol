@@ -3,6 +3,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
+import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { Connection, PublicKey } from "@solana/web3.js";
@@ -11,10 +12,12 @@ import {
   applyGovernanceSmokeFrontendEnv,
   readGovernanceUiReadonlyConfig,
 } from "./devnet_governance_smoke_helpers.ts";
+import { loadEnvFile } from "./support/load_env_file.ts";
 
 import governanceModule from "../frontend/lib/governance.ts";
 
 const governance = governanceModule as typeof import("../frontend/lib/governance.ts");
+const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 
 function usage(): string {
   return [
@@ -184,6 +187,7 @@ async function startFrontendDevServer(env: NodeJS.ProcessEnv, port: number): Pro
 }
 
 async function main(): Promise<void> {
+  loadEnvFile(FRONTEND_ENV_PATH);
   const argv = process.argv.slice(2);
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(usage());

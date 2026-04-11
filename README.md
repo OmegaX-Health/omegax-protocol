@@ -44,12 +44,17 @@ This is the first publishable canonical OmegaX health-capital-markets surface.
 - funding lines separate sponsor budgets, premiums, LP allocations, and backstops
 - liquidity pools and capital classes define LP-facing exposure, yield, impairment, and redemption rights
 - allocation positions bridge capital sleeves into plan-side liabilities without hiding attribution
+- the canonical console now mounts `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas` against live snapshot-backed protocol reads
+- the protocol now includes first-class oracle registry and outcome-schema registry accounts with checked-in generated artifacts
 
 Read the canonical design set first:
 
 - [ADR 0001](./docs/adr/0001-health-capital-markets-rearchitecture.md)
 - [WHY_THIS_MODEL](./docs/WHY_THIS_MODEL.md)
 - [MIGRATION_MATRIX](./docs/MIGRATION_MATRIX.md)
+- [Public Release Gate](./docs/operations/public-release-gate.md)
+- [Devnet Beta Runbook](./docs/operations/devnet-beta-runbook.md)
+- [Release v0.3.0](./docs/operations/release-v0.3.0.md)
 
 ## Repository Layout
 
@@ -102,6 +107,10 @@ This redesign is a hard-break devnet migration. The repo now ships manifest-driv
   - writes `devnet/health-capital-markets-manifest.json`
   - writes `devnet/health-capital-markets.env`
   - emits stable canonical fixture ids for the new model
+- `npm run protocol:bootstrap:devnet-live`
+  - seeds the canonical plan/capital/oracle/schema graph onto shared devnet using the configured signer
+  - provisions reusable local role wallets under `$HOME/.config/solana/omegax-devnet/`
+  - syncs canonical public role addresses back into `frontend/.env.local`
 - `npm run devnet:frontend:bootstrap`
   - syncs canonical fixture env values into `frontend/.env.local`
   - writes `frontend/public/devnet-fixtures.json`
@@ -111,6 +120,16 @@ This redesign is a hard-break devnet migration. The repo now ships manifest-driv
   - leaves the final live deploy step operator-mediated for auditability
 - `npm run devnet:frontend:smoke`
   - checks that the canonical fixture set is present and coherent
+- `npm run devnet:frontend:signoff`
+  - runs the strict frontend parity matrix against the canonical fixture/env set
+- `npm run devnet:governance:smoke:create-vote`
+  - creates the shared-devnet governance smoke proposal
+- `npm run devnet:governance:smoke:execute`
+  - executes the previously created governance smoke proposal after the DAO windows expire
+- `npm run devnet:governance:ui:readonly`
+  - verifies readonly governance routes against the current devnet proposal state
+- `npm run devnet:beta:observe`
+  - captures a structured observability snapshot for the shared devnet deployment
 
 ## Verification Philosophy
 

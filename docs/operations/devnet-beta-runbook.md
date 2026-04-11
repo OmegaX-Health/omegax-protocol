@@ -1,30 +1,40 @@
 # Devnet Beta Runbook
 
-This runbook covers public devnet beta operations for the protocol surface, including governance, pools, staking, coverage, and claims.
+This runbook covers shared-devnet rollout for the current canonical OmegaX protocol surface, including the mounted console, governance smoke, oracle/schema registry visibility, and observability sign-off.
 
 ## Go / No-Go Gate
 
 All of the following should be green before a public devnet beta event:
 
-- `anchor build`
-- `anchor test`
-- `npm run test:node`
+- `npm run anchor:idl`
+- `npm run protocol:contract`
+- `npm run verify:public`
+- `npm run test:e2e:localnet`
 - `npm run beta:consistency:check`
 - `npm run protocol:contract:check`
 - `npm run frontend:build`
-- rehearsal deploy/bootstrap/sign-off on a non-canonical devnet program id with fresh rehearsal wallets
-- canonical `npm run devnet:beta:deploy` only after rehearsal is clean
+- `npm run devnet:beta:deploy`
+- `npm run protocol:bootstrap:devnet-live`
+- `npm run devnet:frontend:bootstrap`
+- `npm run devnet:frontend:signoff`
 - `npm run devnet:beta:observe` with no unexplained high-severity failures
 - `npm run devnet:governance:smoke:create-vote`, then `npm run devnet:governance:smoke:execute` after the shared DAO voting and hold-up windows expire
 - `npm run devnet:governance:ui:readonly` against the resulting proposal address
 
+If the launch window requires a rehearsal deployment, run the same sequence against the rehearsal program id before upgrading the canonical shared devnet.
+
 ## Launch Sequence
 
-1. Rehearse on devnet with a non-canonical program id, fresh rehearsal wallets, and a fresh parity-pool bootstrap.
-2. Run the full frontend parity, governance smoke, readonly governance UI, and observability suite against that rehearsal deployment.
-3. Upgrade the canonical shared devnet only after the rehearsal matrix is clean.
-4. Rerun the same sign-off suite against the canonical shared devnet.
-5. Reserve rollback time and keep a structured post-launch monitoring window for the first 24 hours.
+1. Re-lock the checked artifacts with `npm run anchor:idl` and `npm run protocol:contract`, then rerun `npm run verify:public` and `npm run test:e2e:localnet`.
+2. Run `npm run devnet:beta:deploy` to rebuild the checked deploy artifact and refresh the canonical bootstrap bundle under `devnet/` and `frontend/`.
+3. Upgrade the canonical shared-devnet program id explicitly with the checked `target/deploy/omegax_protocol.so`.
+4. Run `npm run protocol:bootstrap:devnet-live` to seed or refresh the canonical plan/capital/oracle/schema graph on shared devnet.
+5. Run `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff` so the mounted console is validated against the refreshed shared-devnet fixture/env set.
+6. Run `npm run devnet:governance:smoke:create-vote` and record the resulting proposal address.
+7. After the DAO voting and hold-up windows expire, run `npm run devnet:governance:smoke:execute`.
+8. Run `npm run devnet:governance:ui:readonly` against the created proposal.
+9. Capture observability with `OBSERVABILITY_OUTPUT_JSON=artifacts/devnet_observability.json npm run devnet:beta:observe` and archive the output with the rollout notes.
+10. Keep a structured monitoring window for the first 24 hours after rollout.
 
 ## Observability
 
@@ -45,6 +55,8 @@ OBSERVABILITY_OUTPUT_JSON=artifacts/devnet_observability.json npm run devnet:bet
 - instruction success and failure counts
 - dominant failure reasons from program logs
 - governance proposal state distribution
+- missing or zeroed canonical fixture addresses after shared-devnet bootstrap
+- readonly governance route failures or frontend parity regressions
 
 ## Incident Runbooks
 
@@ -53,18 +65,18 @@ OBSERVABILITY_OUTPUT_JSON=artifacts/devnet_observability.json npm run devnet:bet
 Trigger: governance authority cannot execute required safety actions.
 
 Steps:
-1. Confirm the current authority in `config` and the expected Realms governance PDA.
-2. If the protocol is not paused and governance is unavailable, use the emergency admin pause path through `set_protocol_params(..., emergency_paused=true)`.
-3. Rotate authority using `rotate_governance_authority` to the recovery governance signer or PDA.
-4. Validate with on-chain readback and execute a low-risk governance action.
-5. Resume only after authority checks are green.
+1. Confirm the current protocol governance PDA, expected Realms governance address, and the signer currently capable of creating or executing proposals.
+2. If the required safety action is an emergency stop, use the current `set_protocol_emergency_pause` path through the authorized governance signer or approved proposal flow.
+3. Validate the resulting authority and pause state through on-chain readback plus the readonly governance UI.
+4. Execute a low-risk follow-up governance action before resuming normal operations.
+5. Resume only after authority checks, pause posture, and proposal execution are green.
 
 ### Emergency pause
 
 Trigger: abnormal claim settlement failures, replay anomalies, or governance compromise suspicion.
 
 Steps:
-1. Execute `set_protocol_params` with unchanged numeric params and `emergency_paused=true`.
+1. Execute `set_protocol_emergency_pause` through the authorized governance path.
 2. Announce the pause and investigation window in operator channels.
 3. Run an observability snapshot and collect affected signatures.
 4. Validate the remediation on a dry-run wallet set.

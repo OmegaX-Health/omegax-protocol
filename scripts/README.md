@@ -33,6 +33,7 @@ This directory contains the repository's command-line helpers.
 
 - `bootstrap_governance_realms.ts` provisions governance state
 - `bootstrap_protocol.ts` writes the canonical hard-break devnet migration manifest and env exports
+- `bootstrap_devnet_live_protocol.ts` seeds the canonical shared-devnet plan/capital/oracle/schema graph and syncs the resulting env addresses back into the frontend bootstrap files
 - `bootstrap_devnet_frontend_parity.ts` syncs canonical fixture env values and writes `frontend/public/devnet-fixtures.json`
 - `devnet_beta_observability.ts` collects structured devnet observability output
 - `devnet_frontend_role_smoke.ts` validates the canonical fixture matrix in smoke or strict mode
@@ -52,5 +53,6 @@ This directory contains the repository's command-line helpers.
 - Treat deployment and bootstrap helpers as operator tooling, not general contributor entry points.
 - Review required environment variables before running any script that changes on-chain state.
 - The hard-break devnet migration now centers on the manifest emitted by `npm run protocol:bootstrap`.
+- The shared-devnet release sign-off path now typically runs `npm run protocol:bootstrap:devnet-live`, `npm run devnet:frontend:bootstrap`, `npm run devnet:frontend:signoff`, the governance smoke pair, and `npm run devnet:beta:observe` in one tracked rollout window.
 - The governance smoke uses the existing `GOVERNANCE_SECRET_KEY_BASE58` signer, requires pre-existing DAO tokens, and only SOL-airdrops fee balance when the signer drops below the configured threshold.
 - The readonly governance UI smoke requires Playwright Chromium locally: `npx playwright install chromium`.

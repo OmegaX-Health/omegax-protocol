@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import fixturesModule from "../frontend/lib/devnet-fixtures.ts";
+import { resolve } from "node:path";
 
-const {
-  DEVNET_PROTOCOL_FIXTURE_STATE,
-  configuredDevnetPaymentRails,
-  configuredDevnetWallets,
-} = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
+import { loadEnvFile } from "./support/load_env_file.ts";
 
 function fail(message: string): never {
   throw new Error(message);
 }
 
-function main() {
+const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
+
+async function main() {
+  loadEnvFile(FRONTEND_ENV_PATH);
+  const fixturesModule = await import("../frontend/lib/devnet-fixtures.ts");
+  const {
+    DEVNET_PROTOCOL_FIXTURE_STATE,
+    configuredDevnetPaymentRails,
+    configuredDevnetWallets,
+  } = fixturesModule;
   const strict = process.env.DEVNET_FIXTURE_STRICT === "1";
 
   console.log(strict ? "Frontend devnet parity signoff" : "Frontend devnet smoke");
@@ -50,4 +55,4 @@ function main() {
   }
 }
 
-main();
+await main();

@@ -12,6 +12,7 @@ import {
   type HealthPlanSnapshot,
   type LiquidityPoolSnapshot,
   type MemberReadModel,
+  type ProtocolConsoleSnapshot,
   type SponsorReadModel,
 } from "./protocol";
 import { DEVNET_PROTOCOL_FIXTURE_STATE } from "./devnet-fixtures";
@@ -29,8 +30,41 @@ export type CanonicalConsoleState = {
   glossary: ConsoleGlossaryRow[];
 };
 
-function planLedgerFor(plan: HealthPlanSnapshot) {
-  const assetMint = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.find(
+type CanonicalConsoleSource = Pick<
+  ProtocolConsoleSnapshot,
+  | "allocationPositions"
+  | "capitalClasses"
+  | "claimCases"
+  | "fundingLines"
+  | "healthPlans"
+  | "liquidityPools"
+  | "memberPositions"
+  | "obligations"
+  | "outcomesBySeries"
+  | "planReserveLedgers"
+  | "policySeries"
+  | "poolClassLedgers"
+>;
+
+function fixtureConsoleSource(): CanonicalConsoleSource {
+  return {
+    allocationPositions: DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions,
+    capitalClasses: DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses,
+    claimCases: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases,
+    fundingLines: DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines,
+    healthPlans: DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans,
+    liquidityPools: DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools,
+    memberPositions: DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions,
+    obligations: DEVNET_PROTOCOL_FIXTURE_STATE.obligations,
+    outcomesBySeries: DEVNET_PROTOCOL_FIXTURE_STATE.outcomesBySeries,
+    planReserveLedgers: DEVNET_PROTOCOL_FIXTURE_STATE.planReserveLedgers,
+    policySeries: DEVNET_PROTOCOL_FIXTURE_STATE.policySeries,
+    poolClassLedgers: DEVNET_PROTOCOL_FIXTURE_STATE.poolClassLedgers,
+  };
+}
+
+function planLedgerFor(plan: HealthPlanSnapshot, source: CanonicalConsoleSource) {
+  const assetMint = source.fundingLines.find(
     (line) => line.healthPlan === plan.address,
   )?.assetMint;
   if (!assetMint) return undefined;
@@ -38,52 +72,52 @@ function planLedgerFor(plan: HealthPlanSnapshot) {
     healthPlan: plan.address,
     assetMint,
   }).toBase58();
-  return DEVNET_PROTOCOL_FIXTURE_STATE.planReserveLedgers.find((ledger) => ledger.address === address)?.sheet;
+  return source.planReserveLedgers.find((ledger) => ledger.address === address)?.sheet;
 }
 
-function sponsorViews(): SponsorReadModel[] {
-  return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.map((plan) =>
+function sponsorViews(source: CanonicalConsoleSource): SponsorReadModel[] {
+  return source.healthPlans.map((plan) =>
     buildSponsorReadModel({
       healthPlan: plan,
-      policySeries: DEVNET_PROTOCOL_FIXTURE_STATE.policySeries,
-      fundingLines: DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines,
-      obligations: DEVNET_PROTOCOL_FIXTURE_STATE.obligations,
-      claimCases: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases,
-      planLedger: planLedgerFor(plan),
-      outcomesBySeries: DEVNET_PROTOCOL_FIXTURE_STATE.outcomesBySeries,
+      policySeries: source.policySeries,
+      fundingLines: source.fundingLines,
+      obligations: source.obligations,
+      claimCases: source.claimCases,
+      planLedger: planLedgerFor(plan, source),
+      outcomesBySeries: source.outcomesBySeries,
     }),
   );
 }
 
-function capitalViews(): CapitalReadModel[] {
-  return DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.map((pool) =>
+function capitalViews(source: CanonicalConsoleSource): CapitalReadModel[] {
+  return source.liquidityPools.map((pool) =>
     buildCapitalReadModel({
       liquidityPool: pool,
-      capitalClasses: DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses,
-      classLedgers: DEVNET_PROTOCOL_FIXTURE_STATE.poolClassLedgers,
-      allocations: DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions,
+      capitalClasses: source.capitalClasses,
+      classLedgers: source.poolClassLedgers,
+      allocations: source.allocationPositions,
     }),
   );
 }
 
-function memberViews(): MemberReadModel[] {
-  const uniqueWallets = new Set(DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions.map((position) => position.wallet));
+function memberViews(source: CanonicalConsoleSource): MemberReadModel[] {
+  const uniqueWallets = new Set(source.memberPositions.map((position) => position.wallet));
   return [...uniqueWallets].map((wallet) =>
     buildMemberReadModel({
       wallet,
-      memberPositions: DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions,
-      obligations: DEVNET_PROTOCOL_FIXTURE_STATE.obligations,
-      claimCases: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases,
+      memberPositions: source.memberPositions,
+      obligations: source.obligations,
+      claimCases: source.claimCases,
     }),
   );
 }
 
-export function buildCanonicalConsoleState(): CanonicalConsoleState {
+export function buildCanonicalConsoleStateFromSnapshot(source: CanonicalConsoleSource): CanonicalConsoleState {
   return {
-    sponsors: sponsorViews(),
-    capital: capitalViews(),
-    members: memberViews(),
-    activeClaims: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => isActiveClaimStatus(claim.intakeStatus)),
+    sponsors: sponsorViews(source),
+    capital: capitalViews(source),
+    members: memberViews(source),
+    activeClaims: source.claimCases.filter((claim) => isActiveClaimStatus(claim.intakeStatus)),
     glossary: [
       { noun: "ReserveDomain", meaning: "Hard custody, settlement, and legal segregation boundary." },
       { noun: "HealthPlan", meaning: "Sponsor/member/liability root for a public program." },
@@ -95,6 +129,10 @@ export function buildCanonicalConsoleState(): CanonicalConsoleState {
       { noun: "Obligation", meaning: "Canonical liability unit from accrual through reserve, payout, settlement, or impairment." },
     ],
   };
+}
+
+export function buildCanonicalConsoleState(): CanonicalConsoleState {
+  return buildCanonicalConsoleStateFromSnapshot(fixtureConsoleSource());
 }
 
 export function sponsorLabel(model: SponsorReadModel): string {

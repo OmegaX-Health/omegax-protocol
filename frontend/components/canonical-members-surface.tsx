@@ -31,7 +31,7 @@ function defaultRightsForMode(mode?: number): string[] {
   if (mode === 0) {
     return ["claim_reward", "view_payout_history"];
   }
-  return ["submit_claim", "appoint_delegate", "review_decisions"];
+  return ["open_claim_case", "appoint_delegate", "review_decisions"];
 }
 
 export function CanonicalMembersSurface() {

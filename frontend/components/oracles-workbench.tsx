@@ -5,10 +5,11 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { PoolOraclesPanel } from "@/components/pool-oracles-panel";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { claimCasesForOracleContext, formatAmount, seriesForPool } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE, devnetFixtureWalletKey } from "@/lib/devnet-fixtures";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
+import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 import { buildAuditTrail, defaultTabForPersona, ORACLE_TABS, type OracleTabId } from "@/lib/workbench";
 import {
   describeClaimStatus,
@@ -151,6 +152,7 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
+  const { snapshot, loading, error } = useProtocolConsoleSnapshot();
 
   /* ── Selection state ── */
 
@@ -158,7 +160,7 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
   const activeTab = (ORACLE_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("oracles", effectivePersona)) as OracleTabId;
 
-  const allPools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
+  const allPools = snapshot.liquidityPools;
   const queryPool = firstSearchParamValue(searchParams.pool)?.trim() ?? "";
   const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
   const hasInvalidPool = Boolean(queryPool) && !matchedPool;
@@ -167,7 +169,10 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
     return matchedPool ?? allPools[0] ?? null;
   }, [allPools, hasInvalidPool, matchedPool]);
 
-  const boundSeries = useMemo(() => (selectedPool ? seriesForPool(selectedPool.address) : []), [selectedPool]);
+  const boundSeries = useMemo(
+    () => (selectedPool ? seriesForPool(selectedPool.address, snapshot) : []),
+    [selectedPool, snapshot],
+  );
   const querySeries = firstSearchParamValue(searchParams.series)?.trim() ?? "";
   const matchedSeries = useMemo(
     () => boundSeries.find((series) => series.address === querySeries) ?? null,
@@ -181,16 +186,69 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
 
   /* ── Derived data ── */
 
-  const operatorWallets = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter(
-      (wallet) => wallet.role === "oracle_operator" || wallet.role === "claims_operator",
-    ),
-    [],
+  const planScopedOperators = useMemo(() => {
+    const registry = new Map<string, { address: string; label: string; role: "oracle_operator" | "claims_operator" }>();
+    for (const plan of snapshot.healthPlans) {
+      if (plan.oracleAuthority && plan.oracleAuthority !== "11111111111111111111111111111111") {
+        registry.set(plan.oracleAuthority, {
+          address: plan.oracleAuthority,
+          label: `Oracle operator · ${shortenAddress(plan.oracleAuthority, 6)}`,
+          role: "oracle_operator",
+        });
+      }
+      if (plan.claimsOperator && plan.claimsOperator !== "11111111111111111111111111111111") {
+        registry.set(plan.claimsOperator, {
+          address: plan.claimsOperator,
+          label: `Claims operator · ${shortenAddress(plan.claimsOperator, 6)}`,
+          role: "claims_operator",
+        });
+      }
+    }
+    return [...registry.values()];
+  }, [snapshot.healthPlans]);
+
+  const selectedPoolApprovals = useMemo(
+    () => snapshot.poolOracleApprovals.filter((approval) => approval.liquidityPool === selectedPool?.address),
+    [selectedPool, snapshot.poolOracleApprovals],
   );
 
+  const selectedPoolPermissionSets = useMemo(
+    () => snapshot.poolOraclePermissionSets.filter((permissionSet) => permissionSet.liquidityPool === selectedPool?.address),
+    [selectedPool, snapshot.poolOraclePermissionSets],
+  );
+
+  const selectedPoolPolicy = useMemo(
+    () => snapshot.poolOraclePolicies.find((policy) => policy.liquidityPool === selectedPool?.address) ?? null,
+    [selectedPool, snapshot.poolOraclePolicies],
+  );
+
+  const oracleOperators = useMemo(() => {
+    if (snapshot.oracleProfiles.length === 0) {
+      return planScopedOperators
+        .filter((wallet) => wallet.role === "oracle_operator")
+        .map((wallet) => ({
+          address: wallet.address,
+          label: wallet.label,
+          approvalActive: selectedPoolApprovals.some((approval) => approval.oracle === wallet.address && approval.active),
+          permissions: selectedPoolPermissionSets.find((permissionSet) => permissionSet.oracle === wallet.address)?.permissions ?? 0,
+          profile: null,
+        }));
+    }
+
+    const approvalByOracle = new Map(selectedPoolApprovals.map((approval) => [approval.oracle, approval]));
+    const permissionsByOracle = new Map(selectedPoolPermissionSets.map((permissionSet) => [permissionSet.oracle, permissionSet]));
+    return snapshot.oracleProfiles.map((profile) => ({
+      address: profile.oracle,
+      label: profile.displayName || `Oracle · ${shortenAddress(profile.oracle, 6)}`,
+      approvalActive: approvalByOracle.get(profile.oracle)?.active ?? false,
+      permissions: permissionsByOracle.get(profile.oracle)?.permissions ?? 0,
+      profile,
+    }));
+  }, [planScopedOperators, selectedPoolApprovals, selectedPoolPermissionSets, snapshot.oracleProfiles]);
+
   const scopedClaimCases = useMemo(
-    () => (selectedPool ? claimCasesForOracleContext(selectedPool.address, selectedSeries?.address) : []),
-    [selectedPool, selectedSeries],
+    () => (selectedPool ? claimCasesForOracleContext(selectedPool.address, selectedSeries?.address, snapshot) : []),
+    [selectedPool, selectedSeries, snapshot],
   );
 
   type OracleAttestation = {
@@ -203,8 +261,8 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
 
   const attestations = useMemo<OracleAttestation[]>(() => {
     return scopedClaimCases.map((claim, index) => {
-      const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((entry) => entry.address === claim.policySeries);
-      const operator = operatorWallets[index % operatorWallets.length];
+      const series = snapshot.policySeries.find((entry) => entry.address === claim.policySeries);
+      const operator = oracleOperators[index % oracleOperators.length];
       return {
         id: claim.address,
         series: series?.displayName ?? claim.claimId,
@@ -213,17 +271,17 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
         reference: claim.claimId,
       };
     });
-  }, [operatorWallets, scopedClaimCases]);
+  }, [oracleOperators, scopedClaimCases, snapshot.policySeries]);
 
   const attestationScopeLabel = selectedSeries?.displayName ?? selectedPool?.displayName ?? "the selected context";
 
   const scopedObligations = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) =>
+    () => snapshot.obligations.filter((obligation) =>
       selectedSeries
         ? obligation.policySeries === selectedSeries.address
         : obligation.liquidityPool === selectedPool?.address,
     ),
-    [selectedPool, selectedSeries],
+    [selectedPool, selectedSeries, snapshot.obligations],
   );
   const disputes = useMemo(() => scopedObligations.filter(isObligationOnDisputeWatch), [scopedObligations]);
 
@@ -237,14 +295,9 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
   );
 
   /* ── Mesh integrity stats ── */
-
-  const oracleOperators = useMemo(
-    () => operatorWallets.filter((wallet) => wallet.role === "oracle_operator"),
-    [operatorWallets],
-  );
   const claimsOperators = useMemo(
-    () => operatorWallets.filter((wallet) => wallet.role === "claims_operator"),
-    [operatorWallets],
+    () => planScopedOperators.filter((wallet) => wallet.role === "claims_operator"),
+    [planScopedOperators],
   );
 
   const disputeRatio = scopedObligations.length > 0
@@ -299,7 +352,7 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
   /* ── Invalid selection guard ── */
 
   const invalidSelection = hasInvalidPool
-    ? { title: "Pool not found", copy: "The requested pool context is not present in the current fixture set. Choose another pool to continue." }
+    ? { title: "Pool not found", copy: "The requested pool context is not present in the current live protocol state. Choose another pool to continue." }
     : hasInvalidSeries
       ? { title: "Series not found", copy: "The requested policy series is not bound to the selected pool. Choose another series or clear the series filter." }
       : null;
@@ -321,6 +374,26 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
             <p className="plans-hero-subtitle">{heroSubtitle}</p>
           </div>
         </header>
+
+        {loading || error ? (
+          <div className="plans-stack">
+            <article className="plans-card liquid-glass">
+              <div className="plans-card-head">
+                <div>
+                  <p className="plans-card-eyebrow">LIVE_PROTOCOL_STATE</p>
+                  <h2 className="plans-card-title plans-card-title-display">
+                    {loading ? <>Syncing <em>operators</em></> : <>RPC <em>attention</em></>}
+                  </h2>
+                </div>
+              </div>
+              <p className="plans-card-body">
+                {loading
+                  ? "Loading live pool, series, claim-case, obligation, and operator authority state from the configured RPC endpoint."
+                  : error}
+              </p>
+            </article>
+          </div>
+        ) : null}
 
         {/* ── Context bar ────────────────────── */}
         <div className="plans-context-bar">
@@ -354,8 +427,10 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
         <section className="plans-kpi-strip" aria-label="Oracle workspace telemetry">
           <div className="plans-kpi-metric">
             <span className="plans-kpi-label">OPERATORS</span>
-            <span className="plans-kpi-value">{operatorWallets.length}</span>
-            <span className="plans-kpi-meta">{oracleOperators.length} oracle · {claimsOperators.length} claims</span>
+            <span className="plans-kpi-value">{oracleOperators.length}</span>
+            <span className="plans-kpi-meta">
+              {selectedPoolApprovals.filter((approval) => approval.active).length} approved · {claimsOperators.length} claims
+            </span>
           </div>
           <div className="plans-kpi-metric">
             <span className="plans-kpi-label">BOUND_SERIES</span>
@@ -409,47 +484,61 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
 
               {/* ── Operators / Registry tab ── */}
               {activeTab === "registry" ? (
-                <article className="plans-card heavy-glass">
-                  <div className="plans-card-head">
-                    <div>
-                      <p className="plans-card-eyebrow">OPERATOR_REGISTRY</p>
-                      <h2 className="plans-card-title plans-card-title-display">
-                        Signing <em>operators</em>
-                      </h2>
+                <div className="plans-stack">
+                  {selectedPool ? <PoolOraclesPanel poolAddress={selectedPool.address} sectionMode="embedded" /> : null}
+                  <article className="plans-card heavy-glass">
+                    <div className="plans-card-head">
+                      <div>
+                        <p className="plans-card-eyebrow">OPERATOR_REGISTRY</p>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          Signing <em>operators</em>
+                        </h2>
+                      </div>
+                      <span className="plans-card-meta">
+                        <span className="plans-live-dot" aria-hidden="true" />
+                        {oracleOperators.length} visible
+                      </span>
                     </div>
-                    <span className="plans-card-meta">
-                      <span className="plans-live-dot" aria-hidden="true" />
-                      {operatorWallets.length} active
-                    </span>
-                  </div>
-                  <p className="plans-card-body">
-                    Wallets authorized to sign attestations and claim adjudications across the protocol. Routes are scoped to the selected pool.
-                  </p>
-                  <div className="plans-table-wrap">
-                    <table className="plans-table">
-                      <thead>
-                        <tr>
-                          <th>Operator</th>
-                          <th>Role</th>
-                          <th>Address</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {operatorWallets.map((wallet) => (
-                          <tr key={devnetFixtureWalletKey(wallet)}>
-                            <td data-label="Operator">{wallet.label}</td>
-                            <td data-label="Role">
-                              <StatusBadge label={wallet.role === "oracle_operator" ? "Oracle" : "Claims"} />
-                            </td>
-                            <td data-label="Address">
-                              <span className="plans-table-mono">{shortenAddress(wallet.address, 8)}</span>
-                            </td>
+                    <p className="plans-card-body">
+                      Registered oracle profiles and their live approval posture for the selected pool. Claims operators remain plan-scoped and appear in posture telemetry.
+                    </p>
+                    <div className="plans-table-wrap">
+                      <table className="plans-table">
+                        <thead>
+                          <tr>
+                            <th>Operator</th>
+                            <th>Approval</th>
+                            <th>Permissions</th>
+                            <th>Address</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
+                        </thead>
+                        <tbody>
+                          {oracleOperators.map((wallet) => (
+                            <tr key={wallet.address}>
+                              <td data-label="Operator">
+                                <div>
+                                  <span>{wallet.label}</span>
+                                  <span className="plans-table-mono">
+                                    {wallet.profile?.claimed ? "Claimed profile" : "Unclaimed profile"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td data-label="Approval">
+                                <StatusBadge label={wallet.approvalActive ? "Approved" : "Pending"} />
+                              </td>
+                              <td data-label="Permissions">
+                                <span className="plans-table-mono">{wallet.permissions}</span>
+                              </td>
+                              <td data-label="Address">
+                                <span className="plans-table-mono">{shortenAddress(wallet.address, 8)}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                </div>
               ) : null}
 
               {/* ── Bindings tab ── */}
@@ -459,42 +548,38 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                     <div>
                       <p className="plans-card-eyebrow">SOURCE_BINDINGS</p>
                       <h2 className="plans-card-title plans-card-title-display">
-                        {boundSeries.length} bound <em>{boundSeries.length === 1 ? "series" : "series"}</em>
+                        {selectedPoolApprovals.length} approved <em>operators</em>
                       </h2>
                     </div>
                     <span className="plans-card-meta">{selectedPool?.poolId ?? "—"}</span>
                   </div>
-                  {boundSeries.length > 0 ? (
+                  {selectedPoolApprovals.length > 0 ? (
                     <div className="plans-table-wrap">
                       <table className="plans-table">
                         <thead>
                           <tr>
-                            <th>Series</th>
-                            <th>Mode</th>
-                            <th>Version</th>
-                            <th>Status</th>
+                            <th>Operator</th>
+                            <th>Profile</th>
+                            <th>Permissions</th>
+                            <th>Schema gate</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {boundSeries.map((series) => {
-                            const isSelected = selectedSeries?.address === series.address;
+                          {selectedPoolApprovals.map((approval) => {
+                            const operator = oracleOperators.find((candidate) => candidate.address === approval.oracle);
                             return (
-                              <tr key={series.address} className={cn(isSelected && "plans-table-row-active")}>
-                                <td data-label="Series">
-                                  <button
-                                    type="button"
-                                    className="plans-table-link"
-                                    onClick={() => updateParams({ series: series.address })}
-                                  >
-                                    {series.displayName}
-                                  </button>
+                              <tr key={approval.address}>
+                                <td data-label="Operator">
+                                  <span>{operator?.label ?? shortenAddress(approval.oracle, 6)}</span>
                                 </td>
-                                <td data-label="Mode">{describeSeriesMode(series.mode)}</td>
-                                <td data-label="Version">
-                                  <span className="plans-table-mono">{series.termsVersion}</span>
+                                <td data-label="Profile">
+                                  <StatusBadge label={operator?.profile?.claimed ? "Claimed" : "Registered"} />
                                 </td>
-                                <td data-label="Status">
-                                  <StatusBadge label={describeSeriesStatus(series.status)} />
+                                <td data-label="Permissions">
+                                  <span className="plans-table-mono">{operator?.permissions ?? 0}</span>
+                                </td>
+                                <td data-label="Schema gate">
+                                  <StatusBadge label={selectedPoolPolicy?.requireVerifiedSchema ? "Verified only" : "Open"} />
                                 </td>
                               </tr>
                             );
@@ -504,8 +589,8 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                     </div>
                   ) : (
                     <PlansEmptyState
-                      title="No oracle bindings"
-                      copy="This pool does not currently bind any policy series."
+                      title="No approved operators"
+                      copy="This pool does not currently have any pool-level oracle approval records."
                     />
                   )}
                 </article>
@@ -587,7 +672,9 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                         </thead>
                         <tbody>
                           {disputes.map((obligation) => {
-                            const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((entry) => entry.address === obligation.policySeries);
+                            const series = obligation.policySeries
+                              ? snapshot.policySeries.find((entry) => entry.address === obligation.policySeries)
+                              : null;
                             const watch = toBigIntAmount(obligation.reservedAmount)
                               + toBigIntAmount(obligation.payableAmount)
                               + toBigIntAmount(obligation.impairedAmount);
@@ -641,12 +728,16 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                         <strong className="plans-data-value">{claimsOperators.length}</strong>
                       </div>
                       <div className="plans-data-row">
-                        <span className="plans-data-label">Scope</span>
-                        <span className="plans-data-value">Attestation &amp; finality</span>
+                        <span className="plans-data-label">Quorum</span>
+                        <span className="plans-data-value">
+                          {selectedPoolPolicy ? `${selectedPoolPolicy.quorumM}/${selectedPoolPolicy.quorumN}` : "Unconfigured"}
+                        </span>
                       </div>
                       <div className="plans-data-row">
-                        <span className="plans-data-label">Treasury_Access</span>
-                        <span className="plans-data-value">None</span>
+                        <span className="plans-data-label">Schema_Gate</span>
+                        <span className="plans-data-value">
+                          {selectedPoolPolicy?.requireVerifiedSchema ? "Verified only" : "Open"}
+                        </span>
                       </div>
                     </div>
                   </article>
@@ -706,7 +797,7 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                 </div>
                 <div className="plans-rail-row">
                   <span>Operators</span>
-                  <strong>{operatorWallets.length}</strong>
+                  <strong>{oracleOperators.length}</strong>
                 </div>
                 <div className="plans-rail-row">
                   <span>Bound series</span>
@@ -747,6 +838,12 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                     <div className="plans-rail-row">
                       <span>Terms version</span>
                       <strong>{selectedSeries.termsVersion}</strong>
+                    </div>
+                    <div className="plans-rail-row">
+                      <span>Oracle quorum</span>
+                      <strong>
+                        {selectedPoolPolicy ? `${selectedPoolPolicy.quorumM}/${selectedPoolPolicy.quorumN}` : "Unconfigured"}
+                      </strong>
                     </div>
                     <div className="plans-rail-row">
                       <span>Address</span>

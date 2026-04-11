@@ -28,6 +28,8 @@ The public UI should treat these as first-order objects:
 
 Legacy `/pools/*` routes are retained only as redirects to avoid carrying pool-first concepts forward in the main UX.
 
+Mounted canonical routes should resolve their primary data from the live protocol snapshot adapter rather than from checked-in fixture state. Fixtures remain valid for tests, docs, bootstrap generation, and local previews, but they should not be the default operator truth surface for the mounted workbenches.
+
 ## Overview route
 
 The overview route is not a generic dashboard. It is the protocol entry composition: a sticky editorial hero rail on the left and a flowing access stream on the right.

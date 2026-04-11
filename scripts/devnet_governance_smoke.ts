@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import bs58 from "bs58";
+import { resolve } from "node:path";
 import { InstructionExecutionStatus, ProposalState } from "@solana/spl-governance";
 import { Connection, Keypair, PublicKey, Transaction } from "@solana/web3.js";
 
@@ -14,10 +15,12 @@ import {
   shouldRequestGovernanceSmokeAirdrop,
   timestampedGovernanceSmokeProposalName,
 } from "./devnet_governance_smoke_helpers.ts";
+import { loadEnvFile } from "./support/load_env_file.ts";
 
 const governance = governanceModule as typeof import("../frontend/lib/governance.ts");
 const protocol = protocolModule as typeof import("../frontend/lib/protocol.ts");
 type SchemaStateProposalDraft = import("../frontend/lib/governance.ts").SchemaStateProposalDraft;
+const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 
 function usage(): string {
   return [
@@ -204,6 +207,7 @@ async function selectSchemaDraft(params: {
 }
 
 async function runCreateVote(): Promise<void> {
+  loadEnvFile(FRONTEND_ENV_PATH);
   const config = readGovernanceWriteSmokeConfig();
   applyGovernanceSmokeFrontendEnv(process.env, config);
 
@@ -321,6 +325,7 @@ async function runCreateVote(): Promise<void> {
 }
 
 async function runExecute(): Promise<void> {
+  loadEnvFile(FRONTEND_ENV_PATH);
   const config = readGovernanceWriteSmokeConfig();
   applyGovernanceSmokeFrontendEnv(process.env, config);
 
@@ -409,6 +414,7 @@ async function runExecute(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  loadEnvFile(FRONTEND_ENV_PATH);
   const argv = process.argv.slice(2);
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(usage());

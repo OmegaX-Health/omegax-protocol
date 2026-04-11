@@ -582,6 +582,350 @@
       ]
     },
     {
+      "name": "backfill_schema_dependency_ledger",
+      "discriminator": [
+        109,
+        109,
+        247,
+        151,
+        229,
+        78,
+        52,
+        167
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "BackfillSchemaDependencyLedgerArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "governance_authority",
+          "writable": true,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema_dependency_ledger",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97,
+                  95,
+                  100,
+                  101,
+                  112,
+                  101,
+                  110,
+                  100,
+                  101,
+                  110,
+                  99,
+                  121,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "name": "claim_oracle",
+      "discriminator": [
+        1,
+        252,
+        166,
+        132,
+        45,
+        24,
+        23,
+        233
+      ],
+      "args": [],
+      "accounts": [
+        {
+          "name": "oracle",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "oracle_profile",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "close_outcome_schema",
+      "discriminator": [
+        196,
+        81,
+        8,
+        61,
+        95,
+        145,
+        225,
+        2
+      ],
+      "args": [],
+      "accounts": [
+        {
+          "name": "governance_authority",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_schema.schema_key_hash",
+                "account": "OutcomeSchema"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema_dependency_ledger",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97,
+                  95,
+                  100,
+                  101,
+                  112,
+                  101,
+                  110,
+                  100,
+                  101,
+                  110,
+                  99,
+                  121,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_schema.schema_key_hash",
+                "account": "OutcomeSchema"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient_system_account",
+          "writable": true,
+          "signer": false,
+          "optional": false
+        }
+      ]
+    },
+    {
       "name": "create_allocation_position",
       "discriminator": [
         165,
@@ -4837,6 +5181,191 @@
       ]
     },
     {
+      "name": "register_oracle",
+      "discriminator": [
+        176,
+        200,
+        234,
+        37,
+        199,
+        129,
+        164,
+        111
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RegisterOracleArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "oracle_profile",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "name": "register_outcome_schema",
+      "discriminator": [
+        187,
+        68,
+        109,
+        211,
+        168,
+        181,
+        105,
+        32
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RegisterOutcomeSchemaArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "publisher",
+          "writable": true,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "outcome_schema",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema_dependency_ledger",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97,
+                  95,
+                  100,
+                  101,
+                  112,
+                  101,
+                  110,
+                  100,
+                  101,
+                  110,
+                  99,
+                  121,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ]
+    },
+    {
       "name": "release_reserve",
       "discriminator": [
         170,
@@ -5709,6 +6238,582 @@
               }
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "set_pool_oracle",
+      "discriminator": [
+        140,
+        225,
+        146,
+        45,
+        210,
+        81,
+        225,
+        223
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetPoolOracleArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_profile",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_approval",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "name": "set_pool_oracle_permissions",
+      "discriminator": [
+        168,
+        14,
+        22,
+        106,
+        118,
+        145,
+        105,
+        44
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetPoolOraclePermissionsArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_profile",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_approval",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permission_set",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "name": "set_pool_oracle_policy",
+      "discriminator": [
+        190,
+        13,
+        51,
+        113,
+        230,
+        140,
+        103,
+        82
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetPoolOraclePolicyArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_policy",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "address": "11111111111111111111111111111111"
         }
       ]
     },
@@ -7243,6 +8348,105 @@
       ]
     },
     {
+      "name": "update_oracle_profile",
+      "discriminator": [
+        175,
+        66,
+        157,
+        51,
+        96,
+        190,
+        163,
+        98
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateOracleProfileArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_profile",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "update_reserve_domain_controls",
       "discriminator": [
         3,
@@ -7335,6 +8539,105 @@
                 "kind": "account",
                 "path": "reserve_domain.domain_id",
                 "account": "ReserveDomain"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "verify_outcome_schema",
+      "discriminator": [
+        221,
+        10,
+        144,
+        137,
+        106,
+        214,
+        205,
+        170
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "VerifyOutcomeSchemaArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "governance_authority",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_schema.schema_key_hash",
+                "account": "OutcomeSchema"
               }
             ]
           }
@@ -7709,6 +9012,26 @@
       172,
       167
     ],
+    "OracleProfile": [
+      232,
+      217,
+      185,
+      162,
+      237,
+      208,
+      114,
+      142
+    ],
+    "OutcomeSchema": [
+      243,
+      62,
+      72,
+      224,
+      198,
+      100,
+      29,
+      58
+    ],
     "PlanReserveLedger": [
       243,
       245,
@@ -7739,6 +9062,36 @@
       109,
       204
     ],
+    "PoolOracleApproval": [
+      116,
+      241,
+      25,
+      184,
+      205,
+      21,
+      153,
+      29
+    ],
+    "PoolOraclePermissionSet": [
+      3,
+      136,
+      243,
+      231,
+      172,
+      143,
+      123,
+      245
+    ],
+    "PoolOraclePolicy": [
+      246,
+      134,
+      133,
+      108,
+      100,
+      203,
+      226,
+      43
+    ],
     "ProtocolGovernance": [
       71,
       235,
@@ -7758,6 +9111,16 @@
       116,
       88,
       178
+    ],
+    "SchemaDependencyLedger": [
+      87,
+      115,
+      211,
+      54,
+      36,
+      177,
+      77,
+      131
     ],
     "SeriesReserveLedger": [
       0,
@@ -7868,6 +9231,32 @@
       "allocation_ledger",
       "<allocation_position>",
       "<asset_mint>"
+    ],
+    "oracle_profile": [
+      "oracle_profile",
+      "<oracle>"
+    ],
+    "pool_oracle_approval": [
+      "pool_oracle_approval",
+      "<liquidity_pool>",
+      "<oracle>"
+    ],
+    "pool_oracle_policy": [
+      "pool_oracle_policy",
+      "<liquidity_pool>"
+    ],
+    "pool_oracle_permission_set": [
+      "pool_oracle_permission_set",
+      "<liquidity_pool>",
+      "<oracle>"
+    ],
+    "outcome_schema": [
+      "outcome_schema",
+      "<schema_key_hash>"
+    ],
+    "schema_dependency_ledger": [
+      "schema_dependency_ledger",
+      "<schema_key_hash>"
     ]
   }
 }

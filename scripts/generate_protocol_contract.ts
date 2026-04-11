@@ -99,6 +99,12 @@ const PDA_SEEDS: Record<string, string[]> = {
   lp_position: ['lp_position', '<capital_class>', '<owner>'],
   allocation_position: ['allocation_position', '<capital_class>', '<funding_line>'],
   allocation_ledger: ['allocation_ledger', '<allocation_position>', '<asset_mint>'],
+  oracle_profile: ['oracle_profile', '<oracle>'],
+  pool_oracle_approval: ['pool_oracle_approval', '<liquidity_pool>', '<oracle>'],
+  pool_oracle_policy: ['pool_oracle_policy', '<liquidity_pool>'],
+  pool_oracle_permission_set: ['pool_oracle_permission_set', '<liquidity_pool>', '<oracle>'],
+  outcome_schema: ['outcome_schema', '<schema_key_hash>'],
+  schema_dependency_ledger: ['schema_dependency_ledger', '<schema_key_hash>'],
 };
 
 function canonicalDiscriminator(name: string): number[] {

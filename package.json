@@ -31,6 +31,7 @@
     "mvp:consistency:check": "node scripts/check_mvp_consistency.mjs",
     "governance:bootstrap": "node --import tsx scripts/bootstrap_governance_realms.ts",
     "protocol:bootstrap": "node --import tsx scripts/bootstrap_protocol.ts",
+    "protocol:bootstrap:devnet-live": "node --import tsx scripts/bootstrap_devnet_live_protocol.ts",
     "devnet:frontend:bootstrap": "node --import tsx scripts/bootstrap_devnet_frontend_parity.ts",
     "devnet:beta:observe": "node --import tsx scripts/devnet_beta_observability.ts",
     "devnet:beta:deploy": "node --import tsx scripts/deploy_devnet_beta.ts",

@@ -1,29 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { redirect } from "next/navigation";
+import { PlansWorkbench } from "@/components/plans-workbench";
+import { type RouteSearchParams } from "@/lib/search-params";
 
-import { linkedContextForPool, planAddressForSeries } from "@/lib/workbench";
-
-type MembersShimPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+type MembersPageProps = {
+  searchParams?: RouteSearchParams;
 };
 
-function firstValue(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
-
-export default function MembersShimPage({ searchParams }: MembersShimPageProps) {
-  const plan = firstValue(searchParams?.plan);
-  const series = firstValue(searchParams?.series);
-  const pool = firstValue(searchParams?.pool);
-  const linked = linkedContextForPool(pool);
-  const resolvedSeries = series || linked.series || "";
-  const resolvedPlan = plan || planAddressForSeries(resolvedSeries) || linked.plan || "";
-  const params = new URLSearchParams();
-
-  params.set("tab", "members");
-  if (resolvedPlan) params.set("plan", resolvedPlan);
-  if (resolvedSeries) params.set("series", resolvedSeries);
-
-  redirect(`/plans?${params.toString()}`);
+export default function MembersPage({ searchParams = {} }: MembersPageProps) {
+  return <PlansWorkbench searchParams={searchParams} />;
 }

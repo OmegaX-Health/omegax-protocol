@@ -24,63 +24,62 @@ export function buildCanonicalPoolHref(
 ): string {
   const params = new URLSearchParams();
   const linked = linkedContextForPool(poolAddress);
-
   let pathname = "/capital";
-  let resolvedPanel = panel?.trim() || "";
+
+  if (poolAddress) params.set("pool", poolAddress);
 
   switch (section) {
+    case "claims":
+      pathname = "/claims";
+      params.set("panel", panel?.trim() || "ledger");
+      if (linked.plan) params.set("plan", linked.plan);
+      if (linked.series) params.set("series", linked.series);
+      break;
+    case "members":
+      pathname = "/members";
+      params.set("panel", panel?.trim() || "enroll");
+      if (linked.plan) params.set("plan", linked.plan);
+      if (linked.series) params.set("series", linked.series);
+      break;
+    case "schemas":
+      pathname = "/schemas";
+      params.set("panel", panel?.trim() || "registry");
+      if (linked.series) params.set("series", linked.series);
+      else if (linked.plan) {
+        const fallbackSeries = firstSeriesAddressForPlan(linked.plan);
+        if (fallbackSeries) params.set("series", fallbackSeries);
+      }
+      break;
     case "oracles":
       pathname = "/oracles";
-      params.set("pool", poolAddress);
-      resolvedPanel ||= "registry";
-      break;
-    case "claims":
-      pathname = "/plans";
-      resolvedPanel ||= "claims";
+      params.set("tab", panel?.trim() || "registry");
       break;
     case "governance":
       pathname = "/governance";
-      resolvedPanel ||= "queue";
-      break;
-    case "schemas":
-      pathname = "/plans";
-      resolvedPanel ||= "schemas";
-      break;
-    case "members":
-      pathname = "/plans";
-      resolvedPanel ||= "members";
+      params.set("tab", panel?.trim() || "queue");
       break;
     case "coverage":
-    case "settings":
       pathname = "/plans";
-      resolvedPanel ||= section === "coverage" ? "coverage" : "settings";
+      params.set("tab", "coverage");
+      if (linked.plan) params.set("plan", linked.plan);
+      if (linked.plan) {
+        const protectionSeries = linked.series || firstProtectionSeriesAddressForPlan(linked.plan);
+        if (protectionSeries) params.set("series", protectionSeries);
+      }
+      break;
+    case "settings":
+      pathname = "/capital";
+      params.set("tab", "classes");
       break;
     case "treasury":
       pathname = "/capital";
-      params.set("pool", poolAddress);
-      resolvedPanel ||= "queue";
+      params.set("tab", panel?.trim() || "queue");
       break;
     case "liquidity":
     default:
       pathname = "/capital";
-      params.set("pool", poolAddress);
-      resolvedPanel ||= "overview";
+      params.set("tab", panel?.trim() || "overview");
       break;
-  }
-
-  if (resolvedPanel) {
-    params.set("tab", resolvedPanel);
-  }
-
-  if (pathname === "/plans") {
-    if (linked.plan) params.set("plan", linked.plan);
-    const resolvedSeries = linked.series
-      || (resolvedPanel === "schemas"
-        ? firstSeriesAddressForPlan(linked.plan)
-        : resolvedPanel === "coverage"
-          ? firstProtectionSeriesAddressForPlan(linked.plan)
-          : null);
-    if (resolvedSeries) params.set("series", resolvedSeries);
   }
 
   return `${pathname}?${params.toString()}`;

@@ -3,15 +3,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import fixturesModule from "../frontend/lib/devnet-fixtures.ts";
-import protocolModule from "../frontend/lib/protocol.ts";
-
-const {
-  DEVNET_PROTOCOL_FIXTURE_STATE,
-  DEFAULT_HEALTH_PLAN_ADDRESS,
-  DEFAULT_LIQUIDITY_POOL_ADDRESS,
-} = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
-const { getProgramId } = protocolModule as typeof import("../frontend/lib/protocol.ts");
+import { loadEnvFile } from "./support/load_env_file.ts";
 
 const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 const FRONTEND_FIXTURE_JSON_PATH = resolve(process.cwd(), "frontend/public/devnet-fixtures.json");
@@ -56,10 +48,15 @@ function stringify(value: unknown): string {
 }
 
 function updates(): Record<string, string> {
+  const {
+    DEVNET_PROTOCOL_FIXTURE_STATE,
+    DEFAULT_HEALTH_PLAN_ADDRESS,
+    DEFAULT_LIQUIDITY_POOL_ADDRESS,
+  } = fixturesModule;
   const primaryPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]!;
   const primaryPool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!;
   return {
-    NEXT_PUBLIC_PROTOCOL_PROGRAM_ID: getProgramId().toBase58(),
+    NEXT_PUBLIC_PROTOCOL_PROGRAM_ID: protocolModule.getProgramId().toBase58(),
     NEXT_PUBLIC_DEFAULT_HEALTH_PLAN_ADDRESS: DEFAULT_HEALTH_PLAN_ADDRESS,
     NEXT_PUBLIC_DEFAULT_LIQUIDITY_POOL_ADDRESS: DEFAULT_LIQUIDITY_POOL_ADDRESS,
     NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT: DEVNET_PROTOCOL_FIXTURE_STATE.settlementMint,
@@ -71,13 +68,20 @@ function updates(): Record<string, string> {
   };
 }
 
-function main() {
+let fixturesModule: typeof import("../frontend/lib/devnet-fixtures.ts");
+let protocolModule: typeof import("../frontend/lib/protocol.ts");
+
+async function main() {
+  loadEnvFile(FRONTEND_ENV_PATH);
+  fixturesModule = await import("../frontend/lib/devnet-fixtures.ts");
+  protocolModule = await import("../frontend/lib/protocol.ts");
+
   upsertEnvFile(FRONTEND_ENV_PATH, updates());
   mkdirSync(dirname(FRONTEND_FIXTURE_JSON_PATH), { recursive: true });
-  writeFileSync(FRONTEND_FIXTURE_JSON_PATH, `${stringify(DEVNET_PROTOCOL_FIXTURE_STATE)}\n`);
+  writeFileSync(FRONTEND_FIXTURE_JSON_PATH, `${stringify(fixturesModule.DEVNET_PROTOCOL_FIXTURE_STATE)}\n`);
 
   console.log(`[frontend-bootstrap] env=${FRONTEND_ENV_PATH}`);
   console.log(`[frontend-bootstrap] fixtures=${FRONTEND_FIXTURE_JSON_PATH}`);
 }
 
-main();
+await main();

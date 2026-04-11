@@ -13,14 +13,21 @@ const {
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
   deriveMembershipAnchorSeatPda,
+  deriveOracleProfilePda,
+  deriveOutcomeSchemaPda,
+  derivePoolOracleApprovalPda,
+  derivePoolOraclePolicyPda,
+  derivePoolOraclePermissionSetPda,
   deriveProtocolGovernancePda,
   deriveReserveDomainPda,
+  deriveSchemaDependencyLedgerPda,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 test("fixture addresses stay deterministic under canonical seeds", () => {
   const [openDomain, wrapperDomain] = DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains;
   const seekerPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]!;
   const pool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!;
+  const oracleAddress = DEFAULT_HEALTH_PLAN_ADDRESS;
 
   assert.equal(
     deriveReserveDomainPda({ domainId: openDomain.domainId }).toBase58(),
@@ -42,6 +49,40 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
     deriveMembershipAnchorSeatPda({
       healthPlan: seekerPlan.address,
       anchorRef: seekerPlan.address,
+    }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
+  assert.match(
+    deriveOracleProfilePda({ oracle: oracleAddress }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
+  assert.match(
+    derivePoolOracleApprovalPda({
+      liquidityPool: pool.address,
+      oracle: oracleAddress,
+    }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
+  assert.match(
+    derivePoolOraclePolicyPda({ liquidityPool: pool.address }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
+  assert.match(
+    derivePoolOraclePermissionSetPda({
+      liquidityPool: pool.address,
+      oracle: oracleAddress,
+    }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
+  assert.match(
+    deriveOutcomeSchemaPda({
+      schemaKeyHashHex: "11".repeat(32),
+    }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
+  assert.match(
+    deriveSchemaDependencyLedgerPda({
+      schemaKeyHashHex: "11".repeat(32),
     }).toBase58(),
     /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   );

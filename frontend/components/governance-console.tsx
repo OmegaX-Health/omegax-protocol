@@ -14,7 +14,6 @@ import { RealmsActionsPanel } from "@/components/realms-actions-panel";
 import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
   buildDepositGoverningTokensTx,
-  buildProtocolConfigProposalPlan,
   buildSchemaStateProposalPlan,
   buildWithdrawGoverningTokensTx,
   formatGovernanceAmount,
@@ -24,7 +23,12 @@ import {
   parseGovernanceAmountInput,
   type GovernanceDashboardSummary,
 } from "@/lib/governance";
-import { listSchemas, type ProtocolConfigSummary, type SchemaSummary } from "@/lib/protocol";
+import {
+  buildSetProtocolEmergencyPauseTx,
+  listSchemas,
+  type ProtocolConfigSummary,
+  type SchemaSummary,
+} from "@/lib/protocol";
 import { formatRpcError } from "@/lib/rpc-errors";
 
 type GovernanceConsoleProps = {
@@ -33,7 +37,7 @@ type GovernanceConsoleProps = {
 };
 
 type ProposalGroupKey = keyof GovernanceDashboardSummary["proposalCounts"];
-type ProposalPlan = Awaited<ReturnType<typeof buildProtocolConfigProposalPlan>>;
+type ProposalPlan = Awaited<ReturnType<typeof buildSchemaStateProposalPlan>>;
 
 const GROUP_LABELS: Record<ProposalGroupKey, string> = {
   active: "Active",
@@ -91,12 +95,7 @@ export function GovernanceConsole({
   const [txUrl, setTxUrl] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState("1");
 
-  const [protocolFeeBps, setProtocolFeeBps] = useState("150");
-  const [defaultStakeMint, setDefaultStakeMint] = useState("");
-  const [minOracleStake, setMinOracleStake] = useState("0");
-  const [allowedPayoutMintsHashHex, setAllowedPayoutMintsHashHex] = useState("00".repeat(32));
   const [emergencyPaused, setEmergencyPaused] = useState(false);
-  const [newGovernanceAuthority, setNewGovernanceAuthority] = useState("");
 
   const [selectedVerifySchemaAddress, setSelectedVerifySchemaAddress] = useState("");
   const [selectedUnverifySchemaAddress, setSelectedUnverifySchemaAddress] = useState("");
@@ -136,10 +135,6 @@ export function GovernanceConsole({
 
   useEffect(() => {
     if (!protocolConfig) return;
-    setProtocolFeeBps(String(protocolConfig.protocolFeeBps));
-    setDefaultStakeMint(protocolConfig.defaultStakeMint);
-    setMinOracleStake(protocolConfig.minOracleStake.toString());
-    setAllowedPayoutMintsHashHex(protocolConfig.allowedPayoutMintsHashHex);
     setEmergencyPaused(protocolConfig.emergencyPaused);
   }, [protocolConfig]);
 
@@ -190,6 +185,19 @@ export function GovernanceConsole({
     }
     return walletGuard;
   }, [dashboard?.rules.pluginEnabled, dashboard?.wallet?.depositedVotesRaw, dashboard?.wallet?.tokenOwnerRecordAddress, walletGuard]);
+
+  const protocolPauseGuard = useMemo(() => {
+    if (!publicKey || !sendTransaction) {
+      return "Connect the governance authority wallet to change protocol pause state.";
+    }
+    if (!protocolConfig) {
+      return "Protocol governance is not visible on this RPC endpoint yet.";
+    }
+    if (publicKey.toBase58() !== protocolConfig.governanceAuthority) {
+      return "Only the current protocol governance authority can change protocol pause state directly.";
+    }
+    return null;
+  }, [protocolConfig, publicKey, sendTransaction]);
 
   const selectedVerifySchema = useMemo(
     () => schemas.find((schema) => schema.address === selectedVerifySchemaAddress) ?? null,
@@ -319,22 +327,39 @@ export function GovernanceConsole({
     }
   }
 
-  async function onSubmitProtocolConfigProposal() {
-    if (!publicKey || structuredComposerDisabledReason) return;
-    await submitPlan("Protocol settings", async () =>
-      buildProtocolConfigProposalPlan({
+  async function onApplyProtocolPause() {
+    if (!publicKey || !sendTransaction || protocolPauseGuard) return;
+    setBusy("Protocol pause");
+    setStatus(null);
+    setTxUrl(null);
+    try {
+      const { blockhash } = await connection.getLatestBlockhash("confirmed");
+      const tx = buildSetProtocolEmergencyPauseTx({
+        authority: publicKey,
+        recentBlockhash: blockhash,
+        emergencyPaused,
+      });
+      const result = await executeProtocolTransaction({
         connection,
-        draft: {
-          allowedPayoutMintsHashHex: allowedPayoutMintsHashHex.trim() || "00".repeat(32),
-          defaultStakeMint: defaultStakeMint.trim(),
-          emergencyPaused,
-          minOracleStake: BigInt(minOracleStake || "0"),
-          newGovernanceAuthority: newGovernanceAuthority.trim() || null,
-          protocolFeeBps: Number.parseInt(protocolFeeBps, 10) || 0,
-        },
-        origin: window.location.origin,
-        walletAddress: publicKey,
-      }));
+        sendTransaction,
+        tx,
+        label: emergencyPaused ? "Enable protocol pause" : "Resume protocol",
+      });
+      if (!result.ok) {
+        setStatus(result.error);
+        setStatusTone("error");
+        return;
+      }
+      setStatus(result.message);
+      setStatusTone("ok");
+      setTxUrl(result.explorerUrl);
+      await refresh();
+    } catch (cause) {
+      setStatus(cause instanceof Error ? cause.message : "Protocol pause update failed.");
+      setStatusTone("error");
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function onSubmitSchemaStateProposal() {
@@ -534,77 +559,69 @@ export function GovernanceConsole({
             <p className="metric-label">Create proposal</p>
           </div>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Package settings changes or schema maintenance from discovered state first. Manual protocol values stay available only when you need them.
+            Schema-state governance stays proposal-driven. Protocol-wide pause is exposed as a live authority control because that is the scoped on-chain surface available today.
           </p>
 
           <div className="grid gap-4">
             <article className="operator-task-card">
               <div className="operator-task-head">
-                <h3 className="operator-task-title">Update protocol settings</h3>
+                <h3 className="operator-task-title">Control protocol pause</h3>
                 <p className="operator-task-copy">
-                  Propose a fee, default stake mint, staking minimum, or emergency pause change for the DAO to approve.
+                  Review the live protocol-governance account, then apply the current emergency-pause target directly when you hold the governance authority wallet.
                 </p>
               </div>
 
               <div className="operator-summary-grid">
                 <article className="operator-summary-card">
-                  <p className="metric-label">Current fee</p>
-                  <p className="text-sm font-semibold text-[var(--foreground)]">{protocolConfig?.protocolFeeBps ?? 0} bps</p>
+                  <p className="metric-label">Governance authority</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{shortAddress(protocolConfig?.governanceAuthority)}</p>
                 </article>
                 <article className="operator-summary-card">
-                  <p className="metric-label">Current minimum oracle stake</p>
-                  <p className="text-sm font-semibold text-[var(--foreground)]">{protocolConfig?.minOracleStake.toString() ?? "0"}</p>
+                  <p className="metric-label">Protocol fee</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">{protocolConfig?.protocolFeeBps ?? 0} bps</p>
                 </article>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="space-y-1">
-                  <span className="metric-label">Protocol fee basis points</span>
-                  <input className="field-input" value={protocolFeeBps} onChange={(event) => setProtocolFeeBps(event.target.value)} />
-                </label>
-                <label className="space-y-1">
-                  <span className="metric-label">Default stake mint</span>
-                  <input className="field-input font-mono" value={defaultStakeMint} onChange={(event) => setDefaultStakeMint(event.target.value)} placeholder="Stake mint pubkey" />
-                </label>
-                <label className="space-y-1">
-                  <span className="metric-label">Minimum oracle stake</span>
-                  <input className="field-input" value={minOracleStake} onChange={(event) => setMinOracleStake(event.target.value)} />
-                </label>
-                <label className="toggle-card md:col-span-2">
+              <div className="grid gap-3">
+                <label className="toggle-card">
                   <div>
                     <p className="toggle-card-title">Emergency pause</p>
-                    <p className="field-help">Propose whether new protocol activity should be paused after this change is approved.</p>
+                    <p className="field-help">This toggles the live protocol-wide pause bit that gates new activity across the public program surface.</p>
                   </div>
                   <input type="checkbox" checked={emergencyPaused} onChange={(event) => setEmergencyPaused(event.target.checked)} />
                 </label>
               </div>
 
               <ProtocolDetailDisclosure
-                title="Manual protocol values"
-                summary="Use these only when the change cannot be expressed from the default settings fields."
-                description="These values override selector-driven defaults in the generated proposal instructions."
+                title="Surface note"
+                summary="The broader protocol settings proposal bundle is intentionally not exposed here."
+                description="The current public protocol surface supports live protocol-governance review plus scoped emergency pause. Schema verification and closure remain governance-proposal flows below."
               >
                 <div className="grid gap-3 md:grid-cols-2">
-                  <label className="space-y-1 md:col-span-2">
-                    <span className="metric-label">Allowed payout mints hash</span>
-                    <input className="field-input font-mono" value={allowedPayoutMintsHashHex} onChange={(event) => setAllowedPayoutMintsHashHex(event.target.value)} />
-                  </label>
-                  <label className="space-y-1 md:col-span-2">
-                    <span className="metric-label">Rotate governance authority</span>
-                    <input className="field-input font-mono" value={newGovernanceAuthority} onChange={(event) => setNewGovernanceAuthority(event.target.value)} placeholder="Optional new authority pubkey" />
-                  </label>
+                  <article className="operator-summary-card">
+                    <p className="metric-label">Governance account</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)] break-all">{protocolConfig?.address ?? "Unavailable"}</p>
+                  </article>
+                  <article className="operator-summary-card">
+                    <p className="metric-label">Emergency state</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{protocolConfig?.emergencyPaused ? "Paused" : "Operational"}</p>
+                  </article>
                 </div>
               </ProtocolDetailDisclosure>
 
               <button
                 type="button"
                 className="action-button"
-                onClick={() => void onSubmitProtocolConfigProposal()}
-                disabled={Boolean(structuredComposerDisabledReason) || !defaultStakeMint.trim() || busy != null}
+                onClick={() => void onApplyProtocolPause()}
+                disabled={Boolean(protocolPauseGuard) || busy != null}
               >
-                {busy === "Protocol settings" ? "Submitting..." : "Create settings proposal"}
+                {busy === "Protocol pause"
+                  ? "Submitting..."
+                  : emergencyPaused
+                    ? "Enable emergency pause"
+                    : "Resume protocol"}
               </button>
-              {structuredComposerDisabledReason ? <p className="field-help">{structuredComposerDisabledReason}</p> : null}
+              {protocolPauseGuard ? <p className="field-help">{protocolPauseGuard}</p> : null}
             </article>
 
             <article className="operator-task-card">

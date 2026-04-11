@@ -29,12 +29,44 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - yield and impairment attribution live at the pool, class, and allocation level
 - wrapper-mediated or regulated participation layers through reserve domains and capital classes instead of a forked protocol
 
+## On-chain release notes
+
+- the canonical public program now includes first-class oracle registry state: `OracleProfile`, `PoolOracleApproval`, `PoolOraclePolicy`, and `PoolOraclePermissionSet`
+- the canonical public program now includes first-class schema registry state: `OutcomeSchema` and `SchemaDependencyLedger`
+- checked-in generated artifacts in `idl/`, `shared/`, `frontend/lib/generated/`, and `android-native/protocol/` are aligned with the current public program surface
+
+## Console release notes
+
+- the public console now mounts canonical routes for `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas`
+- mounted workbenches read live protocol snapshot data rather than depending on fixture-only preview state
+- `/oracles` now renders live operator registry, pool approval, permission, policy, attestation, and dispute-watch posture
+- `/schemas` now renders the live versioned schema registry, dependency posture, and shared binding context for policy series
+- the launch flow continues to create plans, policy series, and funding lines through the canonical launch wizard instead of the retired pool-first workspace
+
 ## Frontend release notes
 
 - the protocol console governance workspace now uses the plans-language redesign, including a telemetry-first KPI strip, asymmetric overview layout, and refreshed notice states
 - the oracles workspace now matches the same plans and overview visual system so governance and oracle operations read as one shared control surface
 - the hosted frontend keeps the canonical `v0.3.0` surface while improving workbench readability, queue visibility, and operator-facing chrome for the public deployment
 - publish the matching docs update alongside the frontend deployment so [docs.omegax.health](https://docs.omegax.health/docs) reflects the current console experience
+
+## Operations release notes
+
+- shared-devnet bootstrap now includes `npm run protocol:bootstrap:devnet-live` to seed the canonical plan/capital/oracle/schema graph
+- frontend parity sign-off now runs through `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff`
+- governance rollout sign-off now records a created proposal, a post-execution readonly governance check, and structured observability output
+
+## Known follow-up work
+
+`v0.3.0` now has the canonical read surface and the new oracle/schema registry wired into the repo, but not every operator write path is yet mounted in the canonical workbench shells.
+
+The most important follow-ups after this release candidate are:
+
+- finish route-native claim and member detail/action flows on `/claims` and `/members`
+- mount canonical transaction composers for capital operations, funding administration, and governance templates directly in the mounted workbenches
+- complete canonical operator actions for oracle approval/policy management and schema maintenance inside `/oracles` and `/schemas`
+
+These follow-ups do not invalidate the protocol artifact sync, devnet sign-off, or public release packaging, but they should be tracked explicitly before broader production UX claims are made.
 
 ## Reviewer checklist
 
@@ -44,5 +76,13 @@ Before treating `v0.3.0` as publish-ready, confirm:
 - `npm run protocol:contract`
 - `npm run verify:public`
 - `npm run test:e2e:localnet`
+- `npm run devnet:beta:deploy`
+- `npm run protocol:bootstrap:devnet-live`
+- `npm run devnet:frontend:bootstrap`
+- `npm run devnet:frontend:signoff`
+- `npm run devnet:governance:smoke:create-vote`
+- `npm run devnet:governance:smoke:execute` after the required voting and hold-up windows expire
+- `npm run devnet:governance:ui:readonly`
+- `npm run devnet:beta:observe`
 
 Then confirm that the SDK and [docs.omegax.health](https://docs.omegax.health/docs) describe the same canonical surface before tagging or public announcement.

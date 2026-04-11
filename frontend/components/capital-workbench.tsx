@@ -6,16 +6,16 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { CapitalOperatorPanel } from "@/components/workbench-action-panels";
 import { useWorkspacePersona } from "@/components/workspace-persona";
-import { buildCanonicalConsoleState } from "@/lib/console-model";
+import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
+import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 import {
   buildAuditTrail,
   CAPITAL_TABS,
   defaultTabForPersona,
-  linkedContextForPool,
   type CapitalTabId,
 } from "@/lib/workbench";
 import {
@@ -90,7 +90,7 @@ function describeRedemptionPolicyInline(queueOnly?: boolean) {
 function buildPlansWorkbenchHref(input: {
   plan: string;
   series?: string | null;
-  tab: "funding" | "overview" | "treasury";
+  tab: "overview" | "treasury";
 }): string {
   const params = new URLSearchParams({
     plan: input.plan,
@@ -175,7 +175,8 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
-  const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
+  const { snapshot, loading, error, refresh } = useProtocolConsoleSnapshot();
+  const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
 
   /* ── Selection state ── */
 
@@ -183,7 +184,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const activeTab = (CAPITAL_TABS.find((tab) => tab.id === requestedTab)?.id
     ?? defaultTabForPersona("capital", effectivePersona)) as CapitalTabId;
 
-  const allPools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
+  const allPools = snapshot.liquidityPools;
   const queryPool = firstSearchParamValue(searchParams.pool)?.trim() ?? "";
   const matchedPool = useMemo(() => allPools.find((pool) => pool.address === queryPool) ?? null, [allPools, queryPool]);
   const hasInvalidPool = Boolean(queryPool) && !matchedPool;
@@ -194,10 +195,10 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
 
   const poolClasses = useMemo(
     () =>
-      DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.filter(
+      snapshot.capitalClasses.filter(
         (capitalClass) => capitalClass.liquidityPool === selectedPool?.address,
       ),
-    [selectedPool],
+    [selectedPool, snapshot.capitalClasses],
   );
 
   const queryClass = firstSearchParamValue(searchParams.class)?.trim() ?? "";
@@ -219,22 +220,45 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   );
   const poolAllocations = useMemo(
     () =>
-      DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
+      snapshot.allocationPositions.filter(
         (allocation) => allocation.liquidityPool === selectedPool?.address,
       ),
-    [selectedPool],
+    [selectedPool, snapshot.allocationPositions],
   );
   const queueRows = useMemo(() => {
     const classAddresses = new Set(poolClasses.map((capitalClass) => capitalClass.address));
-    return DEVNET_PROTOCOL_FIXTURE_STATE.lpPositions.filter(
+    return snapshot.lpPositions.filter(
       (position) => classAddresses.has(position.capitalClass) && hasPendingRedemptionQueue(position),
     );
-  }, [poolClasses]);
-  const linkedPlanContext = linkedContextForPool(selectedPool?.address);
+  }, [poolClasses, snapshot.lpPositions]);
+  const linkedPlanContext = useMemo(() => {
+    const planAddresses = [...new Set(poolAllocations.map((allocation) => allocation.healthPlan).filter(Boolean))];
+    const seriesAddresses = [...new Set(
+      poolAllocations
+        .map((allocation) => allocation.policySeries)
+        .filter((seriesAddress): seriesAddress is string => Boolean(seriesAddress)),
+    )];
+    return {
+      plan: planAddresses.length === 1 ? (planAddresses[0] ?? null) : null,
+      series: seriesAddresses.length === 1 ? (seriesAddresses[0] ?? null) : null,
+    };
+  }, [poolAllocations]);
   const linkedPlans = useMemo(() => {
     const ids = new Set(poolAllocations.map((allocation) => allocation.healthPlan));
-    return DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.filter((plan) => ids.has(plan.address));
-  }, [poolAllocations]);
+    return snapshot.healthPlans.filter((plan) => ids.has(plan.address));
+  }, [poolAllocations, snapshot.healthPlans]);
+  const planByAddress = useMemo(
+    () => new Map(snapshot.healthPlans.map((plan) => [plan.address, plan])),
+    [snapshot.healthPlans],
+  );
+  const seriesByAddress = useMemo(
+    () => new Map(snapshot.policySeries.map((series) => [series.address, series])),
+    [snapshot.policySeries],
+  );
+  const classByAddress = useMemo(
+    () => new Map(snapshot.capitalClasses.map((capitalClass) => [capitalClass.address, capitalClass])),
+    [snapshot.capitalClasses],
+  );
   const auditTrail = useMemo(
     () => buildAuditTrail({
       section: "capital",
@@ -308,7 +332,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const invalidSelection = hasInvalidPool
     ? {
         title: "Pool not found",
-        copy: "The requested liquidity pool is not present in the current fixture set. Choose another pool to continue.",
+        copy: "The requested liquidity pool is not present in the current live protocol state. Choose another pool to continue.",
       }
     : hasInvalidClass
       ? {
@@ -342,12 +366,12 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                   href={buildPlansWorkbenchHref({
                     plan: linkedPlanContext.plan,
                     series: linkedPlanContext.series,
-                    tab: "funding",
+                    tab: "treasury",
                   })}
                   className="plans-hero-cta"
                 >
                   <span className="material-symbols-outlined" aria-hidden="true">north_east</span>
-                  OPEN_PLAN_FUNDING
+                  OPEN_PLAN_TREASURY
                 </Link>
               ) : (
                 <button
@@ -362,6 +386,26 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
             </div>
           </div>
         </header>
+
+        {loading || error ? (
+          <div className="plans-stack">
+            <article className="plans-card liquid-glass">
+              <div className="plans-card-head">
+                <div>
+                  <p className="plans-card-eyebrow">LIVE_PROTOCOL_STATE</p>
+                  <h2 className="plans-card-title plans-card-title-display">
+                    {loading ? <>Syncing <em>capital</em></> : <>RPC <em>attention</em></>}
+                  </h2>
+                </div>
+              </div>
+              <p className="plans-card-body">
+                {loading
+                  ? "Loading live pool, class, allocation, and LP-position state from the configured RPC endpoint."
+                  : error}
+              </p>
+            </article>
+          </div>
+        ) : null}
 
         {/* ── Context bar ────────────────────── */}
         <div className="plans-context-bar">
@@ -421,6 +465,20 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
         ) : (
           <div className="plans-body">
             <section className="plans-main">
+              <CapitalOperatorPanel
+                reserveDomains={snapshot.reserveDomains}
+                pools={snapshot.liquidityPools}
+                selectedPool={selectedPool}
+                selectedClass={selectedClass}
+                classes={snapshot.capitalClasses}
+                lpPositions={snapshot.lpPositions.filter((position) =>
+                  poolClasses.some((capitalClass) => capitalClass.address === position.capitalClass))}
+                allocations={poolAllocations}
+                plans={snapshot.healthPlans}
+                fundingLines={snapshot.fundingLines}
+                series={snapshot.policySeries}
+                onRefresh={refresh}
+              />
 
               {/* ── OVERVIEW ── */}
               {activeTab === "overview" ? (
@@ -652,15 +710,9 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                         </thead>
                         <tbody>
                           {poolAllocations.map((allocation) => {
-                            const plan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find(
-                              (entry) => entry.address === allocation.healthPlan,
-                            );
-                            const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
-                              (entry) => entry.address === allocation.policySeries,
-                            );
-                            const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find(
-                              (entry) => entry.address === allocation.capitalClass,
-                            );
+                            const plan = planByAddress.get(allocation.healthPlan);
+                            const series = allocation.policySeries ? seriesByAddress.get(allocation.policySeries) : null;
+                            const capitalClass = classByAddress.get(allocation.capitalClass);
                             return (
                               <tr key={allocation.address}>
                                 <td data-label="Plan">
@@ -745,9 +797,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                         </thead>
                         <tbody>
                           {queueRows.map((position) => {
-                            const capitalClass = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.find(
-                              (entry) => entry.address === position.capitalClass,
-                            );
+                            const capitalClass = classByAddress.get(position.capitalClass);
                             return (
                               <tr key={position.address}>
                                 <td data-label="Owner">
@@ -816,7 +866,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                         </thead>
                         <tbody>
                           {linkedPlans.map((plan) => {
-                            const seriesCount = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter(
+                            const seriesCount = snapshot.policySeries.filter(
                               (series) => series.healthPlan === plan.address,
                             ).length;
                             return (

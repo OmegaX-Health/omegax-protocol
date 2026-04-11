@@ -7,11 +7,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { PlanCoveragePanel } from "@/components/plan-coverage-panel";
+import { ClaimsOperatorPanel, MembersOperatorPanel, TreasuryOperatorPanel } from "@/components/workbench-action-panels";
 import { useWorkspacePersona } from "@/components/workspace-persona";
-import { buildCanonicalConsoleState } from "@/lib/console-model";
-import { formatAmount, seriesOutcomeCount } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE, isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
+import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
+import { formatAmount, plansForPool, seriesOutcomeCount } from "@/lib/canonical-ui";
+import { isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
+import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 import {
   buildAuditTrail,
   defaultTabForPersona,
@@ -43,6 +45,7 @@ const TAB_NUMBERS: Record<PlanTabId, string> = {
 };
 
 type TabHero = { eyebrow: string; title: string; emphasis: string; tail: string; subtitle: string };
+type PlansRouteMode = "plans" | "claims" | "members";
 
 const TAB_HEROES: Record<PlanTabId, TabHero> = {
   overview: {
@@ -84,6 +87,25 @@ const TAB_HEROES: Record<PlanTabId, TabHero> = {
     tail: "Control Lanes.",
     subtitle:
       "Funding lines, reserve posture and every administrative wallet that can act on this plan. The full custody surface.",
+  },
+};
+
+const ROUTE_HEROES: Record<Exclude<PlansRouteMode, "plans">, TabHero> = {
+  claims: {
+    eyebrow: "CANONICAL_CLAIMS_ROUTE",
+    title: "Claim",
+    emphasis: "Ledger.",
+    tail: "",
+    subtitle:
+      "The live liability workspace for adjudicated claim cases and reserve-linked obligations, mounted directly on its own canonical route.",
+  },
+  members: {
+    eyebrow: "CANONICAL_MEMBERS_ROUTE",
+    title: "Member",
+    emphasis: "Register.",
+    tail: "",
+    subtitle:
+      "The live enrollment and delegation workspace for member positions, mounted directly on its own canonical route without falling back to a redirect.",
   },
 };
 
@@ -185,12 +207,19 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
-  const consoleState = useMemo(() => buildCanonicalConsoleState(), []);
+  const { snapshot, loading, error, refresh } = useProtocolConsoleSnapshot();
+  const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
+  const routeMode: PlansRouteMode = pathname === "/claims" ? "claims" : pathname === "/members" ? "members" : "plans";
+  const forcedTab: PlanTabId | null = routeMode === "claims" ? "claims" : routeMode === "members" ? "members" : null;
 
   /* ── Selection state ── */
 
   const requestedTab = firstSearchParamValue(searchParams.tab);
-  const allPlans = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans;
+  const queryPool = firstSearchParamValue(searchParams.pool)?.trim() ?? "";
+  const allPlans = useMemo(
+    () => (queryPool ? plansForPool(queryPool, snapshot) : snapshot.healthPlans),
+    [queryPool, snapshot],
+  );
   const queryPlan = firstSearchParamValue(searchParams.plan)?.trim() ?? "";
   const matchedPlan = useMemo(() => allPlans.find((plan) => plan.address === queryPlan) ?? null, [allPlans, queryPlan]);
   const hasInvalidPlan = Boolean(queryPlan) && !matchedPlan;
@@ -201,23 +230,31 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
 
   const planSeries = useMemo(() => {
     if (!selectedPlan) return [];
-    return DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter((series) => series.healthPlan === selectedPlan.address);
-  }, [selectedPlan]);
+    return snapshot.policySeries.filter((series) => series.healthPlan === selectedPlan.address);
+  }, [selectedPlan, snapshot.policySeries]);
   const planProtectionSeries = useMemo(
     () => planSeries.filter((series) => series.mode === SERIES_MODE_PROTECTION),
     [planSeries],
   );
   const availablePlanTabs = useMemo(
-    () => PLAN_TABS.filter((tab) => tab.id !== "coverage" || planProtectionSeries.length > 0),
-    [planProtectionSeries.length],
+    () => {
+      const baseTabs = PLAN_TABS.filter((tab) => tab.id !== "coverage" || planProtectionSeries.length > 0);
+      if (forcedTab) return baseTabs.filter((tab) => tab.id === forcedTab);
+      return baseTabs;
+    },
+    [forcedTab, planProtectionSeries.length],
   );
   const defaultTab = defaultTabForPersona("plans", effectivePersona) as PlanTabId;
-  const activeTab = (availablePlanTabs.find((tab) => tab.id === requestedTab)?.id
+  const activeTab = (forcedTab
+    ?? availablePlanTabs.find((tab) => tab.id === requestedTab)?.id
     ?? availablePlanTabs.find((tab) => tab.id === defaultTab)?.id
     ?? availablePlanTabs[0]?.id
     ?? "overview") as PlanTabId;
 
   const querySeries = firstSearchParamValue(searchParams.series)?.trim() ?? "";
+  const queryClaim = firstSearchParamValue(searchParams.claim)?.trim() ?? "";
+  const queryMember = firstSearchParamValue(searchParams.member)?.trim() ?? "";
+  const routePanel = firstSearchParamValue(searchParams.panel)?.trim() ?? "";
   const seriesSelectionOptional = SERIES_OPTIONAL_TABS.has(activeTab);
   const matchedSeries = useMemo(
     () => planSeries.find((series) => series.address === querySeries) ?? null,
@@ -239,32 +276,44 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     [consoleState.sponsors, selectedPlan],
   );
   const planFundingLines = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.filter((line) => line.healthPlan === selectedPlan?.address),
-    [selectedPlan],
+    () => snapshot.fundingLines.filter((line) => line.healthPlan === selectedPlan?.address),
+    [selectedPlan, snapshot.fundingLines],
   );
   const planClaims = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter((claim) => claim.healthPlan === selectedPlan?.address),
-    [selectedPlan],
+    () => snapshot.claimCases.filter((claim) => claim.healthPlan === selectedPlan?.address),
+    [selectedPlan, snapshot.claimCases],
   );
   const filteredClaims = useMemo(
     () => (selectedSeries ? planClaims.filter((claim) => claim.policySeries === selectedSeries.address) : planClaims),
     [planClaims, selectedSeries],
   );
+  const selectedClaim = useMemo(
+    () => filteredClaims.find((claim) => claim.address === queryClaim) ?? filteredClaims[0] ?? null,
+    [filteredClaims, queryClaim],
+  );
   const planObligations = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.obligations.filter((obligation) => obligation.healthPlan === selectedPlan?.address),
-    [selectedPlan],
+    () => snapshot.obligations.filter((obligation) => obligation.healthPlan === selectedPlan?.address),
+    [selectedPlan, snapshot.obligations],
   );
   const filteredObligations = useMemo(
     () => (selectedSeries ? planObligations.filter((obligation) => obligation.policySeries === selectedSeries.address) : planObligations),
     [planObligations, selectedSeries],
   );
   const planMembers = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions.filter((position) => position.healthPlan === selectedPlan?.address),
-    [selectedPlan],
+    () => snapshot.memberPositions.filter((position) => position.healthPlan === selectedPlan?.address),
+    [selectedPlan, snapshot.memberPositions],
   );
   const filteredMembers = useMemo(
     () => (selectedSeries ? planMembers.filter((position) => position.policySeries === selectedSeries.address) : planMembers),
     [planMembers, selectedSeries],
+  );
+  const selectedMember = useMemo(
+    () => filteredMembers.find((member) => member.address === queryMember) ?? filteredMembers[0] ?? null,
+    [filteredMembers, queryMember],
+  );
+  const selectedReserveDomain = useMemo(
+    () => snapshot.reserveDomains.find((domain) => domain.address === selectedPlan?.reserveDomain) ?? null,
+    [selectedPlan?.reserveDomain, snapshot.reserveDomains],
   );
   const seriesSelectorOptions = activeTab === "coverage" ? planProtectionSeries : planSeries;
   const auditTrail = useMemo(
@@ -310,12 +359,20 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   useEffect(() => {
     if (hasInvalidPlan || hasInvalidSeries) return;
     const nextUpdates: Record<string, string | null> = {};
-    if (requestedTab !== activeTab) nextUpdates.tab = activeTab;
+    if (forcedTab) {
+      if (requestedTab) nextUpdates.tab = null;
+    } else if (requestedTab !== activeTab) {
+      nextUpdates.tab = activeTab;
+    }
     if (selectedPlan && queryPlan !== selectedPlan.address) nextUpdates.plan = selectedPlan.address;
     if (selectedSeries && querySeries !== selectedSeries.address) nextUpdates.series = selectedSeries.address;
     if (!selectedSeries && querySeries) nextUpdates.series = null;
+    if (routeMode === "claims" && selectedClaim && queryClaim !== selectedClaim.address) nextUpdates.claim = selectedClaim.address;
+    if (routeMode === "claims" && !selectedClaim && queryClaim) nextUpdates.claim = null;
+    if (routeMode === "members" && selectedMember && queryMember !== selectedMember.address) nextUpdates.member = selectedMember.address;
+    if (routeMode === "members" && !selectedMember && queryMember) nextUpdates.member = null;
     if (Object.keys(nextUpdates).length > 0) updateParams(nextUpdates);
-  }, [activeTab, hasInvalidPlan, hasInvalidSeries, queryPlan, querySeries, requestedTab, selectedPlan, selectedSeries, updateParams]);
+  }, [activeTab, forcedTab, hasInvalidPlan, hasInvalidSeries, queryClaim, queryMember, queryPlan, querySeries, requestedTab, routeMode, selectedClaim, selectedMember, selectedPlan, selectedSeries, updateParams]);
 
   /* ── Scroll tab into view ── */
 
@@ -353,13 +410,19 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     }));
   }, [sponsorView]);
 
-  const hero = TAB_HEROES[activeTab];
-  const eyebrow = activeTab === "overview" ? personaEyebrow(effectivePersona) : hero.eyebrow;
+  const hero = routeMode === "plans" ? TAB_HEROES[activeTab] : ROUTE_HEROES[routeMode];
+  const eyebrow = routeMode === "plans" && activeTab === "overview" ? personaEyebrow(effectivePersona) : hero.eyebrow;
+  const planWorkspaceHref = `/plans${selectedPlan || selectedSeries
+    ? `?${new URLSearchParams({
+      ...(selectedPlan ? { plan: selectedPlan.address } : {}),
+      ...(selectedSeries ? { series: selectedSeries.address } : {}),
+    }).toString()}`
+    : ""}`;
 
   /* ── Invalid selection guard ── */
 
   const invalidSelection = hasInvalidPlan
-    ? { title: "Plan not found", copy: "The requested health plan is not present in the current fixture set. Choose another plan to continue." }
+    ? { title: "Plan not found", copy: "The requested health plan is not present in the current live protocol state. Choose another plan to continue." }
     : hasInvalidSeries
       ? { title: "Series not found", copy: "The requested policy series is not linked to the selected plan. Choose another series or clear the series filter." }
       : null;
@@ -384,13 +447,35 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               <p className="plans-hero-subtitle">{hero.subtitle}</p>
             </div>
             <div className="plans-hero-actions">
-              <Link href="/plans/new" className="plans-hero-cta">
-                <span className="material-symbols-outlined" aria-hidden="true">add</span>
-                NEW_PLAN
+              <Link href={routeMode === "plans" ? "/plans/new" : planWorkspaceHref} className="plans-hero-cta">
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  {routeMode === "plans" ? "add" : "arrow_back"}
+                </span>
+                {routeMode === "plans" ? "NEW_PLAN" : "OPEN_PLAN_WORKSPACE"}
               </Link>
             </div>
           </div>
         </header>
+
+        {loading || error ? (
+          <div className="plans-stack">
+            <article className="plans-card liquid-glass">
+              <div className="plans-card-head">
+                <div>
+                  <p className="plans-card-eyebrow">LIVE_PROTOCOL_STATE</p>
+                  <h2 className="plans-card-title plans-card-title-display">
+                    {loading ? <>Syncing <em>devnet</em></> : <>RPC <em>attention</em></>}
+                  </h2>
+                </div>
+              </div>
+              <p className="plans-card-body">
+                {loading
+                  ? "Loading live reserve-domain, plan, series, member, claim, and obligation state from the configured RPC endpoint."
+                  : error}
+              </p>
+            </article>
+          </div>
+        ) : null}
 
         {/* ── Context bar ────────────────────── */}
         <div className="plans-context-bar">
@@ -421,26 +506,28 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
         </div>
 
         {/* ── Tab bar ───────────────────────── */}
-        <nav className="plans-tabs liquid-glass" aria-label="Plan workspace sections">
-          <div ref={tabBarRef} className="plans-tabs-inner">
-            {availablePlanTabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  data-tab-id={tab.id}
-                  className={cn("plans-tab", isActive && "plans-tab-active")}
-                  onClick={() => updateParams({ tab: tab.id })}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <span className="plans-tab-number">{TAB_NUMBERS[tab.id as PlanTabId]}</span>
-                  <span className="plans-tab-label">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+        {availablePlanTabs.length > 1 ? (
+          <nav className="plans-tabs liquid-glass" aria-label="Plan workspace sections">
+            <div ref={tabBarRef} className="plans-tabs-inner">
+              {availablePlanTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    data-tab-id={tab.id}
+                    className={cn("plans-tab", isActive && "plans-tab-active")}
+                    onClick={() => updateParams({ tab: tab.id })}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <span className="plans-tab-number">{TAB_NUMBERS[tab.id as PlanTabId]}</span>
+                    <span className="plans-tab-label">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        ) : null}
 
         {/* ── Body ──────────────────────────── */}
         {invalidSelection ? (
@@ -544,7 +631,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                               <div className="plans-lane-meta">
                                 <span className="plans-lane-mode">{describeSeriesMode(series.mode)}</span>
                                 <span className="plans-lane-outcomes">
-                                  {formatAmount(seriesOutcomeCount(series.address))} outcomes
+                                  {formatAmount(seriesOutcomeCount(series.address, snapshot))} outcomes
                                 </span>
                                 <StatusBadge label={describeSeriesStatus(series.status)} />
                               </div>
@@ -565,91 +652,132 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                   planAddress={selectedPlan.address}
                   policySeries={planSeries}
                   activeSeriesAddress={selectedSeries?.address}
+                  allocationPositions={snapshot.allocationPositions}
                   fundingLines={planFundingLines}
+                  liquidityPools={snapshot.liquidityPools}
                 />
               ) : null}
 
               {/* ── MEMBERS ── */}
               {activeTab === "members" ? (
-                <article className="plans-card heavy-glass">
-                  <div className="plans-members-head">
-                    <div>
-                      <p className="plans-card-eyebrow">ELIGIBILITY_REGISTER</p>
-                      <h2 className="plans-card-title plans-card-title-display">
-                        {filteredMembers.length} <em>members</em> enlisted
-                      </h2>
+                <div className="plans-stack">
+                  <MembersOperatorPanel
+                    plan={selectedPlan}
+                    series={selectedSeries}
+                    members={filteredMembers}
+                    selectedMemberAddress={selectedMember?.address ?? null}
+                    selectedPanel={routePanel}
+                    onSelectMember={(address) => updateParams({ member: address, panel: "review" })}
+                    onSelectPanel={(panel) => updateParams({ panel })}
+                    onRefresh={refresh}
+                  />
+                  <article className="plans-card heavy-glass">
+                    <div className="plans-members-head">
+                      <div>
+                        <p className="plans-card-eyebrow">ELIGIBILITY_REGISTER</p>
+                        <h2 className="plans-card-title plans-card-title-display">
+                          {filteredMembers.length} <em>members</em> enlisted
+                        </h2>
+                      </div>
+                      <Link
+                        href={`/members?${new URLSearchParams({
+                          ...(selectedPlan ? { plan: selectedPlan.address } : {}),
+                          ...(selectedSeries ? { series: selectedSeries.address } : {}),
+                          panel: "enroll",
+                        }).toString()}`}
+                        className="plans-primary-cta"
+                      >
+                        <span className="material-symbols-outlined">person_add</span>
+                        ENLIST_MEMBER
+                      </Link>
                     </div>
-                    <button type="button" className="plans-primary-cta" onClick={() => window.alert("Enlist flow not wired in this preview.")}>
-                      <span className="material-symbols-outlined">person_add</span>
-                      ENLIST_MEMBER
-                    </button>
-                  </div>
 
-                  <div className="plans-members-toolbar">
-                    <div className="plans-members-chips">
-                      {(["all", "eligible", "pending", "other"] as const).map((key) => (
-                        <button
-                          key={key}
-                          type="button"
-                          className={cn("plans-chip", memberStatusFilter === key && "plans-chip-active")}
-                          onClick={() => setMemberStatusFilter(key)}
-                        >
-                          STATUS:{key.toUpperCase()}
-                        </button>
-                      ))}
+                    <div className="plans-members-toolbar">
+                      <div className="plans-members-chips">
+                        {(["all", "eligible", "pending", "other"] as const).map((key) => (
+                          <button
+                            key={key}
+                            type="button"
+                            className={cn("plans-chip", memberStatusFilter === key && "plans-chip-active")}
+                            onClick={() => setMemberStatusFilter(key)}
+                          >
+                            STATUS:{key.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                      <label className="plans-search">
+                        <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                        <input
+                          type="search"
+                          placeholder="Search wallet"
+                          value={memberSearch}
+                          onChange={(event) => setMemberSearch(event.target.value)}
+                          aria-label="Search members by wallet"
+                        />
+                      </label>
                     </div>
-                    <label className="plans-search">
-                      <span className="material-symbols-outlined" aria-hidden="true">search</span>
-                      <input
-                        type="search"
-                        placeholder="Search wallet"
-                        value={memberSearch}
-                        onChange={(event) => setMemberSearch(event.target.value)}
-                        aria-label="Search members by wallet"
+
+                    {displayedMembers.length > 0 ? (
+                      <ul className="plans-member-grid">
+                        {displayedMembers.map((member) => {
+                          const eligibility = describeEligibilityStatus(member.eligibilityStatus);
+                          return (
+                            <li key={member.address} className="plans-member-card">
+                              <button
+                                type="button"
+                                className="plans-member-head"
+                                onClick={() => updateParams({ member: member.address, panel: "review" })}
+                              >
+                                <div className="plans-member-avatar" aria-hidden="true">
+                                  {walletInitials(member.wallet)}
+                                </div>
+                                <div className="plans-member-id">
+                                  <span className="plans-member-wallet">{shortenAddress(member.wallet, 6)}</span>
+                                  <span className="plans-member-position">{shortenAddress(member.address, 4)}</span>
+                                </div>
+                                <StatusBadge label={eligibility} />
+                              </button>
+                              <div className="plans-member-meta">
+                                <span className="plans-member-label">DELEGATED_RIGHTS</span>
+                                <span className="plans-member-rights">
+                                  {member.delegatedRights.length > 0 ? member.delegatedRights.join(" · ") : "—"}
+                                </span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <PlansEmptyState
+                        title="No members match this filter"
+                        copy={memberSearch || memberStatusFilter !== "all"
+                          ? "Clear the filters or broaden the search to see enlisted wallets."
+                          : "This plan does not currently expose member positions."}
                       />
-                    </label>
-                  </div>
-
-                  {displayedMembers.length > 0 ? (
-                    <ul className="plans-member-grid">
-                      {displayedMembers.map((member) => {
-                        const eligibility = describeEligibilityStatus(member.eligibilityStatus);
-                        return (
-                          <li key={member.address} className="plans-member-card">
-                            <div className="plans-member-head">
-                              <div className="plans-member-avatar" aria-hidden="true">
-                                {walletInitials(member.wallet)}
-                              </div>
-                              <div className="plans-member-id">
-                                <span className="plans-member-wallet">{shortenAddress(member.wallet, 6)}</span>
-                                <span className="plans-member-position">{shortenAddress(member.address, 4)}</span>
-                              </div>
-                              <StatusBadge label={eligibility} />
-                            </div>
-                            <div className="plans-member-meta">
-                              <span className="plans-member-label">DELEGATED_RIGHTS</span>
-                              <span className="plans-member-rights">
-                                {member.delegatedRights.length > 0 ? member.delegatedRights.join(" · ") : "—"}
-                              </span>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <PlansEmptyState
-                      title="No members match this filter"
-                      copy={memberSearch || memberStatusFilter !== "all"
-                        ? "Clear the filters or broaden the search to see enlisted wallets."
-                        : "This plan does not currently expose member positions."}
-                    />
-                  )}
-                </article>
+                    )}
+                  </article>
+                </div>
               ) : null}
 
               {/* ── CLAIMS ── */}
               {activeTab === "claims" ? (
                 <div className="plans-stack">
+                  <ClaimsOperatorPanel
+                    plan={selectedPlan}
+                    series={selectedSeries}
+                    claimCases={filteredClaims}
+                    obligations={filteredObligations}
+                    members={filteredMembers}
+                    fundingLines={planFundingLines}
+                    allocations={snapshot.allocationPositions}
+                    classes={snapshot.capitalClasses}
+                    pools={snapshot.liquidityPools}
+                    selectedClaimAddress={selectedClaim?.address ?? null}
+                    selectedPanel={routePanel}
+                    onSelectClaim={(address) => updateParams({ claim: address, panel: "adjudication" })}
+                    onSelectPanel={(panel) => updateParams({ panel })}
+                    onRefresh={refresh}
+                  />
                   <article className="plans-card plans-claims-control heavy-glass">
                     <div className="plans-claims-control-segment">
                       <span className="plans-control-label">ACTIVE_PLAN</span>
@@ -678,10 +806,18 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                         <span className="material-symbols-outlined">download</span>
                         EXPORT_CSV
                       </button>
-                      <button type="button" className="plans-primary-cta">
+                      <Link
+                        href={`/claims?${new URLSearchParams({
+                          ...(selectedPlan ? { plan: selectedPlan.address } : {}),
+                          ...(selectedSeries ? { series: selectedSeries.address } : {}),
+                          ...(selectedClaim ? { claim: selectedClaim.address } : filteredClaims[0] ? { claim: filteredClaims[0].address } : {}),
+                          panel: "reserve",
+                        }).toString()}`}
+                        className="plans-primary-cta"
+                      >
                         <span className="material-symbols-outlined">bolt</span>
                         INITIATE_RESERVE
-                      </button>
+                      </Link>
                     </div>
                   </article>
 
@@ -709,7 +845,15 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                           <tbody>
                             {filteredClaims.map((claim) => (
                               <tr key={claim.address}>
-                                <td data-label="Claim"><span className="plans-table-mono">{claim.claimId}</span></td>
+                                <td data-label="Claim">
+                                  <button
+                                    type="button"
+                                    className="plans-table-link"
+                                    onClick={() => updateParams({ claim: claim.address, panel: "adjudication" })}
+                                  >
+                                    {claim.claimId}
+                                  </button>
+                                </td>
                                 <td data-label="Status"><StatusBadge label={describeClaimStatus(claim.intakeStatus)} /></td>
                                 <td data-label="Approved"><span className="plans-table-amount">{formatAmount(claim.approvedAmount)}</span></td>
                                 <td data-label="Reserved"><span className="plans-table-amount">{formatAmount(claim.reservedAmount)}</span></td>
@@ -752,7 +896,15 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                           <tbody>
                             {filteredObligations.map((obligation) => (
                               <tr key={obligation.address}>
-                                <td data-label="Obligation"><span className="plans-table-mono">{obligation.obligationId}</span></td>
+                                <td data-label="Obligation">
+                                  <button
+                                    type="button"
+                                    className="plans-table-link"
+                                    onClick={() => updateParams({ claim: selectedClaim?.address ?? null, panel: "reserve" })}
+                                  >
+                                    {obligation.obligationId}
+                                  </button>
+                                </td>
                                 <td data-label="Status"><StatusBadge label={describeObligationStatus(obligation.status)} /></td>
                                 <td data-label="Principal"><span className="plans-table-amount">{formatAmount(obligation.principalAmount)}</span></td>
                                 <td data-label="Outstanding"><span className="plans-table-amount">{formatAmount(obligation.outstandingAmount)}</span></td>
@@ -769,6 +921,16 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── TREASURY ── */}
               {activeTab === "treasury" ? (
                 <div className="plans-stack">
+                  <TreasuryOperatorPanel
+                    plan={selectedPlan}
+                    series={selectedSeries}
+                    reserveDomain={selectedReserveDomain}
+                    fundingLines={planFundingLines}
+                    allocations={snapshot.allocationPositions.filter((allocation) => allocation.healthPlan === selectedPlan?.address)}
+                    classes={snapshot.capitalClasses}
+                    pools={snapshot.liquidityPools}
+                    onRefresh={refresh}
+                  />
                   <article className="plans-card heavy-glass">
                     <div className="plans-card-head">
                       <div>

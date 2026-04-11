@@ -8,7 +8,11 @@ import protocolModule from "../frontend/lib/protocol.ts";
 
 const { DEVNET_PROTOCOL_FIXTURE_STATE, DEFAULT_HEALTH_PLAN_ADDRESS, DEFAULT_LIQUIDITY_POOL_ADDRESS } =
   fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
-const { getProgramId } = protocolModule as typeof import("../frontend/lib/protocol.ts");
+const {
+  deriveDomainAssetLedgerPda,
+  deriveDomainAssetVaultPda,
+  getProgramId,
+} = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 const OUTPUT_DIR = resolve(process.cwd(), "devnet");
 const MANIFEST_PATH = resolve(OUTPUT_DIR, "health-capital-markets-manifest.json");
@@ -43,6 +47,55 @@ function envLines(): string[] {
   ];
 }
 
+function derivedDomainAssetScopes() {
+  const keyedScopes = new Map<string, {
+    address: string;
+    assetMint: string;
+    reserveDomain: string;
+  }>();
+
+  const addScope = (reserveDomain: string, assetMint: string) => {
+    const key = `${reserveDomain}:${assetMint}`;
+    if (keyedScopes.has(key)) return;
+    keyedScopes.set(key, {
+      reserveDomain,
+      assetMint,
+      address: deriveDomainAssetVaultPda({ reserveDomain, assetMint }).toBase58(),
+    });
+  };
+
+  for (const scope of DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetVaults) {
+    addScope(scope.reserveDomain, scope.assetMint);
+  }
+  for (const line of DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines) {
+    addScope(line.reserveDomain, line.assetMint);
+  }
+  for (const pool of DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools) {
+    addScope(pool.reserveDomain, pool.depositAssetMint);
+  }
+
+  return [...keyedScopes.values()].sort((left, right) =>
+    `${left.reserveDomain}:${left.assetMint}`.localeCompare(`${right.reserveDomain}:${right.assetMint}`),
+  );
+}
+
+function derivedDomainAssetLedgers() {
+  return derivedDomainAssetScopes().map((scope) => {
+    const existing = DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetLedgers.find((row) =>
+      row.reserveDomain === scope.reserveDomain && row.assetMint === scope.assetMint
+    );
+    return {
+      address: deriveDomainAssetLedgerPda({
+        reserveDomain: scope.reserveDomain,
+        assetMint: scope.assetMint,
+      }).toBase58(),
+      reserveDomain: scope.reserveDomain,
+      assetMint: scope.assetMint,
+      ...(existing?.sheet ? { sheet: existing.sheet } : {}),
+    };
+  });
+}
+
 function manifest() {
   return {
     generatedAt: new Date().toISOString(),
@@ -68,8 +121,8 @@ function manifest() {
       "Use the fixture ids below as stable demo and smoke-test anchors.",
     ],
     reserveDomains: DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains,
-    domainAssetVaults: DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetVaults,
-    domainAssetLedgers: DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetLedgers,
+    domainAssetVaults: derivedDomainAssetScopes(),
+    domainAssetLedgers: derivedDomainAssetLedgers(),
     healthPlans: DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans,
     policySeries: DEVNET_PROTOCOL_FIXTURE_STATE.policySeries,
     fundingLines: DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines,

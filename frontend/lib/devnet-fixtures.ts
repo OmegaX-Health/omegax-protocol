@@ -139,7 +139,7 @@ function env(name: string, fallback = UNSET): string {
 function envPreferred(name: string, aliases: readonly string[], fallback = UNSET): string {
   for (const candidate of [name, ...aliases]) {
     const value = String(process.env[candidate] ?? "").trim();
-    if (value) return value;
+    if (value && value !== UNSET) return value;
   }
   return fallback;
 }
@@ -148,9 +148,20 @@ function planControlWallet(address: string): string {
   return isUnsetDevnetWalletAddress(address) ? "" : address;
 }
 
-const settlementMint = env("NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT");
-const rewardMint = env("NEXT_PUBLIC_DEVNET_REWARD_MINT", settlementMint);
-const wrapperSettlementMint = env("NEXT_PUBLIC_DEVNET_WRAPPER_SETTLEMENT_MINT", settlementMint);
+const settlementMint = envPreferred(
+  "NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT",
+  ["NEXT_PUBLIC_DEVNET_PAYMENT_RAIL_COVERAGE_SPL", "NEXT_PUBLIC_DEFAULT_INSURANCE_PAYOUT_MINT"],
+);
+const rewardMint = envPreferred(
+  "NEXT_PUBLIC_DEVNET_REWARD_MINT",
+  ["NEXT_PUBLIC_DEVNET_PAYMENT_RAIL_REWARD_SPL", "NEXT_PUBLIC_DEFAULT_REWARD_PAYOUT_MINT"],
+  settlementMint,
+);
+const wrapperSettlementMint = envPreferred(
+  "NEXT_PUBLIC_DEVNET_WRAPPER_SETTLEMENT_MINT",
+  ["NEXT_PUBLIC_DEVNET_PAYMENT_RAIL_COVERAGE_SPL", "NEXT_PUBLIC_DEFAULT_INSURANCE_PAYOUT_MINT"],
+  settlementMint,
+);
 
 const openDomainId = "open-health-usdc";
 const wrapperDomainId = "wrapper-health-rwa";
@@ -511,7 +522,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       healthPlan: blendedPlanAddress,
       policySeries: blendedProtectionSeriesAddress,
       eligibilityStatus: ELIGIBILITY_ELIGIBLE,
-      delegatedRights: ["submit_claim", "appoint_delegate"],
+      delegatedRights: ["open_claim_case", "appoint_delegate"],
       active: true,
     },
   ],

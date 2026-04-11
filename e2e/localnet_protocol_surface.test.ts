@@ -32,6 +32,22 @@ const {
   OBLIGATION_STATUS_SETTLED,
   SERIES_MODE_PROTECTION,
   SERIES_MODE_REWARD,
+  buildBackfillSchemaDependencyLedgerTx,
+  buildClaimOracleTx,
+  buildCloseOutcomeSchemaTx,
+  buildRegisterOracleTx,
+  buildRegisterOutcomeSchemaTx,
+  buildSetPoolOraclePermissionsTx,
+  buildSetPoolOraclePolicyTx,
+  buildSetPoolOracleTx,
+  buildUpdateOracleProfileTx,
+  buildVerifyOutcomeSchemaTx,
+  deriveOracleProfilePda,
+  deriveOutcomeSchemaPda,
+  derivePoolOracleApprovalPda,
+  derivePoolOraclePermissionSetPda,
+  derivePoolOraclePolicyPda,
+  deriveSchemaDependencyLedgerPda,
   getProgramId,
   recomputeReserveBalanceSheet,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
@@ -39,6 +55,9 @@ const {
 const consoleState = buildCanonicalConsoleState();
 const selectedScenario = String(process.env.OMEGAX_E2E_SCENARIO ?? "").trim() || null;
 const orderedScenarios = scenarioNames();
+const STATIC_BLOCKHASH = "11111111111111111111111111111111";
+const SAMPLE_SCHEMA_KEY_HASH_HEX = "11".repeat(32);
+const SAMPLE_SCHEMA_HASH_HEX = "22".repeat(32);
 
 if (selectedScenario && !orderedScenarios.includes(selectedScenario as ScenarioName)) {
   throw new Error(
@@ -124,6 +143,135 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     assert(consoleState.glossary.some((row) => row.noun === "CapitalClass"));
     assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.every((domain) => typeof domain.pauseFlags === "number"), true);
     assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.every((plan) => typeof plan.pauseFlags === "number"), true);
+  },
+  oracle_registry_and_pool_control_lifecycle: () => {
+    const governanceWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "protocol_governance")!;
+    const oracleWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "oracle_operator")!;
+    const pool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!;
+    const oracleRole = DEVNET_PROTOCOL_FIXTURE_STATE.roleMatrix.find((row) => row.role === "oracle_operator")!;
+    const oracleProfile = deriveOracleProfilePda({ oracle: oracleWallet.address }).toBase58();
+    const approval = derivePoolOracleApprovalPda({
+      liquidityPool: pool.address,
+      oracle: oracleWallet.address,
+    }).toBase58();
+    const permissionSet = derivePoolOraclePermissionSetPda({
+      liquidityPool: pool.address,
+      oracle: oracleWallet.address,
+    }).toBase58();
+    const policy = derivePoolOraclePolicyPda({ liquidityPool: pool.address }).toBase58();
+    const registerTx = buildRegisterOracleTx({
+      admin: governanceWallet.address,
+      oracle: oracleWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      oracleType: 1,
+      displayName: "Canonical Oracle Operator",
+      legalName: "Canonical Oracle Operator LLC",
+      websiteUrl: "https://protocol.omegax.health/oracles",
+      appUrl: "https://protocol.omegax.health/oracles/app",
+      logoUri: "https://protocol.omegax.health/oracles/logo.svg",
+      webhookUrl: "https://protocol.omegax.health/oracles/webhook",
+      supportedSchemaKeyHashesHex: [SAMPLE_SCHEMA_KEY_HASH_HEX],
+    });
+    const claimTx = buildClaimOracleTx({
+      oracle: oracleWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+    });
+    const updateTx = buildUpdateOracleProfileTx({
+      authority: governanceWallet.address,
+      oracle: oracleWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      oracleType: 2,
+      displayName: "Canonical Oracle Operator",
+      legalName: "Canonical Oracle Operator LLC",
+      websiteUrl: "https://protocol.omegax.health/oracles",
+      appUrl: "https://protocol.omegax.health/oracles/app",
+      logoUri: "https://protocol.omegax.health/oracles/logo.svg",
+      webhookUrl: "https://protocol.omegax.health/oracles/webhook",
+      supportedSchemaKeyHashesHex: [SAMPLE_SCHEMA_KEY_HASH_HEX],
+    });
+    const setOracleTx = buildSetPoolOracleTx({
+      authority: governanceWallet.address,
+      poolAddress: pool.address,
+      oracle: oracleWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      active: true,
+    });
+    const setPermissionsTx = buildSetPoolOraclePermissionsTx({
+      authority: governanceWallet.address,
+      poolAddress: pool.address,
+      oracle: oracleWallet.address,
+      permissions: 0b111,
+      recentBlockhash: STATIC_BLOCKHASH,
+    });
+    const setPolicyTx = buildSetPoolOraclePolicyTx({
+      authority: governanceWallet.address,
+      poolAddress: pool.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      quorumM: 2,
+      quorumN: 3,
+      requireVerifiedSchema: true,
+      oracleFeeBps: 25,
+      allowDelegateClaim: true,
+      challengeWindowSecs: 86_400,
+    });
+
+    assert(oracleRole.actions.some((action) => action.includes("attest")));
+    assert.equal(registerTx.instructions[0]!.keys[1]!.pubkey.toBase58(), oracleProfile);
+    assert.equal(claimTx.instructions[0]!.keys[1]!.pubkey.toBase58(), oracleProfile);
+    assert.equal(updateTx.instructions[0]!.keys[2]!.pubkey.toBase58(), oracleProfile);
+    assert.equal(setOracleTx.instructions[0]!.keys[2]!.pubkey.toBase58(), pool.address);
+    assert.equal(setOracleTx.instructions[0]!.keys[4]!.pubkey.toBase58(), approval);
+    assert.equal(setPermissionsTx.instructions[0]!.keys[5]!.pubkey.toBase58(), permissionSet);
+    assert.equal(setPolicyTx.instructions[0]!.keys[3]!.pubkey.toBase58(), policy);
+  },
+  schema_registry_and_binding_lifecycle: () => {
+    const governanceWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "protocol_governance")!;
+    const protectionSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.mode === SERIES_MODE_PROTECTION)!;
+    const outcomeSchema = deriveOutcomeSchemaPda({ schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX }).toBase58();
+    const dependencyLedger = deriveSchemaDependencyLedgerPda({
+      schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+    }).toBase58();
+    const registerTx = buildRegisterOutcomeSchemaTx({
+      publisher: governanceWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+      schemaKey: protectionSeries.comparabilityKey,
+      version: 1,
+      schemaHashHex: SAMPLE_SCHEMA_HASH_HEX,
+      schemaFamily: 1,
+      visibility: 1,
+      metadataUri: protectionSeries.metadataUri,
+    });
+    const verifyTx = buildVerifyOutcomeSchemaTx({
+      governanceAuthority: governanceWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+      verified: true,
+    });
+    const backfillTx = buildBackfillSchemaDependencyLedgerTx({
+      governanceAuthority: governanceWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+      poolRuleAddresses: [DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!.address],
+    });
+    const closeTx = buildCloseOutcomeSchemaTx({
+      governanceAuthority: governanceWallet.address,
+      recipientSystemAccount: governanceWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+    });
+
+    assert.equal(
+      DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.every((series) => Boolean(series.termsVersion && series.comparabilityKey)),
+      true,
+    );
+    assert.equal(registerTx.instructions[0]!.keys[1]!.pubkey.toBase58(), outcomeSchema);
+    assert.equal(registerTx.instructions[0]!.keys[2]!.pubkey.toBase58(), dependencyLedger);
+    assert.equal(verifyTx.instructions[0]!.keys[2]!.pubkey.toBase58(), outcomeSchema);
+    assert.equal(backfillTx.instructions[0]!.keys[2]!.pubkey.toBase58(), outcomeSchema);
+    assert.equal(backfillTx.instructions[0]!.keys[3]!.pubkey.toBase58(), dependencyLedger);
+    assert.equal(closeTx.instructions[0]!.keys[2]!.pubkey.toBase58(), outcomeSchema);
+    assert.equal(closeTx.instructions[0]!.keys[3]!.pubkey.toBase58(), dependencyLedger);
   },
   reserve_domain_and_vault_setup: () => {
     const reserveDomainAddresses = new Set(DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.map((domain) => domain.address));

@@ -33,8 +33,9 @@ test("canonical claims links omit ambiguous series context", () => {
   const href = buildCanonicalPoolHref(pool.address, { section: "claims" });
   const url = new URL(href, "https://protocol.omegax.health");
 
-  assert.equal(url.pathname, "/plans");
-  assert.equal(url.searchParams.get("tab"), "claims");
+  assert.equal(url.pathname, "/claims");
+  assert.equal(url.searchParams.get("panel"), "ledger");
+  assert.equal(url.searchParams.get("pool"), pool.address);
   assert.equal(url.searchParams.get("plan"), DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((entry) => entry.planId === "nexus-protect-plus")?.address ?? null);
   assert.equal(url.searchParams.get("series"), null);
 });
@@ -49,9 +50,9 @@ test("canonical schema links pick a deterministic series when only the plan is u
   const href = buildCanonicalPoolHref(pool.address, { section: "schemas" });
   const url = new URL(href, "https://protocol.omegax.health");
 
-  assert.equal(url.pathname, "/plans");
-  assert.equal(url.searchParams.get("tab"), "schemas");
-  assert.equal(url.searchParams.get("plan"), blendedPlan.address);
+  assert.equal(url.pathname, "/schemas");
+  assert.equal(url.searchParams.get("panel"), "registry");
+  assert.equal(url.searchParams.get("pool"), pool.address);
   assert.equal(url.searchParams.get("series"), firstSeriesAddressForPlan(blendedPlan.address));
 });
 

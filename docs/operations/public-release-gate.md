@@ -46,35 +46,57 @@ npm run test:e2e:localnet
 
 Treat that command as an additional maintainer sign-off step, not as a per-PR or public-CI requirement. Review the latest scenario-ownership policy in [`../testing/protocol-surface-audit.md`](../testing/protocol-surface-audit.md).
 
-## Devnet rollout sign-off
+## Main-branch prep
 
-For `0.3.0`, repo readiness ends at the public gate plus localnet sign-off. This is the first publishable canonical health-capital-markets release and a hard-break devnet migration from the retired pool-first surface.
+Before merging a release candidate to `main`, confirm:
 
-Release notes to verify in the checked-in docs:
+- `npm run anchor:idl`
+- `npm run protocol:contract`
+- `npm run verify:public`
+- `npm run test:e2e:localnet`
+- the checked-in docs describe the same public surface as the code and generated artifacts
+- [`./release-v0.3.0.md`](./release-v0.3.0.md) reflects the current release notes and known follow-up work
 
-- reserve domains and domain asset vaults are the hard settlement and custody boundary
-- health plans and policy series replace the overloaded pool/program root
-- funding lines separate sponsor budgets, premiums, LP allocations, backstops, and subsidies
-- obligations and claim cases reconcile reward and protection flows through one reserve kernel
-- liquidity pools, capital classes, and allocation positions carry LP-facing rights and attribution
+For this release train, reviewers should be able to discover from the checked-in docs that:
 
-Operational rollout still requires a two-step devnet sequence:
+- the canonical console mounts `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas`
+- the mounted workbenches read live protocol snapshot data rather than fixture-only state
+- the oracle and outcome-schema registries are part of the current public protocol surface
+- the shared-devnet sign-off flow includes frontend parity, governance smoke, and observability
 
-1. rehearse the current checked build on devnet with a non-canonical program id and fresh rehearsal wallets
-2. upgrade the canonical shared devnet only after the rehearsal matrix is clean
+## Shared-devnet sign-off
 
-For each devnet stage, rerun:
+Shared-devnet rollout remains an operator-mediated sign-off step even after the repo-only gate is green.
 
-- `npm run anchor:test`
-- `npm run beta:consistency:check`
-- `npm run protocol:contract:check`
-- `npm run frontend:build`
-- `npm run devnet:frontend:bootstrap`
-- `npm run devnet:frontend:signoff`
-- `npm run devnet:governance:smoke:create-vote`
-- `npm run devnet:governance:smoke:execute` after the required voting and hold-up windows
-- `npm run devnet:governance:ui:readonly`
-- `npm run devnet:beta:observe`
+Recommended sequence:
+
+1. `npm run devnet:beta:deploy`
+2. upgrade the canonical shared-devnet program id with the checked `target/deploy/omegax_protocol.so`
+3. `npm run protocol:bootstrap:devnet-live`
+4. `npm run devnet:frontend:bootstrap`
+5. `npm run devnet:frontend:signoff`
+6. `npm run devnet:governance:smoke:create-vote`
+7. `npm run devnet:governance:smoke:execute` after the required voting and hold-up windows expire
+8. `npm run devnet:governance:ui:readonly`
+9. `OBSERVABILITY_OUTPUT_JSON=artifacts/devnet_observability.json npm run devnet:beta:observe`
+
+Record the resulting outputs in the rollout summary:
+
+- upgraded program id and slot
+- proposal address used for governance smoke
+- observability artifact path
+- frontend bootstrap artifacts refreshed under `devnet/` and `frontend/public/`
+
+If a rehearsal deployment is required for your launch window, run the same sequence against the rehearsal program id before touching the shared canonical devnet.
+
+## Production prep
+
+Before any broader production promotion outside devnet:
+
+- confirm the release notes match the generated artifacts and public docs
+- confirm downstream SDK and public docs consumers have the regenerated protocol contract
+- explicitly review any remaining canonical-console action gaps so production claims/capital/governance workflows are not overstated
+- capture the exact commit, generated artifact hash, and devnet sign-off outputs that will back the production announcement
 
 ## Protocol-surface changes
 

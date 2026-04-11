@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-03T07:30:55.736Z",
+  "generatedAt": "2026-04-10T20:31:43.697Z",
   "programId": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",
   "migrationMode": "hard_break_devnet",
   "retiredLegacySeedsToIgnore": [
@@ -13,7 +13,7 @@
     "pool_automation_policy"
   ],
   "steps": [
-    "Ignore or archive legacy pool-first devnet accounts by retired seed prefix.",
+    "Ignore or archive retired pre-rearchitecture devnet accounts by retired seed prefix.",
     "Create reserve domains before any plan, pool, or liability state.",
     "Create domain asset vaults and ledgers per [reserve_domain, asset_mint].",
     "Create health plans and policy series with immutable live economic semantics.",
@@ -41,28 +41,41 @@
   ],
   "domainAssetVaults": [
     {
-      "address": "A4uTKuQrZgEGU6qDtDNwga1qPpVYhKaGYSX7HYC9Pirj",
-      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
-      "sheet": {
-        "funded": "2050000"
-      }
+      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "address": "8K7CL5MVKi41uBYC5L5xTWj3KbvngSv1thULSro3ZsPr"
     },
     {
-      "address": "EU1JUYmnYHZp3T9MjLNNFKb7Jz4cn2pUfGYUgAmAZvkt",
-      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
-      "assetMint": "11111111111111111111111111111111",
-      "sheet": {
-        "funded": "400000",
-        "restricted": "400000"
-      }
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
+      "address": "5TZRjDggL2Zu2V4fF5Yuaa1S66xdzgYNot8TTrg76Hnt"
+    },
+    {
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "address": "5bQbC1meTbj6JVyKfEntwCMJ5zA7Gu6qfH6RNEpp6hdF"
     }
   ],
   "domainAssetLedgers": [
     {
-      "address": "CdoTERBUvjBXFJSWzF3LT1DqMDrcKFwwGwXeLzGyVDiL",
+      "address": "GEAqJGZ4j3yx2KYkwJxuQ1rNNHRgYMMwabJyXeAAqLWH",
+      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "400000",
+        "reserved": "60000",
+        "restricted": "400000"
+      }
+    },
+    {
+      "address": "7CUY63qcdDe18pVuQukocXHQuRsTyMwPA7WTVcybbXpZ",
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL"
+    },
+    {
+      "address": "HM2hRbgoc5XrA5Y57dZDzAdccjEq3eN4RV6m17cG6aiv",
+      "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
         "funded": "2050000",
         "allocated": "1150000",
@@ -70,16 +83,6 @@
         "claimable": "8000",
         "payable": "50000",
         "settled": "72000"
-      }
-    },
-    {
-      "address": "46GwGoG2E1d18JU1TgmCsdrFqR7FH8SYKKyT2KnnQ3LS",
-      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
-      "assetMint": "11111111111111111111111111111111",
-      "sheet": {
-        "funded": "400000",
-        "reserved": "60000",
-        "restricted": "400000"
       }
     }
   ],
@@ -90,10 +93,12 @@
       "planId": "nexus-seeker-rewards",
       "displayName": "Nexus Seeker Rewards",
       "sponsorLabel": "Seeker Sponsor",
-      "planAdmin": "11111111111111111111111111111111",
-      "sponsorOperator": "11111111111111111111111111111111",
-      "claimsOperator": "11111111111111111111111111111111",
+      "planAdmin": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
+      "sponsorOperator": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
+      "claimsOperator": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
       "membershipModel": "sponsor-invite",
+      "membershipGateKind": "invite_only",
+      "membershipInviteAuthority": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
       "pauseFlags": 0,
       "active": true
     },
@@ -103,10 +108,11 @@
       "planId": "nexus-protect-plus",
       "displayName": "Nexus Protect Plus",
       "sponsorLabel": "Protect Plus Sponsor",
-      "planAdmin": "11111111111111111111111111111111",
-      "sponsorOperator": "11111111111111111111111111111111",
-      "claimsOperator": "11111111111111111111111111111111",
+      "planAdmin": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
+      "sponsorOperator": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
+      "claimsOperator": "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez",
       "membershipModel": "open-with-claims-operator",
+      "membershipGateKind": "open",
       "pauseFlags": 0,
       "active": true
     }
@@ -117,9 +123,11 @@
       "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
       "seriesId": "daily-activity-rewards",
       "displayName": "Daily Activity Rewards",
+      "metadataUri": "https://protocol.omegax.health/series/rewards",
       "mode": 0,
       "status": 1,
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
+      "cycleSeconds": 2592000,
       "termsVersion": "v2026.1",
       "comparabilityKey": "activity-rewards-core"
     },
@@ -128,9 +136,11 @@
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "seriesId": "preventive-adherence-rewards",
       "displayName": "Preventive Adherence Rewards",
+      "metadataUri": "https://protocol.omegax.health/series/rewards",
       "mode": 0,
       "status": 1,
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
+      "cycleSeconds": 2592000,
       "termsVersion": "v2026.1",
       "comparabilityKey": "preventive-adherence"
     },
@@ -139,9 +149,11 @@
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "seriesId": "catastrophic-protection-2026",
       "displayName": "Catastrophic Protection",
+      "metadataUri": "/metadata/protection/default-defi-v1.json",
       "mode": 1,
       "status": 1,
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "cycleSeconds": 2592000,
       "termsVersion": "v2026.1",
       "comparabilityKey": "catastrophic-protection"
     }
@@ -152,7 +164,7 @@
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
       "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
       "policySeries": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "lineId": "seeker-sponsor-budget",
       "displayName": "Seeker sponsor budget",
       "lineType": 0,
@@ -176,7 +188,7 @@
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "lineId": "blended-sponsor-budget",
       "displayName": "Blended sponsor budget",
       "lineType": 0,
@@ -199,7 +211,7 @@
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "lineId": "blended-member-premiums",
       "displayName": "Blended member premiums",
       "lineType": 1,
@@ -222,7 +234,7 @@
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "lineId": "blended-protection-liquidity",
       "displayName": "Protection liquidity line",
       "lineType": 2,
@@ -247,7 +259,7 @@
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "lineId": "blended-reward-liquidity",
       "displayName": "Reward liquidity line",
       "lineType": 2,
@@ -272,7 +284,7 @@
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
       "poolId": "omega-health-income",
       "displayName": "Omega Health Income Pool",
-      "depositAssetMint": "11111111111111111111111111111111",
+      "depositAssetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "strategyThesis": "Diversified health liability sleeve across sponsor-supported rewards and protection reserves.",
       "redemptionPolicy": 1,
       "totalValueLocked": "1900000",
@@ -373,11 +385,11 @@
     {
       "address": "4qLRdkjrqQ19vXK7PdaEAfLnYtHU1N1EeRWvTqzruqpy",
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
       "policySeries": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
-      "memberWallet": "11111111111111111111111111111111",
-      "beneficiary": "11111111111111111111111111111111",
+      "memberWallet": "G9FAC51yFBa29LMiEqZBGXBqkaBPRWrSBBNh4MBhrgBc",
+      "beneficiary": "G9FAC51yFBa29LMiEqZBGXBqkaBPRWrSBBNh4MBhrgBc",
       "fundingLine": "E9W366V3JEDjx2ksvJEV1sMR14DNVxwndEGRxGGvyZUG",
       "obligationId": "reward-obligation-001",
       "status": 3,
@@ -394,11 +406,11 @@
     {
       "address": "5p9qFYMkkUTk8AYZKq38WcKwwpJbDMTvCdrPTDy5YWp",
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "healthPlan": "5KCQxjiedpn2qPPsbR7DkyX9LuA3EFzDh9RckW9aG5tG",
       "policySeries": "9E86LQmBdyjaEwHvDeLz4hekxsaKaDZ45LUAP3izXVd7",
-      "memberWallet": "11111111111111111111111111111111",
-      "beneficiary": "11111111111111111111111111111111",
+      "memberWallet": "G9FAC51yFBa29LMiEqZBGXBqkaBPRWrSBBNh4MBhrgBc",
+      "beneficiary": "G9FAC51yFBa29LMiEqZBGXBqkaBPRWrSBBNh4MBhrgBc",
       "fundingLine": "E9W366V3JEDjx2ksvJEV1sMR14DNVxwndEGRxGGvyZUG",
       "obligationId": "reward-obligation-002",
       "status": 2,
@@ -415,11 +427,11 @@
     {
       "address": "75FbyYaJwS3Sc1PgHoDrPVMPTr9TwWPPcxAWexm9Fwcd",
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "9eBw5T3C1fBfyFHZfjAumunuckqE12oTHexWwvvn9RG8",
-      "memberWallet": "11111111111111111111111111111111",
-      "beneficiary": "11111111111111111111111111111111",
+      "memberWallet": "G9FAC51yFBa29LMiEqZBGXBqkaBPRWrSBBNh4MBhrgBc",
+      "beneficiary": "G9FAC51yFBa29LMiEqZBGXBqkaBPRWrSBBNh4MBhrgBc",
       "fundingLine": "HRvCiWLtCuZ2bMDum3UNw2CkrYmzD7uXNa8sF5xKduTJ",
       "obligationId": "blended-reward-obligation-001",
       "status": 1,
@@ -436,11 +448,11 @@
     {
       "address": "DJjckJbXeZkuDeFmSbMDaZ9kn68yKUggrKCWRQNttAYv",
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
-      "memberWallet": "11111111111111111111111111111111",
-      "beneficiary": "11111111111111111111111111111111",
+      "memberWallet": "AbGA214nLxLW57G6dWRRsk6F656juX5CAyWuVe5RFZ12",
+      "beneficiary": "AbGA214nLxLW57G6dWRRsk6F656juX5CAyWuVe5RFZ12",
       "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
       "claimCase": "Ee4954iBkBGAHg43M7hoNkARdcS9QmbskDmbeZ3fRbGf",
       "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
@@ -461,11 +473,11 @@
     {
       "address": "Fgfx66ewvDW4RtiVCeMLM9peQfkBBMdWrpLnXskvF7u4",
       "reserveDomain": "WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq",
-      "assetMint": "11111111111111111111111111111111",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
-      "memberWallet": "11111111111111111111111111111111",
-      "beneficiary": "11111111111111111111111111111111",
+      "memberWallet": "AbGA214nLxLW57G6dWRRsk6F656juX5CAyWuVe5RFZ12",
+      "beneficiary": "AbGA214nLxLW57G6dWRRsk6F656juX5CAyWuVe5RFZ12",
       "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
       "claimCase": "79Vf43kak4WvFn84Pcy9U2STPFjAjSxsLhE1yQAQnNg3",
       "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
@@ -491,8 +503,8 @@
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
       "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
-      "memberPosition": "AyNWmWGtknPW1YDRsjWHRXdGcfh2W7vvZptykkR2tWjF",
-      "claimant": "11111111111111111111111111111111",
+      "memberPosition": "CMKaQHyf6skrUxYF5F24u17uGih2bdxevcBZ6Cm9gpu6",
+      "claimant": "AbGA214nLxLW57G6dWRRsk6F656juX5CAyWuVe5RFZ12",
       "claimId": "claim-protect-001",
       "intakeStatus": 2,
       "approvedAmount": "90000",
@@ -507,8 +519,8 @@
       "healthPlan": "7FmTEMGy7tDagWwELxebN4nHpwV1AqsfFNFkw7xt7MAV",
       "policySeries": "D2HQujaRiFNpqB25bkzD8TmwYSgR9H3nTX52dqFSi16V",
       "fundingLine": "7iqet6ZJcu4brfFkvxeTmcKM5gGbRuMkDNZrU2L8XmxJ",
-      "memberPosition": "AyNWmWGtknPW1YDRsjWHRXdGcfh2W7vvZptykkR2tWjF",
-      "claimant": "11111111111111111111111111111111",
+      "memberPosition": "CMKaQHyf6skrUxYF5F24u17uGih2bdxevcBZ6Cm9gpu6",
+      "claimant": "AbGA214nLxLW57G6dWRRsk6F656juX5CAyWuVe5RFZ12",
       "claimId": "claim-protect-002",
       "intakeStatus": 4,
       "approvedAmount": "25000",

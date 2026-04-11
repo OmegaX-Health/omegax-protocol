@@ -7,12 +7,13 @@ import { useEffect, useMemo, useState } from "react";
 
 import { formatAmount } from "@/lib/canonical-ui";
 import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
 import {
+  type AllocationPositionSnapshot,
   availableFundingLineBalance,
   describeFundingLineType,
   describeSeriesStatus,
   FUNDING_LINE_TYPE_PREMIUM_INCOME,
+  type LiquidityPoolSnapshot,
   SERIES_MODE_PROTECTION,
   shortenAddress,
   type FundingLineSnapshot,
@@ -25,7 +26,9 @@ import {
 
 type PlanCoveragePanelProps = {
   activeSeriesAddress?: string | null;
+  allocationPositions: AllocationPositionSnapshot[];
   fundingLines: FundingLineSnapshot[];
+  liquidityPools: LiquidityPoolSnapshot[];
   planAddress: string;
   policySeries: PolicySeriesSnapshot[];
 };
@@ -38,7 +41,9 @@ function cadenceLabel(cycleSeconds?: number): string {
 
 export function PlanCoveragePanel({
   activeSeriesAddress,
+  allocationPositions,
   fundingLines,
+  liquidityPools,
   planAddress,
   policySeries,
 }: PlanCoveragePanelProps) {
@@ -92,8 +97,8 @@ export function PlanCoveragePanel({
   );
 
   const linkedAllocations = useMemo(
-    () => DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter((row) => row.policySeries === activeSeries?.address),
-    [activeSeries?.address],
+    () => allocationPositions.filter((row) => row.policySeries === activeSeries?.address),
+    [activeSeries?.address, allocationPositions],
   );
   const linkedPools = useMemo(() => {
     const seen = new Set<string>();
@@ -105,9 +110,9 @@ export function PlanCoveragePanel({
         seen.add(poolAddress);
         return true;
       })
-      .map((poolAddress) => DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((pool) => pool.address === poolAddress) ?? null)
+      .map((poolAddress) => liquidityPools.find((pool) => pool.address === poolAddress) ?? null)
       .filter((pool): pool is NonNullable<typeof pool> => Boolean(pool));
-  }, [linkedAllocations]);
+  }, [liquidityPools, linkedAllocations]);
 
   if (protectionSeries.length === 0) {
     return (

@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Connection, PublicKey } from "@solana/web3.js";
+import { BN, BorshCoder, Program, type Idl } from "@coral-xyz/anchor";
+import { Buffer } from "buffer";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import protocolIdl from "../../idl/omegax_protocol.json";
 
 import {
   PROTOCOL_ACCOUNT_DISCRIMINATORS,
@@ -41,6 +50,12 @@ export const SEED_POOL_CLASS_LEDGER = "pool_class_ledger";
 export const SEED_LP_POSITION = "lp_position";
 export const SEED_ALLOCATION_POSITION = "allocation_position";
 export const SEED_ALLOCATION_LEDGER = "allocation_ledger";
+export const SEED_ORACLE_PROFILE = "oracle_profile";
+export const SEED_POOL_ORACLE_APPROVAL = "pool_oracle_approval";
+export const SEED_POOL_ORACLE_POLICY = "pool_oracle_policy";
+export const SEED_POOL_ORACLE_PERMISSION_SET = "pool_oracle_permission_set";
+export const SEED_OUTCOME_SCHEMA = "outcome_schema";
+export const SEED_SCHEMA_DEPENDENCY_LEDGER = "schema_dependency_ledger";
 
 export const SERIES_MODE_REWARD = 0;
 export const SERIES_MODE_PROTECTION = 1;
@@ -98,6 +113,20 @@ export const LP_QUEUE_STATUS_NONE = 0;
 export const LP_QUEUE_STATUS_PENDING = 1;
 export const LP_QUEUE_STATUS_PROCESSED = 2;
 
+export const ORACLE_TYPE_LAB = 0;
+export const ORACLE_TYPE_HOSPITAL_CLINIC = 1;
+export const ORACLE_TYPE_HEALTH_APP = 2;
+export const ORACLE_TYPE_WEARABLE_DATA_PROVIDER = 3;
+export const ORACLE_TYPE_OTHER = 255;
+
+export const SCHEMA_FAMILY_KERNEL = 0;
+export const SCHEMA_FAMILY_CLINICAL = 1;
+export const SCHEMA_FAMILY_CLAIMS_CODING = 2;
+
+export const SCHEMA_VISIBILITY_PUBLIC = 0;
+export const SCHEMA_VISIBILITY_PRIVATE = 1;
+export const SCHEMA_VISIBILITY_RESTRICTED = 2;
+
 export const PAUSE_FLAG_PROTOCOL_EMERGENCY = 1 << 0;
 export const PAUSE_FLAG_DOMAIN_RAILS = 1 << 1;
 export const PAUSE_FLAG_PLAN_OPERATIONS = 1 << 2;
@@ -137,6 +166,7 @@ export type ReserveDomainSnapshot = {
   address: string;
   domainId: string;
   displayName: string;
+  domainAdmin?: string;
   settlementMode: number;
   active: boolean;
   pauseFlags?: number;
@@ -151,6 +181,7 @@ export type HealthPlanSnapshot = {
   planAdmin: string;
   sponsorOperator: string;
   claimsOperator: string;
+  oracleAuthority?: string;
   membershipModel: string;
   membershipGateKind?: string;
   membershipGateMint?: string;
@@ -172,6 +203,7 @@ export type PolicySeriesSnapshot = {
   cycleSeconds?: number;
   termsVersion: string;
   comparabilityKey: string;
+  comparabilityHashHex?: string;
 };
 
 export type MemberPositionSnapshot = {
@@ -249,13 +281,19 @@ export type ObligationSnapshot = {
 export type LiquidityPoolSnapshot = {
   address: string;
   reserveDomain: string;
+  curator?: string;
+  allocator?: string;
+  sentinel?: string;
   poolId: string;
   displayName: string;
   depositAssetMint: string;
   strategyThesis: string;
   redemptionPolicy: number;
+  pauseFlags?: number;
   totalValueLocked: BigNumberish;
   totalAllocated?: BigNumberish;
+  totalReserved?: BigNumberish;
+  totalImpaired?: BigNumberish;
   totalPendingRedemptions?: BigNumberish;
   active: boolean;
 };
@@ -327,6 +365,117 @@ export type AllocationLedgerSnapshot = {
   realizedPnl?: BigNumberish;
 };
 
+export type ProtocolGovernanceSnapshot = {
+  address: string;
+  governanceAuthority: string;
+  protocolFeeBps: number;
+  emergencyPause: boolean;
+  auditNonce: BigNumberish;
+};
+
+export type OracleProfileSnapshot = {
+  address: string;
+  oracle: string;
+  admin: string;
+  oracleType: number;
+  displayName: string;
+  legalName: string;
+  websiteUrl: string;
+  appUrl: string;
+  logoUri: string;
+  webhookUrl: string;
+  supportedSchemaCount: number;
+  supportedSchemaKeyHashesHex: string[];
+  active: boolean;
+  claimed: boolean;
+  createdAtTs: number;
+  updatedAtTs: number;
+  bump: number;
+};
+
+export type PoolOracleApprovalSnapshot = {
+  address: string;
+  liquidityPool: string;
+  oracle: string;
+  active: boolean;
+  updatedAtTs: number;
+  bump: number;
+};
+
+export type PoolOraclePolicySnapshot = {
+  address: string;
+  liquidityPool: string;
+  quorumM: number;
+  quorumN: number;
+  requireVerifiedSchema: boolean;
+  oracleFeeBps: number;
+  allowDelegateClaim: boolean;
+  challengeWindowSecs: number;
+  updatedAtTs: number;
+  bump: number;
+};
+
+export type PoolOraclePermissionSetSnapshot = {
+  address: string;
+  liquidityPool: string;
+  oracle: string;
+  permissions: number;
+  updatedAtTs: number;
+  bump: number;
+};
+
+export type OutcomeSchemaSnapshot = {
+  address: string;
+  publisher: string;
+  schemaKeyHashHex: string;
+  schemaKey: string;
+  version: number;
+  schemaHashHex: string;
+  schemaFamily: number;
+  visibility: number;
+  metadataUri: string;
+  verified: boolean;
+  createdAtTs: number;
+  updatedAtTs: number;
+  bump: number;
+};
+
+export type SchemaDependencyLedgerSnapshot = {
+  address: string;
+  schemaKeyHashHex: string;
+  poolRuleAddresses: string[];
+  updatedAtTs: number;
+  bump: number;
+};
+
+export type ProtocolConsoleSnapshot = {
+  protocolGovernance: ProtocolGovernanceSnapshot | null;
+  reserveDomains: ReserveDomainSnapshot[];
+  domainAssetLedgers: ReserveScopedSnapshot[];
+  healthPlans: HealthPlanSnapshot[];
+  policySeries: PolicySeriesSnapshot[];
+  memberPositions: MemberPositionSnapshot[];
+  fundingLines: FundingLineSnapshot[];
+  claimCases: ClaimCaseSnapshot[];
+  obligations: ObligationSnapshot[];
+  liquidityPools: LiquidityPoolSnapshot[];
+  capitalClasses: CapitalClassSnapshot[];
+  lpPositions: LPPositionSnapshot[];
+  allocationPositions: AllocationPositionSnapshot[];
+  planReserveLedgers: ReserveScopedSnapshot[];
+  seriesReserveLedgers: ReserveScopedSnapshot[];
+  fundingLineLedgers: ReserveScopedSnapshot[];
+  poolClassLedgers: PoolClassLedgerSnapshot[];
+  allocationLedgers: AllocationLedgerSnapshot[];
+  outcomesBySeries: Record<string, bigint>;
+  oracleProfiles: OracleProfileSnapshot[];
+  poolOracleApprovals: PoolOracleApprovalSnapshot[];
+  poolOraclePolicies: PoolOraclePolicySnapshot[];
+  poolOraclePermissionSets: PoolOraclePermissionSetSnapshot[];
+  outcomeSchemas: OutcomeSchemaSnapshot[];
+  schemaDependencyLedgers: SchemaDependencyLedgerSnapshot[];
+};
+
 export type SponsorReadModel = {
   healthPlanAddress: string;
   planId: string;
@@ -393,6 +542,55 @@ export type MemberReadModel = {
     payoutHistory: bigint;
     claimStatusCounts: Record<string, number>;
   }>;
+};
+
+export type OracleProfileSummary = OracleProfileSnapshot;
+
+export type OracleSummary = {
+  address: string;
+  oracle: string;
+  active: boolean;
+  claimed: boolean;
+  admin: string;
+  bump: number;
+  metadataUri: string;
+  profile?: OracleProfileSummary;
+};
+
+export type OracleWithProfileSummary = OracleSummary;
+
+export type PoolOracleApprovalSummary = PoolOracleApprovalSnapshot;
+
+export type PoolOraclePolicySummary = PoolOraclePolicySnapshot;
+
+export type PoolOraclePermissionSetSummary = PoolOraclePermissionSetSnapshot;
+
+export type SchemaSummary = OutcomeSchemaSnapshot;
+
+export type SchemaDependencyLedgerSummary = SchemaDependencyLedgerSnapshot;
+
+export type ProtocolConfigSummary = {
+  address: string;
+  admin: string;
+  governanceAuthority: string;
+  governanceRealm: string;
+  governanceConfig: string;
+  protocolFeeBps: number;
+  defaultStakeMint: string;
+  minOracleStake: bigint;
+  emergencyPaused: boolean;
+  allowedPayoutMintsHashHex: string;
+};
+
+export type RuleSummary = {
+  address: string;
+  ruleId: string;
+  pool: string;
+  schemaKeyHashHex: string;
+  schemaVersion: number;
+  enabled: boolean;
+  policySeries: string;
+  healthPlan: string;
 };
 
 export function getProgramId(): PublicKey {
@@ -732,6 +930,76 @@ export function deriveAllocationLedgerPda(params: {
       toPublicKey(params.allocationPosition).toBytes(),
       toPublicKey(params.assetMint).toBytes(),
     ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveOracleProfilePda(params: {
+  oracle: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [TEXT_ENCODER.encode(SEED_ORACLE_PROFILE), toPublicKey(params.oracle).toBytes()],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function derivePoolOracleApprovalPda(params: {
+  liquidityPool: PublicKeyish;
+  oracle: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_POOL_ORACLE_APPROVAL),
+      toPublicKey(params.liquidityPool).toBytes(),
+      toPublicKey(params.oracle).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function derivePoolOraclePolicyPda(params: {
+  liquidityPool: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [TEXT_ENCODER.encode(SEED_POOL_ORACLE_POLICY), toPublicKey(params.liquidityPool).toBytes()],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function derivePoolOraclePermissionSetPda(params: {
+  liquidityPool: PublicKeyish;
+  oracle: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_POOL_ORACLE_PERMISSION_SET),
+      toPublicKey(params.liquidityPool).toBytes(),
+      toPublicKey(params.oracle).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveOutcomeSchemaPda(params: {
+  schemaKeyHashHex: string;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [TEXT_ENCODER.encode(SEED_OUTCOME_SCHEMA), hexToFixedBytes(params.schemaKeyHashHex, 32)],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveSchemaDependencyLedgerPda(params: {
+  schemaKeyHashHex: string;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [TEXT_ENCODER.encode(SEED_SCHEMA_DEPENDENCY_LEDGER), hexToFixedBytes(params.schemaKeyHashHex, 32)],
     params.programId ?? PROGRAM_ID,
   );
 }
@@ -1180,6 +1448,2548 @@ export function toExplorerLink(signature: string, cluster?: string | null): stri
 
 export function toExplorerAddressLink(address: string, cluster?: string | null): string {
   return `https://explorer.solana.com/address/${encodeURIComponent(address)}${explorerClusterSuffix(cluster)}`;
+}
+
+const PROTOCOL_IDL = protocolIdl as Idl;
+const PROTOCOL_CODER = new BorshCoder(PROTOCOL_IDL);
+const PROTOCOL_ACCOUNT_NAME_BY_DISCRIMINATOR = new Map<string, string>(
+  Object.entries(PROTOCOL_ACCOUNT_DISCRIMINATORS).map(([name, discriminator]) => [
+    Array.from(discriminator).join(","),
+    name,
+  ]),
+);
+
+export const MEMBER_DELEGATED_RIGHT_FLAGS = [
+  "claim_reward",
+  "view_payout_history",
+  "open_claim_case",
+  "appoint_delegate",
+  "review_decisions",
+] as const;
+
+const ZERO_HASH_HEX = "00".repeat(32);
+
+function accountDiscriminatorKey(data: Uint8Array): string | null {
+  if (data.length < 8) return null;
+  return Array.from(data.subarray(0, 8)).join(",");
+}
+
+function snakeCaseKey(value: string): string {
+  return value.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);
+}
+
+function decodedField<T = unknown>(
+  decoded: Record<string, unknown>,
+  key: string,
+  alternateKey?: string,
+): T | undefined {
+  const snakeKey = alternateKey ?? snakeCaseKey(key);
+  return (decoded[key] ?? decoded[snakeKey]) as T | undefined;
+}
+
+function resolveProtocolAccountName(data: Uint8Array): string | null {
+  const key = accountDiscriminatorKey(data);
+  if (!key) return null;
+  return PROTOCOL_ACCOUNT_NAME_BY_DISCRIMINATOR.get(key) ?? null;
+}
+
+function createReadonlyProtocolProgram(connection: Connection): Program {
+  return new Program(PROTOCOL_IDL, { connection });
+}
+
+function asPublicKey(value: unknown): PublicKey {
+  if (value instanceof PublicKey) return value;
+  if (typeof value === "string") return new PublicKey(value);
+  if (value instanceof Uint8Array || Array.isArray(value)) return new PublicKey(value);
+  if (value && typeof value === "object" && "toBase58" in value && typeof value.toBase58 === "function") {
+    return new PublicKey(value.toBase58());
+  }
+  throw new Error("Invalid public key value.");
+}
+
+function asAddress(value: unknown): string {
+  return asPublicKey(value).toBase58();
+}
+
+function asOptionalAddress(value: unknown): string | null {
+  const address = asAddress(value);
+  return address === ZERO_PUBKEY ? null : address;
+}
+
+function bigintFromAnchorValue(value: unknown): bigint {
+  if (value === null || value === undefined) return 0n;
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") return BigInt(Math.trunc(value));
+  if (typeof value === "string") return BigInt(value);
+  if (value && typeof value === "object" && "toString" in value && typeof value.toString === "function") {
+    return BigInt(value.toString());
+  }
+  return 0n;
+}
+
+function numberFromAnchorValue(value: unknown): number {
+  return Number(bigintFromAnchorValue(value));
+}
+
+function stringFromAnchorValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "toString" in value && typeof value.toString === "function") {
+    return value.toString();
+  }
+  return "";
+}
+
+function bytesToHex(value: unknown): string {
+  if (value instanceof Uint8Array) {
+    return Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  if (Array.isArray(value)) {
+    return Array.from(value, (byte) => Number(byte).toString(16).padStart(2, "0")).join("");
+  }
+  return "";
+}
+
+function normalizeHex32(value: string): string {
+  const normalized = value.trim().toLowerCase().replace(/^0x/, "");
+  if (!/^[0-9a-f]{64}$/.test(normalized)) {
+    throw new Error("Expected a 32-byte hex string.");
+  }
+  return normalized;
+}
+
+function normalizeOptionalHex32(value?: string | null): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return ZERO_HASH_HEX;
+  return normalizeHex32(trimmed);
+}
+
+function hexToFixedBytes(value: string, size: number): Uint8Array {
+  const normalized = value.trim().toLowerCase().replace(/^0x/, "");
+  const expectedLength = size * 2;
+  if (!new RegExp(`^[0-9a-f]{${expectedLength}}$`).test(normalized)) {
+    throw new Error(`Expected a ${size}-byte hex string.`);
+  }
+  const bytes = new Uint8Array(size);
+  for (let index = 0; index < size; index += 1) {
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function membershipModelLabel(membershipMode: number, membershipGateKind: number): string {
+  if (membershipMode === 1 || membershipGateKind === 2 || membershipGateKind === 3 || membershipGateKind === 4) {
+    return "token_gate";
+  }
+  if (membershipMode === 2 || membershipGateKind === 1) return "invite_only";
+  return "open";
+}
+
+function delegatedRightsFromMask(mask: number): string[] {
+  const rights: string[] = [];
+  for (let index = 0; index < MEMBER_DELEGATED_RIGHT_FLAGS.length; index += 1) {
+    if ((mask & (1 << index)) !== 0) rights.push(MEMBER_DELEGATED_RIGHT_FLAGS[index]!);
+  }
+  return rights;
+}
+
+function reserveLedgerSnapshot(params: {
+  address: string;
+  reserveDomain: string;
+  assetMint: string;
+  sheet: unknown;
+}): ReserveScopedSnapshot {
+  return {
+    address: params.address,
+    reserveDomain: params.reserveDomain,
+    assetMint: params.assetMint,
+    sheet: params.sheet as PartialReserveBalanceSheet,
+  };
+}
+
+function sortByLabel<T>(rows: T[], label: (value: T) => string): T[] {
+  return [...rows].sort((left, right) => label(left).localeCompare(label(right)));
+}
+
+export async function hashStringTo32Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", TEXT_ENCODER.encode(value));
+  return bytesToHex(new Uint8Array(digest));
+}
+
+export async function loadProtocolConsoleSnapshot(connection: Connection): Promise<ProtocolConsoleSnapshot> {
+  const accounts = await connection.getProgramAccounts(getProgramId(), { commitment: "confirmed" });
+  const snapshot: ProtocolConsoleSnapshot = {
+    protocolGovernance: null,
+    reserveDomains: [],
+    domainAssetLedgers: [],
+    healthPlans: [],
+    policySeries: [],
+    memberPositions: [],
+    fundingLines: [],
+    claimCases: [],
+    obligations: [],
+    liquidityPools: [],
+    capitalClasses: [],
+    lpPositions: [],
+    allocationPositions: [],
+    planReserveLedgers: [],
+    seriesReserveLedgers: [],
+    fundingLineLedgers: [],
+    poolClassLedgers: [],
+    allocationLedgers: [],
+    outcomesBySeries: {},
+    oracleProfiles: [],
+    poolOracleApprovals: [],
+    poolOraclePolicies: [],
+    poolOraclePermissionSets: [],
+    outcomeSchemas: [],
+    schemaDependencyLedgers: [],
+  };
+
+  const planLedgersRaw: Array<{ address: string; healthPlan: string; assetMint: string; sheet: unknown }> = [];
+  const seriesLedgersRaw: Array<{ address: string; policySeries: string; assetMint: string; sheet: unknown }> = [];
+  const lineLedgersRaw: Array<{ address: string; fundingLine: string; assetMint: string; sheet: unknown }> = [];
+
+  for (const row of accounts) {
+    const accountName = resolveProtocolAccountName(row.account.data);
+    if (!accountName) continue;
+    let decoded: Record<string, unknown>;
+    try {
+      decoded = PROTOCOL_CODER.accounts.decode(accountName, Buffer.from(row.account.data)) as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    const address = row.pubkey.toBase58();
+
+    switch (accountName) {
+      case "ProtocolGovernance":
+        snapshot.protocolGovernance = {
+          address,
+          governanceAuthority: asAddress(decodedField(decoded, "governanceAuthority")),
+          protocolFeeBps: Number(decodedField(decoded, "protocolFeeBps") ?? 0),
+          emergencyPause: Boolean(decodedField(decoded, "emergencyPause")),
+          auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce")),
+        };
+        break;
+      case "ReserveDomain":
+        snapshot.reserveDomains.push({
+          address,
+          domainId: stringFromAnchorValue(decodedField(decoded, "domainId")),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+          domainAdmin: asAddress(decodedField(decoded, "domainAdmin")),
+          settlementMode: Number(decodedField(decoded, "settlementMode") ?? 0),
+          active: Boolean(decodedField(decoded, "active")),
+          pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
+        });
+        break;
+      case "DomainAssetLedger":
+        snapshot.domainAssetLedgers.push(
+          reserveLedgerSnapshot({
+            address,
+            reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+            assetMint: asAddress(decodedField(decoded, "assetMint")),
+            sheet: decoded.sheet,
+          }),
+        );
+        break;
+      case "HealthPlan":
+        snapshot.healthPlans.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          planId: stringFromAnchorValue(decodedField(decoded, "healthPlanId", "health_plan_id")),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+          sponsorLabel: stringFromAnchorValue(decodedField(decoded, "organizationRef"))
+            || shortenAddress(asAddress(decodedField(decoded, "sponsor")), 6),
+          planAdmin: asAddress(decodedField(decoded, "planAdmin")),
+          sponsorOperator: asAddress(decodedField(decoded, "sponsorOperator")),
+          claimsOperator: asAddress(decodedField(decoded, "claimsOperator")),
+          oracleAuthority: asAddress(decodedField(decoded, "oracleAuthority")),
+          membershipModel: membershipModelLabel(
+            Number(decodedField(decoded, "membershipMode") ?? 0),
+            Number(decodedField(decoded, "membershipGateKind") ?? 0),
+          ),
+          membershipGateKind: membershipModelLabel(
+            Number(decodedField(decoded, "membershipMode") ?? 0),
+            Number(decodedField(decoded, "membershipGateKind") ?? 0),
+          ),
+          membershipGateMint: asAddress(decodedField(decoded, "membershipGateMint")),
+          membershipGateMinAmount: bigintFromAnchorValue(decodedField(decoded, "membershipGateMinAmount")),
+          membershipInviteAuthority: asAddress(decodedField(decoded, "membershipInviteAuthority")),
+          pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
+          active: Boolean(decodedField(decoded, "active")),
+        });
+        break;
+      case "PolicySeries":
+        {
+          const comparabilityHashHex = bytesToHex(decodedField(decoded, "comparabilityHash"));
+        snapshot.policySeries.push({
+          address,
+          healthPlan: asAddress(decodedField(decoded, "healthPlan")),
+          seriesId: stringFromAnchorValue(decodedField(decoded, "seriesId")),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+          metadataUri: stringFromAnchorValue(decodedField(decoded, "metadataUri")),
+          mode: Number(decodedField(decoded, "mode") ?? 0),
+          status: Number(decodedField(decoded, "status") ?? 0),
+          assetMint: asAddress(decodedField(decoded, "assetMint")),
+          cycleSeconds: numberFromAnchorValue(decodedField(decoded, "cycleSeconds")),
+          termsVersion: stringFromAnchorValue(decodedField(decoded, "termsVersion")),
+          comparabilityKey: comparabilityHashHex.slice(0, 12) || "unbound",
+          comparabilityHashHex,
+        });
+        break;
+        }
+      case "MemberPosition":
+        snapshot.memberPositions.push({
+          address,
+          wallet: asAddress(decodedField(decoded, "wallet")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan")),
+          policySeries: asAddress(decodedField(decoded, "policySeries")),
+          eligibilityStatus: Number(decodedField(decoded, "eligibilityStatus") ?? 0),
+          delegatedRights: delegatedRightsFromMask(Number(decodedField(decoded, "delegatedRights") ?? 0)),
+          active: Boolean(decodedField(decoded, "active")),
+        });
+        break;
+      case "FundingLine":
+        snapshot.fundingLines.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan")),
+          policySeries: asOptionalAddress(decodedField(decoded, "policySeries")),
+          assetMint: asAddress(decodedField(decoded, "assetMint")),
+          lineId: stringFromAnchorValue(decodedField(decoded, "lineId")),
+          displayName: `${describeFundingLineType(Number(decodedField(decoded, "lineType") ?? 0)).replace(/_/g, " ")} · ${stringFromAnchorValue(decodedField(decoded, "lineId"))}`,
+          lineType: Number(decodedField(decoded, "lineType") ?? 0),
+          fundingPriority: Number(decodedField(decoded, "fundingPriority") ?? 0),
+          fundedAmount: bigintFromAnchorValue(decodedField(decoded, "fundedAmount")),
+          reservedAmount: bigintFromAnchorValue(decodedField(decoded, "reservedAmount")),
+          spentAmount: bigintFromAnchorValue(decodedField(decoded, "spentAmount")),
+          releasedAmount: bigintFromAnchorValue(decodedField(decoded, "releasedAmount")),
+          returnedAmount: bigintFromAnchorValue(decodedField(decoded, "returnedAmount")),
+          status: Number(decodedField(decoded, "status") ?? 0),
+        });
+        break;
+      case "ClaimCase":
+        snapshot.claimCases.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan")),
+          policySeries: asOptionalAddress(decodedField(decoded, "policySeries")),
+          fundingLine: asAddress(decodedField(decoded, "fundingLine")),
+          memberPosition: asAddress(decodedField(decoded, "memberPosition")),
+          claimant: asAddress(decodedField(decoded, "claimant")),
+          claimId: stringFromAnchorValue(decodedField(decoded, "claimId")),
+          intakeStatus: Number(decodedField(decoded, "intakeStatus") ?? 0),
+          approvedAmount: bigintFromAnchorValue(decodedField(decoded, "approvedAmount")),
+          deniedAmount: bigintFromAnchorValue(decodedField(decoded, "deniedAmount")),
+          paidAmount: bigintFromAnchorValue(decodedField(decoded, "paidAmount")),
+          reservedAmount: bigintFromAnchorValue(decodedField(decoded, "reservedAmount")),
+          linkedObligation: asOptionalAddress(decodedField(decoded, "linkedObligation")),
+        });
+        break;
+      case "Obligation":
+        snapshot.obligations.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          assetMint: asAddress(decodedField(decoded, "assetMint")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan")),
+          policySeries: asOptionalAddress(decodedField(decoded, "policySeries")),
+          memberWallet: asOptionalAddress(decodedField(decoded, "memberWallet")),
+          beneficiary: asOptionalAddress(decodedField(decoded, "beneficiary")),
+          fundingLine: asAddress(decodedField(decoded, "fundingLine")),
+          claimCase: asOptionalAddress(decodedField(decoded, "claimCase")),
+          liquidityPool: asOptionalAddress(decodedField(decoded, "liquidityPool")),
+          capitalClass: asOptionalAddress(decodedField(decoded, "capitalClass")),
+          allocationPosition: asOptionalAddress(decodedField(decoded, "allocationPosition")),
+          obligationId: stringFromAnchorValue(decodedField(decoded, "obligationId")),
+          status: Number(decodedField(decoded, "status") ?? 0),
+          deliveryMode: Number(decodedField(decoded, "deliveryMode") ?? 0),
+          principalAmount: bigintFromAnchorValue(decodedField(decoded, "principalAmount")),
+          outstandingAmount: bigintFromAnchorValue(decodedField(decoded, "outstandingAmount")),
+          reservedAmount: bigintFromAnchorValue(decodedField(decoded, "reservedAmount")),
+          claimableAmount: bigintFromAnchorValue(decodedField(decoded, "claimableAmount")),
+          payableAmount: bigintFromAnchorValue(decodedField(decoded, "payableAmount")),
+          settledAmount: bigintFromAnchorValue(decodedField(decoded, "settledAmount")),
+          impairedAmount: bigintFromAnchorValue(decodedField(decoded, "impairedAmount")),
+          recoveredAmount: bigintFromAnchorValue(decodedField(decoded, "recoveredAmount")),
+        });
+        break;
+      case "LiquidityPool":
+        snapshot.liquidityPools.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          curator: asAddress(decodedField(decoded, "curator")),
+          allocator: asAddress(decodedField(decoded, "allocator")),
+          sentinel: asAddress(decodedField(decoded, "sentinel")),
+          poolId: stringFromAnchorValue(decodedField(decoded, "poolId")),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+          depositAssetMint: asAddress(decodedField(decoded, "depositAssetMint")),
+          strategyThesis: bytesToHex(decodedField(decoded, "strategyHash")).slice(0, 16)
+            ? `strategy:${bytesToHex(decodedField(decoded, "strategyHash")).slice(0, 16)}`
+            : "canonical_pool",
+          redemptionPolicy: Number(decodedField(decoded, "redemptionPolicy") ?? 0),
+          pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
+          totalValueLocked: bigintFromAnchorValue(decodedField(decoded, "totalValueLocked")),
+          totalAllocated: bigintFromAnchorValue(decodedField(decoded, "totalAllocated")),
+          totalReserved: bigintFromAnchorValue(decodedField(decoded, "totalReserved")),
+          totalImpaired: bigintFromAnchorValue(decodedField(decoded, "totalImpaired")),
+          totalPendingRedemptions: bigintFromAnchorValue(decodedField(decoded, "totalPendingRedemptions")),
+          active: Boolean(decodedField(decoded, "active")),
+        });
+        break;
+      case "CapitalClass":
+        snapshot.capitalClasses.push({
+          address,
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          classId: stringFromAnchorValue(decodedField(decoded, "classId")),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+          priority: Number(decodedField(decoded, "priority") ?? 0),
+          restrictionMode: Number(decodedField(decoded, "restrictionMode") ?? 0),
+          totalShares: bigintFromAnchorValue(decodedField(decoded, "totalShares")),
+          navAssets: bigintFromAnchorValue(decodedField(decoded, "navAssets")),
+          allocatedAssets: bigintFromAnchorValue(decodedField(decoded, "allocatedAssets")),
+          pendingRedemptions: bigintFromAnchorValue(decodedField(decoded, "pendingRedemptions")),
+          minLockupSeconds: numberFromAnchorValue(decodedField(decoded, "minLockupSeconds")),
+          queueOnlyRedemptions: Boolean(decodedField(decoded, "queueOnlyRedemptions")),
+          active: Boolean(decodedField(decoded, "active")),
+        });
+        break;
+      case "LPPosition":
+        snapshot.lpPositions.push({
+          address,
+          owner: asAddress(decodedField(decoded, "owner")),
+          capitalClass: asAddress(decodedField(decoded, "capitalClass")),
+          shares: bigintFromAnchorValue(decodedField(decoded, "shares")),
+          subscriptionBasis: bigintFromAnchorValue(decodedField(decoded, "subscriptionBasis")),
+          pendingRedemptionShares: bigintFromAnchorValue(decodedField(decoded, "pendingRedemptionShares")),
+          realizedDistributions: bigintFromAnchorValue(decodedField(decoded, "realizedDistributions")),
+          impairedPrincipal: bigintFromAnchorValue(decodedField(decoded, "impairedPrincipal")),
+          lockupEndsAt: numberFromAnchorValue(decodedField(decoded, "lockupEndsAt")),
+          credentialed: Boolean(decodedField(decoded, "credentialed")),
+          queueStatus: Number(decodedField(decoded, "queueStatus") ?? 0),
+        });
+        break;
+      case "AllocationPosition":
+        snapshot.allocationPositions.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          capitalClass: asAddress(decodedField(decoded, "capitalClass")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan")),
+          policySeries: asOptionalAddress(decodedField(decoded, "policySeries")),
+          fundingLine: asAddress(decodedField(decoded, "fundingLine")),
+          capAmount: bigintFromAnchorValue(decodedField(decoded, "capAmount")),
+          weightBps: Number(decodedField(decoded, "weightBps") ?? 0),
+          allocatedAmount: bigintFromAnchorValue(decodedField(decoded, "allocatedAmount")),
+          utilizedAmount: bigintFromAnchorValue(decodedField(decoded, "utilizedAmount")),
+          reservedCapacity: bigintFromAnchorValue(decodedField(decoded, "reservedCapacity")),
+          realizedPnl: bigintFromAnchorValue(decodedField(decoded, "realizedPnl")),
+          impairedAmount: bigintFromAnchorValue(decodedField(decoded, "impairedAmount")),
+          deallocationOnly: Boolean(decodedField(decoded, "deallocationOnly")),
+          active: Boolean(decodedField(decoded, "active")),
+        });
+        break;
+      case "PlanReserveLedger":
+        planLedgersRaw.push({
+          address,
+          healthPlan: asAddress(decodedField(decoded, "healthPlan", "health_plan")),
+          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
+          sheet: decoded.sheet,
+        });
+        break;
+      case "SeriesReserveLedger":
+        seriesLedgersRaw.push({
+          address,
+          policySeries: asAddress(decodedField(decoded, "policySeries", "policy_series")),
+          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
+          sheet: decoded.sheet,
+        });
+        break;
+      case "FundingLineLedger":
+        lineLedgersRaw.push({
+          address,
+          fundingLine: asAddress(decodedField(decoded, "fundingLine", "funding_line")),
+          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
+          sheet: decoded.sheet,
+        });
+        break;
+      case "PoolClassLedger":
+        snapshot.poolClassLedgers.push({
+          address,
+          capitalClass: asAddress(decodedField(decoded, "capitalClass", "capital_class")),
+          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
+          sheet: decoded.sheet as PartialReserveBalanceSheet,
+          totalShares: bigintFromAnchorValue(decodedField(decoded, "totalShares", "total_shares")),
+          realizedYieldAmount: bigintFromAnchorValue(decodedField(decoded, "realizedYieldAmount", "realized_yield_amount")),
+          realizedLossAmount: bigintFromAnchorValue(decodedField(decoded, "realizedLossAmount", "realized_loss_amount")),
+        });
+        break;
+      case "AllocationLedger":
+        snapshot.allocationLedgers.push({
+          address,
+          allocationPosition: asAddress(decodedField(decoded, "allocationPosition", "allocation_position")),
+          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
+          sheet: decoded.sheet as PartialReserveBalanceSheet,
+          realizedPnl: bigintFromAnchorValue(decodedField(decoded, "realizedPnl", "realized_pnl")),
+        });
+        break;
+      case "OracleProfile":
+        snapshot.oracleProfiles.push({
+          address,
+          oracle: asAddress(decodedField(decoded, "oracle")),
+          admin: asAddress(decodedField(decoded, "admin")),
+          oracleType: Number(decodedField(decoded, "oracleType") ?? 0),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+          legalName: stringFromAnchorValue(decodedField(decoded, "legalName")),
+          websiteUrl: stringFromAnchorValue(decodedField(decoded, "websiteUrl")),
+          appUrl: stringFromAnchorValue(decodedField(decoded, "appUrl")),
+          logoUri: stringFromAnchorValue(decodedField(decoded, "logoUri")),
+          webhookUrl: stringFromAnchorValue(decodedField(decoded, "webhookUrl")),
+          supportedSchemaCount: Number(decodedField(decoded, "supportedSchemaCount") ?? 0),
+          supportedSchemaKeyHashesHex: Array.isArray(decodedField(decoded, "supportedSchemaKeyHashes"))
+            ? decodedField<Array<Uint8Array | number[]>>(decoded, "supportedSchemaKeyHashes")!
+              .map((value) => bytesToHex(value))
+              .filter(Boolean)
+              .slice(0, Number(decodedField(decoded, "supportedSchemaCount") ?? 0) || undefined)
+            : [],
+          active: Boolean(decodedField(decoded, "active")),
+          claimed: Boolean(decodedField(decoded, "claimed")),
+          createdAtTs: numberFromAnchorValue(decodedField(decoded, "createdAtTs")),
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "PoolOracleApproval":
+        snapshot.poolOracleApprovals.push({
+          address,
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          oracle: asAddress(decodedField(decoded, "oracle")),
+          active: Boolean(decodedField(decoded, "active")),
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "PoolOraclePolicy":
+        snapshot.poolOraclePolicies.push({
+          address,
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          quorumM: Number(decodedField(decoded, "quorumM") ?? 0),
+          quorumN: Number(decodedField(decoded, "quorumN") ?? 0),
+          requireVerifiedSchema: Boolean(decodedField(decoded, "requireVerifiedSchema")),
+          oracleFeeBps: Number(decodedField(decoded, "oracleFeeBps") ?? 0),
+          allowDelegateClaim: Boolean(decodedField(decoded, "allowDelegateClaim")),
+          challengeWindowSecs: Number(decodedField(decoded, "challengeWindowSecs") ?? 0),
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "PoolOraclePermissionSet":
+        snapshot.poolOraclePermissionSets.push({
+          address,
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          oracle: asAddress(decodedField(decoded, "oracle")),
+          permissions: Number(decodedField(decoded, "permissions") ?? 0),
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "OutcomeSchema":
+        snapshot.outcomeSchemas.push({
+          address,
+          publisher: asAddress(decodedField(decoded, "publisher")),
+          schemaKeyHashHex: bytesToHex(decodedField(decoded, "schemaKeyHash", "schema_key_hash")),
+          schemaKey: stringFromAnchorValue(decodedField(decoded, "schemaKey", "schema_key")),
+          version: Number(decodedField(decoded, "version") ?? 0),
+          schemaHashHex: bytesToHex(decodedField(decoded, "schemaHash", "schema_hash")),
+          schemaFamily: Number(decodedField(decoded, "schemaFamily", "schema_family") ?? 0),
+          visibility: Number(decodedField(decoded, "visibility") ?? 0),
+          metadataUri: stringFromAnchorValue(decodedField(decoded, "metadataUri", "metadata_uri")),
+          verified: Boolean(decodedField(decoded, "verified")),
+          createdAtTs: numberFromAnchorValue(decodedField(decoded, "createdAtTs", "created_at_ts")),
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs", "updated_at_ts")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "SchemaDependencyLedger":
+        snapshot.schemaDependencyLedgers.push({
+          address,
+          schemaKeyHashHex: bytesToHex(decodedField(decoded, "schemaKeyHash", "schema_key_hash")),
+          poolRuleAddresses: Array.isArray(decodedField(decoded, "poolRuleAddresses", "pool_rule_addresses"))
+            ? decodedField<Array<PublicKeyish>>(decoded, "poolRuleAddresses", "pool_rule_addresses")!
+              .map((value) => asAddress(value))
+            : [],
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs", "updated_at_ts")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      default:
+        break;
+    }
+  }
+
+  const planToDomain = new Map(snapshot.healthPlans.map((plan) => [plan.address, plan.reserveDomain]));
+  const seriesToDomain = new Map(
+    snapshot.policySeries.map((series) => [series.address, planToDomain.get(series.healthPlan) ?? ZERO_PUBKEY]),
+  );
+  const lineToDomain = new Map(snapshot.fundingLines.map((line) => [line.address, line.reserveDomain]));
+
+  snapshot.planReserveLedgers = planLedgersRaw.map((ledger) =>
+    reserveLedgerSnapshot({
+      address: ledger.address,
+      reserveDomain: planToDomain.get(ledger.healthPlan) ?? ZERO_PUBKEY,
+      assetMint: ledger.assetMint,
+      sheet: ledger.sheet,
+    }),
+  );
+  snapshot.seriesReserveLedgers = seriesLedgersRaw.map((ledger) =>
+    reserveLedgerSnapshot({
+      address: ledger.address,
+      reserveDomain: seriesToDomain.get(ledger.policySeries) ?? ZERO_PUBKEY,
+      assetMint: ledger.assetMint,
+      sheet: ledger.sheet,
+    }),
+  );
+  snapshot.fundingLineLedgers = lineLedgersRaw.map((ledger) =>
+    reserveLedgerSnapshot({
+      address: ledger.address,
+      reserveDomain: lineToDomain.get(ledger.fundingLine) ?? ZERO_PUBKEY,
+      assetMint: ledger.assetMint,
+      sheet: ledger.sheet,
+    }),
+  );
+
+  snapshot.reserveDomains = sortByLabel(snapshot.reserveDomains, (row) => row.displayName || row.domainId);
+  snapshot.healthPlans = sortByLabel(snapshot.healthPlans, (row) => row.displayName || row.planId);
+  snapshot.policySeries = sortByLabel(snapshot.policySeries, (row) => row.displayName || row.seriesId);
+  snapshot.fundingLines = sortByLabel(snapshot.fundingLines, (row) => row.displayName || row.lineId);
+  snapshot.claimCases = sortByLabel(snapshot.claimCases, (row) => row.claimId);
+  snapshot.obligations = sortByLabel(snapshot.obligations, (row) => row.obligationId);
+  snapshot.liquidityPools = sortByLabel(snapshot.liquidityPools, (row) => row.displayName || row.poolId);
+  snapshot.capitalClasses = sortByLabel(snapshot.capitalClasses, (row) => row.displayName || row.classId);
+  snapshot.memberPositions = sortByLabel(snapshot.memberPositions, (row) => `${row.healthPlan}:${row.wallet}`);
+  snapshot.lpPositions = sortByLabel(snapshot.lpPositions, (row) => `${row.capitalClass}:${row.owner}`);
+  snapshot.allocationPositions = sortByLabel(snapshot.allocationPositions, (row) => `${row.capitalClass}:${row.fundingLine}`);
+  snapshot.oracleProfiles = sortByLabel(snapshot.oracleProfiles, (row) => row.displayName || row.oracle);
+  snapshot.poolOracleApprovals = sortByLabel(snapshot.poolOracleApprovals, (row) => `${row.liquidityPool}:${row.oracle}`);
+  snapshot.poolOraclePolicies = sortByLabel(snapshot.poolOraclePolicies, (row) => row.liquidityPool);
+  snapshot.poolOraclePermissionSets = sortByLabel(snapshot.poolOraclePermissionSets, (row) => `${row.liquidityPool}:${row.oracle}`);
+  snapshot.outcomeSchemas = sortByLabel(snapshot.outcomeSchemas, (row) => `${row.schemaKey}:${row.version}`);
+  snapshot.schemaDependencyLedgers = sortByLabel(snapshot.schemaDependencyLedgers, (row) => row.schemaKeyHashHex);
+
+  return snapshot;
+}
+
+function matchesSearch(haystacks: Array<string | null | undefined>, search?: string | null): boolean {
+  const needle = search?.trim().toLowerCase();
+  if (!needle) return true;
+  return haystacks.some((value) => value?.toLowerCase().includes(needle));
+}
+
+function buildInstructionAccounts(
+  accounts: Array<{ pubkey: PublicKeyish; isSigner?: boolean; isWritable?: boolean }>,
+) {
+  return accounts.map((account) => ({
+    pubkey: toPublicKey(account.pubkey),
+    isSigner: Boolean(account.isSigner),
+    isWritable: Boolean(account.isWritable),
+  }));
+}
+
+function buildProtocolInstruction(
+  name: string,
+  args: Record<string, unknown>,
+  accounts: Array<{ pubkey: PublicKeyish; isSigner?: boolean; isWritable?: boolean }>,
+): TransactionInstruction {
+  const definition = PROTOCOL_IDL.instructions.find((instruction) => instruction.name === name);
+  const normalizedArgs = definition?.args?.length === 1
+    && definition.args[0]?.name === "args"
+    && !Object.prototype.hasOwnProperty.call(args, "args")
+    ? { args }
+    : args;
+  const encodedArgs = normalizeInstructionArgsValue(normalizedArgs);
+  return new TransactionInstruction({
+    programId: getProgramId(),
+    keys: buildInstructionAccounts(accounts),
+    data: PROTOCOL_CODER.instruction.encode(name, encodedArgs),
+  });
+}
+
+function normalizeInstructionArgsValue(value: unknown): unknown {
+  if (typeof value === "bigint") {
+    return new BN(value.toString());
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeInstructionArgsValue(item));
+  }
+  if (
+    value instanceof PublicKey
+    || (
+      value
+      && typeof value === "object"
+      && "toBuffer" in value
+      && typeof value.toBuffer === "function"
+      && "toBase58" in value
+      && typeof value.toBase58 === "function"
+    )
+    || value instanceof Uint8Array
+    || Buffer.isBuffer(value)
+    || value === null
+    || value === undefined
+  ) {
+    return value;
+  }
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, currentValue]) => [key, normalizeInstructionArgsValue(currentValue)]),
+    );
+  }
+  return value;
+}
+
+function buildProtocolTransaction(params: {
+  feePayer: PublicKeyish;
+  recentBlockhash: string;
+  instructions: TransactionInstruction[];
+}): Transaction {
+  return new Transaction({
+    feePayer: toPublicKey(params.feePayer),
+    recentBlockhash: params.recentBlockhash,
+  }).add(...params.instructions);
+}
+
+export type ProtocolInstructionAccountInput = {
+  pubkey?: PublicKeyish | null;
+  isSigner?: boolean;
+  isWritable?: boolean;
+};
+
+function normalizeProtocolInstructionAccounts(
+  accounts: ProtocolInstructionAccountInput[],
+): Array<{ pubkey: PublicKeyish; isSigner?: boolean; isWritable?: boolean }> {
+  return accounts.map((account) => {
+    const pubkey = account.pubkey ?? getProgramId();
+    return {
+      pubkey,
+      isSigner: account.pubkey ? Boolean(account.isSigner) : false,
+      isWritable: account.pubkey ? Boolean(account.isWritable) : false,
+    };
+  });
+}
+
+function optionalProtocolAccount(
+  pubkey?: PublicKeyish | null,
+  isWritable = false,
+): ProtocolInstructionAccountInput {
+  return pubkey
+    ? { pubkey, isWritable }
+    : { pubkey: undefined, isWritable: false };
+}
+
+function optionalSeriesReserveLedgerAccount(
+  policySeriesAddress: PublicKeyish | null | undefined,
+  assetMint: PublicKeyish | null | undefined,
+): ProtocolInstructionAccountInput {
+  if (!policySeriesAddress || !assetMint) return optionalProtocolAccount(undefined);
+  return optionalProtocolAccount(
+    deriveSeriesReserveLedgerPda({ policySeries: policySeriesAddress, assetMint }),
+    true,
+  );
+}
+
+function optionalPoolClassLedgerAccount(
+  capitalClassAddress: PublicKeyish | null | undefined,
+  poolAssetMint: PublicKeyish | null | undefined,
+): ProtocolInstructionAccountInput {
+  if (!capitalClassAddress || !poolAssetMint) return optionalProtocolAccount(undefined);
+  return optionalProtocolAccount(
+    derivePoolClassLedgerPda({ capitalClass: capitalClassAddress, assetMint: poolAssetMint }),
+    true,
+  );
+}
+
+function optionalAllocationLedgerAccount(
+  allocationPositionAddress: PublicKeyish | null | undefined,
+  assetMint: PublicKeyish | null | undefined,
+): ProtocolInstructionAccountInput {
+  if (!allocationPositionAddress || !assetMint) return optionalProtocolAccount(undefined);
+  return optionalProtocolAccount(
+    deriveAllocationLedgerPda({ allocationPosition: allocationPositionAddress, assetMint }),
+    true,
+  );
+}
+
+export function buildProtocolTransactionFromInstruction(params: {
+  feePayer: PublicKeyish;
+  recentBlockhash: string;
+  instructionName: string;
+  args: Record<string, unknown>;
+  accounts: ProtocolInstructionAccountInput[];
+}): Transaction {
+  const instruction = buildProtocolInstruction(
+    params.instructionName,
+    params.args,
+    normalizeProtocolInstructionAccounts(params.accounts),
+  );
+  return buildProtocolTransaction({
+    feePayer: params.feePayer,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+function oracleMetadataUri(profile: OracleProfileSummary): string {
+  return profile.logoUri || profile.websiteUrl || profile.appUrl || "";
+}
+
+function mapOracleSummary(profile: OracleProfileSummary): OracleWithProfileSummary {
+  return {
+    address: profile.address,
+    oracle: profile.oracle,
+    active: profile.active,
+    claimed: profile.claimed,
+    admin: profile.admin,
+    bump: profile.bump,
+    metadataUri: oracleMetadataUri(profile),
+    profile,
+  };
+}
+
+function configuredPublicKeyFromEnv(value?: string | null): string {
+  const normalized = value?.trim();
+  if (!normalized) return ZERO_PUBKEY;
+  try {
+    return new PublicKey(normalized).toBase58();
+  } catch {
+    return ZERO_PUBKEY;
+  }
+}
+
+function poolAddressForSeriesInSnapshot(
+  seriesAddress: string,
+  snapshot: Pick<ProtocolConsoleSnapshot, "allocationPositions">,
+): string | null {
+  return snapshot.allocationPositions.find((allocation) => allocation.policySeries === seriesAddress)?.liquidityPool ?? null;
+}
+
+function schemaVersionForSeries(
+  series: PolicySeriesSnapshot,
+  snapshot: Pick<ProtocolConsoleSnapshot, "outcomeSchemas">,
+): number {
+  const directMatch = series.comparabilityHashHex
+    ? snapshot.outcomeSchemas.find((schema) =>
+      schema.schemaKeyHashHex === series.comparabilityHashHex
+      && schema.version === Number.parseInt(series.termsVersion, 10),
+    ) ?? snapshot.outcomeSchemas.find((schema) => schema.schemaKeyHashHex === series.comparabilityHashHex) ?? null
+    : null;
+  if (directMatch) return directMatch.version;
+  const parsedVersion = Number.parseInt(series.termsVersion, 10);
+  return Number.isFinite(parsedVersion) ? parsedVersion : 0;
+}
+
+function protocolConfigFromSnapshot(snapshot: ProtocolConsoleSnapshot): ProtocolConfigSummary | null {
+  if (!snapshot.protocolGovernance) return null;
+  const governanceRealm = configuredPublicKeyFromEnv(process.env.NEXT_PUBLIC_GOVERNANCE_REALM);
+  const governanceConfig = configuredPublicKeyFromEnv(process.env.NEXT_PUBLIC_GOVERNANCE_CONFIG);
+  return {
+    address: snapshot.protocolGovernance.address,
+    admin: snapshot.protocolGovernance.governanceAuthority,
+    governanceAuthority: snapshot.protocolGovernance.governanceAuthority,
+    governanceRealm,
+    governanceConfig,
+    protocolFeeBps: snapshot.protocolGovernance.protocolFeeBps,
+    defaultStakeMint: ZERO_PUBKEY,
+    minOracleStake: 0n,
+    emergencyPaused: snapshot.protocolGovernance.emergencyPause,
+    allowedPayoutMintsHashHex: ZERO_HASH_HEX,
+  };
+}
+
+export function clearProtocolDiscoveryCache(): void {
+  // The canonical adapter currently reads live chain state directly for every discovery request.
+}
+
+export async function listOraclesWithProfiles(params: {
+  connection: Connection;
+  activeOnly?: boolean;
+  search?: string | null;
+}): Promise<OracleWithProfileSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.oracleProfiles
+    .map(mapOracleSummary)
+    .filter((oracle) => !params.activeOnly || oracle.active)
+    .filter((oracle) =>
+      matchesSearch(
+        [
+          oracle.oracle,
+          oracle.admin,
+          oracle.profile?.displayName,
+          oracle.profile?.legalName,
+          oracle.profile?.websiteUrl,
+          oracle.profile?.appUrl,
+          oracle.metadataUri,
+          oracle.claimed ? "claimed" : "unclaimed",
+        ],
+        params.search,
+      ),
+    );
+}
+
+export async function listOracles(params: {
+  connection: Connection;
+  activeOnly?: boolean;
+  search?: string | null;
+}): Promise<OracleSummary[]> {
+  return listOraclesWithProfiles(params);
+}
+
+export async function listPoolOracleApprovals(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  activeOnly?: boolean;
+}): Promise<PoolOracleApprovalSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.poolOracleApprovals.filter((approval) =>
+    (!params.poolAddress || approval.liquidityPool === params.poolAddress)
+    && (!params.activeOnly || approval.active),
+  );
+}
+
+export async function listPoolOraclePolicies(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+}): Promise<PoolOraclePolicySummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.poolOraclePolicies.filter((policy) =>
+    !params.poolAddress || policy.liquidityPool === params.poolAddress,
+  );
+}
+
+export async function listPoolOraclePermissionSets(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+}): Promise<PoolOraclePermissionSetSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.poolOraclePermissionSets.filter((permissionSet) =>
+    !params.poolAddress || permissionSet.liquidityPool === params.poolAddress,
+  );
+}
+
+export async function fetchProtocolConfig(params: {
+  connection: Connection;
+}): Promise<ProtocolConfigSummary | null> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return protocolConfigFromSnapshot(snapshot);
+}
+
+export async function listProtocolConfig(params: {
+  connection: Connection;
+}): Promise<ProtocolConfigSummary[]> {
+  const config = await fetchProtocolConfig(params);
+  return config ? [config] : [];
+}
+
+export async function listSchemas(params: {
+  connection: Connection;
+  verifiedOnly?: boolean;
+  search?: string | null;
+}): Promise<SchemaSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.outcomeSchemas
+    .filter((schema) => !params.verifiedOnly || schema.verified)
+    .filter((schema) =>
+      matchesSearch(
+        [
+          schema.schemaKey,
+          schema.schemaKeyHashHex,
+          schema.schemaHashHex,
+          schema.metadataUri,
+          schema.verified ? "verified" : "unverified",
+        ],
+        params.search,
+      ),
+    );
+}
+
+export async function listSchemaDependencyLedgers(params: {
+  connection: Connection;
+  schemaKeyHashHex?: string | null;
+}): Promise<SchemaDependencyLedgerSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  const targetHash = params.schemaKeyHashHex?.trim().toLowerCase();
+  return snapshot.schemaDependencyLedgers.filter((ledger) =>
+    !targetHash || ledger.schemaKeyHashHex.toLowerCase() === targetHash,
+  );
+}
+
+export async function listPoolRules(params: {
+  connection: Connection;
+  poolAddress?: string | null;
+  schemaKeyHashHex?: string | null;
+  enabledOnly?: boolean;
+  search?: string | null;
+}): Promise<RuleSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  const rules: RuleSummary[] = snapshot.policySeries
+    .map<RuleSummary | null>((series) => {
+      const pool = poolAddressForSeriesInSnapshot(series.address, snapshot);
+      if (!pool || !series.comparabilityHashHex) return null;
+      const version = schemaVersionForSeries(series, snapshot);
+      return {
+        address: series.address,
+        ruleId: `${series.seriesId}:v${version}`,
+        pool,
+        schemaKeyHashHex: series.comparabilityHashHex,
+        schemaVersion: version,
+        enabled: true,
+        policySeries: series.address,
+        healthPlan: series.healthPlan,
+      };
+    })
+    .filter((rule): rule is RuleSummary => rule !== null);
+  return rules
+    .filter((rule) => !params.poolAddress || rule.pool === params.poolAddress)
+    .filter((rule) => !params.schemaKeyHashHex || rule.schemaKeyHashHex.toLowerCase() === params.schemaKeyHashHex.trim().toLowerCase())
+    .filter((rule) => !params.enabledOnly || rule.enabled)
+    .filter((rule) =>
+      matchesSearch(
+        [
+          rule.ruleId,
+          rule.address,
+          rule.pool,
+          rule.policySeries,
+          rule.healthPlan,
+          rule.schemaKeyHashHex,
+          rule.enabled ? "enabled" : "disabled",
+        ],
+        params.search,
+      ),
+    );
+}
+
+export function buildSetProtocolEmergencyPauseTx(params: {
+  authority: PublicKeyish;
+  recentBlockhash: string;
+  emergencyPaused: boolean;
+  reasonHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "set_protocol_emergency_pause",
+    args: {
+      emergency_pause: params.emergencyPaused,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
+    ],
+  });
+}
+
+export function buildUpdateReserveDomainControlsTx(params: {
+  authority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  recentBlockhash: string;
+  allowedRailMask: number;
+  pauseFlags: number;
+  active: boolean;
+  reasonHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "update_reserve_domain_controls",
+    args: {
+      allowed_rail_mask: params.allowedRailMask,
+      pause_flags: params.pauseFlags,
+      active: params.active,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.reserveDomainAddress, isWritable: true },
+    ],
+  });
+}
+
+export function buildUpdateHealthPlanControlsTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  recentBlockhash: string;
+  sponsorOperator: PublicKeyish;
+  claimsOperator: PublicKeyish;
+  oracleAuthority: PublicKeyish | null | undefined;
+  membershipMode: number;
+  membershipGateKind: number;
+  membershipGateMint: PublicKeyish | null | undefined;
+  membershipGateMinAmount: bigint;
+  membershipInviteAuthority: PublicKeyish | null | undefined;
+  allowedRailMask: number;
+  defaultFundingPriority: number;
+  oraclePolicyHashHex?: string | null;
+  schemaBindingHashHex?: string | null;
+  complianceBaselineHashHex?: string | null;
+  pauseFlags: number;
+  active: boolean;
+  reasonHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "update_health_plan_controls",
+    args: {
+      sponsor_operator: toPublicKey(params.sponsorOperator),
+      claims_operator: toPublicKey(params.claimsOperator),
+      oracle_authority: toPublicKey(params.oracleAuthority ?? ZERO_PUBKEY_KEY),
+      membership_mode: params.membershipMode,
+      membership_gate_kind: params.membershipGateKind,
+      membership_gate_mint: toPublicKey(params.membershipGateMint ?? ZERO_PUBKEY_KEY),
+      membership_gate_min_amount: params.membershipGateMinAmount,
+      membership_invite_authority: toPublicKey(params.membershipInviteAuthority ?? ZERO_PUBKEY_KEY),
+      allowed_rail_mask: params.allowedRailMask,
+      default_funding_priority: params.defaultFundingPriority,
+      oracle_policy_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.oraclePolicyHashHex), 32)),
+      schema_binding_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.schemaBindingHashHex), 32)),
+      compliance_baseline_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.complianceBaselineHashHex), 32)),
+      pause_flags: params.pauseFlags,
+      active: params.active,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress, isWritable: true },
+    ],
+  });
+}
+
+export function buildVersionPolicySeriesTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  currentPolicySeriesAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  recentBlockhash: string;
+  seriesId: string;
+  displayName: string;
+  metadataUri: string;
+  status: number;
+  adjudicationMode: number;
+  termsHashHex?: string | null;
+  pricingHashHex?: string | null;
+  payoutHashHex?: string | null;
+  reserveModelHashHex?: string | null;
+  evidenceRequirementsHashHex?: string | null;
+  comparabilityHashHex?: string | null;
+  policyOverridesHashHex?: string | null;
+  cycleSeconds: bigint;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const nextPolicySeries = derivePolicySeriesPda({
+    healthPlan: params.healthPlanAddress,
+    seriesId: params.seriesId,
+  });
+  const nextSeriesReserveLedger = deriveSeriesReserveLedgerPda({
+    policySeries: nextPolicySeries,
+    assetMint: params.assetMint,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "version_policy_series",
+    args: {
+      series_id: params.seriesId,
+      display_name: params.displayName,
+      metadata_uri: params.metadataUri,
+      status: params.status,
+      adjudication_mode: params.adjudicationMode,
+      terms_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.termsHashHex), 32)),
+      pricing_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.pricingHashHex), 32)),
+      payout_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.payoutHashHex), 32)),
+      reserve_model_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reserveModelHashHex), 32)),
+      evidence_requirements_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.evidenceRequirementsHashHex), 32)),
+      comparability_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.comparabilityHashHex), 32)),
+      policy_overrides_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.policyOverridesHashHex), 32)),
+      cycle_seconds: params.cycleSeconds,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.currentPolicySeriesAddress, isWritable: true },
+      { pubkey: nextPolicySeries, isWritable: true },
+      { pubkey: nextSeriesReserveLedger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildOpenMemberPositionTx(params: {
+  wallet: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  recentBlockhash: string;
+  seriesScopeAddress?: PublicKeyish | null;
+  subjectCommitmentHashHex?: string | null;
+  eligibilityStatus: number;
+  delegatedRightsMask: number;
+  proofMode: number;
+  tokenGateAmountSnapshot: bigint;
+  inviteIdHashHex?: string | null;
+  inviteExpiresAt: bigint;
+  anchorRefAddress?: PublicKeyish | null;
+  tokenGateAccountAddress?: PublicKeyish | null;
+  inviteAuthorityAddress?: PublicKeyish | null;
+}): Transaction {
+  const wallet = toPublicKey(params.wallet);
+  const seriesScope = toPublicKey(params.seriesScopeAddress ?? ZERO_PUBKEY_KEY);
+  const anchorRef = toPublicKey(params.anchorRefAddress ?? ZERO_PUBKEY_KEY);
+  const memberPosition = deriveMemberPositionPda({
+    healthPlan: params.healthPlanAddress,
+    wallet,
+    seriesScope,
+  });
+  const membershipAnchorSeat = !anchorRef.equals(ZERO_PUBKEY_KEY)
+    ? deriveMembershipAnchorSeatPda({ healthPlan: params.healthPlanAddress, anchorRef })
+    : undefined;
+
+  return buildProtocolTransactionFromInstruction({
+    feePayer: wallet,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "open_member_position",
+    args: {
+      series_scope: seriesScope,
+      subject_commitment: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.subjectCommitmentHashHex), 32)),
+      eligibility_status: params.eligibilityStatus,
+      delegated_rights: params.delegatedRightsMask,
+      proof_mode: params.proofMode,
+      token_gate_amount_snapshot: params.tokenGateAmountSnapshot,
+      invite_id_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.inviteIdHashHex), 32)),
+      invite_expires_at: params.inviteExpiresAt,
+      anchor_ref: anchorRef,
+    },
+    accounts: [
+      { pubkey: wallet, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: memberPosition, isWritable: true },
+      optionalProtocolAccount(membershipAnchorSeat, true),
+      optionalProtocolAccount(params.tokenGateAccountAddress),
+      optionalProtocolAccount(params.inviteAuthorityAddress),
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildUpdateMemberEligibilityTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  walletAddress: PublicKeyish;
+  recentBlockhash: string;
+  seriesScopeAddress?: PublicKeyish | null;
+  eligibilityStatus: number;
+  delegatedRightsMask: number;
+  active: boolean;
+  membershipAnchorRefAddress?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const seriesScope = toPublicKey(params.seriesScopeAddress ?? ZERO_PUBKEY_KEY);
+  const memberPosition = deriveMemberPositionPda({
+    healthPlan: params.healthPlanAddress,
+    wallet: params.walletAddress,
+    seriesScope,
+  });
+  const membershipAnchorSeat = params.membershipAnchorRefAddress
+    ? deriveMembershipAnchorSeatPda({
+      healthPlan: params.healthPlanAddress,
+      anchorRef: params.membershipAnchorRefAddress,
+    })
+    : undefined;
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "update_member_eligibility",
+    args: {
+      eligibility_status: params.eligibilityStatus,
+      delegated_rights: params.delegatedRightsMask,
+      active: params.active,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: memberPosition, isWritable: true },
+      optionalProtocolAccount(membershipAnchorSeat, true),
+    ],
+  });
+}
+
+export function buildFundSponsorBudgetTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+  policySeriesAddress?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "fund_sponsor_budget",
+    args: { amount: params.amount },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.fundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.fundingLineAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
+    ],
+  });
+}
+
+export function buildRecordPremiumPaymentTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+  policySeriesAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  poolAssetMint?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "record_premium_payment",
+    args: { amount: params.amount },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.fundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.fundingLineAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
+      optionalPoolClassLedgerAccount(params.capitalClassAddress, params.poolAssetMint),
+    ],
+  });
+}
+
+export function buildCreateObligationTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  recentBlockhash: string;
+  obligationId: string;
+  policySeriesAddress?: PublicKeyish | null;
+  memberWalletAddress?: PublicKeyish | null;
+  beneficiaryAddress?: PublicKeyish | null;
+  claimCaseAddress?: PublicKeyish | null;
+  liquidityPoolAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  deliveryMode: number;
+  amount: bigint;
+  creationReasonHashHex?: string | null;
+  poolAssetMint?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const obligation = deriveObligationPda({
+    fundingLine: params.fundingLineAddress,
+    obligationId: params.obligationId,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "create_obligation",
+    args: {
+      obligation_id: params.obligationId,
+      asset_mint: toPublicKey(params.assetMint),
+      policy_series: toPublicKey(params.policySeriesAddress ?? ZERO_PUBKEY_KEY),
+      member_wallet: toPublicKey(params.memberWalletAddress ?? ZERO_PUBKEY_KEY),
+      beneficiary: toPublicKey(params.beneficiaryAddress ?? ZERO_PUBKEY_KEY),
+      claim_case: toPublicKey(params.claimCaseAddress ?? ZERO_PUBKEY_KEY),
+      liquidity_pool: toPublicKey(params.liquidityPoolAddress ?? ZERO_PUBKEY_KEY),
+      capital_class: toPublicKey(params.capitalClassAddress ?? ZERO_PUBKEY_KEY),
+      allocation_position: toPublicKey(params.allocationPositionAddress ?? ZERO_PUBKEY_KEY),
+      delivery_mode: params.deliveryMode,
+      amount: params.amount,
+      creation_reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.creationReasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.fundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.fundingLineAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
+      optionalPoolClassLedgerAccount(params.capitalClassAddress, params.poolAssetMint),
+      optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
+      { pubkey: obligation, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildOpenClaimCaseTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  memberPositionAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  recentBlockhash: string;
+  claimId: string;
+  policySeriesAddress?: PublicKeyish | null;
+  claimantAddress?: PublicKeyish | null;
+  evidenceRefHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const claimCase = deriveClaimCasePda({
+    healthPlan: params.healthPlanAddress,
+    claimId: params.claimId,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "open_claim_case",
+    args: {
+      claim_id: params.claimId,
+      policy_series: toPublicKey(params.policySeriesAddress ?? ZERO_PUBKEY_KEY),
+      claimant: toPublicKey(params.claimantAddress ?? authority),
+      evidence_ref_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.evidenceRefHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.memberPositionAddress },
+      { pubkey: params.fundingLineAddress },
+      { pubkey: claimCase, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildAttachClaimEvidenceRefTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  claimCaseAddress: PublicKeyish;
+  recentBlockhash: string;
+  evidenceRefHashHex?: string | null;
+  decisionSupportHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "attach_claim_evidence_ref",
+    args: {
+      evidence_ref_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.evidenceRefHashHex), 32)),
+      decision_support_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.decisionSupportHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.claimCaseAddress, isWritable: true },
+    ],
+  });
+}
+
+export function buildAdjudicateClaimCaseTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  claimCaseAddress: PublicKeyish;
+  recentBlockhash: string;
+  reviewState: number;
+  approvedAmount: bigint;
+  deniedAmount: bigint;
+  reserveAmount: bigint;
+  decisionSupportHashHex?: string | null;
+  obligationAddress?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "adjudicate_claim_case",
+    args: {
+      review_state: params.reviewState,
+      approved_amount: params.approvedAmount,
+      denied_amount: params.deniedAmount,
+      reserve_amount: params.reserveAmount,
+      decision_support_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.decisionSupportHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.claimCaseAddress, isWritable: true },
+      optionalProtocolAccount(params.obligationAddress, true),
+    ],
+  });
+}
+
+function buildObligationFlowTx(params: {
+  instructionName: "reserve_obligation" | "release_reserve" | "settle_obligation";
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  obligationAddress: PublicKeyish;
+  recentBlockhash: string;
+  policySeriesAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  poolAssetMint?: PublicKeyish | null;
+  args: Record<string, unknown>;
+  includeVault?: boolean;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: params.instructionName,
+    args: params.args,
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      ...(params.includeVault ? [{
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      }] : []),
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.fundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.fundingLineAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
+      optionalPoolClassLedgerAccount(params.capitalClassAddress, params.poolAssetMint),
+      optionalProtocolAccount(params.allocationPositionAddress, true),
+      optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
+      { pubkey: params.obligationAddress, isWritable: true },
+    ],
+  });
+}
+
+export function buildReserveObligationTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  obligationAddress: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+  policySeriesAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  poolAssetMint?: PublicKeyish | null;
+}): Transaction {
+  return buildObligationFlowTx({
+    ...params,
+    instructionName: "reserve_obligation",
+    args: { amount: params.amount },
+  });
+}
+
+export function buildReleaseReserveTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  obligationAddress: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+  policySeriesAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  poolAssetMint?: PublicKeyish | null;
+}): Transaction {
+  return buildObligationFlowTx({
+    ...params,
+    instructionName: "release_reserve",
+    args: { amount: params.amount },
+  });
+}
+
+export function buildSettleObligationTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  obligationAddress: PublicKeyish;
+  recentBlockhash: string;
+  nextStatus: number;
+  amount: bigint;
+  settlementReasonHashHex?: string | null;
+  policySeriesAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  poolAssetMint?: PublicKeyish | null;
+}): Transaction {
+  return buildObligationFlowTx({
+    ...params,
+    instructionName: "settle_obligation",
+    includeVault: true,
+    args: {
+      next_status: params.nextStatus,
+      amount: params.amount,
+      settlement_reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.settlementReasonHashHex), 32)),
+    },
+  });
+}
+
+export function buildSettleClaimCaseTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  claimCaseAddress: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+  policySeriesAddress?: PublicKeyish | null;
+  obligationAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  poolAssetMint?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "settle_claim_case",
+    args: { amount: params.amount },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.fundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.fundingLineAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
+      optionalPoolClassLedgerAccount(params.capitalClassAddress, params.poolAssetMint),
+      optionalProtocolAccount(params.allocationPositionAddress, true),
+      optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
+      { pubkey: params.claimCaseAddress, isWritable: true },
+      optionalProtocolAccount(params.obligationAddress, true),
+    ],
+  });
+}
+
+export function buildCreateLiquidityPoolTx(params: {
+  authority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  recentBlockhash: string;
+  poolId: string;
+  displayName: string;
+  curator?: PublicKeyish | null;
+  allocator?: PublicKeyish | null;
+  sentinel?: PublicKeyish | null;
+  depositAssetMint: PublicKeyish;
+  strategyHashHex?: string | null;
+  allowedExposureHashHex?: string | null;
+  externalYieldAdapterHashHex?: string | null;
+  feeBps: number;
+  redemptionPolicy: number;
+  pauseFlags: number;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const liquidityPool = deriveLiquidityPoolPda({
+    reserveDomain: params.reserveDomainAddress,
+    poolId: params.poolId,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "create_liquidity_pool",
+    args: {
+      pool_id: params.poolId,
+      display_name: params.displayName,
+      curator: toPublicKey(params.curator ?? authority),
+      allocator: toPublicKey(params.allocator ?? authority),
+      sentinel: toPublicKey(params.sentinel ?? authority),
+      deposit_asset_mint: toPublicKey(params.depositAssetMint),
+      strategy_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.strategyHashHex), 32)),
+      allowed_exposure_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.allowedExposureHashHex), 32)),
+      external_yield_adapter_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.externalYieldAdapterHashHex), 32)),
+      fee_bps: params.feeBps,
+      redemption_policy: params.redemptionPolicy,
+      pause_flags: params.pauseFlags,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.reserveDomainAddress },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.depositAssetMint,
+        }),
+      },
+      { pubkey: liquidityPool, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildCreateCapitalClassTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  recentBlockhash: string;
+  classId: string;
+  displayName: string;
+  shareMint?: PublicKeyish | null;
+  priority: number;
+  impairmentRank: number;
+  restrictionMode: number;
+  redemptionTermsMode: number;
+  wrapperMetadataHashHex?: string | null;
+  permissioningHashHex?: string | null;
+  feeBps: number;
+  minLockupSeconds: bigint;
+  pauseFlags: number;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const capitalClass = deriveCapitalClassPda({
+    liquidityPool: params.poolAddress,
+    classId: params.classId,
+  });
+  const poolClassLedger = derivePoolClassLedgerPda({
+    capitalClass,
+    assetMint: params.poolDepositAssetMint,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "create_capital_class",
+    args: {
+      class_id: params.classId,
+      display_name: params.displayName,
+      share_mint: toPublicKey(params.shareMint ?? ZERO_PUBKEY_KEY),
+      priority: params.priority,
+      impairment_rank: params.impairmentRank,
+      restriction_mode: params.restrictionMode,
+      redemption_terms_mode: params.redemptionTermsMode,
+      wrapper_metadata_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.wrapperMetadataHashHex), 32)),
+      permissioning_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.permissioningHashHex), 32)),
+      fee_bps: params.feeBps,
+      min_lockup_seconds: params.minLockupSeconds,
+      pause_flags: params.pauseFlags,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.poolAddress },
+      { pubkey: capitalClass, isWritable: true },
+      { pubkey: poolClassLedger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildUpdateCapitalClassControlsTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  recentBlockhash: string;
+  pauseFlags: number;
+  queueOnlyRedemptions: boolean;
+  active: boolean;
+  reasonHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "update_capital_class_controls",
+    args: {
+      pause_flags: params.pauseFlags,
+      queue_only_redemptions: params.queueOnlyRedemptions,
+      active: params.active,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.poolAddress },
+      { pubkey: params.capitalClassAddress, isWritable: true },
+    ],
+  });
+}
+
+export function buildDepositIntoCapitalClassTx(params: {
+  owner: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  poolAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+  shares: bigint;
+}): Transaction {
+  const owner = toPublicKey(params.owner);
+  const lpPosition = deriveLpPositionPda({
+    capitalClass: params.capitalClassAddress,
+    owner,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: owner,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "deposit_into_capital_class",
+    args: {
+      amount: params.amount,
+      shares: params.shares,
+    },
+    accounts: [
+      { pubkey: owner, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.poolAddress, isWritable: true },
+      { pubkey: params.capitalClassAddress, isWritable: true },
+      {
+        pubkey: derivePoolClassLedgerPda({
+          capitalClass: params.capitalClassAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: lpPosition, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildRequestRedemptionTx(params: {
+  owner: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  poolAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  recentBlockhash: string;
+  shares: bigint;
+  assetAmount: bigint;
+}): Transaction {
+  const owner = toPublicKey(params.owner);
+  const lpPosition = deriveLpPositionPda({
+    capitalClass: params.capitalClassAddress,
+    owner,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: owner,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "request_redemption",
+    args: {
+      shares: params.shares,
+      asset_amount: params.assetAmount,
+    },
+    accounts: [
+      { pubkey: owner, isSigner: true },
+      { pubkey: params.poolAddress, isWritable: true },
+      { pubkey: params.capitalClassAddress, isWritable: true },
+      {
+        pubkey: derivePoolClassLedgerPda({
+          capitalClass: params.capitalClassAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: lpPosition, isWritable: true },
+    ],
+  });
+}
+
+export function buildProcessRedemptionQueueTx(params: {
+  authority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  poolAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  lpOwnerAddress: PublicKeyish;
+  recentBlockhash: string;
+  shares: bigint;
+  assetAmount: bigint;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const lpPosition = deriveLpPositionPda({
+    capitalClass: params.capitalClassAddress,
+    owner: params.lpOwnerAddress,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "process_redemption_queue",
+    args: {
+      shares: params.shares,
+      asset_amount: params.assetAmount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.poolAddress, isWritable: true },
+      { pubkey: params.capitalClassAddress, isWritable: true },
+      {
+        pubkey: derivePoolClassLedgerPda({
+          capitalClass: params.capitalClassAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: lpPosition, isWritable: true },
+    ],
+  });
+}
+
+export function buildCreateAllocationPositionTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  fundingLineAssetMint: PublicKeyish;
+  recentBlockhash: string;
+  policySeriesAddress?: PublicKeyish | null;
+  capAmount: bigint;
+  weightBps: number;
+  allocationMode: number;
+  deallocationOnly: boolean;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const allocationPosition = deriveAllocationPositionPda({
+    capitalClass: params.capitalClassAddress,
+    fundingLine: params.fundingLineAddress,
+  });
+  const allocationLedger = deriveAllocationLedgerPda({
+    allocationPosition,
+    assetMint: params.fundingLineAssetMint,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "create_allocation_position",
+    args: {
+      policy_series: toPublicKey(params.policySeriesAddress ?? ZERO_PUBKEY_KEY),
+      cap_amount: params.capAmount,
+      weight_bps: params.weightBps,
+      allocation_mode: params.allocationMode,
+      deallocation_only: params.deallocationOnly,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.poolAddress },
+      { pubkey: params.capitalClassAddress },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.fundingLineAddress },
+      { pubkey: allocationPosition, isWritable: true },
+      { pubkey: allocationLedger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildUpdateAllocationCapsTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  allocationPositionAddress: PublicKeyish;
+  recentBlockhash: string;
+  capAmount: bigint;
+  weightBps: number;
+  deallocationOnly: boolean;
+  active: boolean;
+  reasonHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "update_allocation_caps",
+    args: {
+      cap_amount: params.capAmount,
+      weight_bps: params.weightBps,
+      deallocation_only: params.deallocationOnly,
+      active: params.active,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.poolAddress },
+      { pubkey: params.allocationPositionAddress, isWritable: true },
+    ],
+  });
+}
+
+function buildAllocationCapitalFlowTx(params: {
+  instructionName: "allocate_capital" | "deallocate_capital";
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  fundingLineAssetMint: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const allocationPosition = deriveAllocationPositionPda({
+    capitalClass: params.capitalClassAddress,
+    fundingLine: params.fundingLineAddress,
+  });
+  const allocationLedger = deriveAllocationLedgerPda({
+    allocationPosition,
+    assetMint: params.fundingLineAssetMint,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: params.instructionName,
+    args: { amount: params.amount },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.poolAddress, isWritable: true },
+      { pubkey: params.capitalClassAddress, isWritable: true },
+      {
+        pubkey: derivePoolClassLedgerPda({
+          capitalClass: params.capitalClassAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.fundingLineAddress },
+      { pubkey: allocationPosition, isWritable: true },
+      { pubkey: allocationLedger, isWritable: true },
+    ],
+  });
+}
+
+export function buildAllocateCapitalTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  fundingLineAssetMint: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+}): Transaction {
+  return buildAllocationCapitalFlowTx({
+    ...params,
+    instructionName: "allocate_capital",
+  });
+}
+
+export function buildDeallocateCapitalTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  capitalClassAddress: PublicKeyish;
+  poolDepositAssetMint: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
+  fundingLineAssetMint: PublicKeyish;
+  recentBlockhash: string;
+  amount: bigint;
+}): Transaction {
+  return buildAllocationCapitalFlowTx({
+    ...params,
+    instructionName: "deallocate_capital",
+  });
+}
+
+export function buildRegisterOracleTx(params: {
+  admin: PublicKeyish;
+  oracle: PublicKeyish;
+  recentBlockhash: string;
+  oracleType: number;
+  displayName: string;
+  legalName: string;
+  websiteUrl: string;
+  appUrl: string;
+  logoUri: string;
+  webhookUrl: string;
+  supportedSchemaKeyHashesHex: string[];
+}): Transaction {
+  const admin = toPublicKey(params.admin);
+  const oracle = toPublicKey(params.oracle);
+  const oracleProfile = deriveOracleProfilePda({ oracle });
+  const instruction = buildProtocolInstruction(
+    "register_oracle",
+    {
+      oracle,
+      oracle_type: params.oracleType,
+      display_name: params.displayName,
+      legal_name: params.legalName,
+      website_url: params.websiteUrl,
+      app_url: params.appUrl,
+      logo_uri: params.logoUri,
+      webhook_url: params.webhookUrl,
+      supported_schema_key_hashes: params.supportedSchemaKeyHashesHex.map((value) => Array.from(hexToFixedBytes(value, 32))),
+    },
+    [
+      { pubkey: admin, isSigner: true, isWritable: true },
+      { pubkey: oracleProfile, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: admin,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildClaimOracleTx(params: {
+  oracle: PublicKeyish;
+  recentBlockhash: string;
+}): Transaction {
+  const oracle = toPublicKey(params.oracle);
+  const oracleProfile = deriveOracleProfilePda({ oracle });
+  const instruction = buildProtocolInstruction(
+    "claim_oracle",
+    {},
+    [
+      { pubkey: oracle, isSigner: true },
+      { pubkey: oracleProfile, isWritable: true },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: oracle,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildUpdateOracleProfileTx(params: {
+  authority: PublicKeyish;
+  oracle: PublicKeyish;
+  recentBlockhash: string;
+  oracleType: number;
+  displayName: string;
+  legalName: string;
+  websiteUrl: string;
+  appUrl: string;
+  logoUri: string;
+  webhookUrl: string;
+  supportedSchemaKeyHashesHex: string[];
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const protocolGovernance = deriveProtocolGovernancePda();
+  const oracleProfile = deriveOracleProfilePda({ oracle: params.oracle });
+  const instruction = buildProtocolInstruction(
+    "update_oracle_profile",
+    {
+      oracle_type: params.oracleType,
+      display_name: params.displayName,
+      legal_name: params.legalName,
+      website_url: params.websiteUrl,
+      app_url: params.appUrl,
+      logo_uri: params.logoUri,
+      webhook_url: params.webhookUrl,
+      supported_schema_key_hashes: params.supportedSchemaKeyHashesHex.map((value) => Array.from(hexToFixedBytes(value, 32))),
+    },
+    [
+      { pubkey: authority, isSigner: true },
+      { pubkey: protocolGovernance },
+      { pubkey: oracleProfile, isWritable: true },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildSetPoolOracleTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  oracle: PublicKeyish;
+  recentBlockhash: string;
+  active: boolean;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const pool = toPublicKey(params.poolAddress);
+  const oracleProfile = deriveOracleProfilePda({ oracle: params.oracle });
+  const approval = derivePoolOracleApprovalPda({ liquidityPool: pool, oracle: params.oracle });
+  const instruction = buildProtocolInstruction(
+    "set_pool_oracle",
+    { active: params.active },
+    [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      { pubkey: oracleProfile },
+      { pubkey: approval, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildSetPoolOraclePermissionsTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  oracle: PublicKeyish;
+  permissions: number;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const pool = toPublicKey(params.poolAddress);
+  const oracleProfile = deriveOracleProfilePda({ oracle: params.oracle });
+  const approval = derivePoolOracleApprovalPda({ liquidityPool: pool, oracle: params.oracle });
+  const permissionSet = derivePoolOraclePermissionSetPda({ liquidityPool: pool, oracle: params.oracle });
+  const instruction = buildProtocolInstruction(
+    "set_pool_oracle_permissions",
+    { permissions: params.permissions },
+    [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      { pubkey: oracleProfile },
+      { pubkey: approval },
+      { pubkey: permissionSet, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildSetPoolOraclePolicyTx(params: {
+  authority: PublicKeyish;
+  poolAddress: PublicKeyish;
+  recentBlockhash: string;
+  quorumM: number;
+  quorumN: number;
+  requireVerifiedSchema: boolean;
+  oracleFeeBps: number;
+  allowDelegateClaim: boolean;
+  challengeWindowSecs: number;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const pool = toPublicKey(params.poolAddress);
+  const policy = derivePoolOraclePolicyPda({ liquidityPool: pool });
+  const instruction = buildProtocolInstruction(
+    "set_pool_oracle_policy",
+    {
+      quorum_m: params.quorumM,
+      quorum_n: params.quorumN,
+      require_verified_schema: params.requireVerifiedSchema,
+      oracle_fee_bps: params.oracleFeeBps,
+      allow_delegate_claim: params.allowDelegateClaim,
+      challenge_window_secs: params.challengeWindowSecs,
+    },
+    [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      { pubkey: policy, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildRegisterOutcomeSchemaTx(params: {
+  publisher: PublicKeyish;
+  recentBlockhash: string;
+  schemaKeyHashHex: string;
+  schemaKey: string;
+  version: number;
+  schemaHashHex: string;
+  schemaFamily: number;
+  visibility: number;
+  metadataUri: string;
+}): Transaction {
+  const publisher = toPublicKey(params.publisher);
+  const normalizedHash = normalizeHex32(params.schemaKeyHashHex);
+  const outcomeSchema = deriveOutcomeSchemaPda({ schemaKeyHashHex: normalizedHash });
+  const dependencyLedger = deriveSchemaDependencyLedgerPda({ schemaKeyHashHex: normalizedHash });
+  const instruction = buildProtocolInstruction(
+    "register_outcome_schema",
+    {
+      schema_key_hash: Array.from(hexToFixedBytes(normalizedHash, 32)),
+      schema_key: params.schemaKey,
+      version: params.version,
+      schema_hash: Array.from(hexToFixedBytes(params.schemaHashHex, 32)),
+      schema_family: params.schemaFamily,
+      visibility: params.visibility,
+      metadata_uri: params.metadataUri,
+    },
+    [
+      { pubkey: publisher, isSigner: true, isWritable: true },
+      { pubkey: outcomeSchema, isWritable: true },
+      { pubkey: dependencyLedger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: publisher,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildVerifyOutcomeSchemaTx(params: {
+  governanceAuthority: PublicKeyish;
+  recentBlockhash: string;
+  schemaKeyHashHex: string;
+  verified: boolean;
+}): Transaction {
+  const governanceAuthority = toPublicKey(params.governanceAuthority);
+  const outcomeSchema = deriveOutcomeSchemaPda({ schemaKeyHashHex: params.schemaKeyHashHex });
+  const instruction = buildProtocolInstruction(
+    "verify_outcome_schema",
+    { verified: params.verified },
+    [
+      { pubkey: governanceAuthority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: outcomeSchema, isWritable: true },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildBackfillSchemaDependencyLedgerTx(params: {
+  governanceAuthority: PublicKeyish;
+  recentBlockhash: string;
+  schemaKeyHashHex: string;
+  poolRuleAddresses: PublicKeyish[];
+}): Transaction {
+  const governanceAuthority = toPublicKey(params.governanceAuthority);
+  const normalizedHash = normalizeHex32(params.schemaKeyHashHex);
+  const outcomeSchema = deriveOutcomeSchemaPda({ schemaKeyHashHex: normalizedHash });
+  const dependencyLedger = deriveSchemaDependencyLedgerPda({ schemaKeyHashHex: normalizedHash });
+  const instruction = buildProtocolInstruction(
+    "backfill_schema_dependency_ledger",
+    {
+      schema_key_hash: Array.from(hexToFixedBytes(normalizedHash, 32)),
+      pool_rule_addresses: params.poolRuleAddresses.map((value) => toPublicKey(value)),
+    },
+    [
+      { pubkey: governanceAuthority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: outcomeSchema },
+      { pubkey: dependencyLedger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
+}
+
+export function buildCloseOutcomeSchemaTx(params: {
+  governanceAuthority: PublicKeyish;
+  recipientSystemAccount: PublicKeyish;
+  recentBlockhash: string;
+  schemaKeyHashHex: string;
+}): Transaction {
+  const governanceAuthority = toPublicKey(params.governanceAuthority);
+  const normalizedHash = normalizeHex32(params.schemaKeyHashHex);
+  const outcomeSchema = deriveOutcomeSchemaPda({ schemaKeyHashHex: normalizedHash });
+  const dependencyLedger = deriveSchemaDependencyLedgerPda({ schemaKeyHashHex: normalizedHash });
+  const recipient = toPublicKey(params.recipientSystemAccount);
+  const instruction = buildProtocolInstruction(
+    "close_outcome_schema",
+    {},
+    [
+      { pubkey: governanceAuthority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: outcomeSchema, isWritable: true },
+      { pubkey: dependencyLedger, isWritable: true },
+      { pubkey: recipient, isWritable: true },
+    ],
+  );
+  return buildProtocolTransaction({
+    feePayer: governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+    instructions: [instruction],
+  });
 }
 
 export {

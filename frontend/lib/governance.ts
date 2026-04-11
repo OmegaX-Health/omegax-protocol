@@ -48,8 +48,6 @@ import { Connection, PublicKey, Transaction, TransactionInstruction } from "@sol
 import {
   buildBackfillSchemaDependencyLedgerTx,
   buildCloseOutcomeSchemaTx,
-  buildRotateGovernanceAuthorityTx,
-  buildSetProtocolParamsTx,
   buildVerifyOutcomeSchemaTx,
   fetchProtocolConfig,
   listPoolRules,
@@ -1112,34 +1110,10 @@ export function buildProtocolConfigProposalInstructions(params: {
   draft: ProtocolConfigProposalDraft;
   recentBlockhash: string;
 }): TransactionInstruction[] {
-  const instructions: TransactionInstruction[] = [];
-  const setParamsInstruction = buildSetProtocolParamsTx({
-    governanceAuthority: params.governanceAuthority,
-    recentBlockhash: params.recentBlockhash,
-    protocolFeeBps: params.draft.protocolFeeBps,
-    allowedPayoutMintsHashHex: params.draft.allowedPayoutMintsHashHex,
-    defaultStakeMint: params.draft.defaultStakeMint,
-    minOracleStake: params.draft.minOracleStake,
-    emergencyPaused: params.draft.emergencyPaused,
-  }).instructions[0];
-  if (!setParamsInstruction) {
-    throw new Error("Failed to build set_protocol_params instruction.");
-  }
-  instructions.push(setParamsInstruction);
-
-  if (params.draft.newGovernanceAuthority) {
-    const rotateInstruction = buildRotateGovernanceAuthorityTx({
-      governanceAuthority: params.governanceAuthority,
-      newAuthority: new PublicKey(params.draft.newGovernanceAuthority),
-      recentBlockhash: params.recentBlockhash,
-    }).instructions[0];
-    if (!rotateInstruction) {
-      throw new Error("Failed to build rotate_governance_authority instruction.");
-    }
-    instructions.push(rotateInstruction);
-  }
-
-  return instructions;
+  void params;
+  throw new Error(
+    "Protocol config proposals are not supported by the current public program surface. Use scoped live controls or schema-state governance proposals instead.",
+  );
 }
 
 export async function buildSchemaStateProposalInstructions(params: {
@@ -1400,33 +1374,10 @@ export async function buildProtocolConfigProposalPlan(params: {
   origin: string;
   walletAddress: PublicKey;
 }): Promise<GovernanceProposalPlan> {
-  const runtime = getGovernanceRuntimeConfig();
-  if (!runtime.governanceAddress) {
-    throw new Error("Governance configuration is not available.");
-  }
-
-  const recentBlockhash = (await params.connection.getLatestBlockhash("confirmed")).blockhash;
-  const instructions = buildProtocolConfigProposalInstructions({
-    draft: params.draft,
-    governanceAuthority: new PublicKey(runtime.governanceAddress),
-    recentBlockhash,
-  });
-  const descriptionLink = buildGovernanceDescriptionLink({
-    origin: params.origin,
-    payload: {
-      ...params.draft,
-      template: "protocol-config",
-    },
-  });
-
-  return buildGovernanceProposalPlan({
-    connection: params.connection,
-    descriptionLink,
-    instructions,
-    proposalName: proposalNameForTemplate("protocol-config"),
-    template: "protocol-config",
-    walletAddress: params.walletAddress,
-  });
+  void params;
+  throw new Error(
+    "Protocol config proposals are not supported by the current public program surface. Use scoped live controls or schema-state governance proposals instead.",
+  );
 }
 
 export async function buildSchemaStateProposalPlan(params: {

@@ -547,6 +547,323 @@
       ]
     },
     {
+      "name": "backfill_schema_dependency_ledger",
+      "discriminator": [
+        109,
+        109,
+        247,
+        151,
+        229,
+        78,
+        52,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "governance_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema_dependency_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97,
+                  95,
+                  100,
+                  101,
+                  112,
+                  101,
+                  110,
+                  100,
+                  101,
+                  110,
+                  99,
+                  121,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "BackfillSchemaDependencyLedgerArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim_oracle",
+      "discriminator": [
+        1,
+        252,
+        166,
+        132,
+        45,
+        24,
+        23,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "oracle",
+          "signer": true
+        },
+        {
+          "name": "oracle_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_outcome_schema",
+      "discriminator": [
+        196,
+        81,
+        8,
+        61,
+        95,
+        145,
+        225,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "governance_authority",
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_schema.schema_key_hash",
+                "account": "OutcomeSchema"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema_dependency_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97,
+                  95,
+                  100,
+                  101,
+                  112,
+                  101,
+                  110,
+                  100,
+                  101,
+                  110,
+                  99,
+                  121,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_schema.schema_key_hash",
+                "account": "OutcomeSchema"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient_system_account",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_allocation_position",
       "discriminator": [
         165,
@@ -4506,6 +4823,177 @@
       ]
     },
     {
+      "name": "register_oracle",
+      "discriminator": [
+        176,
+        200,
+        234,
+        37,
+        199,
+        129,
+        164,
+        111
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "oracle_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RegisterOracleArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_outcome_schema",
+      "discriminator": [
+        187,
+        68,
+        109,
+        211,
+        168,
+        181,
+        105,
+        32
+      ],
+      "accounts": [
+        {
+          "name": "publisher",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "outcome_schema",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema_dependency_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97,
+                  95,
+                  100,
+                  101,
+                  112,
+                  101,
+                  110,
+                  100,
+                  101,
+                  110,
+                  99,
+                  121,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RegisterOutcomeSchemaArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "release_reserve",
       "discriminator": [
         170,
@@ -5320,6 +5808,537 @@
           "type": {
             "defined": {
               "name": "ReserveObligationArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_pool_oracle",
+      "discriminator": [
+        140,
+        225,
+        146,
+        45,
+        210,
+        81,
+        225,
+        223
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_approval",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetPoolOracleArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_pool_oracle_permissions",
+      "discriminator": [
+        168,
+        14,
+        22,
+        106,
+        118,
+        145,
+        105,
+        44
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_approval",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_permission_set",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  95,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetPoolOraclePermissionsArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_pool_oracle_policy",
+      "discriminator": [
+        190,
+        13,
+        51,
+        113,
+        230,
+        140,
+        103,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.pool_id",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_oracle_policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetPoolOraclePolicyArgs"
             }
           }
         }
@@ -6749,6 +7768,98 @@
       ]
     },
     {
+      "name": "update_oracle_profile",
+      "discriminator": [
+        175,
+        66,
+        157,
+        51,
+        96,
+        190,
+        163,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateOracleProfileArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "update_reserve_domain_controls",
       "discriminator": [
         3,
@@ -6835,6 +7946,98 @@
           "type": {
             "defined": {
               "name": "UpdateReserveDomainControlsArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "verify_outcome_schema",
+      "discriminator": [
+        221,
+        10,
+        144,
+        137,
+        106,
+        214,
+        205,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "governance_authority",
+          "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_schema.schema_key_hash",
+                "account": "OutcomeSchema"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "VerifyOutcomeSchemaArgs"
             }
           }
         }
@@ -7235,6 +8438,32 @@
       ]
     },
     {
+      "name": "OracleProfile",
+      "discriminator": [
+        232,
+        217,
+        185,
+        162,
+        237,
+        208,
+        114,
+        142
+      ]
+    },
+    {
+      "name": "OutcomeSchema",
+      "discriminator": [
+        243,
+        62,
+        72,
+        224,
+        198,
+        100,
+        29,
+        58
+      ]
+    },
+    {
       "name": "PlanReserveLedger",
       "discriminator": [
         243,
@@ -7274,6 +8503,45 @@
       ]
     },
     {
+      "name": "PoolOracleApproval",
+      "discriminator": [
+        116,
+        241,
+        25,
+        184,
+        205,
+        21,
+        153,
+        29
+      ]
+    },
+    {
+      "name": "PoolOraclePermissionSet",
+      "discriminator": [
+        3,
+        136,
+        243,
+        231,
+        172,
+        143,
+        123,
+        245
+      ]
+    },
+    {
+      "name": "PoolOraclePolicy",
+      "discriminator": [
+        246,
+        134,
+        133,
+        108,
+        100,
+        203,
+        226,
+        43
+      ]
+    },
+    {
       "name": "ProtocolGovernance",
       "discriminator": [
         71,
@@ -7297,6 +8565,19 @@
         116,
         88,
         178
+      ]
+    },
+    {
+      "name": "SchemaDependencyLedger",
+      "discriminator": [
+        87,
+        115,
+        211,
+        54,
+        36,
+        177,
+        77,
+        131
       ]
     },
     {
@@ -7458,6 +8739,84 @@
       ]
     },
     {
+      "name": "OracleProfileClaimedEvent",
+      "discriminator": [
+        150,
+        78,
+        246,
+        163,
+        63,
+        118,
+        75,
+        83
+      ]
+    },
+    {
+      "name": "OracleProfileRegisteredEvent",
+      "discriminator": [
+        114,
+        97,
+        218,
+        155,
+        43,
+        175,
+        101,
+        227
+      ]
+    },
+    {
+      "name": "OracleProfileUpdatedEvent",
+      "discriminator": [
+        187,
+        146,
+        36,
+        213,
+        31,
+        160,
+        208,
+        86
+      ]
+    },
+    {
+      "name": "OutcomeSchemaClosedEvent",
+      "discriminator": [
+        16,
+        92,
+        224,
+        187,
+        114,
+        106,
+        105,
+        41
+      ]
+    },
+    {
+      "name": "OutcomeSchemaRegisteredEvent",
+      "discriminator": [
+        243,
+        156,
+        15,
+        145,
+        167,
+        84,
+        187,
+        209
+      ]
+    },
+    {
+      "name": "OutcomeSchemaStateChangedEvent",
+      "discriminator": [
+        79,
+        241,
+        101,
+        121,
+        94,
+        199,
+        61,
+        228
+      ]
+    },
+    {
       "name": "PolicySeriesCreatedEvent",
       "discriminator": [
         106,
@@ -7481,6 +8840,45 @@
         91,
         162,
         255
+      ]
+    },
+    {
+      "name": "PoolOracleApprovalChangedEvent",
+      "discriminator": [
+        159,
+        43,
+        209,
+        60,
+        32,
+        191,
+        5,
+        136
+      ]
+    },
+    {
+      "name": "PoolOraclePermissionsChangedEvent",
+      "discriminator": [
+        151,
+        96,
+        35,
+        111,
+        20,
+        154,
+        112,
+        211
+      ]
+    },
+    {
+      "name": "PoolOraclePolicyChangedEvent",
+      "discriminator": [
+        142,
+        195,
+        149,
+        88,
+        218,
+        243,
+        91,
+        84
       ]
     },
     {
@@ -7520,6 +8918,19 @@
         195,
         89,
         37
+      ]
+    },
+    {
+      "name": "SchemaDependencyLedgerUpdatedEvent",
+      "discriminator": [
+        159,
+        128,
+        141,
+        211,
+        86,
+        155,
+        144,
+        70
       ]
     },
     {
@@ -7726,6 +9137,36 @@
       "code": 6037,
       "name": "MembershipAnchorReferenceMissing",
       "msg": "Anchor-backed membership requires a non-zero anchor reference"
+    },
+    {
+      "code": 6038,
+      "name": "StringTooLong",
+      "msg": "Bounded string field exceeds the canonical maximum"
+    },
+    {
+      "code": 6039,
+      "name": "InvalidOracleQuorum",
+      "msg": "Oracle quorum configuration is invalid"
+    },
+    {
+      "code": 6040,
+      "name": "TooManyOracleSupportedSchemas",
+      "msg": "Too many supported schema hashes were provided for one oracle profile"
+    },
+    {
+      "code": 6041,
+      "name": "PoolOracleApprovalRequired",
+      "msg": "Pool oracle approval is required before permissions can be granted"
+    },
+    {
+      "code": 6042,
+      "name": "OracleProfileInactive",
+      "msg": "Oracle profile is inactive"
+    },
+    {
+      "code": 6043,
+      "name": "TooManySchemaDependencies",
+      "msg": "Too many schema dependency addresses were provided"
     }
   ],
   "types": [
@@ -7931,6 +9372,29 @@
                 "u8",
                 32
               ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "BackfillSchemaDependencyLedgerArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "pool_rule_addresses",
+            "type": {
+              "vec": "pubkey"
             }
           }
         ]
@@ -9781,6 +11245,313 @@
       }
     },
     {
+      "name": "OracleProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_type",
+            "type": "u8"
+          },
+          {
+            "name": "display_name",
+            "type": "string"
+          },
+          {
+            "name": "legal_name",
+            "type": "string"
+          },
+          {
+            "name": "website_url",
+            "type": "string"
+          },
+          {
+            "name": "app_url",
+            "type": "string"
+          },
+          {
+            "name": "logo_uri",
+            "type": "string"
+          },
+          {
+            "name": "webhook_url",
+            "type": "string"
+          },
+          {
+            "name": "supported_schema_count",
+            "type": "u8"
+          },
+          {
+            "name": "supported_schema_key_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                16
+              ]
+            }
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "created_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleProfileClaimedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle_profile",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleProfileRegisteredEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle_profile",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_type",
+            "type": "u8"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleProfileUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle_profile",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_type",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutcomeSchema",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "publisher",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_key",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "schema_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_family",
+            "type": "u8"
+          },
+          {
+            "name": "visibility",
+            "type": "u8"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
+          },
+          {
+            "name": "verified",
+            "type": "bool"
+          },
+          {
+            "name": "created_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutcomeSchemaClosedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "outcome_schema",
+            "type": "pubkey"
+          },
+          {
+            "name": "governance_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutcomeSchemaRegisteredEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "outcome_schema",
+            "type": "pubkey"
+          },
+          {
+            "name": "publisher",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "version",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutcomeSchemaStateChangedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "outcome_schema",
+            "type": "pubkey"
+          },
+          {
+            "name": "governance_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "verified",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "PlanReserveLedger",
       "type": {
         "kind": "struct",
@@ -10032,6 +11803,182 @@
       }
     },
     {
+      "name": "PoolOracleApproval",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolOracleApprovalChangedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolOraclePermissionSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "permissions",
+            "type": "u32"
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolOraclePermissionsChangedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "permissions",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolOraclePolicy",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "quorum_m",
+            "type": "u8"
+          },
+          {
+            "name": "quorum_n",
+            "type": "u8"
+          },
+          {
+            "name": "require_verified_schema",
+            "type": "bool"
+          },
+          {
+            "name": "oracle_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "allow_delegate_claim",
+            "type": "bool"
+          },
+          {
+            "name": "challenge_window_secs",
+            "type": "u32"
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolOraclePolicyChangedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "quorum_m",
+            "type": "u8"
+          },
+          {
+            "name": "quorum_n",
+            "type": "u8"
+          },
+          {
+            "name": "oracle_fee_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
       "name": "ProcessRedemptionQueueArgs",
       "type": {
         "kind": "struct",
@@ -10127,6 +12074,103 @@
           {
             "name": "asset_amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegisterOracleArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_type",
+            "type": "u8"
+          },
+          {
+            "name": "display_name",
+            "type": "string"
+          },
+          {
+            "name": "legal_name",
+            "type": "string"
+          },
+          {
+            "name": "website_url",
+            "type": "string"
+          },
+          {
+            "name": "app_url",
+            "type": "string"
+          },
+          {
+            "name": "logo_uri",
+            "type": "string"
+          },
+          {
+            "name": "webhook_url",
+            "type": "string"
+          },
+          {
+            "name": "supported_schema_key_hashes",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegisterOutcomeSchemaArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_key",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "schema_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_family",
+            "type": "u8"
+          },
+          {
+            "name": "visibility",
+            "type": "u8"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
           }
         ]
       }
@@ -10314,6 +12358,66 @@
       }
     },
     {
+      "name": "SchemaDependencyLedger",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "pool_rule_addresses",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SchemaDependencyLedgerUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_dependency_ledger",
+            "type": "pubkey"
+          },
+          {
+            "name": "governance_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "dependency_count",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
       "name": "ScopedControlChangedEvent",
       "type": {
         "kind": "struct",
@@ -10374,6 +12478,62 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetPoolOracleArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "active",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetPoolOraclePermissionsArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "permissions",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetPoolOraclePolicyArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "quorum_m",
+            "type": "u8"
+          },
+          {
+            "name": "quorum_n",
+            "type": "u8"
+          },
+          {
+            "name": "require_verified_schema",
+            "type": "bool"
+          },
+          {
+            "name": "oracle_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "allow_delegate_claim",
+            "type": "bool"
+          },
+          {
+            "name": "challenge_window_secs",
+            "type": "u32"
           }
         ]
       }
@@ -10636,6 +12796,53 @@
       }
     },
     {
+      "name": "UpdateOracleProfileArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle_type",
+            "type": "u8"
+          },
+          {
+            "name": "display_name",
+            "type": "string"
+          },
+          {
+            "name": "legal_name",
+            "type": "string"
+          },
+          {
+            "name": "website_url",
+            "type": "string"
+          },
+          {
+            "name": "app_url",
+            "type": "string"
+          },
+          {
+            "name": "logo_uri",
+            "type": "string"
+          },
+          {
+            "name": "webhook_url",
+            "type": "string"
+          },
+          {
+            "name": "supported_schema_key_hashes",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "UpdateReserveDomainControlsArgs",
       "type": {
         "kind": "struct",
@@ -10660,6 +12867,18 @@
                 32
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VerifyOutcomeSchemaArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "verified",
+            "type": "bool"
           }
         ]
       }
