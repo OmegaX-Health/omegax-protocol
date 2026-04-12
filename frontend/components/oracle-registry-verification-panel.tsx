@@ -6,27 +6,21 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import {
   CheckCircle2,
   ClipboardCopy,
   ExternalLink,
   RefreshCw,
   Search,
-  ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { PublicKey } from "@solana/web3.js";
 
 import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
+import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
-  ORACLE_TYPE_HEALTH_APP,
-  ORACLE_TYPE_HOSPITAL_CLINIC,
-  ORACLE_TYPE_LAB,
   ORACLE_TYPE_OTHER,
-  ORACLE_TYPE_WEARABLE_DATA_PROVIDER,
   buildClaimOracleTx,
-  buildRegisterOracleTx,
-  buildUpdateOracleProfileTx,
   fetchProtocolReadiness,
   listOraclesWithProfiles,
   listPoolOracleApprovals,
@@ -41,9 +35,6 @@ import {
 } from "@/lib/protocol";
 import { formatRpcError } from "@/lib/rpc-errors";
 import { fetchSchemaMetadata, parseSchemaOutcomes } from "@/lib/schema-metadata";
-
-type WizardMode = "register" | "update";
-type WizardStep = 1 | 2;
 
 type PoolRef = {
   address: string;
@@ -66,14 +57,6 @@ type SchemaPreview = {
   sampleOutcomeIds: string[];
   warning: string | null;
 };
-
-const ORACLE_TYPES = [
-  { value: ORACLE_TYPE_LAB, label: "Lab" },
-  { value: ORACLE_TYPE_HOSPITAL_CLINIC, label: "Hospital / Clinic" },
-  { value: ORACLE_TYPE_HEALTH_APP, label: "Health App" },
-  { value: ORACLE_TYPE_WEARABLE_DATA_PROVIDER, label: "Wearable / Data Provider" },
-  { value: ORACLE_TYPE_OTHER, label: "Other" },
-] as const;
 
 function shortAddress(value: string): string {
   if (!value) return value;
@@ -104,8 +87,18 @@ function normalizeHex32(value: string): string {
 }
 
 function oracleTypeLabel(type: number): string {
-  const option = ORACLE_TYPES.find((row) => row.value === type);
-  return option?.label ?? `Type ${type}`;
+  switch (type) {
+    case 0:
+      return "Lab";
+    case 1:
+      return "Hospital / Clinic";
+    case 2:
+      return "Health App";
+    case 3:
+      return "Wearable / Data Provider";
+    default:
+      return `Type ${type ?? ORACLE_TYPE_OTHER}`;
+  }
 }
 
 function readyBadge(ready: boolean) {
@@ -139,9 +132,6 @@ export function OracleRegistryVerificationPanel() {
   const searchParams = useSearchParams();
 
   const [registrySearch, setRegistrySearch] = useState("");
-  const [schemasSearch, setSchemasSearch] = useState("");
-  const [verifiedOnlySchemas, setVerifiedOnlySchemas] = useState(true);
-
   const [oracles, setOracles] = useState<OracleWithProfileSummary[]>([]);
   const [schemas, setSchemas] = useState<SchemaSummary[]>([]);
   const [pools, setPools] = useState<PoolRef[]>([]);
@@ -149,25 +139,7 @@ export function OracleRegistryVerificationPanel() {
   const [policies, setPolicies] = useState<PoolOraclePolicySummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [selectedOracleAddress, setSelectedOracleAddress] = useState("");
-
-  const [wizardMode, setWizardMode] = useState<WizardMode>("register");
-  const [wizardStep, setWizardStep] = useState<WizardStep>(1);
-  const [wizardBusy, setWizardBusy] = useState<string | null>(null);
-  const [wizardError, setWizardError] = useState<string | null>(null);
-  const [wizardSuccess, setWizardSuccess] = useState<string | null>(null);
-
-  const [oracleAddressInput, setOracleAddressInput] = useState("");
-  const [oracleType, setOracleType] = useState<number>(ORACLE_TYPE_LAB);
-  const [displayName, setDisplayName] = useState("");
-  const [legalName, setLegalName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [appUrl, setAppUrl] = useState("");
-  const [logoUri, setLogoUri] = useState("");
-  const [webhookUrl, setWebhookUrl] = useState("");
-  const [selectedSchemaHashes, setSelectedSchemaHashes] = useState<string[]>([]);
-  const [manualSchemaHash, setManualSchemaHash] = useState("");
   const [schemaPreviewByHash, setSchemaPreviewByHash] = useState<Record<string, SchemaPreview>>({});
 
   const [verificationOracleAddress, setVerificationOracleAddress] = useState("");
@@ -181,7 +153,6 @@ export function OracleRegistryVerificationPanel() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState<string | null>(null);
 
-  const walletAddress = publicKey?.toBase58() ?? "";
   const claimOracleFromQuery = normalize(searchParams.get("claim") || "");
 
   const refreshData = useCallback(async () => {
@@ -222,32 +193,6 @@ export function OracleRegistryVerificationPanel() {
     void refreshData();
   }, [refreshData]);
 
-  useEffect(() => {
-    if (!connected) {
-      setOracleAddressInput("");
-      return;
-    }
-    if (!oracleAddressInput && walletAddress) {
-      setOracleAddressInput(walletAddress);
-    }
-  }, [connected, oracleAddressInput, walletAddress]);
-
-  const poolByAddress = useMemo(() => {
-    const map = new Map<string, PoolRef>();
-    for (const pool of pools) {
-      map.set(pool.address, pool);
-    }
-    return map;
-  }, [pools]);
-
-  const policiesByPool = useMemo(() => {
-    const set = new Set<string>();
-    for (const policy of policies) {
-      set.add(policy.liquidityPool);
-    }
-    return set;
-  }, [policies]);
-
   const filteredRegistry = useMemo(() => {
     const query = normalize(registrySearch).toLowerCase();
     return oracles
@@ -255,11 +200,11 @@ export function OracleRegistryVerificationPanel() {
         if (!query) return true;
         const profile = row.profile;
         return (
-          row.oracle.toLowerCase().includes(query) ||
-          row.address.toLowerCase().includes(query) ||
-          (profile?.displayName || "").toLowerCase().includes(query) ||
-          (profile?.legalName || "").toLowerCase().includes(query) ||
-          (profile?.websiteUrl || "").toLowerCase().includes(query)
+          row.oracle.toLowerCase().includes(query)
+          || row.address.toLowerCase().includes(query)
+          || (profile?.displayName || "").toLowerCase().includes(query)
+          || (profile?.legalName || "").toLowerCase().includes(query)
+          || (profile?.websiteUrl || "").toLowerCase().includes(query)
         );
       })
       .sort((a, b) => {
@@ -287,20 +232,6 @@ export function OracleRegistryVerificationPanel() {
     [filteredRegistry, selectedOracleAddress],
   );
 
-  const filteredSchemas = useMemo(() => {
-    const query = normalize(schemasSearch).toLowerCase();
-    return schemas
-      .filter((row) => (verifiedOnlySchemas ? row.verified : true))
-      .filter((row) => {
-        if (!query) return true;
-        return (
-          row.schemaKey.toLowerCase().includes(query) ||
-          row.schemaKeyHashHex.toLowerCase().includes(query) ||
-          row.metadataUri.toLowerCase().includes(query)
-        );
-      });
-  }, [schemas, schemasSearch, verifiedOnlySchemas]);
-
   const schemaByHash = useMemo(() => {
     const map = new Map<string, SchemaSummary>();
     for (const schema of schemas) {
@@ -309,7 +240,6 @@ export function OracleRegistryVerificationPanel() {
     return map;
   }, [schemas]);
 
-  const selectedSchemaSet = useMemo(() => new Set(selectedSchemaHashes), [selectedSchemaHashes]);
   const selectedOracleSupportedHashes = selectedOracle?.profile?.supportedSchemaKeyHashesHex ?? [];
 
   const loadSchemaPreview = useCallback(async (schemaHashHex: string) => {
@@ -358,9 +288,10 @@ export function OracleRegistryVerificationPanel() {
     const fetched = await fetchSchemaMetadata(matchedSchema.metadataUri);
     const parsed = parseSchemaOutcomes(fetched.metadata);
 
-    if (fetched.error) {
+    const fetchError = fetched.error;
+    if (fetchError) {
       const status: SchemaPreviewStatus =
-        fetched.error.code === "fetch_failed" || fetched.error.code === "http_error"
+        fetchError.code === "fetch_failed" || fetchError.code === "http_error"
           ? "metadata_unreachable"
           : "metadata_invalid";
       setSchemaPreviewByHash((current) => ({
@@ -370,7 +301,7 @@ export function OracleRegistryVerificationPanel() {
           outcomeCount: parsed.outcomes.length,
           templateCount: parsed.outcomeTemplates.length,
           sampleOutcomeIds: parsed.outcomes.slice(0, 5).map((outcome) => outcome.id),
-          warning: fetched.error?.message || parsed.warnings[0] || null,
+          warning: fetchError.message || parsed.warnings[0] || null,
         },
       }));
       return;
@@ -388,40 +319,6 @@ export function OracleRegistryVerificationPanel() {
     }));
   }, [schemaByHash, schemaPreviewByHash]);
 
-  const previewHashes = useMemo(() => {
-    return Array.from(
-      new Set([
-        ...selectedSchemaHashes.map((hash) => normalizeHex32(hash)),
-        ...selectedOracleSupportedHashes.map((hash) => normalizeHex32(hash)),
-      ]),
-    );
-  }, [selectedOracleSupportedHashes, selectedSchemaHashes]);
-
-  useEffect(() => {
-    for (const hash of previewHashes) {
-      if (!schemaPreviewByHash[hash]) {
-        void loadSchemaPreview(hash);
-      }
-    }
-  }, [loadSchemaPreview, previewHashes, schemaPreviewByHash]);
-
-  useEffect(() => {
-    if (wizardMode !== "register" || wizardStep !== 1) return;
-    for (const schema of filteredSchemas.slice(0, 8)) {
-      const hash = normalizeHex32(schema.schemaKeyHashHex);
-      if (!schemaPreviewByHash[hash]) {
-        void loadSchemaPreview(hash);
-      }
-    }
-  }, [filteredSchemas, loadSchemaPreview, schemaPreviewByHash, wizardMode, wizardStep]);
-
-  const selectedSchemaCoverage = useMemo(() => {
-    return selectedSchemaHashes.reduce((sum, hash) => {
-      const preview = schemaPreviewByHash[normalizeHex32(hash)];
-      return sum + (preview?.outcomeCount || 0);
-    }, 0);
-  }, [schemaPreviewByHash, selectedSchemaHashes]);
-
   const selectedOracleSupportedSchemas = useMemo(() => {
     return selectedOracleSupportedHashes.map((hash) => {
       const normalizedHash = normalizeHex32(hash);
@@ -433,10 +330,29 @@ export function OracleRegistryVerificationPanel() {
     });
   }, [schemaByHash, schemaPreviewByHash, selectedOracleSupportedHashes]);
 
-  const selectedVerificationOracle = useMemo(
-    () => oracles.find((row) => row.oracle === verificationOracleAddress) ?? null,
-    [oracles, verificationOracleAddress],
-  );
+  useEffect(() => {
+    for (const hash of selectedOracleSupportedHashes.map((value) => normalizeHex32(value)).filter((value) => isHex32(value))) {
+      if (!schemaPreviewByHash[hash]) {
+        void loadSchemaPreview(hash);
+      }
+    }
+  }, [loadSchemaPreview, schemaPreviewByHash, selectedOracleSupportedHashes]);
+
+  const poolByAddress = useMemo(() => {
+    const map = new Map<string, PoolRef>();
+    for (const pool of pools) {
+      map.set(pool.address, pool);
+    }
+    return map;
+  }, [pools]);
+
+  const policiesByPool = useMemo(() => {
+    const set = new Set<string>();
+    for (const policy of policies) {
+      set.add(policy.liquidityPool);
+    }
+    return set;
+  }, [policies]);
 
   const verificationApprovals = useMemo(
     () => approvals.filter((row) => row.oracle === verificationOracleAddress),
@@ -472,203 +388,12 @@ export function OracleRegistryVerificationPanel() {
     try {
       await navigator.clipboard.writeText(value);
     } catch {
-      // ignore clipboard permission failures
+      // Ignore clipboard permission failures.
     }
   }, []);
-
-  const toggleSchemaHash = useCallback((hashHex: string) => {
-    const normalized = normalizeHex32(hashHex);
-    setSelectedSchemaHashes((current) => {
-      if (current.includes(normalized)) {
-        return current.filter((row) => row !== normalized);
-      }
-      return [...current, normalized];
-    });
-  }, []);
-
-  const addManualSchemaHash = useCallback(() => {
-    const normalized = normalizeHex32(manualSchemaHash);
-    if (!isHex32(normalized)) {
-      setWizardError("Manual schema hash must be 32-byte hex (64 chars).");
-      return;
-    }
-    setWizardError(null);
-    setSelectedSchemaHashes((current) => {
-      if (current.includes(normalized)) return current;
-      return [...current, normalized];
-    });
-    setManualSchemaHash("");
-  }, [manualSchemaHash]);
-
-  const resetWizardMessages = useCallback(() => {
-    setWizardError(null);
-    setWizardSuccess(null);
-  }, []);
-
-  const validateStep = useCallback((step: WizardStep): string | null => {
-    if (!connected || !publicKey) {
-      return "Connect a wallet to continue.";
-    }
-    if (step >= 1) {
-      if (!normalize(oracleAddressInput)) return "Oracle signing pubkey is required.";
-      if (!isPublicKey(oracleAddressInput)) return "Oracle signing pubkey is invalid.";
-      if (!normalize(displayName)) return "Display name is required.";
-      if (selectedSchemaHashes.length > 16) return "Maximum supported schemas is 16.";
-    }
-    return null;
-  }, [connected, displayName, oracleAddressInput, publicKey, selectedSchemaHashes.length]);
-
-  const goNext = useCallback(() => {
-    const issue = validateStep(wizardStep);
-    if (issue) {
-      setWizardError(issue);
-      return;
-    }
-    setWizardError(null);
-    setWizardStep((current) => (current === 2 ? current : 2));
-  }, [validateStep, wizardStep]);
-
-  const goBack = useCallback(() => {
-    setWizardError(null);
-    setWizardStep((current) => (current === 1 ? current : 1));
-  }, []);
-
-  const registerOracle = useCallback(async () => {
-    if (!publicKey || !connected) {
-      setWizardError("Connect a wallet before sending transactions.");
-      return;
-    }
-    const validationError = validateStep(2);
-    if (validationError) {
-      setWizardError(validationError);
-      return;
-    }
-
-    const normalizedOracle = normalize(oracleAddressInput);
-    const oraclePubkey = new PublicKey(normalizedOracle);
-
-    setWizardBusy("register");
-    setWizardError(null);
-    setWizardSuccess(null);
-
-    try {
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = buildRegisterOracleTx({
-        admin: publicKey,
-        oracle: oraclePubkey,
-        recentBlockhash: blockhash,
-        oracleType,
-        displayName,
-        legalName,
-        websiteUrl,
-        appUrl,
-        logoUri,
-        webhookUrl,
-        supportedSchemaKeyHashesHex: selectedSchemaHashes,
-      });
-      const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(signature, "confirmed");
-
-      await refreshData();
-      setSelectedOracleAddress(normalizedOracle);
-      setWizardSuccess(`Oracle profile registered. Signature: ${signature}`);
-    } catch (cause) {
-      setWizardError(
-        formatRpcError(cause, {
-          fallback: "Failed to register oracle profile.",
-          rpcEndpoint: connection.rpcEndpoint,
-        }),
-      );
-    } finally {
-      setWizardBusy(null);
-    }
-  }, [
-    appUrl,
-    connected,
-    connection,
-    displayName,
-    legalName,
-    logoUri,
-    oracleAddressInput,
-    oracleType,
-    publicKey,
-    refreshData,
-    selectedSchemaHashes,
-    sendTransaction,
-    validateStep,
-    webhookUrl,
-    websiteUrl,
-  ]);
-
-  const updateOracleProfile = useCallback(async () => {
-    if (!publicKey || !connected) {
-      setWizardError("Connect a wallet before sending transactions.");
-      return;
-    }
-    const validationError = validateStep(2);
-    if (validationError) {
-      setWizardError(validationError);
-      return;
-    }
-
-    const normalizedOracle = normalize(oracleAddressInput);
-    const oraclePubkey = new PublicKey(normalizedOracle);
-
-    setWizardBusy("update");
-    setWizardError(null);
-    setWizardSuccess(null);
-
-    try {
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = buildUpdateOracleProfileTx({
-        authority: publicKey,
-        oracle: oraclePubkey,
-        recentBlockhash: blockhash,
-        oracleType,
-        displayName,
-        legalName,
-        websiteUrl,
-        appUrl,
-        logoUri,
-        webhookUrl,
-        supportedSchemaKeyHashesHex: selectedSchemaHashes,
-      });
-      const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(signature, "confirmed");
-
-      await refreshData();
-      setSelectedOracleAddress(normalizedOracle);
-      setWizardSuccess(`Oracle profile updated. Signature: ${signature}`);
-    } catch (cause) {
-      setWizardError(
-        formatRpcError(cause, {
-          fallback: "Failed to update oracle profile.",
-          rpcEndpoint: connection.rpcEndpoint,
-        }),
-      );
-    } finally {
-      setWizardBusy(null);
-    }
-  }, [
-    appUrl,
-    connected,
-    connection,
-    displayName,
-    legalName,
-    logoUri,
-    oracleAddressInput,
-    oracleType,
-    publicKey,
-    refreshData,
-    selectedSchemaHashes,
-    sendTransaction,
-    validateStep,
-    webhookUrl,
-    websiteUrl,
-  ]);
 
   const claimOracle = useCallback(async (oracleAddress: string) => {
-    if (!publicKey || !connected) {
+    if (!publicKey || !sendTransaction || !connected) {
       setClaimError("Connect the oracle signing wallet to claim activation.");
       return;
     }
@@ -685,24 +410,24 @@ export function OracleRegistryVerificationPanel() {
     setClaimBusy(true);
     setClaimError(null);
     setClaimSuccess(null);
-
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = buildClaimOracleTx({
         oracle: publicKey,
         recentBlockhash: blockhash,
       });
-      const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(signature, "confirmed");
+      const result = await executeProtocolTransaction({
+        connection,
+        sendTransaction,
+        tx,
+        label: "Claim oracle activation",
+      });
+      if (!result.ok) {
+        setClaimError(result.error);
+        return;
+      }
+      setClaimSuccess(result.message);
       await refreshData();
-      setClaimSuccess(`Oracle claimed and activated. Signature: ${signature}`);
-    } catch (cause) {
-      setClaimError(
-        formatRpcError(cause, {
-          fallback: "Failed to claim oracle activation.",
-          rpcEndpoint: connection.rpcEndpoint,
-        }),
-      );
     } finally {
       setClaimBusy(false);
     }
@@ -735,41 +460,14 @@ export function OracleRegistryVerificationPanel() {
     }
   }, [connection, verificationOracleAddress, verificationPoolAddress]);
 
-  const loadSelectedProfileToWizard = useCallback(() => {
-    if (!selectedOracle?.profile) return;
-    const profile = selectedOracle.profile;
-    setWizardMode("update");
-    setWizardStep(1);
-    setOracleAddressInput(profile.oracle);
-    setOracleType(profile.oracleType);
-    setDisplayName(profile.displayName);
-    setLegalName(profile.legalName);
-    setWebsiteUrl(profile.websiteUrl);
-    setAppUrl(profile.appUrl);
-    setLogoUri(profile.logoUri);
-    setWebhookUrl(profile.webhookUrl);
-    setSelectedSchemaHashes(
-      Array.from(
-        new Set(
-          profile.supportedSchemaKeyHashesHex
-            .map((hash) => normalizeHex32(hash))
-            .filter((hash) => isHex32(hash)),
-        ),
-      ),
-    );
-    resetWizardMessages();
-  }, [resetWizardMessages, selectedOracle]);
-
-  const wizardActionLabel = wizardMode === "register" ? "Register oracle" : "Update profile";
-
   const readinessRows = snapshot
     ? [
-        { label: "Oracle registry entry", value: snapshot.oracleRegistered },
-        { label: "Oracle profile", value: snapshot.oracleProfileExists },
-        { label: "Pool oracle approval", value: snapshot.poolOracleApproved },
-        { label: "Pool oracle policy", value: snapshot.poolOraclePolicyConfigured },
-        { label: "Oracle stake position", value: snapshot.oracleStakePositionExists },
-      ]
+      { label: "Oracle registry entry", value: snapshot.oracleRegistered },
+      { label: "Oracle profile", value: snapshot.oracleProfileExists },
+      { label: "Pool oracle approval", value: snapshot.poolOracleApproved },
+      { label: "Pool oracle policy", value: snapshot.poolOraclePolicyConfigured },
+      { label: "Oracle stake position", value: snapshot.oracleStakePositionExists },
+    ]
     : [];
 
   return (
@@ -794,7 +492,6 @@ export function OracleRegistryVerificationPanel() {
               onClick={() => void claimOracle(claimOracleFromQuery)}
               disabled={claimBusy}
             >
-              <ShieldCheck className={`h-3.5 w-3.5 ${claimBusy ? "animate-pulse" : ""}`} />
               {claimBusy ? "Claiming..." : "Claim oracle now"}
             </button>
             {claimError ? <p className="field-error">{claimError}</p> : null}
@@ -817,15 +514,20 @@ export function OracleRegistryVerificationPanel() {
               onChange={(event) => setRegistrySearch(event.target.value)}
             />
           </div>
-          <button
-            type="button"
-            className="secondary-button inline-flex items-center gap-1.5 text-sm"
-            onClick={() => void refreshData()}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Refreshing..." : "Refresh registry"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/oracles/register" className="action-button inline-flex items-center gap-1.5 text-sm">
+              Register oracle
+            </Link>
+            <button
+              type="button"
+              className="secondary-button inline-flex items-center gap-1.5 text-sm"
+              onClick={() => void refreshData()}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              {loading ? "Refreshing..." : "Refresh registry"}
+            </button>
+          </div>
         </div>
 
         {!loading && filteredRegistry.length === 0 ? (
@@ -836,9 +538,7 @@ export function OracleRegistryVerificationPanel() {
               const profile = row.profile;
               const isSelected = row.oracle === selectedOracleAddress;
               const oracleApprovals = approvals.filter((entry) => entry.oracle === row.oracle);
-              const policiesConfigured = oracleApprovals.filter((entry) =>
-                policiesByPool.has(entry.liquidityPool)
-              ).length;
+              const policiesConfigured = oracleApprovals.filter((entry) => policiesByPool.has(entry.liquidityPool)).length;
               return (
                 <button
                   key={row.address}
@@ -890,13 +590,12 @@ export function OracleRegistryVerificationPanel() {
             </div>
             <div className="flex gap-2">
               {selectedOracle.profile ? (
-                <button
-                  type="button"
+                <Link
+                  href={`/oracles/${encodeURIComponent(selectedOracle.oracle)}/update`}
                   className="secondary-button text-sm"
-                  onClick={loadSelectedProfileToWizard}
                 >
                   Edit profile
-                </button>
+                </Link>
               ) : null}
               <button
                 type="button"
@@ -950,11 +649,11 @@ export function OracleRegistryVerificationPanel() {
                             </span>
                           ) : null}
                         </div>
-                          <p className="text-sm font-medium">
-                            {entry.schema ? `${entry.schema.schemaKey} v${entry.schema.version}` : "Unresolved schema hash"}
+                        <p className="text-sm font-medium">
+                          {entry.schema ? `${entry.schema.schemaKey} v${entry.schema.version}` : "Unresolved schema hash"}
                         </p>
                         <p className="text-[11px] text-[var(--muted-foreground)] font-mono break-all">
-                          {shortAddress(entry.hash)}
+                          {entry.hash}
                         </p>
                         {entry.preview?.sampleOutcomeIds.length ? (
                           <p className="text-[11px] text-[var(--muted-foreground)]">
@@ -974,317 +673,15 @@ export function OracleRegistryVerificationPanel() {
               </div>
             </details>
           ) : (
-            <p className="field-help">This oracle has not published a structured profile yet. Use the onboarding flow below to register one and unlock managed capabilities.</p>
+            <div className="space-y-2">
+              <p className="field-help">This oracle has not published a structured profile yet. Start from the dedicated register wizard to unlock managed capabilities.</p>
+              <Link href="/oracles/register" className="secondary-button inline-flex w-fit text-sm">
+                Register oracle
+              </Link>
+            </div>
           )}
         </section>
       ) : null}
-
-      <section className="surface-card space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="metric-label">Oracle onboarding</p>
-            <p className="field-help">
-              {wizardMode === "register"
-                ? "Registration stays guided, while normal profile edits stay on a single screen."
-                : "Edit the profile inline, then save changes without stepping through a wizard."}
-            </p>
-          </div>
-          <div className="inline-flex gap-1 rounded-xl border border-[var(--border)]/60 p-1 bg-[color-mix(in oklab,var(--surface-strong)_82%,transparent)]">
-            <button
-              type="button"
-              className={`segment-button segment-button-compact ${wizardMode === "register" ? "segment-button-active" : ""}`}
-              onClick={() => {
-                setWizardMode("register");
-                setWizardStep(1);
-                resetWizardMessages();
-              }}
-            >
-              Register
-            </button>
-            <button
-              type="button"
-              className={`segment-button segment-button-compact ${wizardMode === "update" ? "segment-button-active" : ""}`}
-              onClick={() => {
-                setWizardMode("update");
-                setWizardStep(1);
-                resetWizardMessages();
-              }}
-            >
-              Update
-            </button>
-          </div>
-        </div>
-
-        {wizardMode === "register" ? (
-          <div className="wizard-stepper-shell">
-            <div className="wizard-stepper-head">
-              <div>
-                <p className="metric-label">Register oracle</p>
-                <p className="field-help">Start with the profile, then confirm the on-chain registration and claim handoff.</p>
-              </div>
-            </div>
-            <div className="wizard-stepper-list sm:grid-cols-2 xl:grid-cols-2">
-              {[1, 2].map((step) => (
-                <button
-                  key={step}
-                  type="button"
-                  className={`wizard-step-chip ${wizardStep === step ? "wizard-step-chip-active" : ""}`}
-                  onClick={() => {
-                    setWizardStep(step as WizardStep);
-                    resetWizardMessages();
-                  }}
-                >
-                  <span className="workflow-index">{step}</span>
-                  <span className="wizard-step-chip-label">
-                    {step === 1 ? "Profile & Capability" : "Review & Activate"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {(wizardMode === "update" || wizardStep === 1) ? (
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Admin wallet</span>
-                <input className="field-input w-full" value={walletAddress || "Not connected"} readOnly />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Oracle signing pubkey</span>
-                <input
-                  className="field-input w-full"
-                  value={oracleAddressInput}
-                  onChange={(event) => {
-                    setOracleAddressInput(event.target.value);
-                    resetWizardMessages();
-                  }}
-                  placeholder="Oracle signer public key"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Display name *</span>
-                <input className="field-input w-full" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Regional Care Diagnostics" />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Oracle type</span>
-                <select className="field-input w-full" value={String(oracleType)} onChange={(event) => setOracleType(Number.parseInt(event.target.value, 10))}>
-                  {ORACLE_TYPES.map((row) => (
-                    <option key={row.value} value={row.value}>{row.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Legal name</span>
-                <input className="field-input w-full" value={legalName} onChange={(event) => setLegalName(event.target.value)} placeholder="Optional legal entity name" />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Website URL</span>
-                <input className="field-input w-full" value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} placeholder="https://oracle.yourorg.com" />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">App URL</span>
-                <input className="field-input w-full" value={appUrl} onChange={(event) => setAppUrl(event.target.value)} placeholder="Optional operator dashboard URL" />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="field-help">Logo URI</span>
-                <input className="field-input w-full" value={logoUri} onChange={(event) => setLogoUri(event.target.value)} placeholder="ipfs://... or a public HTTPS logo URL" />
-              </label>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <input
-                  className="field-input w-full sm:max-w-sm"
-                  value={schemasSearch}
-                  onChange={(event) => setSchemasSearch(event.target.value)}
-                  placeholder="Filter supported schemas"
-                />
-                <label className="inline-flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-                  <input
-                    type="checkbox"
-                    checked={verifiedOnlySchemas}
-                    onChange={(event) => setVerifiedOnlySchemas(event.target.checked)}
-                  />
-                  Show verified schemas only
-                </label>
-              </div>
-
-              <div className="max-h-56 overflow-y-auto rounded-xl border border-[var(--border)]/50 divide-y divide-[var(--border)]/40">
-                {filteredSchemas.map((schema) => {
-                  const normalizedHash = normalizeHex32(schema.schemaKeyHashHex);
-                  const selected = selectedSchemaSet.has(normalizedHash);
-                  const preview = schemaPreviewByHash[normalizedHash];
-                  return (
-                    <label key={schema.address} className="flex items-start gap-2 p-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleSchemaHash(schema.schemaKeyHashHex)}
-                      />
-                      <span className="min-w-0">
-                        <span className="block font-medium truncate">{schema.schemaKey} v{schema.version}</span>
-                        <span className="block text-[11px] text-[var(--muted-foreground)] font-mono truncate">
-                          {shortAddress(schema.schemaKeyHashHex)}
-                        </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
-                          <span className={`status-pill ${preview?.status === "ready" ? "status-ok" : "status-off"}`}>
-                            {preview ? previewStatusLabel(preview.status) : "Preview pending"}
-                          </span>
-                          {preview ? (
-                            <span className="text-[var(--muted-foreground)]">
-                              {preview.outcomeCount} outcomes • {preview.templateCount} templates
-                            </span>
-                          ) : null}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
-                {!filteredSchemas.length ? <p className="p-3 text-sm text-[var(--muted-foreground)]">No schemas found.</p> : null}
-              </div>
-
-              <p className="field-help">
-                Selected supported schema hashes: {selectedSchemaHashes.length} / 16 • Previewed outcomes: {selectedSchemaCoverage}
-              </p>
-
-              {selectedSchemaHashes.length > 0 ? (
-                <div className="space-y-1 rounded-xl border border-[var(--border)]/45 p-2.5 text-xs">
-                  {selectedSchemaHashes.map((hash) => {
-                    const normalizedHash = normalizeHex32(hash);
-                    const preview = schemaPreviewByHash[normalizedHash];
-                    const schema = schemaByHash.get(normalizedHash);
-                    return (
-                      <p key={normalizedHash} className="break-all">
-                        <span className="font-medium">{schema ? `${schema.schemaKey} v${schema.version}` : shortAddress(normalizedHash)}</span>
-                        {" • "}
-                        <span className="text-[var(--muted-foreground)]">
-                          {preview ? `${preview.outcomeCount} outcomes, ${preview.templateCount} templates` : "preview pending"}
-                        </span>
-                      </p>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            <details className="rounded-xl border border-[var(--border)]/45 p-3">
-              <summary className="cursor-pointer text-sm font-semibold">Advanced fields</summary>
-              <div className="mt-3 space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    className="field-input w-full"
-                    value={manualSchemaHash}
-                    onChange={(event) => setManualSchemaHash(event.target.value)}
-                    placeholder="Manual schema hash (32-byte hex)"
-                  />
-                  <button type="button" className="secondary-button text-sm" onClick={addManualSchemaHash}>Add</button>
-                </div>
-
-                <label className="space-y-1 text-sm">
-                  <span className="field-help">Webhook URL</span>
-                  <input
-                    className="field-input w-full"
-                    value={webhookUrl}
-                    onChange={(event) => setWebhookUrl(event.target.value)}
-                    placeholder="https://oracle.company.com/attest"
-                  />
-                </label>
-                <p className="field-help">Webhook URL is public on-chain metadata. Do not include secrets or auth tokens.</p>
-              </div>
-            </details>
-
-            {wizardMode === "register" ? (
-              <div className="flex items-center justify-between gap-2">
-                <span />
-                <button type="button" className="secondary-button text-sm" onClick={goNext}>
-                  Next
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="action-button inline-flex items-center gap-1.5 text-sm"
-                  onClick={() => void updateOracleProfile()}
-                  disabled={Boolean(wizardBusy)}
-                >
-                  <ShieldCheck className={`h-3.5 w-3.5 ${wizardBusy ? "animate-pulse" : ""}`} />
-                  {wizardBusy ? "Submitting..." : wizardActionLabel}
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button text-sm"
-                  onClick={() => {
-                    if (!oracleAddressInput) return;
-                    void claimOracle(oracleAddressInput);
-                  }}
-                  disabled={Boolean(wizardBusy) || !oracleAddressInput}
-                >
-                  Claim now
-                </button>
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {wizardMode === "register" && wizardStep === 2 ? (
-          <div className="space-y-3">
-            <div className="rounded-xl border border-[var(--border)]/55 p-3 text-sm space-y-1">
-              <p><span className="text-[var(--muted-foreground)]">Admin wallet:</span> {shortAddress(walletAddress || "—")}</p>
-              <p><span className="text-[var(--muted-foreground)]">Oracle signer:</span> {shortAddress(oracleAddressInput || "—")}</p>
-              <p><span className="text-[var(--muted-foreground)]">Display name:</span> {displayName || "—"}</p>
-              <p><span className="text-[var(--muted-foreground)]">Type:</span> {oracleTypeLabel(oracleType)}</p>
-              <p><span className="text-[var(--muted-foreground)]">Website:</span> {websiteUrl || "—"}</p>
-              <p><span className="text-[var(--muted-foreground)]">Supported schemas:</span> {selectedSchemaHashes.length}</p>
-              <p><span className="text-[var(--muted-foreground)]">Previewed outcomes:</span> {selectedSchemaCoverage}</p>
-              <p><span className="text-[var(--muted-foreground)]">Webhook:</span> {webhookUrl || "—"}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="action-button inline-flex items-center gap-1.5 text-sm"
-                onClick={() => void registerOracle()}
-                disabled={Boolean(wizardBusy)}
-              >
-                <ShieldCheck className={`h-3.5 w-3.5 ${wizardBusy ? "animate-pulse" : ""}`} />
-                {wizardBusy ? "Submitting..." : wizardActionLabel}
-              </button>
-              <button type="button" className="secondary-button text-sm" onClick={goBack} disabled={Boolean(wizardBusy)}>
-                Back
-              </button>
-              <button
-                type="button"
-                className="secondary-button text-sm"
-                onClick={() => {
-                  if (!oracleAddressInput) return;
-                  void claimOracle(oracleAddressInput);
-                }}
-                disabled={Boolean(wizardBusy) || !oracleAddressInput}
-              >
-                Claim now
-              </button>
-            </div>
-
-            {normalize(oracleAddressInput) && walletAddress !== normalize(oracleAddressInput) ? (
-              <p className="field-help">
-                After registration, have the oracle signer open {" "}
-                <Link href={`/oracles?claim=${encodeURIComponent(normalize(oracleAddressInput))}`} className="text-[var(--primary)] underline">
-                  /oracles?claim={normalize(oracleAddressInput)}
-                </Link>
-                {" "}and submit claim.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {wizardError ? <p className="field-error">{wizardError}</p> : null}
-        {wizardSuccess ? <p className="text-sm text-[var(--success)]">{wizardSuccess}</p> : null}
-        {claimError ? <p className="field-error">{claimError}</p> : null}
-        {claimSuccess ? <p className="text-sm text-[var(--success)]">{claimSuccess}</p> : null}
-      </section>
 
       <details className="surface-card">
         <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
@@ -1294,38 +691,38 @@ export function OracleRegistryVerificationPanel() {
           <p className="field-help">Run oracle and pool readiness checks with human labels and direct fix links.</p>
 
           <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1 text-sm">
-            <span className="field-help">Oracle</span>
-            <select
-              className="field-input w-full"
-              value={verificationOracleAddress}
-              onChange={(event) => setVerificationOracleAddress(event.target.value)}
-            >
-              {oracles.map((oracle) => (
-                <option key={oracle.oracle} value={oracle.oracle}>
-                  {(oracle.profile?.displayName || shortAddress(oracle.oracle))} ({oracle.profile?.claimed ? "claimed" : "unclaimed"})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="field-help">Pool</span>
-            <select
-              className="field-input w-full"
-              value={verificationPoolAddress}
-              onChange={(event) => setVerificationPoolAddress(event.target.value)}
-            >
-              {verificationApprovals.map((approval) => {
-                const pool = poolByAddress.get(approval.liquidityPool);
-                return (
-                  <option key={approval.address} value={approval.liquidityPool}>
-                    {pool?.poolId || shortAddress(approval.liquidityPool)}
+            <label className="space-y-1 text-sm">
+              <span className="field-help">Oracle</span>
+              <select
+                className="field-input w-full"
+                value={verificationOracleAddress}
+                onChange={(event) => setVerificationOracleAddress(event.target.value)}
+              >
+                {oracles.map((oracle) => (
+                  <option key={oracle.oracle} value={oracle.oracle}>
+                    {(oracle.profile?.displayName || shortAddress(oracle.oracle))} ({oracle.profile?.claimed ? "claimed" : "unclaimed"})
                   </option>
-                );
-              })}
-            </select>
-          </label>
-        </div>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="field-help">Pool</span>
+              <select
+                className="field-input w-full"
+                value={verificationPoolAddress}
+                onChange={(event) => setVerificationPoolAddress(event.target.value)}
+              >
+                {verificationApprovals.map((approval) => {
+                  const pool = poolByAddress.get(approval.liquidityPool);
+                  return (
+                    <option key={approval.address} value={approval.liquidityPool}>
+                      {pool?.poolId || shortAddress(approval.liquidityPool)}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -1384,7 +781,7 @@ export function OracleRegistryVerificationPanel() {
             <p className="field-help">No readiness snapshot yet. Select an oracle and pool, then run check.</p>
           )}
 
-          {!verificationApprovals.length && selectedVerificationOracle ? (
+          {!verificationApprovals.length && verificationOracleAddress ? (
             <p className="field-help">
               Selected oracle has no pool approvals yet. Configure pool approval first.
             </p>
