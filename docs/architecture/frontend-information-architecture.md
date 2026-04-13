@@ -23,7 +23,8 @@ The public UI should treat these as first-order objects:
 - `/claims` is the member claim-intake plus operator liability and adjudication view
 - `/members` is the self-serve enrollment and member-rights posture view
 - `/governance` is the scoped-control, bootstrap, and authority view
-- `/oracles` is the oracle registry, readiness, and pool-binding view
+- `/oracles` is the oracle registry, readiness, and pool-binding dashboard
+- `/oracles/register` and `/oracles/[oracleAddress]/update` are the dedicated oracle profile authoring flows
 - `/schemas` explains comparability and series versioning
 
 Legacy `/pools/*` routes are retained only as redirects to avoid carrying pool-first concepts forward in the main UX.

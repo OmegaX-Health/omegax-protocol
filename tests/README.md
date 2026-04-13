@@ -8,6 +8,7 @@ This directory contains the fast Node-based verification suite for the canonical
 - deterministic PDA derivation for stable devnet fixture IDs
 - reserve-kernel arithmetic and read-model behavior
 - scenario coverage for sponsor budgets, mixed reward/protection plans, LP allocation attribution, restricted classes, separate reserve domains, impairment pressure, scoped pauses, and migration smoke
+- frontend bootstrap regressions for mounted wizard and workbench state resolution
 
 ## Run the fast suite
 

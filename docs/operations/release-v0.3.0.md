@@ -45,6 +45,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - `/claims` now mounts self-serve `open_claim_case` intake ahead of the operator liability register
 - mounted plan and capital workbenches now include sponsor-side `create_policy_series` and `open_funding_line`, `update_lp_position_credentialing`, and `mark_impairment`
 - `/oracles` now renders live registry, claim/profile readiness, pool approval, permission, and policy binding posture in one mounted route
+- oracle profile authoring now runs through dedicated `/oracles/register` and `/oracles/[oracleAddress]/update` wizard flows, while `/oracles` stays focused on registry and readiness operations
 - `/schemas` now renders the live versioned schema registry, dependency posture, and shared binding context for policy series
 - the launch flow continues to create plans, policy series, and funding lines through the canonical launch wizard instead of the retired pool-first workspace
 
@@ -52,6 +53,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 
 - the protocol console governance workspace now uses the plans-language redesign, including a telemetry-first KPI strip, asymmetric overview layout, and refreshed notice states
 - the oracles workspace now matches the same plans and overview visual system so governance and oracle operations read as one shared control surface
+- the oracle register/update flows now share the same full-page wizard grammar as `/plans/new`, including guarded bootstrap handling when live schema reads degrade
 - the hosted frontend keeps the canonical `v0.3.0` surface while improving workbench readability, queue visibility, and operator-facing chrome for the public deployment
 - publish the matching docs update alongside the frontend deployment so [docs.omegax.health](https://docs.omegax.health/docs) reflects the current console experience
 

@@ -9,6 +9,10 @@ import { PublicKey } from "@solana/web3.js";
 import { CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import {
+  resolveOracleWizardBootstrapState,
+  type OracleWizardBlockingError,
+} from "@/lib/oracle-profile-wizard-bootstrap";
 import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
   ORACLE_TYPE_HEALTH_APP,
@@ -24,7 +28,6 @@ import {
   type OracleWithProfileSummary,
   type SchemaSummary,
 } from "@/lib/protocol";
-import { formatRpcError } from "@/lib/rpc-errors";
 import { fetchSchemaMetadata, parseSchemaOutcomes } from "@/lib/schema-metadata";
 
 type WizardMode = "register" | "update";
@@ -210,7 +213,8 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
 
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [blockingError, setBlockingError] = useState<OracleWizardBlockingError | null>(null);
+  const [schemaCatalogWarning, setSchemaCatalogWarning] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"ok" | "error" | null>(null);
   const [txUrl, setTxUrl] = useState<string | null>(null);
@@ -367,57 +371,52 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
   }, [schemaByHash, schemaPreviewByHash]);
 
   const loadWizardData = useCallback(async () => {
-    if (mode === "update" && !routeOracleValid) {
-      setLoading(false);
-      setLoadError("This oracle address is not a valid Solana public key.");
-      return;
-    }
-
     setLoading(true);
-    setLoadError(null);
+    setBlockingError(null);
+    setSchemaCatalogWarning(null);
+    if (mode === "register") {
+      setLoadedProfile(null);
+    }
     try {
-      const [nextSchemas, nextOracles] = await Promise.all([
+      const [schemasResult, oraclesResult] = await Promise.allSettled([
         listSchemas({ connection, verifiedOnly: false }),
         mode === "update"
           ? listOraclesWithProfiles({ connection, activeOnly: false })
           : Promise.resolve([] as OracleWithProfileSummary[]),
       ]);
+      const nextState = resolveOracleWizardBootstrapState({
+        mode,
+        normalizedRouteOracle,
+        routeOracleValid,
+        rpcEndpoint: connection.rpcEndpoint,
+        schemasResult,
+        oraclesResult,
+      });
 
-      setSchemas(nextSchemas);
+      setSchemas(nextState.schemas);
+      setSchemaCatalogWarning(nextState.schemaCatalogWarning);
+      setBlockingError(nextState.blockingError);
 
-      if (mode === "update") {
-        const matched = nextOracles.find((row) => row.oracle === normalizedRouteOracle) ?? null;
-        if (!matched?.profile) {
-          setLoadedProfile(null);
-          setLoadError("No structured oracle profile is published for this signer on the current network.");
-        } else {
-          setLoadedProfile(matched);
-          setOracleAddressInput(matched.profile.oracle);
-          setOracleType(matched.profile.oracleType);
-          setDisplayName(matched.profile.displayName);
-          setLegalName(matched.profile.legalName);
-          setWebsiteUrl(matched.profile.websiteUrl);
-          setAppUrl(matched.profile.appUrl);
-          setLogoUri(matched.profile.logoUri);
-          setWebhookUrl(matched.profile.webhookUrl);
-          setSelectedSchemaHashes(
-            Array.from(
-              new Set(
-                matched.profile.supportedSchemaKeyHashesHex
-                  .map((hash) => normalizeHex32(hash))
-                  .filter((hash) => isHex32(hash)),
-              ),
+      if (nextState.profile) {
+        setLoadedProfile(nextState.profile);
+        setOracleAddressInput(nextState.profile.profile.oracle);
+        setOracleType(nextState.profile.profile.oracleType);
+        setDisplayName(nextState.profile.profile.displayName);
+        setLegalName(nextState.profile.profile.legalName);
+        setWebsiteUrl(nextState.profile.profile.websiteUrl);
+        setAppUrl(nextState.profile.profile.appUrl);
+        setLogoUri(nextState.profile.profile.logoUri);
+        setWebhookUrl(nextState.profile.profile.webhookUrl);
+        setSelectedSchemaHashes(
+          Array.from(
+            new Set(
+              nextState.profile.profile.supportedSchemaKeyHashesHex
+                .map((hash) => normalizeHex32(hash))
+                .filter((hash) => isHex32(hash)),
             ),
-          );
-        }
+          ),
+        );
       }
-    } catch (cause) {
-      setLoadError(
-        formatRpcError(cause, {
-          fallback: "Failed to load oracle wizard state.",
-          rpcEndpoint: connection.rpcEndpoint,
-        }),
-      );
     } finally {
       setLoading(false);
     }
@@ -679,6 +678,36 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
   }, [canClaimDirectly, mode, showClaimHelper, submitSucceeded]);
 
   const reviewExplorerLabel = txUrl && statusTone === "ok" ? "View latest transaction" : "Open explorer";
+  const blockingErrorMeta = useMemo(() => {
+    if (!blockingError) return null;
+    if (blockingError.kind === "invalid_route") {
+      return {
+        headlinePrefix: "This wizard needs a valid",
+        headlineEmphasis: "oracle route.",
+        body: "Update mode can only edit a published structured profile for a valid signer address.",
+        label: "[ROUTE_CHECK]",
+        tip: "The route parameter is not a valid Solana signer address.",
+      };
+    }
+    if (blockingError.kind === "profile_missing") {
+      return {
+        headlinePrefix: "This wizard needs a published",
+        headlineEmphasis: "oracle profile.",
+        body: "Update mode can only edit a published structured profile. If this signer does not have one yet, start from the register route instead.",
+        label: "[PROFILE_CHECK]",
+        tip: "The route is valid, but the profile is not currently visible on this network.",
+      };
+    }
+    return {
+      headlinePrefix: "The wizard could not load its live",
+      headlineEmphasis: "network context.",
+      body: mode === "register"
+        ? "Register mode can proceed once the network state is reachable again, but the current RPC endpoint did not return the bootstrap data needed for this session."
+        : "Update mode needs live network data before it can safely load the selected operator profile.",
+      label: "[NETWORK_CHECK]",
+      tip: "Retry once the RPC endpoint recovers or switch to a healthier endpoint.",
+    };
+  }, [blockingError, mode]);
 
   if (loading) {
     return (
@@ -717,7 +746,7 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
     );
   }
 
-  if (loadError) {
+  if (blockingError && blockingErrorMeta) {
     return (
       <div className="plans-shell">
         <div className="plans-wizard-scroll">
@@ -736,22 +765,20 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
           <section className="plans-wizard-body">
             <aside className="plans-wizard-prompt">
               <h1 className="plans-wizard-headline">
-                This wizard needs a valid <em>oracle profile.</em>
+                {blockingErrorMeta.headlinePrefix} <em>{blockingErrorMeta.headlineEmphasis}</em>
               </h1>
-              <p className="plans-wizard-body-text">
-                Update mode can only edit a published structured profile. If this signer does not have one yet, start from the register route instead.
-              </p>
+              <p className="plans-wizard-body-text">{blockingErrorMeta.body}</p>
               <div className="plans-wizard-tip">
-                <span className="plans-wizard-tip-label">[ROUTE_CHECK]</span>
-                <p>{routeOracleValid ? "The route is valid, but the profile is not currently visible on this network." : "The route parameter is not a valid Solana signer address."}</p>
+                <span className="plans-wizard-tip-label">{blockingErrorMeta.label}</span>
+                <p>{blockingErrorMeta.tip}</p>
               </div>
             </aside>
 
             <div className="plans-wizard-form heavy-glass">
               <div className="plans-wizard-support-grid">
                 <article className="plans-wizard-support-card">
-                  <h2 className="plans-wizard-support-title">Oracle profile unavailable</h2>
-                  <p className="plans-wizard-support-copy">{loadError}</p>
+                  <h2 className="plans-wizard-support-title">Oracle wizard unavailable</h2>
+                  <p className="plans-wizard-support-copy">{blockingError.message}</p>
                   <div className="plans-wizard-support-actions">
                     <Link href="/oracles/register" className="action-button w-fit">
                       Register oracle
@@ -827,6 +854,12 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
           </aside>
 
           <div className="plans-wizard-form heavy-glass">
+            {schemaCatalogWarning ? (
+              <div className="rounded-2xl border border-[rgba(176,112,14,0.26)] bg-[rgba(176,112,14,0.10)] px-4 py-3 text-sm text-[var(--warning)]">
+                {schemaCatalogWarning}
+              </div>
+            ) : null}
+
             {statusMessage ? (
               <div className={cn(
                 "rounded-2xl border px-4 py-3 text-sm",

@@ -10,6 +10,7 @@ This directory contains the Next.js protocol console for the canonical OmegaX he
 - provide source and legal links for hosted AGPL deployments
 - keep client-visible configuration separated from runtime-only secrets
 - keep the mounted canonical routes backed by live protocol snapshot reads rather than fixture-only previews
+- keep `/oracles` focused on registry/readiness operations while dedicated profile-authoring flows live at `/oracles/register` and `/oracles/[oracleAddress]/update`
 
 ## Key directories
 
