@@ -1,0 +1,330 @@
+{
+  "_meta": {
+    "title": "OmegaX Protocol — Full Coverage Health Plan: Working Adults",
+    "version": "v2026.1",
+    "author": "OmegaX Health devnet fixture",
+    "date": "2026-04-15",
+    "scope": "International — private full-coverage health insurance",
+    "targetPopulation": "Working adults, ages 25–65",
+    "coverageModel": "Full private (non-public, non-SSN-dependent)",
+    "currency": "USD",
+    "unit": "1 unit = 1.00 USD",
+    "relatedHealthPlan": "FcWKPlan9q1JKmYiXA3pzLvRcEd8WSu4fGo6NhkQ2Mz",
+    "relatedPlanId": "fullcover-working-adults-2026",
+    "network": "solana-devnet",
+    "note": "This model is international and currency-agnostic in principle. USD is used as the reference unit. Contrast with the Italian rehabilitation plans (EUR) in this same repository."
+  },
+
+  "populationProfile": {
+    "ageRange": "25–65",
+    "category": "Working adults",
+    "riskProfile": "Standard — no chronic disease exclusions modelled at this stage",
+    "excludedConditions": ["pre-existing conditions (underwriting at enrolment)", "self-inflicted injuries", "cosmetic procedures", "experimental treatments not approved by oracle network"],
+    "annualMedicalInflationRate": 0.05,
+    "poolSize": 100,
+    "notes": "Utilization rates calibrated against international private medical insurance (iPMI) benchmarks for working-age adults in mid-to-high income economies."
+  },
+
+  "coverageModules": {
+    "hospitalization": {
+      "description": "In-patient hospital stays including acute surgery, ICU, room and board",
+      "perAdmissionCapUSD": 15000,
+      "annualCapUSD": null,
+      "waitingPeriodDays": 0,
+      "oracleVerification": "Hospital discharge summary + DRG code + treating physician attestation",
+      "verifiability": "HIGH",
+      "includedInTiers": ["bronze", "silver", "gold"]
+    },
+    "emergency": {
+      "description": "Emergency room visits, urgent care, ambulance transport",
+      "perEventCapUSD": 5000,
+      "annualCapUSD": null,
+      "waitingPeriodDays": 0,
+      "oracleVerification": "ER triage code + discharge note",
+      "verifiability": "HIGH",
+      "includedInTiers": ["bronze", "silver", "gold"]
+    },
+    "basic-diagnostics": {
+      "description": "Laboratory tests, standard X-rays, ECG",
+      "annualCapUSD": 1500,
+      "waitingPeriodDays": 30,
+      "oracleVerification": "Lab report + ordering physician signature",
+      "verifiability": "HIGH",
+      "includedInTiers": ["bronze", "silver", "gold"]
+    },
+    "preventive": {
+      "description": "Annual health check-up, routine vaccinations, cancer screening (colonoscopy, mammography, PSA)",
+      "annualCapUSD": 500,
+      "waitingPeriodDays": 0,
+      "oracleVerification": "Preventive care protocol completion attestation",
+      "verifiability": "HIGH",
+      "includedInTiers": ["bronze", "silver", "gold"]
+    },
+    "advanced-diagnostics": {
+      "description": "MRI, CT scan, PET scan, echocardiography, biopsy",
+      "annualCapUSD": 5000,
+      "waitingPeriodDays": 30,
+      "oracleVerification": "Specialist referral + imaging report",
+      "verifiability": "HIGH",
+      "includedInTiers": ["silver", "gold"]
+    },
+    "specialists": {
+      "description": "Outpatient specialist consultations (cardiology, oncology, orthopaedics, neurology, etc.)",
+      "perVisitCapUSD": 300,
+      "annualCapVisits": 10,
+      "annualCapUSD": 3000,
+      "waitingPeriodDays": 30,
+      "oracleVerification": "Specialist referral + visit note",
+      "verifiability": "MEDIUM",
+      "includedInTiers": ["silver", "gold"]
+    },
+    "rehabilitation": {
+      "description": "General physical, occupational, and speech rehabilitation (not condition-specific). Complements dedicated condition plans (THR, TKR, RSP, Stroke).",
+      "annualCapUSD": 10000,
+      "waitingPeriodDays": 0,
+      "oracleVerification": "Therapy attendance logs + functional outcome score",
+      "verifiability": "HIGH",
+      "includedInTiers": ["silver", "gold"],
+      "note": "For condition-specific post-surgical rehabilitation, see italy-thr/tkr/rsp/stroke-rehab-model.json"
+    },
+    "mental-health": {
+      "description": "Psychotherapy sessions, psychiatric consultations, inpatient mental health stays",
+      "perSessionCapUSD": 100,
+      "annualCapSessions": 40,
+      "annualCapUSD": 4000,
+      "waitingPeriodDays": 60,
+      "oracleVerification": "Licensed therapist/psychiatrist session logs",
+      "verifiability": "MEDIUM",
+      "includedInTiers": ["silver", "gold"]
+    },
+    "dental": {
+      "description": "Conservative dentistry (fillings, root canals, extractions) and minor prosthetics. Orthodontics excluded.",
+      "annualCapUSD": 3000,
+      "waitingPeriodDays": 90,
+      "oracleVerification": "Dental procedure codes + practitioner attestation",
+      "verifiability": "MEDIUM",
+      "includedInTiers": ["silver", "gold"]
+    },
+    "maternity": {
+      "description": "Prenatal care, delivery (natural and C-section), postnatal care, neonatal care up to 30 days",
+      "perEventCapUSD": 15000,
+      "waitingPeriodDays": 270,
+      "oracleVerification": "Obstetric records + delivery attestation",
+      "verifiability": "HIGH",
+      "includedInTiers": ["gold"]
+    },
+    "oncology-catastrophic": {
+      "description": "Cancer treatment (surgery, chemotherapy, radiation, targeted therapy, immunotherapy), major cardiac surgery, organ transplants, complex neurosurgery",
+      "perEventCapUSD": 100000,
+      "annualCapUSD": 200000,
+      "waitingPeriodDays": 180,
+      "oracleVerification": "Oncologist/specialist treatment plan + staged disbursement attestations",
+      "verifiability": "HIGH",
+      "includedInTiers": ["gold"],
+      "disbursementModel": "Staged — 30% at treatment initiation, 40% at mid-treatment milestone, 30% at completion and outcome attestation"
+    },
+    "medications": {
+      "description": "Prescription medications (formulary-based). Includes oncology drugs within oncology-catastrophic module.",
+      "annualCapUSD": 5000,
+      "waitingPeriodDays": 30,
+      "oracleVerification": "Pharmacy dispensing records + prescribing physician attestation",
+      "verifiability": "MEDIUM",
+      "includedInTiers": ["gold"]
+    }
+  },
+
+  "tiers": {
+    "bronze": {
+      "address": "FcWKbronzSer1esXmYiKA3pLvREd8WSu4NhkQ2Gz1a",
+      "policyId": "fullcover-bronze",
+      "annualCapUSD": 25000,
+      "includedModules": ["hospitalization", "emergency", "basic-diagnostics", "preventive"],
+      "intendedFor": "Essential private protection. Covers the most financially significant acute events. Suits healthy individuals seeking hospital + emergency cover on top of any public safety net.",
+      "healthAlphaScore": 7000,
+      "healthAlphaMeasure": "EQ-5D-5L VAS >= 70 at annual review"
+    },
+    "silver": {
+      "address": "FcWKsilvrSer1esXmYiKA3pLvREd8WSu4NhkQ2Gz2b",
+      "policyId": "fullcover-silver",
+      "annualCapUSD": 60000,
+      "includedModules": ["hospitalization", "emergency", "advanced-diagnostics", "specialists", "rehabilitation", "mental-health", "dental", "preventive"],
+      "intendedFor": "Comprehensive cover for working adults with families. Adds specialist access, advanced imaging, mental health, and dental — the categories most used by 35–55 age group.",
+      "healthAlphaScore": 7500,
+      "healthAlphaMeasure": "EQ-5D-5L VAS >= 75 at annual review"
+    },
+    "gold": {
+      "address": "FcWKgoldSer1esXmYiKA3pLvREd8WSu4fNhkQ2Gz3c",
+      "policyId": "fullcover-gold",
+      "annualCapUSD": 200000,
+      "includedModules": ["hospitalization", "emergency", "advanced-diagnostics", "specialists", "rehabilitation", "mental-health", "dental", "maternity", "oncology-catastrophic", "medications", "preventive"],
+      "intendedFor": "Full-spectrum protection. Designed for breadwinners and families needing catastrophic coverage (oncology, transplants, cardiac surgery) alongside comprehensive day-to-day health access.",
+      "healthAlphaScore": 8000,
+      "healthAlphaMeasure": "ECOG Performance Status <= 2 (post-oncology) / EQ-5D-5L VAS >= 75 (general annual review)"
+    }
+  },
+
+  "actuarialModel": {
+    "poolSize": 100,
+    "cycleDays": 365,
+    "cycleLabel": "Annual",
+    "formula": "premium = ceil(n × utilization × annualCap × (1 + buffer) / n)",
+    "note": "Utilization represents the fraction of members filing a claim that reaches or approaches the tier cap within the cycle. Lower for Gold (rare catastrophic events) vs Silver (higher frequency of smaller claims).",
+    "tiers": {
+      "bronze": {
+        "utilizationRate": 0.06,
+        "annualCapUSD": 25000,
+        "bufferRate": 0.20,
+        "premiumPerYearUSD": 1800,
+        "premiumPerMonthUSD": 150,
+        "calculation": "ceil(100 × 0.06 × 25000 × 1.20 / 100) = ceil(1800) = 1800",
+        "expectedClaimantsPerYear": 6,
+        "expectedAnnualPayoutUSD": 150000
+      },
+      "silver": {
+        "utilizationRate": 0.07,
+        "annualCapUSD": 60000,
+        "bufferRate": 0.20,
+        "premiumPerYearUSD": 5040,
+        "premiumPerMonthUSD": 420,
+        "calculation": "ceil(100 × 0.07 × 60000 × 1.20 / 100) = ceil(5040) = 5040",
+        "expectedClaimantsPerYear": 7,
+        "expectedAnnualPayoutUSD": 420000
+      },
+      "gold": {
+        "utilizationRate": 0.04,
+        "annualCapUSD": 200000,
+        "bufferRate": 0.25,
+        "premiumPerYearUSD": 10000,
+        "premiumPerMonthUSD": 833,
+        "calculation": "ceil(100 × 0.04 × 200000 × 1.25 / 100) = ceil(10000) = 10000",
+        "expectedClaimantsPerYear": 4,
+        "expectedAnnualPayoutUSD": 800000
+      }
+    },
+    "sponsorSeed": {
+      "totalUSD": 500000,
+      "fundingLine": "FcWKsponsoBudgXmYiKA3pLvREd8WSu4fGo6hkQHz4",
+      "rationale": "Covers 5 worst-case Gold catastrophic claims (5 × 100000 = 500000 USD). Ensures pool solvency before annual premium float fully accumulates in year 1."
+    },
+    "lpBackstop": {
+      "address": "FcWKlpBackstopXmYiKA3pLvREd8WSu4fGo6hkQHz8",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "allocationPosition": "FcWKallocPosXmYiKA3pLvREd8WSu4fGo6NhkQ2Hz9",
+      "amountUSD": 600000,
+      "weightBps": 600,
+      "rationale": "6% weight (600 bps) — largest absolute backstop in the protocol. Covers 3 additional worst-case catastrophic Gold claims (3 × 200000 = 600000 USD) above actuarial expectation."
+    }
+  },
+
+  "oracleArchitecture": {
+    "overview": "Claims verification is modular per coverage category. Each module has a defined oracle permission level and attestation data type. Multi-step catastrophic claims use staged disbursement with milestone attestations.",
+    "permissions": {
+      "ORACLE_PERMISSION_DATA_ATTEST": "Used for diagnostic reports, therapy logs, prescription records — data input without direct payment trigger",
+      "ORACLE_PERMISSION_CLAIM_SETTLE": "Used for discharge summaries, surgical outcomes, treatment completion — triggers payment release",
+      "ORACLE_PERMISSION_QUOTE": "Used for pre-authorisation of elective procedures and cost estimates before treatment"
+    },
+    "moduleOracleMap": [
+      { "module": "hospitalization",        "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "Discharge summary + DRG" },
+      { "module": "emergency",              "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "ER discharge note + triage code" },
+      { "module": "basic-diagnostics",      "permission": "ORACLE_PERMISSION_DATA_ATTEST",   "trigger": "Lab/imaging report" },
+      { "module": "advanced-diagnostics",   "permission": "ORACLE_PERMISSION_DATA_ATTEST",   "trigger": "Specialist referral + imaging report" },
+      { "module": "specialists",            "permission": "ORACLE_PERMISSION_DATA_ATTEST",   "trigger": "Visit note + referral chain" },
+      { "module": "rehabilitation",         "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "Functional outcome score + attendance logs" },
+      { "module": "mental-health",          "permission": "ORACLE_PERMISSION_DATA_ATTEST",   "trigger": "Session logs (anonymised)" },
+      { "module": "dental",                 "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "Dental procedure code + practitioner attestation" },
+      { "module": "preventive",             "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "Protocol completion certificate" },
+      { "module": "maternity",              "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "Obstetric records + delivery attestation" },
+      { "module": "oncology-catastrophic",  "permission": "ORACLE_PERMISSION_CLAIM_SETTLE",  "trigger": "Staged: treatment plan → mid-treatment → ECOG outcome" },
+      { "module": "medications",            "permission": "ORACLE_PERMISSION_DATA_ATTEST",   "trigger": "Pharmacy dispensing records" }
+    ]
+  },
+
+  "demoClaimScenarios": {
+    "bronze": {
+      "scenario": "Acute appendicitis",
+      "claimCase": "FcWKclmBronzXmYiKA3pLvREd8WSu4fGo6NhkQ2Hzd",
+      "obligation": "FcWKoblBronzXmYiKA3pLvREd8WSu4fGo6NhkQ2Hza",
+      "status": "partial",
+      "costBreakdown": {
+        "ER visit": 800,
+        "laparoscopic appendectomy (in-patient)": 3700,
+        "post-op imaging + follow-up": 2200
+      },
+      "paidUSD": 4500,
+      "claimableUSD": 2200,
+      "totalApprovedUSD": 25000
+    },
+    "silver": {
+      "scenario": "ACL reconstruction + meniscus repair",
+      "claimCase": "FcWKclmSilvrXmYiKA3pLvREd8WSu4fGo6NhkQ2Hze",
+      "obligation": "FcWKoblSilvrXmYiKA3pLvREd8WSu4fGo6NhkQ2Hzb",
+      "status": "reserved — pre-authorised, surgery scheduled",
+      "costBreakdown": {
+        "specialist consultation + MRI": 1800,
+        "arthroscopic surgery (in-patient)": 22000,
+        "physiotherapy rehabilitation (20 sessions)": 1800,
+        "medications + post-op imaging": 900
+      },
+      "estimatedTotalUSD": 26500,
+      "reservedAtCapUSD": 60000,
+      "note": "Reserved at full Silver cap pending surgical outcome. Actual disbursement expected ~26500 USD."
+    },
+    "gold": {
+      "scenario": "Stage 2 breast cancer — full treatment cycle",
+      "claimCase": "FcWKclmGoldXmYiKA3pLvREd8WSu4fGo6NhkQ2Hzf",
+      "obligation": "FcWKoblGoldXmYiKA3pLvREd8WSu4fGo6NhkQ2Hzc",
+      "status": "settled",
+      "costBreakdown": {
+        "surgery (lumpectomy + sentinel node biopsy)": 28000,
+        "chemotherapy x6 cycles (AC-T protocol)": 42000,
+        "radiation therapy (15 fractions)": 15000,
+        "targeted therapy + medications": 9500
+      },
+      "totalPaidUSD": 94500,
+      "outcomeMeasure": "ECOG Performance Status 1 at treatment completion",
+      "healthAlphaScore": 8000,
+      "remainingCapUSD": 105500
+    }
+  },
+
+  "comparisonWithRehabPlans": {
+    "note": "This plan operates alongside the condition-specific Italian rehab plans in the same ReserveDomain. Key structural differences:",
+    "differences": [
+      {
+        "dimension": "Currency",
+        "fullCover": "USD (international)",
+        "rehabPlans": "EUR (Italy)"
+      },
+      {
+        "dimension": "Cycle",
+        "fullCover": "365 days (annual)",
+        "rehabPlans": "90 days orthopaedic / 180 days stroke"
+      },
+      {
+        "dimension": "Coverage scope",
+        "fullCover": "All health events across 11 modules",
+        "rehabPlans": "Single condition — surgical + rehabilitation pathway only"
+      },
+      {
+        "dimension": "Utilization rate",
+        "fullCover": "4–7% (varies by tier and event frequency)",
+        "rehabPlans": "3–5% (condition-specific incidence)"
+      },
+      {
+        "dimension": "Max per claim",
+        "fullCover": "$200,000 (Gold)",
+        "rehabPlans": "€30,220 (Stroke full) — €21,900 (TKR full)"
+      },
+      {
+        "dimension": "Oracle outcome measure",
+        "fullCover": "EQ-5D-5L VAS / ECOG (generic)",
+        "rehabPlans": "HHS / OKS / CMS / Barthel Index (condition-specific)"
+      },
+      {
+        "dimension": "Composability",
+        "fullCover": "Can be held alongside a condition-specific plan (e.g. Gold + THR plan for a patient undergoing hip replacement)",
+        "rehabPlans": "Condition-specific — triggered by a specific surgical event"
+      }
+    ]
+  }
+}
