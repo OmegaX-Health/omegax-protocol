@@ -1,0 +1,192 @@
+{
+  "_description": "Standalone actuarial model for the Italy Post-THR Rehabilitation Plan (italy-thr-rehab-2026). All monetary amounts in EUR (1 unit = €1.00). References: pazienti.it, vannistrigelli.com, prontopro.it, tiassisto.it, quotidianosanita.it (2025-2026 Italian market rates).",
+
+  "clinicalContext": {
+    "indication": "Total Hip Replacement (THR / PTH)",
+    "icd10Codes": ["Z96.641 (right artificial hip)", "Z96.642 (left artificial hip)", "M16.11 (primary OA, right)", "M16.12 (primary OA, left)"],
+    "cptCodesCovered": [
+      { "code": "27447", "description": "Total knee arthroplasty (used as proxy billing unit for THR OR)" },
+      { "code": "97001", "description": "Physical therapy evaluation" },
+      { "code": "97002", "description": "Physical therapy re-evaluation" },
+      { "code": "97110", "description": "Therapeutic exercise, each 15 min" },
+      { "code": "97530", "description": "Therapeutic activities, each 15 min" },
+      { "code": "97140", "description": "Manual therapy, each 15 min" },
+      { "code": "97012", "description": "Mechanical traction, each 15 min" }
+    ]
+  },
+
+  "costBreakdown": {
+    "currency": "EUR",
+    "unitDescription": "1 unit = 1 EUR (integer representation)",
+    "sources": [
+      "pazienti.it — 2025 private surgery cost survey",
+      "vannistrigelli.com — 2022-2025 orthopaedic cost guide (Italy)",
+      "prontopro.it / cronoshare.it — 2026 domiciliary physio market rates",
+      "tiassisto.it — 2026 RSA/rehab facility daily rates (North-Centre Italy)",
+      "quotidianosanita.it — 2026 rehabilitative tariff decree (+14.7% uplift)"
+    ],
+    "phases": {
+      "phase1_hospital": {
+        "label": "Surgical episode + 7-day inpatient stay",
+        "durationDays": 7,
+        "includes": [
+          "Pre-operative visits and labs",
+          "Operating room + anaesthesia",
+          "Prosthesis (ceramic-on-ceramic or titanium, standard range)",
+          "7-day inpatient stay",
+          "Initial inpatient physiotherapy (3-4 sessions)",
+          "Surgeon + specialist follow-up at discharge"
+        ],
+        "marketRangeEUR": { "low": 15000, "high": 30000 },
+        "modelValueEUR": 18000,
+        "rationale": "Mid-range private clinic, North-Centre Italy, standard prosthesis"
+      },
+      "phase2_rehabFacility": {
+        "label": "Inpatient rehabilitation facility",
+        "durationDays": 35,
+        "dailyRateEUR": 130,
+        "marketRangeEUR_daily": { "low": 67, "high": 180 },
+        "includes": [
+          "Accommodation and meals",
+          "Daily physiotherapy sessions (60-90 min)",
+          "Nursing supervision",
+          "Orthopedic follow-up",
+          "Gait training, ROM exercises, ADL rehabilitation"
+        ],
+        "modelValueEUR": 4550,
+        "rationale": "Private RSA/riabilitazione intensiva, national average 2026 after +14.7% tariff uplift"
+      },
+      "phase3_homeRehab": {
+        "label": "Home physiotherapy",
+        "durationDays": 35,
+        "sessionsTotal": 16,
+        "sessionRateEUR": 70,
+        "sessionFrequency": "3 sessions/week for weeks 1-4, 1 session/week weeks 5-6",
+        "marketRangeEUR_session": { "low": 50, "high": 120 },
+        "includes": [
+          "Domiciliary physiotherapy session (45-60 min)",
+          "Travel supplement",
+          "Progressive strengthening protocol",
+          "Functional training and return-to-activity programme",
+          "Final outcome assessment (Harris Hip Score)"
+        ],
+        "modelValueEUR": 1120,
+        "rationale": "National average domiciliary rate 2026, including travel supplement"
+      }
+    },
+    "totals": {
+      "fullCostEUR": 23670,
+      "byTier": {
+        "basic_50pct": 11835,
+        "standard_70pct": 16569,
+        "full_100pct": 23670
+      }
+    }
+  },
+
+  "actuarialModel": {
+    "poolParameters": {
+      "memberCount_n": 100,
+      "utilizationRate": 0.05,
+      "expectedClaimantsPerYear": 5,
+      "bufferMargin": 0.20,
+      "cycleDays": 90,
+      "cyclesPerYear": 4
+    },
+    "rationale": {
+      "utilizationRate": "THR incidence in 50-70 age cohort ~1-2% per year. Pool assumed to target higher-risk members post-diagnosis or post-surgical authorization. 5% is conservative estimate for an enrolled population that has already received surgical indication.",
+      "bufferMargin": "20% reserve buffer covers: claim processing delays, partial denials, exceptional cases above mean cost, operational overhead.",
+      "poolSize": "Minimum viable pool for meaningful risk diversification. At 5% utilization, n=100 yields 5 expected claims/year — statistically stable with low variance per central limit theorem."
+    },
+    "expectedPayouts": {
+      "basic_50pct": {
+        "perClaimEUR": 11835,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 59175
+      },
+      "standard_70pct": {
+        "perClaimEUR": 16569,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 82845
+      },
+      "full_100pct": {
+        "perClaimEUR": 23670,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 118350
+      }
+    },
+    "premiumCalculation": {
+      "formula": "premium_per_member_per_year = ceil((expectedAnnualPayout * (1 + bufferMargin)) / n)",
+      "basic_50pct": {
+        "annualPremiumEUR": 710,
+        "quarterlyPremiumEUR": 178,
+        "poolAnnualIncome_n100": 71000,
+        "poolExpectedPayout": 59175,
+        "surplusBuffer": 11825
+      },
+      "standard_70pct": {
+        "annualPremiumEUR": 994,
+        "quarterlyPremiumEUR": 249,
+        "poolAnnualIncome_n100": 99400,
+        "poolExpectedPayout": 82845,
+        "surplusBuffer": 16555
+      },
+      "full_100pct": {
+        "annualPremiumEUR": 1420,
+        "quarterlyPremiumEUR": 355,
+        "poolAnnualIncome_n100": 142000,
+        "poolExpectedPayout": 118350,
+        "surplusBuffer": 23650
+      }
+    },
+    "sponsorSeedFunding": {
+      "description": "One-time sponsor contribution to pre-fund the pool before premium inflows reach steady state. Covers ~30% of expected annual payout per tier.",
+      "basic_50pct": 18000,
+      "standard_70pct": 25000,
+      "full_100pct": 36000,
+      "total": 79000
+    },
+    "lpBackstop": {
+      "description": "Liquidity backstop for variance above expected utilization. Covers approximately 2 additional full-100% claims beyond the expected 5.",
+      "capEUR": 50000,
+      "rationale": "At 5% utilization with n=100, Poisson variance = sqrt(5) ≈ 2.2. Backstop covers +2 sigma event."
+    }
+  },
+
+  "outcomeProtocol": {
+    "primaryOutcome": {
+      "measure": "Harris Hip Score (HHS)",
+      "passingThreshold": 80,
+      "healthAlphaScore": 8000,
+      "assessmentTiming": "Day 85-90 (end of 90-day cycle)"
+    },
+    "secondaryOutcomes": [
+      { "measure": "ROM — hip flexion", "passingValue": ">= 100 degrees" },
+      { "measure": "6-minute walk test", "passingValue": ">= 400 meters" },
+      { "measure": "VAS pain score", "passingValue": "<= 3 / 10" },
+      { "measure": "PSFS (Patient-Specific Functional Scale)", "passingValue": ">= 7 / 10" }
+    ],
+    "oracleAttestation": {
+      "primaryOracle": "Treating physiotherapist (ORACLE_ROLE_CLAIM_ADJUDICATOR + ORACLE_ROLE_OUTCOME_ATTESTER)",
+      "secondaryOracle": "Optional: wearable device (ORACLE_TYPE_WEARABLE_DATA_PROVIDER) attesting gait metrics",
+      "quorum": "1-of-1 (single physio) or 2-of-2 (physio + wearable) if wearable enrolled",
+      "evidencePolicy": "All clinical data stored off-chain (IPFS or encrypted store). Only blake3 hashes committed on-chain. GDPR compliant."
+    },
+    "bondMechanic": {
+      "bondAmountEUR": 50,
+      "purpose": "Adherence incentive. Refunded to patient if HHS >= 80 at day 90. Redistributed to pool if patient abandons protocol.",
+      "healthAlphaThreshold": 8000
+    }
+  },
+
+  "sensitivityAnalysis": {
+    "description": "Impact of varying utilization rate on premium sustainability at standard-70% tier",
+    "scenarios": [
+      { "utilizationRate": 0.03, "expectedClaims": 3, "requiredPremiumEUR": 597, "poolSolvent": true },
+      { "utilizationRate": 0.05, "expectedClaims": 5, "requiredPremiumEUR": 994, "poolSolvent": true },
+      { "utilizationRate": 0.08, "expectedClaims": 8, "requiredPremiumEUR": 1591, "poolSolvent": true },
+      { "utilizationRate": 0.10, "expectedClaims": 10, "requiredPremiumEUR": 1988, "poolSolvent": true },
+      { "utilizationRate": 0.15, "expectedClaims": 15, "requiredPremiumEUR": 2982, "note": "Premium becomes unaffordable — pool requires sponsor subsidy or LP backstop expansion" }
+    ]
+  }
+}
