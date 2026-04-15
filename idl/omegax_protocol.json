@@ -547,6 +547,171 @@
       ]
     },
     {
+      "name": "attest_claim_case",
+      "discriminator": [
+        111,
+        40,
+        46,
+        51,
+        76,
+        157,
+        214,
+        136
+      ],
+      "accounts": [
+        {
+          "name": "oracle",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "oracle_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oracle_profile.oracle",
+                "account": "OracleProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.health_plan",
+                "account": "ClaimCase"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_schema",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.schema_key_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "claim_case"
+              },
+              {
+                "kind": "account",
+                "path": "oracle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "AttestClaimCaseArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "backfill_schema_dependency_ledger",
       "discriminator": [
         109,
@@ -8295,6 +8460,19 @@
       ]
     },
     {
+      "name": "ClaimAttestation",
+      "discriminator": [
+        93,
+        71,
+        134,
+        41,
+        234,
+        89,
+        150,
+        80
+      ]
+    },
+    {
       "name": "ClaimCase",
       "discriminator": [
         7,
@@ -8619,6 +8797,19 @@
         24,
         42,
         251
+      ]
+    },
+    {
+      "name": "ClaimCaseAttestedEvent",
+      "discriminator": [
+        27,
+        131,
+        74,
+        180,
+        134,
+        39,
+        214,
+        103
       ]
     },
     {
@@ -9165,6 +9356,26 @@
     },
     {
       "code": 6043,
+      "name": "OracleProfileUnclaimed",
+      "msg": "Oracle profile has not been claimed by its signing key"
+    },
+    {
+      "code": 6044,
+      "name": "InvalidClaimAttestationDecision",
+      "msg": "Claim attestation decision is not a recognized value"
+    },
+    {
+      "code": 6045,
+      "name": "ClaimAttestationSchemaRequired",
+      "msg": "Claim attestation must reference a registered schema key hash"
+    },
+    {
+      "code": 6046,
+      "name": "ClaimAttestationSchemaUnsupported",
+      "msg": "Oracle profile does not advertise support for the selected claim-attestation schema"
+    },
+    {
+      "code": 6047,
       "name": "TooManySchemaDependencies",
       "msg": "Too many schema dependency addresses were provided"
     }
@@ -9378,6 +9589,45 @@
       }
     },
     {
+      "name": "AttestClaimCaseArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "decision",
+            "type": "u8"
+          },
+          {
+            "name": "attestation_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "attestation_ref_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "BackfillSchemaDependencyLedgerArgs",
       "type": {
         "kind": "struct",
@@ -9535,6 +9785,77 @@
       }
     },
     {
+      "name": "ClaimAttestation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_profile",
+            "type": "pubkey"
+          },
+          {
+            "name": "claim_case",
+            "type": "pubkey"
+          },
+          {
+            "name": "health_plan",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_series",
+            "type": "pubkey"
+          },
+          {
+            "name": "decision",
+            "type": "u8"
+          },
+          {
+            "name": "attestation_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "attestation_ref_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_key_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "created_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "ClaimCase",
       "type": {
         "kind": "struct",
@@ -9644,6 +9965,43 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimCaseAttestedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "claim_attestation",
+            "type": "pubkey"
+          },
+          {
+            "name": "claim_case",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_profile",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "decision",
+            "type": "u8"
+          },
+          {
+            "name": "attestation_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }

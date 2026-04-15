@@ -10,6 +10,8 @@ const {
   DEFAULT_LIQUIDITY_POOL_ADDRESS,
 } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
 const {
+  buildAttestClaimCaseTx,
+  deriveClaimAttestationPda,
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
   deriveMembershipAnchorSeatPda,
@@ -86,5 +88,28 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
     }).toBase58(),
     /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   );
+  assert.match(
+    deriveClaimAttestationPda({
+      claimCase: seekerPlan.address,
+      oracle: oracleAddress,
+    }).toBase58(),
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+  );
   assert.match(deriveProtocolGovernancePda().toBase58(), /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
+});
+
+test("claim attestation builders reject unsupported decisions before chain submission", () => {
+  assert.throws(
+    () =>
+      buildAttestClaimCaseTx({
+        oracle: DEFAULT_HEALTH_PLAN_ADDRESS,
+        claimCaseAddress: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases[0]!.address,
+        recentBlockhash: "11111111111111111111111111111111",
+        decision: 99,
+        attestationHashHex: "11".repeat(32),
+        attestationRefHashHex: "22".repeat(32),
+        schemaKeyHashHex: "33".repeat(32),
+      }),
+    /claim attestation decision must be one of 0/,
+  );
 });

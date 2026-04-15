@@ -13,6 +13,10 @@ import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from
 import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 import { buildAuditTrail, defaultTabForPersona, ORACLE_TABS, type OracleTabId } from "@/lib/workbench";
 import {
+  CLAIM_ATTESTATION_DECISION_ABSTAIN,
+  CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW,
+  CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
+  CLAIM_ATTESTATION_DECISION_SUPPORT_DENY,
   describeClaimStatus,
   describeObligationStatus,
   describeSeriesMode,
@@ -58,6 +62,21 @@ function statusVariant(described: string): "success" | "warning" | "danger" | "i
   if (l.includes("denied") || l.includes("closed") || l.includes("disputed") || l.includes("impaired")) return "danger";
   if (l.includes("reserved") || l.includes("processing") || l.includes("submitted")) return "info";
   return "muted";
+}
+
+function describeAttestationDecision(decision: number): string {
+  switch (decision) {
+    case CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE:
+      return "Approved";
+    case CLAIM_ATTESTATION_DECISION_SUPPORT_DENY:
+      return "Denied";
+    case CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW:
+      return "Review";
+    case CLAIM_ATTESTATION_DECISION_ABSTAIN:
+      return "Abstained";
+    default:
+      return "Pending";
+  }
 }
 
 function StatusBadge({ label }: { label: string }) {
@@ -261,18 +280,25 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
   };
 
   const attestations = useMemo<OracleAttestation[]>(() => {
-    return scopedClaimCases.map((claim, index) => {
-      const series = snapshot.policySeries.find((entry) => entry.address === claim.policySeries);
-      const operator = oracleOperators[index % oracleOperators.length];
-      return {
-        id: claim.address,
-        series: series?.displayName ?? claim.claimId,
-        operator: operator?.label ?? "Oracle operator",
-        status: describeClaimStatus(claim.intakeStatus),
-        reference: claim.claimId,
-      };
-    });
-  }, [oracleOperators, scopedClaimCases, snapshot.policySeries]);
+    const scopedClaimAddresses = new Set(scopedClaimCases.map((claim) => claim.address));
+    const operatorByOracle = new Map(oracleOperators.map((op) => [op.address, op]));
+    return snapshot.claimAttestations
+      .filter((attestation) => scopedClaimAddresses.has(attestation.claimCase))
+      .map((attestation) => {
+        const claim = scopedClaimCases.find((entry) => entry.address === attestation.claimCase);
+        const series = claim
+          ? snapshot.policySeries.find((entry) => entry.address === claim.policySeries)
+          : null;
+        const operator = operatorByOracle.get(attestation.oracle);
+        return {
+          id: attestation.address,
+          series: series?.displayName ?? claim?.claimId ?? "—",
+          operator: operator?.label ?? `Oracle · ${shortenAddress(attestation.oracle, 6)}`,
+          status: describeAttestationDecision(attestation.decision),
+          reference: claim?.claimId ?? shortenAddress(attestation.claimCase, 6),
+        };
+      });
+  }, [oracleOperators, scopedClaimCases, snapshot.claimAttestations, snapshot.policySeries]);
 
   const attestationScopeLabel = selectedSeries?.displayName ?? selectedPool?.displayName ?? "the selected context";
 

@@ -35,6 +35,7 @@ const EMPTY_PROTOCOL_CONSOLE_SNAPSHOT: ProtocolConsoleSnapshot = {
   poolOraclePermissionSets: [],
   outcomeSchemas: [],
   schemaDependencyLedgers: [],
+  claimAttestations: [],
 };
 
 export function useProtocolConsoleSnapshot() {

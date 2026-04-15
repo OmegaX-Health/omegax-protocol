@@ -36,6 +36,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(instructionNames.includes("register_outcome_schema"));
   assert(instructionNames.includes("verify_outcome_schema"));
   assert(instructionNames.includes("close_outcome_schema"));
+  assert(instructionNames.includes("attest_claim_case"));
 
   assert(accountNames.includes("ReserveDomain"));
   assert(accountNames.includes("HealthPlan"));
@@ -52,6 +53,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(accountNames.includes("PoolOraclePermissionSet"));
   assert(accountNames.includes("OutcomeSchema"));
   assert(accountNames.includes("SchemaDependencyLedger"));
+  assert(accountNames.includes("ClaimAttestation"));
 
   assert(!instructionNames.includes("create_pool"));
   assert(!instructionNames.includes("set_pool_status"));

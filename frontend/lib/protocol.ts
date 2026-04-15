@@ -56,6 +56,25 @@ export const SEED_POOL_ORACLE_POLICY = "pool_oracle_policy";
 export const SEED_POOL_ORACLE_PERMISSION_SET = "pool_oracle_permission_set";
 export const SEED_OUTCOME_SCHEMA = "outcome_schema";
 export const SEED_SCHEMA_DEPENDENCY_LEDGER = "schema_dependency_ledger";
+export const SEED_CLAIM_ATTESTATION = "claim_attestation";
+
+export const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE = 0;
+export const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY = 1;
+export const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW = 2;
+export const CLAIM_ATTESTATION_DECISION_ABSTAIN = 3;
+
+function assertValidClaimAttestationDecision(decision: number): void {
+  if (
+    decision !== CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE &&
+    decision !== CLAIM_ATTESTATION_DECISION_SUPPORT_DENY &&
+    decision !== CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW &&
+    decision !== CLAIM_ATTESTATION_DECISION_ABSTAIN
+  ) {
+    throw new Error(
+      "claim attestation decision must be one of 0 (approve), 1 (deny), 2 (review), or 3 (abstain)",
+    );
+  }
+}
 
 export const SERIES_MODE_REWARD = 0;
 export const SERIES_MODE_PROTECTION = 1;
@@ -457,6 +476,22 @@ export type SchemaDependencyLedgerSnapshot = {
   bump: number;
 };
 
+export type ClaimAttestationSnapshot = {
+  address: string;
+  oracle: string;
+  oracleProfile: string;
+  claimCase: string;
+  healthPlan: string;
+  policySeries?: string | null;
+  decision: number;
+  attestationHashHex: string;
+  attestationRefHashHex: string;
+  schemaKeyHashHex: string;
+  createdAtTs: number;
+  updatedAtTs: number;
+  bump: number;
+};
+
 export type ProtocolConsoleSnapshot = {
   protocolGovernance: ProtocolGovernanceSnapshot | null;
   reserveDomains: ReserveDomainSnapshot[];
@@ -484,6 +519,7 @@ export type ProtocolConsoleSnapshot = {
   poolOraclePermissionSets: PoolOraclePermissionSetSnapshot[];
   outcomeSchemas: OutcomeSchemaSnapshot[];
   schemaDependencyLedgers: SchemaDependencyLedgerSnapshot[];
+  claimAttestations: ClaimAttestationSnapshot[];
 };
 
 export type SponsorReadModel = {
@@ -1025,6 +1061,21 @@ export function deriveSchemaDependencyLedgerPda(params: {
 }): PublicKey {
   return derivePda(
     [TEXT_ENCODER.encode(SEED_SCHEMA_DEPENDENCY_LEDGER), hexToFixedBytes(params.schemaKeyHashHex, 32)],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveClaimAttestationPda(params: {
+  claimCase: PublicKeyish;
+  oracle: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_CLAIM_ATTESTATION),
+      toPublicKey(params.claimCase).toBytes(),
+      toPublicKey(params.oracle).toBytes(),
+    ],
     params.programId ?? PROGRAM_ID,
   );
 }
@@ -1669,6 +1720,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     poolOraclePermissionSets: [],
     outcomeSchemas: [],
     schemaDependencyLedgers: [],
+    claimAttestations: [],
   };
 
   const planLedgersRaw: Array<{ address: string; healthPlan: string; assetMint: string; sheet: unknown }> = [];
@@ -2056,6 +2108,28 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           bump: Number(decodedField(decoded, "bump") ?? 0),
         });
         break;
+      case "ClaimAttestation": {
+        const policySeriesValue = decodedField(decoded, "policySeries", "policy_series");
+        const policySeries = policySeriesValue ? asAddress(policySeriesValue) : null;
+        snapshot.claimAttestations.push({
+          address,
+          oracle: asAddress(decodedField(decoded, "oracle")),
+          oracleProfile: asAddress(decodedField(decoded, "oracleProfile", "oracle_profile")),
+          claimCase: asAddress(decodedField(decoded, "claimCase", "claim_case")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan", "health_plan")),
+          policySeries: policySeries && policySeries !== ZERO_PUBKEY ? policySeries : null,
+          decision: Number(decodedField(decoded, "decision") ?? 0),
+          attestationHashHex: bytesToHex(decodedField(decoded, "attestationHash", "attestation_hash")),
+          attestationRefHashHex: bytesToHex(
+            decodedField(decoded, "attestationRefHash", "attestation_ref_hash"),
+          ),
+          schemaKeyHashHex: bytesToHex(decodedField(decoded, "schemaKeyHash", "schema_key_hash")),
+          createdAtTs: numberFromAnchorValue(decodedField(decoded, "createdAtTs", "created_at_ts")),
+          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs", "updated_at_ts")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      }
       default:
         break;
     }
@@ -2113,6 +2187,9 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
   snapshot.poolOraclePermissionSets = sortByLabel(snapshot.poolOraclePermissionSets, (row) => `${row.liquidityPool}:${row.oracle}`);
   snapshot.outcomeSchemas = sortByLabel(snapshot.outcomeSchemas, (row) => `${row.schemaKey}:${row.version}`);
   snapshot.schemaDependencyLedgers = sortByLabel(snapshot.schemaDependencyLedgers, (row) => row.schemaKeyHashHex);
+  snapshot.claimAttestations.sort((left, right) =>
+    right.createdAtTs - left.createdAtTs || left.address.localeCompare(right.address),
+  );
 
   return snapshot;
 }
@@ -3493,6 +3570,51 @@ export function buildAttachClaimEvidenceRefTx(params: {
       { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.claimCaseAddress, isWritable: true },
+    ],
+  });
+}
+
+export function buildAttestClaimCaseTx(params: {
+  oracle: PublicKeyish;
+  claimCaseAddress: PublicKeyish;
+  recentBlockhash: string;
+  decision: number;
+  attestationHashHex: string;
+  attestationRefHashHex?: string | null;
+  schemaKeyHashHex: string;
+}): Transaction {
+  const oracle = toPublicKey(params.oracle);
+  assertValidClaimAttestationDecision(params.decision);
+  const oracleProfile = deriveOracleProfilePda({ oracle });
+  const normalizedSchemaKeyHashHex = normalizeHex32(params.schemaKeyHashHex);
+  const claimAttestation = deriveClaimAttestationPda({
+    claimCase: params.claimCaseAddress,
+    oracle,
+  });
+  const outcomeSchema = deriveOutcomeSchemaPda({
+    schemaKeyHashHex: normalizedSchemaKeyHashHex,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: oracle,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "attest_claim_case",
+    args: {
+      decision: params.decision,
+      attestation_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.attestationHashHex), 32)),
+      attestation_ref_hash: Array.from(
+        hexToFixedBytes(normalizeOptionalHex32(params.attestationRefHashHex), 32),
+      ),
+      schema_key_hash: Array.from(
+        hexToFixedBytes(normalizedSchemaKeyHashHex, 32),
+      ),
+    },
+    accounts: [
+      { pubkey: oracle, isSigner: true, isWritable: true },
+      { pubkey: oracleProfile },
+      { pubkey: params.claimCaseAddress },
+      { pubkey: outcomeSchema },
+      { pubkey: claimAttestation, isWritable: true },
+      { pubkey: SystemProgram.programId },
     ],
   });
 }

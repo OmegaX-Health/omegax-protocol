@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: f512545a44b4cd07682806c2204de24d18e7a9455750b6aed00967f5835acf35
+// contract_sha256: 4f1771c1dc8cb8b4fd531b93329e293ca519fb9ce30900c08cc1d4daa98ee1c1
 
 package com.omegax.protocol
 
@@ -11,6 +11,7 @@ object ProtocolContract {
         "adjudicate_claim_case" to byteArrayOf(146u.toByte(), 99u.toByte(), 255u.toByte(), 26u.toByte(), 223u.toByte(), 88u.toByte(), 235u.toByte(), 114u.toByte()),
         "allocate_capital" to byteArrayOf(146u.toByte(), 129u.toByte(), 60u.toByte(), 205u.toByte(), 88u.toByte(), 225u.toByte(), 60u.toByte(), 183u.toByte()),
         "attach_claim_evidence_ref" to byteArrayOf(52u.toByte(), 246u.toByte(), 203u.toByte(), 87u.toByte(), 244u.toByte(), 143u.toByte(), 132u.toByte(), 131u.toByte()),
+        "attest_claim_case" to byteArrayOf(111u.toByte(), 40u.toByte(), 46u.toByte(), 51u.toByte(), 76u.toByte(), 157u.toByte(), 214u.toByte(), 136u.toByte()),
         "backfill_schema_dependency_ledger" to byteArrayOf(109u.toByte(), 109u.toByte(), 247u.toByte(), 151u.toByte(), 229u.toByte(), 78u.toByte(), 52u.toByte(), 167u.toByte()),
         "claim_oracle" to byteArrayOf(1u.toByte(), 252u.toByte(), 166u.toByte(), 132u.toByte(), 45u.toByte(), 24u.toByte(), 23u.toByte(), 233u.toByte()),
         "close_outcome_schema" to byteArrayOf(196u.toByte(), 81u.toByte(), 8u.toByte(), 61u.toByte(), 95u.toByte(), 145u.toByte(), 225u.toByte(), 2u.toByte()),
@@ -81,12 +82,14 @@ object ProtocolContract {
         "pool_oracle_permission_set" to listOf("pool_oracle_permission_set", "<liquidity_pool>", "<oracle>"),
         "outcome_schema" to listOf("outcome_schema", "<schema_key_hash>"),
         "schema_dependency_ledger" to listOf("schema_dependency_ledger", "<schema_key_hash>"),
+        "claim_attestation" to listOf("claim_attestation", "<claim_case>", "<oracle>"),
     )
 
     val accountDiscriminators: Map<String, ByteArray> = mapOf(
         "AllocationLedger" to byteArrayOf(53u.toByte(), 81u.toByte(), 62u.toByte(), 163u.toByte(), 68u.toByte(), 200u.toByte(), 187u.toByte(), 50u.toByte()),
         "AllocationPosition" to byteArrayOf(243u.toByte(), 106u.toByte(), 252u.toByte(), 36u.toByte(), 249u.toByte(), 56u.toByte(), 227u.toByte(), 55u.toByte()),
         "CapitalClass" to byteArrayOf(161u.toByte(), 52u.toByte(), 78u.toByte(), 54u.toByte(), 200u.toByte(), 103u.toByte(), 206u.toByte(), 252u.toByte()),
+        "ClaimAttestation" to byteArrayOf(93u.toByte(), 71u.toByte(), 134u.toByte(), 41u.toByte(), 234u.toByte(), 89u.toByte(), 150u.toByte(), 80u.toByte()),
         "ClaimCase" to byteArrayOf(7u.toByte(), 178u.toByte(), 225u.toByte(), 1u.toByte(), 54u.toByte(), 47u.toByte(), 117u.toByte(), 180u.toByte()),
         "DomainAssetLedger" to byteArrayOf(82u.toByte(), 42u.toByte(), 164u.toByte(), 106u.toByte(), 70u.toByte(), 160u.toByte(), 154u.toByte(), 99u.toByte()),
         "DomainAssetVault" to byteArrayOf(105u.toByte(), 110u.toByte(), 75u.toByte(), 179u.toByte(), 247u.toByte(), 58u.toByte(), 135u.toByte(), 229u.toByte()),

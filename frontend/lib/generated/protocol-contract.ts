@@ -1,11 +1,12 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: f512545a44b4cd07682806c2204de24d18e7a9455750b6aed00967f5835acf35
+// contract_sha256: 4f1771c1dc8cb8b4fd531b93329e293ca519fb9ce30900c08cc1d4daa98ee1c1
 
 export type ProtocolInstructionName =
   | "adjudicate_claim_case"
   | "allocate_capital"
   | "attach_claim_evidence_ref"
+  | "attest_claim_case"
   | "backfill_schema_dependency_ledger"
   | "claim_oracle"
   | "close_outcome_schema"
@@ -68,6 +69,7 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "adjudicate_claim_case": Uint8Array.from([146, 99, 255, 26, 223, 88, 235, 114]),
   "allocate_capital": Uint8Array.from([146, 129, 60, 205, 88, 225, 60, 183]),
   "attach_claim_evidence_ref": Uint8Array.from([52, 246, 203, 87, 244, 143, 132, 131]),
+  "attest_claim_case": Uint8Array.from([111, 40, 46, 51, 76, 157, 214, 136]),
   "backfill_schema_dependency_ledger": Uint8Array.from([109, 109, 247, 151, 229, 78, 52, 167]),
   "claim_oracle": Uint8Array.from([1, 252, 166, 132, 45, 24, 23, 233]),
   "close_outcome_schema": Uint8Array.from([196, 81, 8, 61, 95, 145, 225, 2]),
@@ -120,6 +122,9 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   ],
   "attach_claim_evidence_ref": [
       { name: "args", type: {"defined":{"name":"AttachClaimEvidenceRefArgs"}} },
+  ],
+  "attest_claim_case": [
+      { name: "args", type: {"defined":{"name":"AttestClaimCaseArgs"}} },
   ],
   "backfill_schema_dependency_ledger": [
       { name: "args", type: {"defined":{"name":"BackfillSchemaDependencyLedgerArgs"}} },
@@ -269,6 +274,14 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
       { name: "health_plan", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
       { name: "claim_case", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
+  ],
+  "attest_claim_case": [
+      { name: "oracle", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "oracle_profile", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle_profile.oracle" }] },
+      { name: "claim_case", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "claim_case.health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
+      { name: "outcome_schema", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 117, 116, 99, 111, 109, 101, 95, 115, 99, 104, 101, 109, 97] }, { kind: "arg", path: "args.schema_key_hash" }] },
+      { name: "claim_attestation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110] }, { kind: "account", path: "claim_case" }, { kind: "account", path: "oracle" }] },
+      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
   "backfill_schema_dependency_ledger": [
       { name: "governance_authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
@@ -629,6 +642,7 @@ export const PROTOCOL_ACCOUNT_DISCRIMINATORS: Record<string, Uint8Array> = {
   "AllocationLedger": Uint8Array.from([53, 81, 62, 163, 68, 200, 187, 50]),
   "AllocationPosition": Uint8Array.from([243, 106, 252, 36, 249, 56, 227, 55]),
   "CapitalClass": Uint8Array.from([161, 52, 78, 54, 200, 103, 206, 252]),
+  "ClaimAttestation": Uint8Array.from([93, 71, 134, 41, 234, 89, 150, 80]),
   "ClaimCase": Uint8Array.from([7, 178, 225, 1, 54, 47, 117, 180]),
   "DomainAssetLedger": Uint8Array.from([82, 42, 164, 106, 70, 160, 154, 99]),
   "DomainAssetVault": Uint8Array.from([105, 110, 75, 179, 247, 58, 135, 229]),
@@ -681,4 +695,5 @@ export const PROTOCOL_PDA_SEEDS: Record<string, string[]> = {
   "pool_oracle_permission_set": ["pool_oracle_permission_set", "<liquidity_pool>", "<oracle>"],
   "outcome_schema": ["outcome_schema", "<schema_key_hash>"],
   "schema_dependency_ledger": ["schema_dependency_ledger", "<schema_key_hash>"],
+  "claim_attestation": ["claim_attestation", "<claim_case>", "<oracle>"],
 };

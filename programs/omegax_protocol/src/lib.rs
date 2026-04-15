@@ -42,6 +42,7 @@ pub const SEED_POOL_ORACLE_POLICY: &[u8] = b"pool_oracle_policy";
 pub const SEED_POOL_ORACLE_PERMISSION_SET: &[u8] = b"pool_oracle_permission_set";
 pub const SEED_OUTCOME_SCHEMA: &[u8] = b"outcome_schema";
 pub const SEED_SCHEMA_DEPENDENCY_LEDGER: &[u8] = b"schema_dependency_ledger";
+pub const SEED_CLAIM_ATTESTATION: &[u8] = b"claim_attestation";
 
 pub const SERIES_MODE_REWARD: u8 = 0;
 pub const SERIES_MODE_PROTECTION: u8 = 1;
@@ -89,6 +90,11 @@ pub const CLAIM_INTAKE_APPROVED: u8 = 2;
 pub const CLAIM_INTAKE_DENIED: u8 = 3;
 pub const CLAIM_INTAKE_SETTLED: u8 = 4;
 pub const CLAIM_INTAKE_CLOSED: u8 = 5;
+
+pub const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE: u8 = 0;
+pub const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY: u8 = 1;
+pub const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW: u8 = 2;
+pub const CLAIM_ATTESTATION_DECISION_ABSTAIN: u8 = 3;
 
 pub const OBLIGATION_STATUS_PROPOSED: u8 = 0;
 pub const OBLIGATION_STATUS_RESERVED: u8 = 1;
@@ -2021,6 +2027,52 @@ pub mod omegax_protocol {
 
         Ok(())
     }
+
+    pub fn attest_claim_case(
+        ctx: Context<AttestClaimCase>,
+        args: AttestClaimCaseArgs,
+    ) -> Result<()> {
+        require_valid_attestation_decision(args.decision)?;
+        require!(
+            !is_zero_hash(&args.schema_key_hash),
+            OmegaXProtocolError::ClaimAttestationSchemaRequired
+        );
+
+        let now_ts = Clock::get()?.unix_timestamp;
+        let oracle_profile = &ctx.accounts.oracle_profile;
+        let claim_case = &ctx.accounts.claim_case;
+        let outcome_schema = &ctx.accounts.outcome_schema;
+
+        require!(
+            oracle_profile_supports_schema(oracle_profile, outcome_schema.schema_key_hash),
+            OmegaXProtocolError::ClaimAttestationSchemaUnsupported
+        );
+
+        let attestation = &mut ctx.accounts.claim_attestation;
+        attestation.oracle = oracle_profile.oracle;
+        attestation.oracle_profile = oracle_profile.key();
+        attestation.claim_case = claim_case.key();
+        attestation.health_plan = claim_case.health_plan;
+        attestation.policy_series = claim_case.policy_series;
+        attestation.decision = args.decision;
+        attestation.attestation_hash = args.attestation_hash;
+        attestation.attestation_ref_hash = args.attestation_ref_hash;
+        attestation.schema_key_hash = outcome_schema.schema_key_hash;
+        attestation.created_at_ts = now_ts;
+        attestation.updated_at_ts = now_ts;
+        attestation.bump = ctx.bumps.claim_attestation;
+
+        emit!(ClaimCaseAttestedEvent {
+            claim_attestation: attestation.key(),
+            claim_case: claim_case.key(),
+            oracle_profile: oracle_profile.key(),
+            oracle: oracle_profile.oracle,
+            decision: attestation.decision,
+            attestation_hash: attestation.attestation_hash,
+        });
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -2463,6 +2515,40 @@ pub struct AttachClaimEvidenceRef<'info> {
     pub health_plan: Account<'info, HealthPlan>,
     #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
     pub claim_case: Account<'info, ClaimCase>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: AttestClaimCaseArgs)]
+pub struct AttestClaimCase<'info> {
+    #[account(mut)]
+    pub oracle: Signer<'info>,
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump,
+        constraint = oracle_profile.oracle == oracle.key() @ OmegaXProtocolError::Unauthorized,
+        constraint = oracle_profile.active @ OmegaXProtocolError::OracleProfileInactive,
+        constraint = oracle_profile.claimed @ OmegaXProtocolError::OracleProfileUnclaimed,
+    )]
+    pub oracle_profile: Box<Account<'info, OracleProfile>>,
+    #[account(
+        seeds = [SEED_CLAIM_CASE, claim_case.health_plan.as_ref(), claim_case.claim_id.as_bytes()],
+        bump = claim_case.bump,
+    )]
+    pub claim_case: Box<Account<'info, ClaimCase>>,
+    #[account(
+        seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump,
+    )]
+    pub outcome_schema: Box<Account<'info, OutcomeSchema>>,
+    #[account(
+        init,
+        payer = oracle,
+        space = 8 + ClaimAttestation::INIT_SPACE,
+        seeds = [SEED_CLAIM_ATTESTATION, claim_case.key().as_ref(), oracle.key().as_ref()],
+        bump,
+    )]
+    pub claim_attestation: Box<Account<'info, ClaimAttestation>>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -3423,6 +3509,23 @@ pub struct PoolOraclePermissionSet {
 
 #[account]
 #[derive(InitSpace)]
+pub struct ClaimAttestation {
+    pub oracle: Pubkey,
+    pub oracle_profile: Pubkey,
+    pub claim_case: Pubkey,
+    pub health_plan: Pubkey,
+    pub policy_series: Pubkey,
+    pub decision: u8,
+    pub attestation_hash: [u8; 32],
+    pub attestation_ref_hash: [u8; 32],
+    pub schema_key_hash: [u8; 32],
+    pub created_at_ts: i64,
+    pub updated_at_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct OutcomeSchema {
     pub publisher: Pubkey,
     pub schema_key_hash: [u8; 32],
@@ -3669,6 +3772,14 @@ pub struct OpenClaimCaseArgs {
 pub struct AttachClaimEvidenceRefArgs {
     pub evidence_ref_hash: [u8; 32],
     pub decision_support_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct AttestClaimCaseArgs {
+    pub decision: u8,
+    pub attestation_hash: [u8; 32],
+    pub attestation_ref_hash: [u8; 32],
+    pub schema_key_hash: [u8; 32],
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -3972,6 +4083,16 @@ pub struct ClaimCaseStateChangedEvent {
 }
 
 #[event]
+pub struct ClaimCaseAttestedEvent {
+    pub claim_attestation: Pubkey,
+    pub claim_case: Pubkey,
+    pub oracle_profile: Pubkey,
+    pub oracle: Pubkey,
+    pub decision: u8,
+    pub attestation_hash: [u8; 32],
+}
+
+#[event]
 pub struct AllocationUpdatedEvent {
     pub allocation_position: Pubkey,
     pub capital_class: Pubkey,
@@ -4193,6 +4314,14 @@ pub enum OmegaXProtocolError {
     PoolOracleApprovalRequired,
     #[msg("Oracle profile is inactive")]
     OracleProfileInactive,
+    #[msg("Oracle profile has not been claimed by its signing key")]
+    OracleProfileUnclaimed,
+    #[msg("Claim attestation decision is not a recognized value")]
+    InvalidClaimAttestationDecision,
+    #[msg("Claim attestation must reference a registered schema key hash")]
+    ClaimAttestationSchemaRequired,
+    #[msg("Oracle profile does not advertise support for the selected claim-attestation schema")]
+    ClaimAttestationSchemaUnsupported,
     #[msg("Too many schema dependency addresses were provided")]
     TooManySchemaDependencies,
 }
@@ -4621,6 +4750,41 @@ fn require_claim_operator(
     } else {
         err!(OmegaXProtocolError::Unauthorized)
     }
+}
+
+fn require_valid_attestation_decision(decision: u8) -> Result<()> {
+    match decision {
+        CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE
+        | CLAIM_ATTESTATION_DECISION_SUPPORT_DENY
+        | CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW
+        | CLAIM_ATTESTATION_DECISION_ABSTAIN => Ok(()),
+        _ => err!(OmegaXProtocolError::InvalidClaimAttestationDecision),
+    }
+}
+
+fn is_zero_hash(value: &[u8; 32]) -> bool {
+    *value == [0; 32]
+}
+
+fn oracle_profile_supports_schema(
+    oracle_profile: &OracleProfile,
+    schema_key_hash: [u8; 32],
+) -> bool {
+    if is_zero_hash(&schema_key_hash) {
+        return false;
+    }
+
+    let supported_count =
+        usize::from(oracle_profile.supported_schema_count).min(MAX_ORACLE_SUPPORTED_SCHEMAS);
+    if supported_count == 0 {
+        return true;
+    }
+
+    oracle_profile
+        .supported_schema_key_hashes
+        .iter()
+        .take(supported_count)
+        .any(|supported_hash| *supported_hash == schema_key_hash)
 }
 
 fn require_pool_control(
@@ -5396,5 +5560,69 @@ mod tests {
         assert!(anchor_seat.active);
         assert_eq!(anchor_seat.opened_at, 50);
         assert_eq!(anchor_seat.updated_at, 70);
+    }
+
+    fn oracle_profile_with_supported_schemas(
+        supported_schema_key_hashes: &[[u8; 32]],
+    ) -> OracleProfile {
+        let mut advertised = [[0; 32]; MAX_ORACLE_SUPPORTED_SCHEMAS];
+        for (index, schema_key_hash) in supported_schema_key_hashes.iter().enumerate() {
+            advertised[index] = *schema_key_hash;
+        }
+
+        OracleProfile {
+            oracle: Pubkey::new_unique(),
+            admin: Pubkey::new_unique(),
+            oracle_type: ORACLE_TYPE_LAB,
+            display_name: String::new(),
+            legal_name: String::new(),
+            website_url: String::new(),
+            app_url: String::new(),
+            logo_uri: String::new(),
+            webhook_url: String::new(),
+            supported_schema_count: supported_schema_key_hashes.len() as u8,
+            supported_schema_key_hashes: advertised,
+            active: true,
+            claimed: true,
+            created_at_ts: 0,
+            updated_at_ts: 0,
+            bump: 1,
+        }
+    }
+
+    #[test]
+    fn oracle_profile_schema_support_allows_unrestricted_profiles() {
+        let schema_key_hash = [7; 32];
+        let oracle_profile = oracle_profile_with_supported_schemas(&[]);
+
+        assert!(oracle_profile_supports_schema(
+            &oracle_profile,
+            schema_key_hash
+        ));
+    }
+
+    #[test]
+    fn oracle_profile_schema_support_rejects_unlisted_schema_hashes() {
+        let supported_schema_key_hash = [8; 32];
+        let unsupported_schema_key_hash = [9; 32];
+        let oracle_profile = oracle_profile_with_supported_schemas(&[supported_schema_key_hash]);
+
+        assert!(oracle_profile_supports_schema(
+            &oracle_profile,
+            supported_schema_key_hash
+        ));
+        assert!(!oracle_profile_supports_schema(
+            &oracle_profile,
+            unsupported_schema_key_hash
+        ));
+    }
+
+    #[test]
+    fn zero_claim_attestation_schema_hash_is_rejected() {
+        assert!(is_zero_hash(&[0; 32]));
+        assert!(!oracle_profile_supports_schema(
+            &oracle_profile_with_supported_schemas(&[]),
+            [0; 32]
+        ));
     }
 }

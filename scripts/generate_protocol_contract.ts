@@ -73,6 +73,7 @@ const TARGET_IDL_PATH = resolve(REPO_ROOT, 'target/idl/omegax_protocol.json');
 const CHECKED_IN_IDL_PATH = resolve(REPO_ROOT, 'idl/omegax_protocol.json');
 const CONTRACT_JSON_PATH = resolve(REPO_ROOT, 'shared/protocol_contract.json');
 const FRONTEND_GENERATED_PATH = resolve(REPO_ROOT, 'frontend/lib/generated/protocol-contract.ts');
+const FRONTEND_GENERATED_JS_PATH = resolve(REPO_ROOT, 'frontend/lib/generated/protocol-contract.js');
 const KOTLIN_GENERATED_PATH = resolve(
   REPO_ROOT,
   'android-native/protocol/src/main/java/com/omegax/protocol/ProtocolContract.kt',
@@ -105,6 +106,7 @@ const PDA_SEEDS: Record<string, string[]> = {
   pool_oracle_permission_set: ['pool_oracle_permission_set', '<liquidity_pool>', '<oracle>'],
   outcome_schema: ['outcome_schema', '<schema_key_hash>'],
   schema_dependency_ledger: ['schema_dependency_ledger', '<schema_key_hash>'],
+  claim_attestation: ['claim_attestation', '<claim_case>', '<oracle>'],
 };
 
 function canonicalDiscriminator(name: string): number[] {
@@ -252,6 +254,78 @@ ${pdaSeedsEntries}
 `;
 }
 
+function renderJs(contract: ProtocolContract, sha256: string): string {
+  const instructionMapEntries = contract.instructions
+    .map(
+      (ix) => `    ${JSON.stringify(ix.name)}: Uint8Array.from([${ix.discriminator.join(', ')}]),`,
+    )
+    .join('\n');
+
+  const argsByInstruction = contract.instructions
+    .map((ix) => {
+      const args = ix.args
+        .map((arg) => `        { name: ${JSON.stringify(arg.name)}, type: ${JSON.stringify(arg.type)} },`)
+        .join('\n');
+      return `    ${JSON.stringify(ix.name)}: [\n${args}\n    ],`;
+    })
+    .join('\n');
+
+  const accountsByInstruction = contract.instructions
+    .map((ix) => {
+      const accounts = ix.accounts
+        .map((acct) => {
+          const pdaSeeds = acct.pda?.seeds
+            ? `[${acct.pda.seeds
+                .map((seed) => {
+                  const pieces = [
+                    `kind: ${JSON.stringify(seed.kind)}`,
+                    seed.path ? `path: ${JSON.stringify(seed.path)}` : null,
+                    seed.value ? `value: [${seed.value.join(', ')}]` : null,
+                  ].filter(Boolean);
+                  return `{ ${pieces.join(', ')} }`;
+                })
+                .join(', ')}]`
+            : 'undefined';
+          return `        { name: ${JSON.stringify(acct.name)}, writable: ${Boolean(acct.writable)}, signer: ${Boolean(acct.signer)}, optional: ${Boolean(acct.optional)}, address: ${acct.address ? JSON.stringify(acct.address) : 'undefined'}, pdaSeeds: ${pdaSeeds} },`;
+        })
+        .join('\n');
+      return `    ${JSON.stringify(ix.name)}: [\n${accounts}\n    ],`;
+    })
+    .join('\n');
+
+  const pdaSeedsEntries = Object.entries(contract.pdaSeeds)
+    .map(([name, seeds]) => `    ${JSON.stringify(name)}: [${seeds.map((seed) => JSON.stringify(seed)).join(', ')}],`)
+    .join('\n');
+
+  const accountDiscriminatorEntries = Object.entries(contract.accountDiscriminators)
+    .map(
+      ([name, discriminator]) =>
+        `    ${JSON.stringify(name)}: Uint8Array.from([${discriminator.join(', ')}]),`,
+    )
+    .join('\n');
+
+  return `// AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
+// source: shared/protocol_contract.json
+// contract_sha256: ${sha256}
+export const PROTOCOL_PROGRAM_ID = ${JSON.stringify(contract.programId)};
+export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
+${instructionMapEntries}
+};
+export const PROTOCOL_INSTRUCTION_ARGS = {
+${argsByInstruction}
+};
+export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
+${accountsByInstruction}
+};
+export const PROTOCOL_ACCOUNT_DISCRIMINATORS = {
+${accountDiscriminatorEntries}
+};
+export const PROTOCOL_PDA_SEEDS = {
+${pdaSeedsEntries}
+};
+`;
+}
+
 function renderKotlin(contract: ProtocolContract, sha256: string): string {
   const discriminatorEntries = contract.instructions
     .map(
@@ -374,6 +448,9 @@ function main() {
   ensureParent(FRONTEND_GENERATED_PATH);
   writeFileSync(FRONTEND_GENERATED_PATH, renderTs(contract, contractSha), 'utf8');
 
+  ensureParent(FRONTEND_GENERATED_JS_PATH);
+  writeFileSync(FRONTEND_GENERATED_JS_PATH, renderJs(contract, contractSha), 'utf8');
+
   ensureParent(KOTLIN_GENERATED_PATH);
   writeFileSync(KOTLIN_GENERATED_PATH, renderKotlin(contract, contractSha), 'utf8');
 
@@ -381,6 +458,7 @@ function main() {
     [
       `[protocol:contract] wrote ${resolve(CONTRACT_JSON_PATH)}`,
       `[protocol:contract] wrote ${resolve(FRONTEND_GENERATED_PATH)}`,
+      `[protocol:contract] wrote ${resolve(FRONTEND_GENERATED_JS_PATH)}`,
       `[protocol:contract] wrote ${resolve(KOTLIN_GENERATED_PATH)}`,
       `[protocol:contract] contract_sha256=${contractSha}`,
     ].join('\n') + '\n',

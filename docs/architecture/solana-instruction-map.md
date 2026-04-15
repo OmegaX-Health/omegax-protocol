@@ -60,6 +60,7 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | `release_reserve` | release reserved liability back to free capital |
 | `open_claim_case` | open an explicit claim lifecycle |
 | `attach_claim_evidence_ref` | attach evidence and decision-support references |
+| `attest_claim_case` | anchor a schema-bound oracle attestation against a live claim case |
 | `adjudicate_claim_case` | approve or deny a claim case |
 | `settle_claim_case` | settle approved claim payouts through the reserve kernel |
 | `mark_impairment` | record impairment against the affected ledgers and optional obligation |

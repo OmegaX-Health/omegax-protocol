@@ -33,6 +33,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 
 - the canonical public program now includes first-class oracle registry state: `OracleProfile`, `PoolOracleApproval`, `PoolOraclePolicy`, and `PoolOraclePermissionSet`
 - the canonical public program now includes first-class schema registry state: `OutcomeSchema` and `SchemaDependencyLedger`
+- the canonical public program now includes `attest_claim_case`, which anchors schema-bound oracle attestations directly against live `ClaimCase` state
 - checked-in generated artifacts in `idl/`, `shared/`, `frontend/lib/generated/`, and `android-native/protocol/` are aligned with the current public program surface
 
 ## Console release notes
@@ -45,6 +46,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - `/claims` now mounts self-serve `open_claim_case` intake ahead of the operator liability register
 - mounted plan and capital workbenches now include sponsor-side `create_policy_series` and `open_funding_line`, `update_lp_position_credentialing`, and `mark_impairment`
 - `/oracles` now renders live registry, claim/profile readiness, pool approval, permission, and policy binding posture in one mounted route
+- the oracles workbench now renders live on-chain claim-case attestations instead of synthetic placeholder rows
 - oracle profile authoring now runs through dedicated `/oracles/register` and `/oracles/[oracleAddress]/update` wizard flows, while `/oracles` stays focused on registry and readiness operations
 - `/schemas` now renders the live versioned schema registry, dependency posture, and shared binding context for policy series
 - the launch flow continues to create plans, policy series, and funding lines through the canonical launch wizard instead of the retired pool-first workspace
