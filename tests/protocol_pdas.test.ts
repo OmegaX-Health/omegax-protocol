@@ -104,6 +104,9 @@ test("claim attestation builders reject unsupported decisions before chain submi
       buildAttestClaimCaseTx({
         oracle: DEFAULT_HEALTH_PLAN_ADDRESS,
         claimCaseAddress: DEVNET_PROTOCOL_FIXTURE_STATE.claimCases[0]!.address,
+        healthPlanAddress: DEFAULT_HEALTH_PLAN_ADDRESS,
+        obligationAddress: DEVNET_PROTOCOL_FIXTURE_STATE.obligations[0]!.address,
+        liquidityPoolAddress: DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!.address,
         recentBlockhash: "11111111111111111111111111111111",
         decision: 99,
         attestationHashHex: "11".repeat(32),

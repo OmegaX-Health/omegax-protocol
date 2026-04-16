@@ -95,6 +95,7 @@ pub const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE: u8 = 0;
 pub const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY: u8 = 1;
 pub const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW: u8 = 2;
 pub const CLAIM_ATTESTATION_DECISION_ABSTAIN: u8 = 3;
+pub const POOL_ORACLE_PERMISSION_ATTEST_CLAIM_CASE: u32 = 1 << 0;
 
 pub const OBLIGATION_STATUS_PROPOSED: u8 = 0;
 pub const OBLIGATION_STATUS_RESERVED: u8 = 1;
@@ -2535,6 +2536,38 @@ pub struct AttestClaimCase<'info> {
         bump = claim_case.bump,
     )]
     pub claim_case: Box<Account<'info, ClaimCase>>,
+    #[account(
+        seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()],
+        bump = health_plan.bump,
+        constraint = health_plan.key() == claim_case.health_plan @ OmegaXProtocolError::HealthPlanMismatch,
+    )]
+    pub health_plan: Box<Account<'info, HealthPlan>>,
+    #[account(
+        seeds = [SEED_OBLIGATION, obligation.health_plan.as_ref(), obligation.obligation_id.as_bytes()],
+        bump = obligation.bump,
+        constraint = claim_case.linked_obligation != ZERO_PUBKEY @ OmegaXProtocolError::Unauthorized,
+        constraint = obligation.key() == claim_case.linked_obligation @ OmegaXProtocolError::Unauthorized,
+        constraint = obligation.health_plan == claim_case.health_plan @ OmegaXProtocolError::HealthPlanMismatch,
+    )]
+    pub obligation: Box<Account<'info, Obligation>>,
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump,
+        constraint = obligation.liquidity_pool == liquidity_pool.key() @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
+    #[account(
+        seeds = [SEED_POOL_ORACLE_APPROVAL, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
+        bump = pool_oracle_approval.bump,
+        constraint = pool_oracle_approval.active @ OmegaXProtocolError::PoolOracleApprovalRequired,
+    )]
+    pub pool_oracle_approval: Box<Account<'info, PoolOracleApproval>>,
+    #[account(
+        seeds = [SEED_POOL_ORACLE_PERMISSION_SET, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
+        bump = pool_oracle_permission_set.bump,
+        constraint = pool_oracle_permission_set.permissions & POOL_ORACLE_PERMISSION_ATTEST_CLAIM_CASE != 0 @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub pool_oracle_permission_set: Box<Account<'info, PoolOraclePermissionSet>>,
     #[account(
         seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
         bump = outcome_schema.bump,
