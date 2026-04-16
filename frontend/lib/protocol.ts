@@ -3577,6 +3577,9 @@ export function buildAttachClaimEvidenceRefTx(params: {
 export function buildAttestClaimCaseTx(params: {
   oracle: PublicKeyish;
   claimCaseAddress: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  obligationAddress: PublicKeyish;
+  liquidityPoolAddress: PublicKeyish;
   recentBlockhash: string;
   decision: number;
   attestationHashHex: string;
@@ -3593,6 +3596,14 @@ export function buildAttestClaimCaseTx(params: {
   });
   const outcomeSchema = deriveOutcomeSchemaPda({
     schemaKeyHashHex: normalizedSchemaKeyHashHex,
+  });
+  const poolOracleApproval = derivePoolOracleApprovalPda({
+    liquidityPool: params.liquidityPoolAddress,
+    oracle,
+  });
+  const poolOraclePermissionSet = derivePoolOraclePermissionSetPda({
+    liquidityPool: params.liquidityPoolAddress,
+    oracle,
   });
   return buildProtocolTransactionFromInstruction({
     feePayer: oracle,
@@ -3612,6 +3623,11 @@ export function buildAttestClaimCaseTx(params: {
       { pubkey: oracle, isSigner: true, isWritable: true },
       { pubkey: oracleProfile },
       { pubkey: params.claimCaseAddress },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.obligationAddress },
+      { pubkey: params.liquidityPoolAddress },
+      { pubkey: poolOracleApproval },
+      { pubkey: poolOraclePermissionSet },
       { pubkey: outcomeSchema },
       { pubkey: claimAttestation, isWritable: true },
       { pubkey: SystemProgram.programId },
