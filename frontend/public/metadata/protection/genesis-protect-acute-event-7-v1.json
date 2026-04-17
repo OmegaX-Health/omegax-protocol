@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "lane": "protection",
+  "metadataUri": "/metadata/protection/genesis-protect-acute-event-7-v1.json",
+  "coveragePathway": "defi_native",
+  "defi": {
+    "settlementStyle": "onchain_programmatic",
+    "technicalTermsUri": "https://protocol.omegax.health/coverage/technical-terms",
+    "riskDisclosureUri": "https://protocol.omegax.health/coverage/risk-disclosures"
+  },
+  "product": {
+    "family": "Genesis Protect Acute",
+    "sku": "Event 7",
+    "displayName": "Genesis Protect Acute - Event 7",
+    "positioning": "Wallet-native acute emergency travel protection for short trips, conferences, and team offsites.",
+    "coverWindowDays": 7,
+    "currency": "USDC",
+    "benefitStyle": "fixed_benefit_only",
+    "maxPayoutUsd": 1500
+  },
+  "pricing": {
+    "retailUsd": 39,
+    "cohortUsdMin": 29,
+    "cohortUsdMax": 35
+  },
+  "benefitSchedule": {
+    "tiers": [
+      {
+        "id": "tier_1",
+        "label": "Tier 1",
+        "trigger": "ER or urgent hospital evaluation with same-day discharge",
+        "benefitUsd": 150
+      },
+      {
+        "id": "tier_2",
+        "label": "Tier 2",
+        "trigger": "Overnight admission",
+        "benefitUsd": 500
+      },
+      {
+        "id": "tier_3",
+        "label": "Tier 3",
+        "trigger": "Surgery, ICU, or 2+ nights",
+        "benefitUsd": 1500
+      }
+    ]
+  },
+  "waitingPeriods": {
+    "illnessDays": 7,
+    "accidentHours": 24,
+    "sponsorCohortWaiverAllowed": true
+  },
+  "evidenceSchema": {
+    "schemaKey": "genesis-protect-acute-claim",
+    "schemaVersion": 1,
+    "schemaAuthority": "shared_public_contract"
+  },
+  "coverage": {
+    "coveredWhen": [
+      "Acute, unplanned, and medically necessary within the cover window.",
+      "Accidental injury needing urgent treatment.",
+      "Sudden acute illness needing ER or inpatient care.",
+      "Ambulance tied to the covered acute event.",
+      "Emergency imaging, labs, procedures, medications, and hospital fees tied to the covered acute event."
+    ],
+    "evidenceRequired": [
+      "Invoice or itemized bill",
+      "Discharge summary or doctor note",
+      "Proof of payment",
+      "Location and date proof"
+    ],
+    "exclusions": [
+      "chronic and pre-existing conditions",
+      "pregnancy, maternity, fertility, and neonatal care",
+      "routine outpatient and elective procedures",
+      "preventive care, screening, wellness checks, and standard medication refills",
+      "ongoing mental health treatment",
+      "dental, optical, and hearing care unless a later trauma rider is added",
+      "evacuation, repatriation, baggage, and trip cancellation",
+      "substance-related events, self-harm, fraud, criminal acts, and sanctions-excluded scenarios"
+    ]
+  },
+  "claimsTrustModel": {
+    "phase0": "OmegaX Health operator-backed oracle flow plus hidden concierge review.",
+    "phase1": "AI claim recommendation with human override kept private when needed.",
+    "phase2": "Explicit claims operators with governance-visible dispute handling."
+  },
+  "commercialLayers": {
+    "appMembership": "Separate OmegaX Health app subscription for AI health agent value and premium app features.",
+    "protectionPremium": "Per-window premium that activates Event 7 protection eligibility in the protocol."
+  },
+  "fundingLanes": {
+    "premium": {
+      "lineId": "genesis-event7-premiums",
+      "reserveRole": "Collected premiums attributed to the Event 7 reserve lane."
+    },
+    "sponsor": {
+      "lineId": "genesis-event7-sponsor",
+      "reserveRole": "Explicit sponsor subsidy or backstop capital for approved cohort issuance."
+    },
+    "liquidity": {
+      "lineId": "genesis-event7-liquidity",
+      "reserveRole": "Posted LP and backstop capital that supports Event 7 obligations."
+    }
+  },
+  "issuanceControls": {
+    "reserveAttribution": "Only posted capital, collected premiums, and explicit sponsor or backstop funds count as claims-paying reserve.",
+    "publicStatusRule": "Keep Event 7 positioned as a limited demo SKU until reserve posting and operator readiness are both live.",
+    "issueWhen": [
+      "Event 7 reserve lanes are funded onchain or by explicit sponsor/backstop posting.",
+      "Operator-backed claim review is staffed for the active issuance window.",
+      "The shared public evidence schema stays aligned with the published metadata document."
+    ],
+    "pauseWhen": [
+      "Posted reserve no longer covers the marketed issuance window.",
+      "Claims operator or oracle staffing falls below the required phase-0 review readiness.",
+      "Schema, pricing, or benefit truth drifts from the published Genesis metadata."
+    ]
+  },
+  "launchTruth": {
+    "publicStatus": "end_of_month_mainnet_target",
+    "primaryLaunchSku": "travel30",
+    "fastDemoSku": "event7",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false,
+    "predictionMarketsCountAsReserve": false,
+    "appMembershipBillingSeparate": true
+  }
+}

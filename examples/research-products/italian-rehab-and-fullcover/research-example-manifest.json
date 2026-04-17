@@ -1,0 +1,61 @@
+{
+  "title": "OmegaX Protocol - Non-Canonical Research Example: Italian Rehab and Full-Cover",
+  "version": "v2026.1",
+  "status": "non_canonical_research_example",
+  "sourceContribution": {
+    "repo": "OmegaX-Health/omegax-protocol",
+    "pullRequest": 6,
+    "pullRequestUrl": "https://github.com/OmegaX-Health/omegax-protocol/pull/6",
+    "headCommit": "105ffeac1a30f28d563de01d7424964fba5f36c0",
+    "title": "feat(devnet): Italian rehabilitation and full-coverage health plan fixtures",
+    "author": "manuelsoldiers"
+  },
+  "launchBoundary": {
+    "partOfCanonicalDevnetBootstrap": false,
+    "partOfFrontendParityInputs": false,
+    "partOfSharedDevnetReleaseFlows": false,
+    "partOfGenesisProtectAcuteV1LaunchTruth": false
+  },
+  "intent": "Preserve a public protocol-compatible research contribution in an examples lane that demonstrates broader plan and pool modeling without changing the canonical Genesis Protect Acute launch surface.",
+  "exampleProducts": [
+    {
+      "planId": "italy-thr-rehab-2026",
+      "category": "condition_specific_rehab",
+      "currency": "EUR",
+      "cycleDays": 90,
+      "file": "italy-thr-rehab-model.json"
+    },
+    {
+      "planId": "italy-tkr-rehab-2026",
+      "category": "condition_specific_rehab",
+      "currency": "EUR",
+      "cycleDays": 90,
+      "file": "italy-tkr-rehab-model.json"
+    },
+    {
+      "planId": "italy-rsp-rehab-2026",
+      "category": "condition_specific_rehab",
+      "currency": "EUR",
+      "cycleDays": 90,
+      "file": "italy-rsp-rehab-model.json"
+    },
+    {
+      "planId": "italy-stroke-rehab-2026",
+      "category": "condition_specific_rehab",
+      "currency": "EUR",
+      "cycleDays": 180,
+      "file": "italy-stroke-rehab-model.json"
+    },
+    {
+      "planId": "fullcover-working-adults-2026",
+      "category": "broad_annual_private_health_example",
+      "currency": "USD",
+      "cycleDays": 365,
+      "file": "fullcover-working-adults-model.json"
+    }
+  ],
+  "notes": [
+    "These files are examples for builders and reviewers, not canonical launch fixtures.",
+    "Do not wire this manifest into protocol bootstrap, frontend fixture generation, or release sign-off jobs."
+  ]
+}

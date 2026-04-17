@@ -32,6 +32,10 @@ If you are an external builder, start with the public docs site before diving in
 
 - [Liquidity Pool Metadata Schema](./reference/liquidity-pool-metadata-schema.md)
 
+### Examples
+
+- [Non-Canonical Protocol Examples](../examples/README.md)
+
 ### Testing
 
 - [Protocol Surface Audit](./testing/protocol-surface-audit.md)

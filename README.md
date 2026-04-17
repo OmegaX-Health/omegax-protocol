@@ -106,6 +106,14 @@ This is the first publishable canonical OmegaX health-capital-markets surface.
 - mounted workbenches now include sponsor-side post-launch series and funding-line actions, LP credentialing updates, and claim impairment handling
 - the protocol now includes first-class oracle registry and outcome-schema registry accounts with checked-in generated artifacts
 
+Genesis Protect Acute sprint-1 launch truth is frozen in the public metadata and fixture surface for the April 16-20, 2026 implementation window.
+
+- `Travel 30` is the primary launch SKU and `Event 7` is the fast demo SKU
+- the current public target is end-of-month mainnet readiness, not broadly live insurance issuance today
+- phase-0 claims trust is an operator-backed oracle flow rather than decentralized adjudication
+- prediction markets do not count as reserve truth; only posted premiums, sponsor funds, liquidity, and explicit backstops do
+- app membership billing remains separate from per-window protection premiums
+
 Read the canonical design set first:
 
 - [ADR 0001](./docs/adr/0001-health-capital-markets-rearchitecture.md)

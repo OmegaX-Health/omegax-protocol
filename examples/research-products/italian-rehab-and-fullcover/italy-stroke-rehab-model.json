@@ -1,0 +1,276 @@
+{
+  "_meta": {
+    "title": "OmegaX Protocol — Italy Post-Stroke Rehabilitation Actuarial Model",
+    "version": "v2026.1",
+    "author": "OmegaX Health devnet fixture",
+    "date": "2026-04-15",
+    "jurisdiction": "Italy",
+    "condition": "Ischemic / Hemorrhagic Stroke — Post-Acute Neurological Rehabilitation",
+    "icdCodes": ["I63", "I61", "I64"],
+    "currency": "EUR",
+    "unit": "1 unit = 1.00 EUR",
+    "relatedHealthPlan": "EnSTK9q1JKmYiXA3pzLvRcEd8WSu4fGo6NhkQ2MwGyt",
+    "relatedPlanId": "italy-stroke-rehab-2026",
+    "network": "solana-devnet"
+  },
+
+  "clinicalRationale": {
+    "neuroplasticityWindow": "Peak neuroplastic recovery occurs in the 6 months following the acute ischemic or hemorrhagic event. Intensive, multidisciplinary rehabilitation initiated early and sustained through this window maximises functional regain.",
+    "rehabilitationDisciplines": [
+      "Physiotherapy (PT) — motor function, balance, gait, spasticity management",
+      "Speech and Language Therapy (SLT) — aphasia, dysarthria, dysphagia",
+      "Occupational Therapy (OT) — ADL retraining, cognitive rehabilitation, assistive technology"
+    ],
+    "outcomeMeasure": "Barthel Index (BI) — 20-item functional independence scale (0-100). Score >=75 indicates modified independence and is the primary reimbursement gate.",
+    "healthAlphaScore": 7500,
+    "healthAlphaNote": "BI >=75 maps to healthAlphaScore 7500. Oracle attests score at 180-day endpoint.",
+    "phaseStructure": {
+      "phase1_acute": {
+        "label": "Acute Stroke Unit (hospital)",
+        "durationDays": 7,
+        "setting": "Private stroke unit / neurology ward",
+        "interventions": ["thrombolysis / thrombectomy if indicated", "intensive monitoring", "early mobilisation", "swallow screening", "DVT prophylaxis"],
+        "costEUR": 11000
+      },
+      "phase2_facility": {
+        "label": "Neurorehabilitation Facility",
+        "durationRange": "60-90 days",
+        "durationAssumedDays": 75,
+        "setting": "Specialised neurorehab centre (private, Italy)",
+        "dailyRateEUR": 200,
+        "totalEUR": 15000,
+        "interventions": ["intensive PT (2h/day)", "SLT (45 min/day)", "OT (1h/day)", "neuropsychological assessment", "orthotics / splinting", "functional electrical stimulation"],
+        "note": "200 EUR/day includes all therapies, accommodation, meals, and nursing. Italian private neurorehab range: 180–250 EUR/day."
+      },
+      "phase3_home": {
+        "label": "Home Multidisciplinary Rehabilitation",
+        "durationRange": "60-90 days",
+        "setting": "Patient's home — community-based, multidisciplinary team",
+        "disciplines": {
+          "physiotherapy": {
+            "sessions": 30,
+            "sessionRateEUR": 70,
+            "subtotalEUR": 2100
+          },
+          "speechLanguageTherapy": {
+            "sessions": 16,
+            "sessionRateEUR": 80,
+            "subtotalEUR": 1280
+          },
+          "occupationalTherapy": {
+            "sessions": 12,
+            "sessionRateEUR": 70,
+            "subtotalEUR": 840
+          }
+        },
+        "totalEUR": 4220,
+        "note": "3-discipline home programme reflecting multisystem impact of stroke. Differs from orthopaedic plans (PT only). SLT rate slightly higher reflecting specialist scarcity."
+      }
+    }
+  },
+
+  "costModel": {
+    "phaseSummary": [
+      { "phase": "Acute hospital (7 days, private stroke unit)", "costEUR": 11000 },
+      { "phase": "Neurorehab facility (75 days × 200 EUR/day)", "costEUR": 15000 },
+      { "phase": "Home rehab — PT (30 × 70 EUR)", "costEUR": 2100 },
+      { "phase": "Home rehab — SLT (16 × 80 EUR)", "costEUR": 1280 },
+      { "phase": "Home rehab — OT (12 × 70 EUR)", "costEUR": 840 }
+    ],
+    "totalEUR": 30220,
+    "totalBreakdown": "11000 + 15000 + 2100 + 1280 + 840 = 30220"
+  },
+
+  "reimbursementTiers": {
+    "basic": {
+      "policyId": "stk-basic-50",
+      "address": "FoSTKbasicSer1esXmYiKA3pLvREd8WSu4NhkQ2Gw1b",
+      "rate": 0.50,
+      "maxReimbursableEUR": 15110,
+      "coveredPhases": "Acute hospital only (proportional)",
+      "intendedFor": "Supplementary top-up; assumes SSN covers facility and home phases"
+    },
+    "standard": {
+      "policyId": "stk-standard-70",
+      "address": "GpSTKstandSer1esXmYiKA3pLvREd8WSu4NhkQ2Gw2c",
+      "rate": 0.70,
+      "maxReimbursableEUR": 21154,
+      "coveredPhases": "Hospital + majority of facility rehab",
+      "intendedFor": "Mid-tier — covers most of the critical neuroplasticity window"
+    },
+    "full": {
+      "policyId": "stk-full-100",
+      "address": "HqSTKfullSer1esXmYiKA3pLvREd8WSu4fNhkQ2Gw3d",
+      "rate": 1.00,
+      "maxReimbursableEUR": 30220,
+      "coveredPhases": "All 3 phases including multidisciplinary home rehab",
+      "intendedFor": "Full protection — covers entire 180-day neuroplasticity rehabilitation window"
+    }
+  },
+
+  "actuarialModel": {
+    "poolSize": 100,
+    "utilizationRate": 0.03,
+    "note_utilization": "3% vs 5% for orthopaedic plans — stroke is non-elective but rarer, unpredictable onset, and higher severity filter reduces claiming cohort.",
+    "bufferRate": 0.20,
+    "cycleDays": 180,
+    "cycleLabel": "H1 (half-year)",
+    "formula": "premium = ceil((n × utilization × maxReimbursable × (1 + buffer)) / n)",
+    "tiers": {
+      "basic": {
+        "expectedClaimantsPerCycle": 3,
+        "expectedPayoutPerCycle": 45330,
+        "premiumPerCycleEUR": 272,
+        "premiumAnnualEUR": 544,
+        "calculation": "ceil(100 × 0.03 × 15110 × 1.20 / 100) = ceil(544.0) = 272 per 180-day cycle"
+      },
+      "standard": {
+        "expectedClaimantsPerCycle": 3,
+        "expectedPayoutPerCycle": 63462,
+        "premiumPerCycleEUR": 381,
+        "premiumAnnualEUR": 762,
+        "calculation": "ceil(100 × 0.03 × 21154 × 1.20 / 100) = ceil(761.5) = 381 per 180-day cycle"
+      },
+      "full": {
+        "expectedClaimantsPerCycle": 3,
+        "expectedPayoutPerCycle": 90660,
+        "premiumPerCycleEUR": 544,
+        "premiumAnnualEUR": 1088,
+        "calculation": "ceil(100 × 0.03 × 30220 × 1.20 / 100) = ceil(1087.9) = 544 per 180-day cycle"
+      }
+    },
+    "sponsorSeed": {
+      "totalEUR": 87000,
+      "rationale": "One-time seed covers approximately 30% of annual expected payout across tiers (basic 26400 + standard 37000 + full 52800 ≈ rounded to 87000). Supplements premium float in early pool growth phase."
+    },
+    "lpBackstop": {
+      "address": "NvSTKlpBackstopXmYiKA3pLvREd8WSu4fGo6hkGw8d",
+      "liquidityPool": "GaYfnhwLC1xaEQc5rzPYgyScUDA66Ch21WbUmbNvHfsN",
+      "allocationPosition": "PwSTKallocPosXmYiKA3pLvREd8WSu4fGo6NhkQ2Gw9",
+      "amountEUR": 60000,
+      "weightBps": 500,
+      "rationale": "5% weight (500 bps) — highest weighting in the ortho+neuro portfolio, reflecting the highest per-claim exposure (30220 EUR). Covers ~2 additional full-100% claims above expected utilization: 2 × 30220 = 60440 ≈ 60000."
+    }
+  },
+
+  "oracleCheckpoints": [
+    {
+      "day": 7,
+      "event": "Phase 1 → Phase 2 transition",
+      "attestation": "Hospital discharge summary + acute stroke severity score (NIHSS <= 15 for facility admission)",
+      "permission": "ORACLE_PERMISSION_DATA_ATTEST"
+    },
+    {
+      "day": 30,
+      "event": "Mid-facility progress review",
+      "attestation": "Barthel Index interim score + therapy compliance report",
+      "permission": "ORACLE_PERMISSION_DATA_ATTEST"
+    },
+    {
+      "day": 82,
+      "event": "Phase 2 → Phase 3 transition",
+      "attestation": "Facility discharge + Barthel Index >= 60 (minimum for home rehab eligibility)",
+      "permission": "ORACLE_PERMISSION_CLAIM_SETTLE"
+    },
+    {
+      "day": 120,
+      "event": "Home rehab mid-point review",
+      "attestation": "Community therapist compliance logs — PT + SLT + OT session counts",
+      "permission": "ORACLE_PERMISSION_DATA_ATTEST"
+    },
+    {
+      "day": 180,
+      "event": "Final outcome attestation — neuroplasticity window close",
+      "attestation": "Barthel Index >= 75 → triggers healthAlphaScore 7500 and final settlement",
+      "permission": "ORACLE_PERMISSION_CLAIM_SETTLE"
+    }
+  ],
+
+  "earlyWarningSignals": [
+    {
+      "signal": "NIHSS > 20 at admission",
+      "action": "Flag for enhanced monitoring; premium loading review at 30-day checkpoint"
+    },
+    {
+      "signal": "Barthel < 30 at day 30",
+      "action": "Clinical review — potential extended facility stay beyond 75 days; obligation re-valuation"
+    },
+    {
+      "signal": "Dysphagia requiring PEG tube",
+      "action": "SLT sessions may increase beyond modelled 16; oracle data-attest event triggered"
+    },
+    {
+      "signal": "Barthel < 60 at day 82",
+      "action": "Phase 3 home transition blocked; facility extension costs reviewed against plan cap"
+    }
+  ],
+
+  "crossPlanComparison": {
+    "_note": "All 4 Italian rehabilitation plans on OmegaX devnet, sorted by total cost",
+    "plans": [
+      {
+        "condition": "Total Knee Replacement (TKR)",
+        "planId": "italy-tkr-rehab-2026",
+        "phases": "7d hospital + 35d facility + 18 home PT sessions",
+        "cycleDays": 90,
+        "totalCostEUR": 21900,
+        "fullTierMaxEUR": 21900,
+        "fullTierPremiumPerCycleEUR": 329,
+        "utilizationRate": "5%",
+        "primaryOutcome": "Oxford Knee Score >=34",
+        "healthAlphaScore": 7100,
+        "lpBackstopEUR": 44000,
+        "weightBps": 400
+      },
+      {
+        "condition": "Reverse Shoulder Prosthesis (RSP)",
+        "planId": "italy-rsp-rehab-2026",
+        "phases": "7d hospital + 35d facility + 15 home PT sessions",
+        "cycleDays": 90,
+        "totalCostEUR": 22750,
+        "fullTierMaxEUR": 22750,
+        "fullTierPremiumPerCycleEUR": 342,
+        "utilizationRate": "5%",
+        "primaryOutcome": "Constant-Murley Score >=70",
+        "healthAlphaScore": 7000,
+        "lpBackstopEUR": 46000,
+        "weightBps": 450
+      },
+      {
+        "condition": "Total Hip Replacement (THR)",
+        "planId": "italy-thr-rehab-2026",
+        "phases": "7d hospital + 35d facility + 16 home PT sessions",
+        "cycleDays": 90,
+        "totalCostEUR": 23670,
+        "fullTierMaxEUR": 23670,
+        "fullTierPremiumPerCycleEUR": 355,
+        "utilizationRate": "5%",
+        "primaryOutcome": "Harris Hip Score >=80",
+        "healthAlphaScore": 8000,
+        "lpBackstopEUR": 50000,
+        "weightBps": 500
+      },
+      {
+        "condition": "Post-Stroke Neurological Rehabilitation",
+        "planId": "italy-stroke-rehab-2026",
+        "phases": "7d hospital + 75d neuro-facility + 58 home multidisciplinary sessions (PT+SLT+OT)",
+        "cycleDays": 180,
+        "totalCostEUR": 30220,
+        "fullTierMaxEUR": 30220,
+        "fullTierPremiumPerCycleEUR": 544,
+        "utilizationRate": "3%",
+        "primaryOutcome": "Barthel Index >=75",
+        "healthAlphaScore": 7500,
+        "lpBackstopEUR": 60000,
+        "weightBps": 500,
+        "keyDifference": "180-day cycle (vs 90d orthopaedic), multidisciplinary home phase, lower utilization rate (non-elective / unpredictable onset), highest absolute cost per claim"
+      }
+    ]
+  },
+
+  "regulatoryContext": {
+    "italy_ssn": "Servizio Sanitario Nazionale covers acute stroke hospitalisation and a portion of facility rehabilitation. Private plans fill gaps in: speed of access, facility quality, duration extensions, and home therapy intensity.",
+    "drg_reference": "DRG 14 (Ictus specifico non TIA) — SSN base rate approximately 4500-6000 EUR for acute admission. Private supplement covers delta to 11000 EUR.",
+    "lei_reporting": "On-chain oracle attestations (Barthel Index scores, therapy logs) serve as verifiable compliance records, compatible with future EU Health Data Space (EHDS) reporting frameworks."
+  }
+}

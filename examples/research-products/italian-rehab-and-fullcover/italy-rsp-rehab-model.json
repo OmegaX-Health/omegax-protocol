@@ -1,0 +1,276 @@
+{
+  "_description": "Standalone actuarial model for the Italy Post-RSP Rehabilitation Plan (italy-rsp-rehab-2026). All monetary amounts in EUR (1 unit = €1.00). Sources: policlinicogemelli.it, protesidispalla.com, chirurgiarticolare.it, prontopro.it, tiassisto.it, quotidianosanita.it (2025-2026 Italian market rates).",
+
+  "clinicalContext": {
+    "indication": "Reverse Shoulder Prosthesis (RSP / Protesi Inversa di Spalla)",
+    "primaryIndications": [
+      "Rotator cuff tear arthropathy (cuff tear + glenohumeral arthritis)",
+      "Massive irreparable rotator cuff tear without arthritis (in selected cases)",
+      "Complex proximal humerus fractures (Neer 3-4 part, in patients >65)",
+      "Failed anatomical shoulder arthroplasty with rotator cuff deficiency",
+      "Tumour resection requiring shoulder reconstruction"
+    ],
+    "icd10Codes": [
+      "Z96.611 (presence of right shoulder joint implant)",
+      "Z96.612 (presence of left shoulder joint implant)",
+      "M75.1 (rotator cuff syndrome — primary indication)",
+      "M19.011 (primary osteoarthritis, right shoulder)",
+      "M19.012 (primary osteoarthritis, left shoulder)",
+      "S42.201 (fracture of proximal humerus, right — fracture indication)"
+    ],
+    "cptCodesCovered": [
+      { "code": "23472", "description": "Arthroplasty, glenohumeral joint; total shoulder with or without autograft (reverse/constrained)" },
+      { "code": "97001", "description": "Physical therapy evaluation" },
+      { "code": "97002", "description": "Physical therapy re-evaluation" },
+      { "code": "97110", "description": "Therapeutic exercise, each 15 min" },
+      { "code": "97530", "description": "Therapeutic activities, each 15 min" },
+      { "code": "97140", "description": "Manual therapy, each 15 min" },
+      { "code": "97014", "description": "Electrical stimulation (unattended)" },
+      { "code": "97016", "description": "Vasopneumatic device (lymphoedema management)" },
+      { "code": "97010", "description": "Hot/cold pack application" }
+    ],
+    "keyClinicaldifferencesVsTHR_TKR": [
+      "STRICT 6-WEEK PROTECTIVE PHASE: no active shoulder elevation, pendulum exercises only, full-time sling. This is the most critical constraint distinguishing RSP from lower-limb prostheses.",
+      "Deltoid becomes the primary motor post-RSP, replacing the torn rotator cuff. Deltoid re-education is the cornerstone of rehab.",
+      "NO passive stretch into internal rotation for 6 weeks (subscapularis protection, when repaired).",
+      "No overhead activities for 3 months.",
+      "Scapular stabilization and proprioception are critical secondary goals.",
+      "Home rehab starts earlier than lower-limb (patient ambulatory independently) but upper limb restrictions are longer.",
+      "ROM targets: forward flexion >= 120 degrees, external rotation >= 30 degrees, internal rotation to L3.",
+      "Recovery plateau typically at 6-9 months, longer than THR/TKR (3-4 months).",
+      "Fewer sessions required than TKR (no ROM stiffness risk) but higher expertise per session (deltoid motor re-education)."
+    ]
+  },
+
+  "costBreakdown": {
+    "currency": "EUR",
+    "unitDescription": "1 unit = 1 EUR (integer representation)",
+    "sources": [
+      "policlinicogemelli.it — RSP procedure overview and private pricing context",
+      "protesidispalla.com (Dr. Claudio Ascani) — shoulder arthroplasty cost indicators",
+      "chirurgiarticolare.it — RSP rehabilitation protocol",
+      "pazienti.it — 2025 private surgery cost survey",
+      "prontopro.it / cronoshare.it — 2026 domiciliary physio market rates",
+      "tiassisto.it — 2026 RSA/rehab facility daily rates (North-Centre Italy)",
+      "quotidianosanita.it — 2026 rehabilitative tariff decree (+14.7% uplift)"
+    ],
+    "phases": {
+      "phase1_hospital": {
+        "label": "Surgical episode + 7-day inpatient stay",
+        "durationDays": 7,
+        "includes": [
+          "Pre-operative imaging (CT scan + MRI for RSP planning)",
+          "Operating room + general anaesthesia + regional block",
+          "Reverse shoulder prosthesis implant (glenosphere + baseplate + humeral stem)",
+          "7-day inpatient stay",
+          "Wound management and haematoma prevention",
+          "Initial sling fitting and positioning instructions",
+          "Inpatient physio: pendulum exercises + scapular retraction awareness",
+          "Surgeon + specialist follow-up at discharge"
+        ],
+        "marketRangeEUR": { "low": 12000, "high": 22000 },
+        "modelValueEUR": 17000,
+        "rationale": "Mid-to-upper range private clinic, North-Centre Italy. RSP implant is more expensive than anatomical shoulder prosthesis (glenosphere + baseplate system: approx €3,500-6,000 implant cost alone). Higher than TKR (16000) due to implant cost; lower than THR (18000) due to shorter OR time."
+      },
+      "phase2_rehabFacility": {
+        "label": "Inpatient rehabilitation facility",
+        "durationDays": 35,
+        "dailyRateEUR": 130,
+        "marketRangeEUR_daily": { "low": 67, "high": 180 },
+        "includes": [
+          "Accommodation and meals",
+          "Daily physiotherapy sessions (45-60 min)",
+          "Weeks 1-3: pendulum exercises, passive elevation to tolerance, sling management",
+          "Weeks 4-5: progressive active-assisted ROM, scapular stabilization",
+          "Week 5-end: early active deltoid strengthening (within protected range)",
+          "Nursing wound monitoring",
+          "Orthopaedic follow-up at day 21 and day 35",
+          "Pain management (TENS, cryotherapy)"
+        ],
+        "modelValueEUR": 4550,
+        "rationale": "Same facility and daily rate as THR/TKR (€130/day x 35 days). RSP patients are ambulatory (lower limbs unaffected), which can reduce nursing intensity, but the specialized shoulder physio protocol maintains similar cost."
+      },
+      "phase3_homeRehab": {
+        "label": "Home physiotherapy",
+        "durationDays": 35,
+        "sessionsTotal": 15,
+        "sessionRateEUR": 80,
+        "sessionFrequency": "3 sessions/week weeks 1-4, 1 session/week weeks 5-6 (progressive strengthening)",
+        "marketRangeEUR_session": { "low": 60, "high": 120 },
+        "includes": [
+          "Domiciliary physiotherapy session (45-60 min)",
+          "Travel supplement",
+          "Progressive active ROM and deltoid motor re-education",
+          "Posterior capsule stretching (after week 6)",
+          "Functional ADL training (dressing, reaching, hair care)",
+          "Return-to-activity programme (driving from week 8, overhead from week 12)",
+          "Final outcome assessment (Constant-Murley Score)"
+        ],
+        "modelValueEUR": 1200,
+        "rationale": "15 sessions at €80. Fewer sessions than TKR (18) because RSP home rehab is less physically demanding in weeks 5-6 (no load-bearing issues). Higher rate (€80 vs €75 for TKR) due to specialized shoulder deltoid re-education technique requiring certified shoulder physiotherapist."
+      }
+    },
+    "totals": {
+      "fullCostEUR": 22750,
+      "comparisonWithOtherProcedures": {
+        "thrFullCostEUR": 23670,
+        "tkrFullCostEUR": 21900,
+        "rspFullCostEUR": 22750,
+        "ranking": "THR (23670) > RSP (22750) > TKR (21900)",
+        "note": "RSP sits between THR and TKR. Higher implant cost than TKR but shorter surgical time than THR. Home physio fewer sessions but higher expertise rate."
+      },
+      "byTier": {
+        "basic_50pct": 11375,
+        "standard_70pct": 15925,
+        "full_100pct": 22750
+      }
+    }
+  },
+
+  "actuarialModel": {
+    "poolParameters": {
+      "memberCount_n": 100,
+      "utilizationRate": 0.05,
+      "expectedClaimantsPerYear": 5,
+      "bufferMargin": 0.20,
+      "cycleDays": 90,
+      "cyclesPerYear": 4
+    },
+    "rationale": {
+      "utilizationRate": "RSP is performed in patients typically aged 65-80 with rotator cuff tear arthropathy. Incidence of surgical indication in this cohort is ~1-2%/year. Pool targets at-risk members post-diagnosis. 5% is conservative for an enrolled symptomatic population.",
+      "bufferMargin": "20% standard buffer across all three orthopaedic plans.",
+      "poolSize": "n=100 for consistency with THR/TKR plans, enabling direct premium comparison."
+    },
+    "expectedPayouts": {
+      "basic_50pct": {
+        "perClaimEUR": 11375,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 56875
+      },
+      "standard_70pct": {
+        "perClaimEUR": 15925,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 79625
+      },
+      "full_100pct": {
+        "perClaimEUR": 22750,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 113750
+      }
+    },
+    "premiumCalculation": {
+      "formula": "premium_per_member_per_year = ceil((expectedAnnualPayout * (1 + bufferMargin)) / n)",
+      "basic_50pct": {
+        "annualPremiumEUR": 683,
+        "quarterlyPremiumEUR": 171,
+        "poolAnnualIncome_n100": 68300,
+        "poolExpectedPayout": 56875,
+        "surplusBuffer": 11425
+      },
+      "standard_70pct": {
+        "annualPremiumEUR": 956,
+        "quarterlyPremiumEUR": 239,
+        "poolAnnualIncome_n100": 95600,
+        "poolExpectedPayout": 79625,
+        "surplusBuffer": 15975
+      },
+      "full_100pct": {
+        "annualPremiumEUR": 1365,
+        "quarterlyPremiumEUR": 342,
+        "poolAnnualIncome_n100": 136500,
+        "poolExpectedPayout": 113750,
+        "surplusBuffer": 22750
+      }
+    },
+    "sponsorSeedFunding": {
+      "description": "One-time sponsor contribution covering ~30% of expected annual payout per tier.",
+      "basic_50pct": 17000,
+      "standard_70pct": 24000,
+      "full_100pct": 34000,
+      "total": 75000
+    },
+    "lpBackstop": {
+      "description": "Covers ~2 additional full-100% RSP claims above expected utilization.",
+      "capEUR": 46000,
+      "rationale": "2 x 22750 = 45500, rounded to 46000.",
+      "lpWeightBps": 450,
+      "positioning": "Intermediate between TKR (400 bps) and THR (500 bps), matching RSP per-claim cost rank."
+    }
+  },
+
+  "outcomeProtocol": {
+    "primaryOutcome": {
+      "measure": "Constant-Murley Score (CMS)",
+      "scale": "0-100, higher = better shoulder function",
+      "subdomains": {
+        "pain": "0-15 pts",
+        "activities_of_daily_living": "0-20 pts",
+        "range_of_motion": "0-40 pts",
+        "strength": "0-25 pts"
+      },
+      "passingThreshold": 70,
+      "interpretation": "Score 71-100 = good to excellent outcome post-RSP",
+      "healthAlphaScore": 7000,
+      "note": "CMS 70/100 = healthAlphaScore 7000. Lower than THR (HHS 80 = 8000) and comparable to TKR (OKS 34/48 = 7100). Shoulder scores post-RSP are harder to achieve due to the protective phase limiting early ROM gains."
+    },
+    "secondaryOutcomes": [
+      { "measure": "ROM — forward flexion", "passingValue": ">= 120 degrees" },
+      { "measure": "ROM — external rotation", "passingValue": ">= 30 degrees" },
+      { "measure": "ROM — internal rotation", "passingValue": ">= L3 (lumbar vertebra 3)" },
+      { "measure": "VAS pain score", "passingValue": "<= 3 / 10" },
+      { "measure": "ASES (American Shoulder and Elbow Surgeons) score", "passingValue": ">= 60 / 100" }
+    ],
+    "protectivePhaseAlert": {
+      "weeks": "1-6",
+      "constraint": "Strict sling immobilisation. No active elevation. Pendulum exercises only.",
+      "oracleRule": "Oracle must verify sling compliance at day 7, 21, and 42 via physio report hash. Active elevation reported before day 42 triggers claim review.",
+      "clinicalRisk": "Premature active elevation risks glenosphere-baseplate interface failure or subscapularis tear (if repaired). This is the most critical compliance checkpoint for RSP."
+    },
+    "oracleAttestation": {
+      "primaryOracle": "Treating physiotherapist (ORACLE_ROLE_CLAIM_ADJUDICATOR + ORACLE_ROLE_OUTCOME_ATTESTER)",
+      "secondaryOracle": "Optional: wearable IMU (inertial measurement unit) sensor on affected arm attesting ROM and movement patterns",
+      "quorum": "1-of-1 (single physio) or 2-of-2 (physio + wearable IMU) if device enrolled",
+      "evidencePolicy": "All clinical data off-chain. Only blake3 hashes on-chain. GDPR compliant."
+    },
+    "bondMechanic": {
+      "bondAmountEUR": 50,
+      "purpose": "Adherence incentive, including sling compliance. Refunded if CMS >= 70 at day 90. Redistributed if patient abandons protocol.",
+      "healthAlphaThreshold": 7000
+    }
+  },
+
+  "sensitivityAnalysis": {
+    "description": "Impact of varying utilization rate on premium sustainability at standard-70% tier",
+    "scenarios": [
+      { "utilizationRate": 0.03, "expectedClaims": 3, "requiredPremiumEUR": 574, "poolSolvent": true },
+      { "utilizationRate": 0.05, "expectedClaims": 5, "requiredPremiumEUR": 956, "poolSolvent": true },
+      { "utilizationRate": 0.08, "expectedClaims": 8, "requiredPremiumEUR": 1529, "poolSolvent": true },
+      { "utilizationRate": 0.10, "expectedClaims": 10, "requiredPremiumEUR": 1912, "poolSolvent": true },
+      { "utilizationRate": 0.15, "expectedClaims": 15, "requiredPremiumEUR": 2867, "note": "Premium becomes unaffordable — requires sponsor subsidy or LP backstop expansion" }
+    ]
+  },
+
+  "fullCrossplanComparison": {
+    "description": "Complete side-by-side: THR vs TKR vs RSP on the devnet",
+    "table": [
+      { "field": "Surgery + hospital (7 days)", "THR": "€18,000", "TKR": "€16,000", "RSP": "€17,000" },
+      { "field": "Rehab facility (35 days)", "THR": "€4,550", "TKR": "€4,550", "RSP": "€4,550" },
+      { "field": "Home physiotherapy", "THR": "€1,120 (16 x €70)", "TKR": "€1,350 (18 x €75)", "RSP": "€1,200 (15 x €80)" },
+      { "field": "Total full cost", "THR": "€23,670", "TKR": "€21,900", "RSP": "€22,750" },
+      { "field": "Basic 50% reimbursement", "THR": "€11,835", "TKR": "€10,950", "RSP": "€11,375" },
+      { "field": "Standard 70% reimbursement", "THR": "€16,569", "TKR": "€15,330", "RSP": "€15,925" },
+      { "field": "Full 100% reimbursement", "THR": "€23,670", "TKR": "€21,900", "RSP": "€22,750" },
+      { "field": "Basic premium / cycle", "THR": "€178", "TKR": "€165", "RSP": "€171" },
+      { "field": "Standard premium / cycle", "THR": "€249", "TKR": "€230", "RSP": "€239" },
+      { "field": "Full premium / cycle", "THR": "€355", "TKR": "€329", "RSP": "€342" },
+      { "field": "LP backstop cap", "THR": "€50,000", "TKR": "€44,000", "RSP": "€46,000" },
+      { "field": "LP weight (bps)", "THR": "500", "TKR": "400", "RSP": "450" },
+      { "field": "Primary outcome", "THR": "Harris Hip Score", "TKR": "Oxford Knee Score", "RSP": "Constant-Murley Score" },
+      { "field": "Passing threshold", "THR": "HHS >= 80", "TKR": "OKS >= 34/48", "RSP": "CMS >= 70" },
+      { "field": "healthAlphaScore threshold", "THR": "8000", "TKR": "7100", "RSP": "7000" },
+      { "field": "Protective phase", "THR": "Weight-bear with walker from day 1", "TKR": "Weight-bear from day 1", "RSP": "Strict sling, no active elevation for 6 weeks" },
+      { "field": "Home physio sessions", "THR": "16", "TKR": "18", "RSP": "15" },
+      { "field": "Session rate", "THR": "€70", "TKR": "€75", "RSP": "€80" }
+    ]
+  }
+}

@@ -54,6 +54,19 @@ import {
   deriveReserveDomainPda,
   deriveSeriesReserveLedgerPda,
 } from "./protocol";
+import {
+  GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_DISPLAY_NAME,
+  GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_ID,
+  GENESIS_PROTECT_ACUTE_PLAN_DISPLAY_NAME,
+  GENESIS_PROTECT_ACUTE_PLAN_ID,
+  GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
+  GENESIS_PROTECT_ACUTE_POOL_ID,
+  GENESIS_PROTECT_ACUTE_SENIOR_CLASS_DISPLAY_NAME,
+  GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID,
+  GENESIS_PROTECT_ACUTE_SKUS,
+  GENESIS_PROTECT_ACUTE_SPONSOR_LABEL,
+  GENESIS_PROTECT_ACUTE_TERMS_VERSION,
+} from "./genesis-protect-acute";
 
 export type DevnetFixtureRole =
   | "observer"
@@ -188,6 +201,7 @@ const wrapperDomainAssetLedger = deriveDomainAssetLedgerPda({
 
 const seekerPlanId = "nexus-seeker-rewards";
 const blendedPlanId = "nexus-protect-plus";
+const genesisPlanId = GENESIS_PROTECT_ACUTE_PLAN_ID;
 
 const seekerPlanAddress = deriveHealthPlanPda({
   reserveDomain: openReserveDomain,
@@ -196,6 +210,10 @@ const seekerPlanAddress = deriveHealthPlanPda({
 const blendedPlanAddress = deriveHealthPlanPda({
   reserveDomain: openReserveDomain,
   planId: blendedPlanId,
+}).toBase58();
+const genesisPlanAddress = deriveHealthPlanPda({
+  reserveDomain: openReserveDomain,
+  planId: genesisPlanId,
 }).toBase58();
 
 const seekerRewardSeriesAddress = derivePolicySeriesPda({
@@ -209,6 +227,14 @@ const blendedRewardSeriesAddress = derivePolicySeriesPda({
 const blendedProtectionSeriesAddress = derivePolicySeriesPda({
   healthPlan: blendedPlanAddress,
   seriesId: "catastrophic-protection-2026",
+}).toBase58();
+const genesisEvent7SeriesAddress = derivePolicySeriesPda({
+  healthPlan: genesisPlanAddress,
+  seriesId: GENESIS_PROTECT_ACUTE_SKUS.event7.seriesId,
+}).toBase58();
+const genesisTravel30SeriesAddress = derivePolicySeriesPda({
+  healthPlan: genesisPlanAddress,
+  seriesId: GENESIS_PROTECT_ACUTE_SKUS.travel30.seriesId,
 }).toBase58();
 
 const seekerSponsorLineAddress = deriveFundingLinePda({
@@ -231,10 +257,34 @@ const blendedRewardLiquidityLineAddress = deriveFundingLinePda({
   healthPlan: blendedPlanAddress,
   lineId: "blended-reward-liquidity",
 }).toBase58();
+const genesisEvent7SponsorLineAddress = deriveFundingLinePda({
+  healthPlan: genesisPlanAddress,
+  lineId: GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.sponsor!,
+}).toBase58();
+const genesisEvent7PremiumLineAddress = deriveFundingLinePda({
+  healthPlan: genesisPlanAddress,
+  lineId: GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.premium,
+}).toBase58();
+const genesisEvent7LiquidityLineAddress = deriveFundingLinePda({
+  healthPlan: genesisPlanAddress,
+  lineId: GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.liquidity,
+}).toBase58();
+const genesisTravel30PremiumLineAddress = deriveFundingLinePda({
+  healthPlan: genesisPlanAddress,
+  lineId: GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium,
+}).toBase58();
+const genesisTravel30LiquidityLineAddress = deriveFundingLinePda({
+  healthPlan: genesisPlanAddress,
+  lineId: GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.liquidity,
+}).toBase58();
 
 const incomePoolAddress = deriveLiquidityPoolPda({
   reserveDomain: openReserveDomain,
   poolId: "omega-health-income",
+}).toBase58();
+const genesisPoolAddress = deriveLiquidityPoolPda({
+  reserveDomain: openReserveDomain,
+  poolId: GENESIS_PROTECT_ACUTE_POOL_ID,
 }).toBase58();
 
 const openClassAddress = deriveCapitalClassPda({
@@ -244,6 +294,14 @@ const openClassAddress = deriveCapitalClassPda({
 const wrapperClassAddress = deriveCapitalClassPda({
   liquidityPool: incomePoolAddress,
   classId: "wrapper-usdc-class",
+}).toBase58();
+const genesisSeniorClassAddress = deriveCapitalClassPda({
+  liquidityPool: genesisPoolAddress,
+  classId: GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID,
+}).toBase58();
+const genesisJuniorClassAddress = deriveCapitalClassPda({
+  liquidityPool: genesisPoolAddress,
+  classId: GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_ID,
 }).toBase58();
 
 const allocationRewardOpenAddress = deriveAllocationPositionPda({
@@ -257,6 +315,18 @@ const allocationProtectionOpenAddress = deriveAllocationPositionPda({
 const allocationProtectionWrapperAddress = deriveAllocationPositionPda({
   capitalClass: wrapperClassAddress,
   fundingLine: blendedProtectionLiquidityLineAddress,
+}).toBase58();
+const genesisAllocationEvent7JuniorAddress = deriveAllocationPositionPda({
+  capitalClass: genesisJuniorClassAddress,
+  fundingLine: genesisEvent7LiquidityLineAddress,
+}).toBase58();
+const genesisAllocationTravel30SeniorAddress = deriveAllocationPositionPda({
+  capitalClass: genesisSeniorClassAddress,
+  fundingLine: genesisTravel30LiquidityLineAddress,
+}).toBase58();
+const genesisAllocationTravel30JuniorAddress = deriveAllocationPositionPda({
+  capitalClass: genesisJuniorClassAddress,
+  fundingLine: genesisTravel30LiquidityLineAddress,
 }).toBase58();
 
 // Legacy local env files from the older pool-first console used different wallet names.
@@ -332,6 +402,16 @@ const blendedProtectionMemberPosition = deriveMemberPositionPda({
   wallet: secondMemberWallet,
   seriesScope: blendedProtectionSeriesAddress,
 }).toBase58();
+const genesisEvent7MemberPosition = deriveMemberPositionPda({
+  healthPlan: genesisPlanAddress,
+  wallet: memberWallet,
+  seriesScope: genesisEvent7SeriesAddress,
+}).toBase58();
+const genesisTravel30MemberPosition = deriveMemberPositionPda({
+  healthPlan: genesisPlanAddress,
+  wallet: secondMemberWallet,
+  seriesScope: genesisTravel30SeriesAddress,
+}).toBase58();
 
 const claimCaseReserveAddress = deriveClaimCasePda({
   healthPlan: blendedPlanAddress,
@@ -391,7 +471,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       address: openDomainAssetVault,
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
-      sheet: { funded: 2_050_000n },
+      sheet: { funded: 2_138_300n },
     },
     {
       address: wrapperDomainAssetVault,
@@ -406,8 +486,8 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
       sheet: {
-        funded: 2_050_000n,
-        allocated: 1_150_000n,
+        funded: 2_138_300n,
+        allocated: 1_207_500n,
         reserved: 230_000n,
         claimable: 8_000n,
         payable: 50_000n,
@@ -447,6 +527,20 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       planId: blendedPlanId,
       displayName: "Nexus Protect Plus",
       sponsorLabel: "Protect Plus Sponsor",
+      planAdmin: planControlWallet(planAdminWallet),
+      sponsorOperator: planControlWallet(sponsorOperatorWallet),
+      claimsOperator: planControlWallet(claimsOperatorWallet),
+      membershipModel: "open-with-claims-operator",
+      membershipGateKind: "open",
+      pauseFlags: 0,
+      active: true,
+    },
+    {
+      address: genesisPlanAddress,
+      reserveDomain: openReserveDomain,
+      planId: genesisPlanId,
+      displayName: GENESIS_PROTECT_ACUTE_PLAN_DISPLAY_NAME,
+      sponsorLabel: GENESIS_PROTECT_ACUTE_SPONSOR_LABEL,
       planAdmin: planControlWallet(planAdminWallet),
       sponsorOperator: planControlWallet(sponsorOperatorWallet),
       claimsOperator: planControlWallet(claimsOperatorWallet),
@@ -496,6 +590,32 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       termsVersion: "v2026.1",
       comparabilityKey: "catastrophic-protection",
     },
+    {
+      address: genesisEvent7SeriesAddress,
+      healthPlan: genesisPlanAddress,
+      seriesId: GENESIS_PROTECT_ACUTE_SKUS.event7.seriesId,
+      displayName: GENESIS_PROTECT_ACUTE_SKUS.event7.displayName,
+      metadataUri: GENESIS_PROTECT_ACUTE_SKUS.event7.metadataUri,
+      mode: SERIES_MODE_PROTECTION,
+      status: SERIES_STATUS_ACTIVE,
+      assetMint: settlementMint,
+      cycleSeconds: GENESIS_PROTECT_ACUTE_SKUS.event7.coverWindowDays * 86_400,
+      termsVersion: GENESIS_PROTECT_ACUTE_TERMS_VERSION,
+      comparabilityKey: GENESIS_PROTECT_ACUTE_SKUS.event7.comparabilityKey,
+    },
+    {
+      address: genesisTravel30SeriesAddress,
+      healthPlan: genesisPlanAddress,
+      seriesId: GENESIS_PROTECT_ACUTE_SKUS.travel30.seriesId,
+      displayName: GENESIS_PROTECT_ACUTE_SKUS.travel30.displayName,
+      metadataUri: GENESIS_PROTECT_ACUTE_SKUS.travel30.metadataUri,
+      mode: SERIES_MODE_PROTECTION,
+      status: SERIES_STATUS_ACTIVE,
+      assetMint: settlementMint,
+      cycleSeconds: GENESIS_PROTECT_ACUTE_SKUS.travel30.coverWindowDays * 86_400,
+      termsVersion: GENESIS_PROTECT_ACUTE_TERMS_VERSION,
+      comparabilityKey: GENESIS_PROTECT_ACUTE_SKUS.travel30.comparabilityKey,
+    },
   ],
   memberPositions: [
     {
@@ -521,6 +641,24 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       wallet: secondMemberWallet,
       healthPlan: blendedPlanAddress,
       policySeries: blendedProtectionSeriesAddress,
+      eligibilityStatus: ELIGIBILITY_ELIGIBLE,
+      delegatedRights: ["open_claim_case", "appoint_delegate"],
+      active: true,
+    },
+    {
+      address: genesisEvent7MemberPosition,
+      wallet: memberWallet,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisEvent7SeriesAddress,
+      eligibilityStatus: ELIGIBILITY_ELIGIBLE,
+      delegatedRights: ["open_claim_case"],
+      active: true,
+    },
+    {
+      address: genesisTravel30MemberPosition,
+      wallet: secondMemberWallet,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisTravel30SeriesAddress,
       eligibilityStatus: ELIGIBILITY_ELIGIBLE,
       delegatedRights: ["open_claim_case", "appoint_delegate"],
       active: true,
@@ -617,6 +755,96 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       status: FUNDING_LINE_STATUS_OPEN,
       sheet: { funded: 150_000n, allocated: 150_000n, reserved: 20_000n, owed: 20_000n },
     },
+    {
+      address: genesisEvent7SponsorLineAddress,
+      reserveDomain: openReserveDomain,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisEvent7SeriesAddress,
+      assetMint: settlementMint,
+      lineId: GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.sponsor!,
+      displayName: "Genesis Event 7 sponsor backstop",
+      lineType: FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+      fundingPriority: 0,
+      fundedAmount: 12_500n,
+      reservedAmount: 0n,
+      spentAmount: 0n,
+      releasedAmount: 0n,
+      returnedAmount: 0n,
+      status: FUNDING_LINE_STATUS_OPEN,
+      sheet: { funded: 12_500n },
+    },
+    {
+      address: genesisEvent7PremiumLineAddress,
+      reserveDomain: openReserveDomain,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisEvent7SeriesAddress,
+      assetMint: settlementMint,
+      lineId: GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.premium,
+      displayName: "Genesis Event 7 member premiums",
+      lineType: FUNDING_LINE_TYPE_PREMIUM_INCOME,
+      fundingPriority: 1,
+      fundedAmount: 8_400n,
+      reservedAmount: 0n,
+      spentAmount: 0n,
+      releasedAmount: 0n,
+      returnedAmount: 0n,
+      status: FUNDING_LINE_STATUS_OPEN,
+      sheet: { funded: 8_400n },
+    },
+    {
+      address: genesisEvent7LiquidityLineAddress,
+      reserveDomain: openReserveDomain,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisEvent7SeriesAddress,
+      assetMint: settlementMint,
+      lineId: GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.liquidity,
+      displayName: "Genesis Event 7 LP reserve lane",
+      lineType: FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
+      fundingPriority: 2,
+      fundedAmount: 12_500n,
+      reservedAmount: 0n,
+      spentAmount: 0n,
+      releasedAmount: 0n,
+      returnedAmount: 0n,
+      status: FUNDING_LINE_STATUS_OPEN,
+      sheet: { funded: 12_500n, allocated: 12_500n },
+    },
+    {
+      address: genesisTravel30PremiumLineAddress,
+      reserveDomain: openReserveDomain,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisTravel30SeriesAddress,
+      assetMint: settlementMint,
+      lineId: GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium,
+      displayName: "Genesis Travel 30 member premiums",
+      lineType: FUNDING_LINE_TYPE_PREMIUM_INCOME,
+      fundingPriority: 3,
+      fundedAmount: 9_900n,
+      reservedAmount: 0n,
+      spentAmount: 0n,
+      releasedAmount: 0n,
+      returnedAmount: 0n,
+      status: FUNDING_LINE_STATUS_OPEN,
+      sheet: { funded: 9_900n },
+    },
+    {
+      address: genesisTravel30LiquidityLineAddress,
+      reserveDomain: openReserveDomain,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisTravel30SeriesAddress,
+      assetMint: settlementMint,
+      lineId: GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.liquidity,
+      displayName: "Genesis Travel 30 LP reserve lane",
+      lineType: FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
+      fundingPriority: 4,
+      fundedAmount: 45_000n,
+      reservedAmount: 0n,
+      spentAmount: 0n,
+      releasedAmount: 0n,
+      returnedAmount: 0n,
+      status: FUNDING_LINE_STATUS_OPEN,
+      sheet: { funded: 45_000n, allocated: 45_000n },
+    },
   ],
   planReserveLedgers: [
     {
@@ -630,6 +858,12 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
       sheet: { funded: 1_480_000n, allocated: 1_000_000n, reserved: 245_000n, payable: 50_000n, settled: 65_000n, owed: 295_000n },
+    },
+    {
+      address: derivePlanReserveLedgerPda({ healthPlan: genesisPlanAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 88_300n, allocated: 57_500n },
     },
   ],
   seriesReserveLedgers: [
@@ -650,6 +884,18 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
       sheet: { funded: 1_480_000n, allocated: 1_000_000n, reserved: 245_000n, payable: 50_000n, settled: 65_000n, owed: 295_000n },
+    },
+    {
+      address: deriveSeriesReserveLedgerPda({ policySeries: genesisEvent7SeriesAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 33_400n, allocated: 12_500n },
+    },
+    {
+      address: deriveSeriesReserveLedgerPda({ policySeries: genesisTravel30SeriesAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 54_900n, allocated: 45_000n },
     },
   ],
   fundingLineLedgers: [
@@ -682,6 +928,36 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       reserveDomain: openReserveDomain,
       assetMint: rewardMint,
       sheet: { funded: 150_000n, allocated: 150_000n, reserved: 20_000n, owed: 20_000n },
+    },
+    {
+      address: deriveFundingLineLedgerPda({ fundingLine: genesisEvent7SponsorLineAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 12_500n },
+    },
+    {
+      address: deriveFundingLineLedgerPda({ fundingLine: genesisEvent7PremiumLineAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 8_400n },
+    },
+    {
+      address: deriveFundingLineLedgerPda({ fundingLine: genesisEvent7LiquidityLineAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 12_500n, allocated: 12_500n },
+    },
+    {
+      address: deriveFundingLineLedgerPda({ fundingLine: genesisTravel30PremiumLineAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 9_900n },
+    },
+    {
+      address: deriveFundingLineLedgerPda({ fundingLine: genesisTravel30LiquidityLineAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: 45_000n, allocated: 45_000n },
     },
   ],
   claimCases: [
@@ -847,6 +1123,19 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       totalPendingRedemptions: 120_000n,
       active: true,
     },
+    {
+      address: genesisPoolAddress,
+      reserveDomain: openReserveDomain,
+      poolId: GENESIS_PROTECT_ACUTE_POOL_ID,
+      displayName: GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
+      depositAssetMint: settlementMint,
+      strategyThesis: "Dedicated acute emergency travel reserve sleeve with explicit Event 7 and Travel 30 attribution.",
+      redemptionPolicy: REDEMPTION_POLICY_QUEUE_ONLY,
+      totalValueLocked: 57_500n,
+      totalAllocated: 57_500n,
+      totalPendingRedemptions: 0n,
+      active: true,
+    },
   ],
   capitalClasses: [
     {
@@ -874,6 +1163,36 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       totalShares: 400_000n,
       navAssets: 400_000n,
       allocatedAssets: 250_000n,
+      pendingRedemptions: 0n,
+      minLockupSeconds: 2_592_000,
+      queueOnlyRedemptions: true,
+      active: true,
+    },
+    {
+      address: genesisSeniorClassAddress,
+      liquidityPool: genesisPoolAddress,
+      classId: GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID,
+      displayName: GENESIS_PROTECT_ACUTE_SENIOR_CLASS_DISPLAY_NAME,
+      priority: 0,
+      restrictionMode: CAPITAL_CLASS_RESTRICTION_OPEN,
+      totalShares: 25_000n,
+      navAssets: 25_000n,
+      allocatedAssets: 25_000n,
+      pendingRedemptions: 0n,
+      minLockupSeconds: 2_592_000,
+      queueOnlyRedemptions: true,
+      active: true,
+    },
+    {
+      address: genesisJuniorClassAddress,
+      liquidityPool: genesisPoolAddress,
+      classId: GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_ID,
+      displayName: GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_DISPLAY_NAME,
+      priority: 1,
+      restrictionMode: CAPITAL_CLASS_RESTRICTION_OPEN,
+      totalShares: 32_500n,
+      navAssets: 32_500n,
+      allocatedAssets: 32_500n,
       pendingRedemptions: 0n,
       minLockupSeconds: 2_592_000,
       queueOnlyRedemptions: true,
@@ -909,6 +1228,30 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       realizedYieldAmount: 14_000n,
       realizedLossAmount: 0n,
     },
+    {
+      address: derivePoolClassLedgerPda({ capitalClass: genesisSeniorClassAddress, assetMint: settlementMint }).toBase58(),
+      capitalClass: genesisSeniorClassAddress,
+      assetMint: settlementMint,
+      sheet: {
+        funded: 25_000n,
+        allocated: 25_000n,
+      },
+      totalShares: 25_000n,
+      realizedYieldAmount: 0n,
+      realizedLossAmount: 0n,
+    },
+    {
+      address: derivePoolClassLedgerPda({ capitalClass: genesisJuniorClassAddress, assetMint: settlementMint }).toBase58(),
+      capitalClass: genesisJuniorClassAddress,
+      assetMint: settlementMint,
+      sheet: {
+        funded: 32_500n,
+        allocated: 32_500n,
+      },
+      totalShares: 32_500n,
+      realizedYieldAmount: 0n,
+      realizedLossAmount: 0n,
+    },
   ],
   lpPositions: [
     {
@@ -931,6 +1274,30 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       subscriptionBasis: 400_000n,
       pendingRedemptionShares: 0n,
       realizedDistributions: 10_000n,
+      impairedPrincipal: 0n,
+      credentialed: true,
+      queueStatus: LP_QUEUE_STATUS_NONE,
+    },
+    {
+      address: deriveLpPositionPda({ capitalClass: genesisSeniorClassAddress, owner: lpProviderWallet }).toBase58(),
+      owner: lpProviderWallet,
+      capitalClass: genesisSeniorClassAddress,
+      shares: 25_000n,
+      subscriptionBasis: 25_000n,
+      pendingRedemptionShares: 0n,
+      realizedDistributions: 0n,
+      impairedPrincipal: 0n,
+      credentialed: true,
+      queueStatus: LP_QUEUE_STATUS_NONE,
+    },
+    {
+      address: deriveLpPositionPda({ capitalClass: genesisJuniorClassAddress, owner: lpProviderWallet }).toBase58(),
+      owner: lpProviderWallet,
+      capitalClass: genesisJuniorClassAddress,
+      shares: 32_500n,
+      subscriptionBasis: 32_500n,
+      pendingRedemptionShares: 0n,
+      realizedDistributions: 0n,
       impairedPrincipal: 0n,
       credentialed: true,
       queueStatus: LP_QUEUE_STATUS_NONE,
@@ -991,6 +1358,60 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       deallocationOnly: false,
       active: true,
     },
+    {
+      address: genesisAllocationEvent7JuniorAddress,
+      reserveDomain: openReserveDomain,
+      liquidityPool: genesisPoolAddress,
+      capitalClass: genesisJuniorClassAddress,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisEvent7SeriesAddress,
+      fundingLine: genesisEvent7LiquidityLineAddress,
+      capAmount: 15_000n,
+      weightBps: 2_175,
+      allocatedAmount: 12_500n,
+      utilizedAmount: 0n,
+      reservedCapacity: 0n,
+      realizedPnl: 0n,
+      impairedAmount: 0n,
+      deallocationOnly: false,
+      active: true,
+    },
+    {
+      address: genesisAllocationTravel30SeniorAddress,
+      reserveDomain: openReserveDomain,
+      liquidityPool: genesisPoolAddress,
+      capitalClass: genesisSeniorClassAddress,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisTravel30SeriesAddress,
+      fundingLine: genesisTravel30LiquidityLineAddress,
+      capAmount: 27_500n,
+      weightBps: 4_350,
+      allocatedAmount: 25_000n,
+      utilizedAmount: 0n,
+      reservedCapacity: 0n,
+      realizedPnl: 0n,
+      impairedAmount: 0n,
+      deallocationOnly: false,
+      active: true,
+    },
+    {
+      address: genesisAllocationTravel30JuniorAddress,
+      reserveDomain: openReserveDomain,
+      liquidityPool: genesisPoolAddress,
+      capitalClass: genesisJuniorClassAddress,
+      healthPlan: genesisPlanAddress,
+      policySeries: genesisTravel30SeriesAddress,
+      fundingLine: genesisTravel30LiquidityLineAddress,
+      capAmount: 22_500n,
+      weightBps: 3_475,
+      allocatedAmount: 20_000n,
+      utilizedAmount: 0n,
+      reservedCapacity: 0n,
+      realizedPnl: 0n,
+      impairedAmount: 0n,
+      deallocationOnly: false,
+      active: true,
+    },
   ],
   allocationLedgers: [
     {
@@ -1014,11 +1435,34 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       sheet: { funded: 250_000n, allocated: 250_000n, reserved: 60_000n, payable: 10_000n, restricted: 250_000n },
       realizedPnl: 14_000n,
     },
+    {
+      address: deriveAllocationLedgerPda({ allocationPosition: genesisAllocationEvent7JuniorAddress, assetMint: settlementMint }).toBase58(),
+      allocationPosition: genesisAllocationEvent7JuniorAddress,
+      assetMint: settlementMint,
+      sheet: { funded: 12_500n, allocated: 12_500n },
+      realizedPnl: 0n,
+    },
+    {
+      address: deriveAllocationLedgerPda({ allocationPosition: genesisAllocationTravel30SeniorAddress, assetMint: settlementMint }).toBase58(),
+      allocationPosition: genesisAllocationTravel30SeniorAddress,
+      assetMint: settlementMint,
+      sheet: { funded: 25_000n, allocated: 25_000n },
+      realizedPnl: 0n,
+    },
+    {
+      address: deriveAllocationLedgerPda({ allocationPosition: genesisAllocationTravel30JuniorAddress, assetMint: settlementMint }).toBase58(),
+      allocationPosition: genesisAllocationTravel30JuniorAddress,
+      assetMint: settlementMint,
+      sheet: { funded: 20_000n, allocated: 20_000n },
+      realizedPnl: 0n,
+    },
   ],
   outcomesBySeries: {
     [seekerRewardSeriesAddress]: 1_250n,
     [blendedRewardSeriesAddress]: 420n,
     [blendedProtectionSeriesAddress]: 7n,
+    [genesisEvent7SeriesAddress]: 0n,
+    [genesisTravel30SeriesAddress]: 0n,
   },
   wallets: [
     { role: "observer", label: "Observer wallet", address: observerWallet, envVar: "NEXT_PUBLIC_DEVNET_OBSERVER_WALLET" },

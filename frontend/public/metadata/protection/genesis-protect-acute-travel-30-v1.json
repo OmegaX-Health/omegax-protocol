@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "lane": "protection",
+  "metadataUri": "/metadata/protection/genesis-protect-acute-travel-30-v1.json",
+  "coveragePathway": "defi_native",
+  "defi": {
+    "settlementStyle": "onchain_programmatic",
+    "technicalTermsUri": "https://protocol.omegax.health/coverage/technical-terms",
+    "riskDisclosureUri": "https://protocol.omegax.health/coverage/risk-disclosures"
+  },
+  "product": {
+    "family": "Genesis Protect Acute",
+    "sku": "Travel 30",
+    "displayName": "Genesis Protect Acute - Travel 30",
+    "positioning": "Wallet-native acute emergency travel protection for nomads, residents, and longer travel windows.",
+    "coverWindowDays": 30,
+    "currency": "USDC",
+    "benefitStyle": "hybrid_fixed_plus_reimbursement",
+    "maxPayoutUsd": 5000
+  },
+  "pricing": {
+    "retailUsd": 99,
+    "cohortUsdMin": 69,
+    "cohortUsdMax": 89,
+    "sponsorPricingNote": "Sponsor pricing is negotiated for larger cohorts."
+  },
+  "benefitSchedule": {
+    "tiers": [
+      {
+        "id": "tier_1",
+        "label": "Tier 1",
+        "trigger": "ER or urgent hospital evaluation with same-day discharge",
+        "benefitUsd": 250
+      },
+      {
+        "id": "tier_2",
+        "label": "Tier 2",
+        "trigger": "Overnight admission",
+        "benefitUsd": 1000
+      },
+      {
+        "id": "tier_3",
+        "label": "Tier 3",
+        "trigger": "Surgery, ICU, or 2+ nights",
+        "benefitUsd": 2500
+      }
+    ],
+    "reimbursementTopUp": {
+      "aggregateCapUsd": 5000,
+      "description": "Actual acute emergency medical spend above the fixed tier benefit, capped at the aggregate maximum."
+    }
+  },
+  "waitingPeriods": {
+    "illnessDays": 7,
+    "accidentHours": 24,
+    "sponsorCohortWaiverAllowed": true
+  },
+  "evidenceSchema": {
+    "schemaKey": "genesis-protect-acute-claim",
+    "schemaVersion": 1,
+    "schemaAuthority": "shared_public_contract"
+  },
+  "coverage": {
+    "coveredWhen": [
+      "Acute, unplanned, and medically necessary within the cover window.",
+      "Accidental injury needing urgent treatment.",
+      "Sudden acute illness needing ER or inpatient care.",
+      "Ambulance tied to the covered acute event.",
+      "Emergency imaging, labs, procedures, medications, and hospital fees tied to the covered acute event."
+    ],
+    "evidenceRequired": [
+      "Invoice or itemized bill",
+      "Discharge summary or doctor note",
+      "Proof of payment",
+      "Location and date proof"
+    ],
+    "exclusions": [
+      "chronic and pre-existing conditions",
+      "pregnancy, maternity, fertility, and neonatal care",
+      "routine outpatient and elective procedures",
+      "preventive care, screening, wellness checks, and standard medication refills",
+      "ongoing mental health treatment",
+      "dental, optical, and hearing care unless a later trauma rider is added",
+      "evacuation, repatriation, baggage, and trip cancellation",
+      "substance-related events, self-harm, fraud, criminal acts, and sanctions-excluded scenarios"
+    ]
+  },
+  "claimsTrustModel": {
+    "phase0": "OmegaX Health operator-backed oracle flow plus hidden concierge review.",
+    "phase1": "AI claim recommendation with human override kept private when needed.",
+    "phase2": "Explicit claims operators with governance-visible dispute handling."
+  },
+  "commercialLayers": {
+    "appMembership": "Separate OmegaX Health app subscription for AI health agent value and premium app features.",
+    "protectionPremium": "Per-window premium that activates Travel 30 protection eligibility in the protocol."
+  },
+  "fundingLanes": {
+    "premium": {
+      "lineId": "genesis-travel30-premiums",
+      "reserveRole": "Collected premiums attributed to the Travel 30 protection reserve lane."
+    },
+    "liquidity": {
+      "lineId": "genesis-travel30-liquidity",
+      "reserveRole": "Posted LP and backstop capital that supports Travel 30 obligations."
+    }
+  },
+  "issuanceControls": {
+    "reserveAttribution": "Only posted capital, collected premiums, and explicit backstop funds count as claims-paying reserve.",
+    "publicStatusRule": "Keep Travel 30 as the primary launch SKU, but do not market it as broadly live insurance until reserve posting and operator readiness are both active.",
+    "issueWhen": [
+      "Travel 30 reserve lanes are funded onchain with published premium and liquidity support.",
+      "Operator-backed claim review is staffed for the active issuance window.",
+      "The shared public evidence schema stays aligned with the published metadata document."
+    ],
+    "pauseWhen": [
+      "Posted reserve no longer covers the marketed issuance window.",
+      "Claims operator or oracle staffing falls below the required phase-0 review readiness.",
+      "Schema, pricing, or benefit truth drifts from the published Genesis metadata."
+    ]
+  },
+  "launchTruth": {
+    "publicStatus": "end_of_month_mainnet_target",
+    "primaryLaunchSku": "travel30",
+    "fastDemoSku": "event7",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false,
+    "predictionMarketsCountAsReserve": false,
+    "appMembershipBillingSeparate": true
+  }
+}

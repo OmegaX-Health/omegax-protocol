@@ -1,0 +1,246 @@
+{
+  "_description": "Standalone actuarial model for the Italy Post-TKR Rehabilitation Plan (italy-tkr-rehab-2026). All monetary amounts in EUR (1 unit = €1.00). Sources: pazienti.it, vannistrigelli.com, prontopro.it, tiassisto.it, quotidianosanita.it (2025-2026 Italian market rates).",
+
+  "clinicalContext": {
+    "indication": "Total Knee Replacement (TKR / PTG — Protesi Totale di Ginocchio)",
+    "icd10Codes": [
+      "Z96.651 (presence of right artificial knee joint)",
+      "Z96.652 (presence of left artificial knee joint)",
+      "M17.11 (primary osteoarthritis, right knee)",
+      "M17.12 (primary osteoarthritis, left knee)"
+    ],
+    "cptCodesCovered": [
+      { "code": "27447", "description": "Total knee arthroplasty, primary" },
+      { "code": "97001", "description": "Physical therapy evaluation" },
+      { "code": "97002", "description": "Physical therapy re-evaluation" },
+      { "code": "97110", "description": "Therapeutic exercise, each 15 min" },
+      { "code": "97530", "description": "Therapeutic activities, each 15 min" },
+      { "code": "97140", "description": "Manual therapy, each 15 min" },
+      { "code": "97012", "description": "Mechanical traction, each 15 min" },
+      { "code": "97035", "description": "Ultrasound therapy, each 15 min" },
+      { "code": "97010", "description": "Hot/cold pack application" },
+      { "code": "97018", "description": "Paraffin bath" }
+    ],
+    "clinicalDifferenceVsTHR": "TKR rehab emphasises ROM recovery (target: flexion >= 110°, extension deficit <= 5°) and quadriceps re-education more intensively than THR. Oedema management (cryotherapy, compression) is prominent in the first 2-3 weeks. Sessions are slightly longer and more hands-on, justifying a higher per-session rate (€75 vs €70 for THR). The risk of stiffness (arthrofibrosis) if ROM targets are not met by day 21 requires closer physiotherapy monitoring."
+  },
+
+  "costBreakdown": {
+    "currency": "EUR",
+    "unitDescription": "1 unit = 1 EUR (integer representation)",
+    "sources": [
+      "vannistrigelli.com — 2025 private orthopaedic cost guide (knee)",
+      "pazienti.it — 2025 private surgery cost survey",
+      "guidamed.it — TKR cost and recovery overview",
+      "prontopro.it / cronoshare.it — 2026 domiciliary physio market rates",
+      "tiassisto.it — 2026 RSA/rehab facility daily rates (North-Centre Italy)",
+      "quotidianosanita.it — 2026 rehabilitative tariff decree (+14.7% uplift)"
+    ],
+    "phases": {
+      "phase1_hospital": {
+        "label": "Surgical episode + 7-day inpatient stay",
+        "durationDays": 7,
+        "includes": [
+          "Pre-operative visits and labs",
+          "Operating room + anaesthesia",
+          "Knee prosthesis (standard cemented or uncemented, primary)",
+          "7-day inpatient stay",
+          "Initial inpatient physiotherapy (CPM machine + 3-4 manual sessions)",
+          "Surgeon + specialist follow-up at discharge",
+          "Wound management and anti-thrombotic protocol"
+        ],
+        "marketRangeEUR": { "low": 10000, "high": 25000 },
+        "modelValueEUR": 16000,
+        "rationale": "Mid-range private clinic, North-Centre Italy, standard cemented prosthesis. Slightly less than THR (18000) due to lower prosthesis cost and comparable OR complexity."
+      },
+      "phase2_rehabFacility": {
+        "label": "Inpatient rehabilitation facility",
+        "durationDays": 35,
+        "dailyRateEUR": 130,
+        "marketRangeEUR_daily": { "low": 67, "high": 180 },
+        "includes": [
+          "Accommodation and meals",
+          "Daily physiotherapy sessions (60-90 min): ROM exercises, quadriceps strengthening, gait training",
+          "Continuous passive motion (CPM) machine use",
+          "Cryotherapy and oedema management",
+          "Nursing supervision and wound monitoring",
+          "Orthopaedic follow-up at day 21 and day 35"
+        ],
+        "modelValueEUR": 4550,
+        "rationale": "Same facility type and daily rate as THR (€130/day x 35 days). Knee rehab at this phase is equally intensive."
+      },
+      "phase3_homeRehab": {
+        "label": "Home physiotherapy",
+        "durationDays": 35,
+        "sessionsTotal": 18,
+        "sessionRateEUR": 75,
+        "sessionFrequency": "3 sessions/week weeks 1-4, 2 sessions/week weeks 5-6",
+        "marketRangeEUR_session": { "low": 60, "high": 120 },
+        "includes": [
+          "Domiciliary physiotherapy session (45-60 min)",
+          "Travel supplement",
+          "Progressive ROM and strengthening protocol",
+          "Stair climbing and functional training",
+          "Gait normalisation and return-to-activity programme",
+          "Final outcome assessment (Oxford Knee Score + ROM measurement)"
+        ],
+        "modelValueEUR": 1350,
+        "rationale": "18 sessions at €75 vs 16 sessions at €70 for THR. TKR requires 2 extra sessions due to more intensive ROM work and higher stiffness risk. Rate €75 reflects slightly more hands-on manual therapy per session."
+      }
+    },
+    "totals": {
+      "fullCostEUR": 21900,
+      "comparisonWithTHR": {
+        "thrFullCostEUR": 23670,
+        "differenceEUR": -1770,
+        "note": "TKR is 7.5% less expensive than THR due to lower prosthesis cost. Rehab facility cost is identical; home physio is slightly higher due to extra sessions."
+      },
+      "byTier": {
+        "basic_50pct": 10950,
+        "standard_70pct": 15330,
+        "full_100pct": 21900
+      }
+    }
+  },
+
+  "actuarialModel": {
+    "poolParameters": {
+      "memberCount_n": 100,
+      "utilizationRate": 0.05,
+      "expectedClaimantsPerYear": 5,
+      "bufferMargin": 0.20,
+      "cycleDays": 90,
+      "cyclesPerYear": 4
+    },
+    "rationale": {
+      "utilizationRate": "TKR incidence in 55-75 age cohort is ~1-2% per year, similar to THR. Pool targets members post-diagnosis or post-surgical indication. 5% is conservative for enrolled at-risk population.",
+      "bufferMargin": "20% reserve buffer covers: claim processing delays, partial denials, exceptional cases above mean cost, operational overhead.",
+      "poolSize": "Minimum viable pool for meaningful risk diversification. At 5% utilization with n=100, Poisson variance = sqrt(5) ≈ 2.2."
+    },
+    "expectedPayouts": {
+      "basic_50pct": {
+        "perClaimEUR": 10950,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 54750
+      },
+      "standard_70pct": {
+        "perClaimEUR": 15330,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 76650
+      },
+      "full_100pct": {
+        "perClaimEUR": 21900,
+        "expectedClaimsPerYear": 5,
+        "expectedAnnualPayoutEUR": 109500
+      }
+    },
+    "premiumCalculation": {
+      "formula": "premium_per_member_per_year = ceil((expectedAnnualPayout * (1 + bufferMargin)) / n)",
+      "basic_50pct": {
+        "annualPremiumEUR": 658,
+        "quarterlyPremiumEUR": 165,
+        "poolAnnualIncome_n100": 65800,
+        "poolExpectedPayout": 54750,
+        "surplusBuffer": 11050
+      },
+      "standard_70pct": {
+        "annualPremiumEUR": 920,
+        "quarterlyPremiumEUR": 230,
+        "poolAnnualIncome_n100": 92000,
+        "poolExpectedPayout": 76650,
+        "surplusBuffer": 15350
+      },
+      "full_100pct": {
+        "annualPremiumEUR": 1314,
+        "quarterlyPremiumEUR": 329,
+        "poolAnnualIncome_n100": 131400,
+        "poolExpectedPayout": 109500,
+        "surplusBuffer": 21900
+      },
+      "comparisonWithTHR": {
+        "note": "TKR premiums are 7-8% lower than THR at all tiers, reflecting the lower per-claim cost.",
+        "basicDifferenceEUR_annual": -52,
+        "standardDifferenceEUR_annual": -74,
+        "fullDifferenceEUR_annual": -106
+      }
+    },
+    "sponsorSeedFunding": {
+      "description": "One-time sponsor contribution covering ~30% of expected annual payout per tier.",
+      "basic_50pct": 16500,
+      "standard_70pct": 23000,
+      "full_100pct": 33000,
+      "total": 72500
+    },
+    "lpBackstop": {
+      "description": "Liquidity backstop for variance above expected utilization. Covers ~2 additional full-100% TKR claims beyond the expected 5.",
+      "capEUR": 44000,
+      "rationale": "2 x 21900 = 43800. Slightly smaller than THR backstop (50000) because TKR per-claim cost is lower.",
+      "lpWeightBps": 400,
+      "comparedToTHRWeightBps": 500
+    }
+  },
+
+  "outcomeProtocol": {
+    "primaryOutcome": {
+      "measure": "Oxford Knee Score (OKS)",
+      "scale": "0-48, higher = better function",
+      "passingThreshold": 34,
+      "interpretation": "Score 34-48 = good to excellent outcome",
+      "healthAlphaScore": 7100,
+      "note": "Normalized: OKS 34/48 = 70.8% → healthAlphaScore 7100. Lower than THR (HHS 80 = healthAlphaScore 8000) reflecting that knee scores are harder to achieve post-arthroplasty."
+    },
+    "secondaryOutcomes": [
+      { "measure": "ROM — knee flexion", "passingValue": ">= 110 degrees" },
+      { "measure": "ROM — knee extension deficit", "passingValue": "<= 5 degrees" },
+      { "measure": "VAS pain score", "passingValue": "<= 3 / 10" },
+      { "measure": "Timed Up and Go (TUG)", "passingValue": "<= 12 seconds" },
+      { "measure": "Stair climb test", "passingValue": "able to climb 1 flight without handrail" }
+    ],
+    "earlyWarningThreshold": {
+      "measure": "Knee flexion at day 21",
+      "criticalValue": "< 90 degrees",
+      "action": "Oracle triggers alert; physiotherapist must increase session frequency or refer for manipulation under anaesthesia"
+    },
+    "oracleAttestation": {
+      "primaryOracle": "Treating physiotherapist (ORACLE_ROLE_CLAIM_ADJUDICATOR + ORACLE_ROLE_OUTCOME_ATTESTER)",
+      "secondaryOracle": "Optional: wearable device (ORACLE_TYPE_WEARABLE_DATA_PROVIDER) attesting gait metrics and step count",
+      "quorum": "1-of-1 (single physio) or 2-of-2 (physio + wearable) if wearable enrolled",
+      "evidencePolicy": "All clinical data off-chain. Only blake3 hashes on-chain. GDPR compliant."
+    },
+    "bondMechanic": {
+      "bondAmountEUR": 50,
+      "purpose": "Adherence incentive. Refunded to patient if OKS >= 34 at day 90. Redistributed to pool if patient abandons protocol.",
+      "healthAlphaThreshold": 7100
+    }
+  },
+
+  "sensitivityAnalysis": {
+    "description": "Impact of varying utilization rate on premium sustainability at standard-70% tier",
+    "scenarios": [
+      { "utilizationRate": 0.03, "expectedClaims": 3, "requiredPremiumEUR": 552, "poolSolvent": true },
+      { "utilizationRate": 0.05, "expectedClaims": 5, "requiredPremiumEUR": 920, "poolSolvent": true },
+      { "utilizationRate": 0.08, "expectedClaims": 8, "requiredPremiumEUR": 1471, "poolSolvent": true },
+      { "utilizationRate": 0.10, "expectedClaims": 10, "requiredPremiumEUR": 1840, "poolSolvent": true },
+      { "utilizationRate": 0.15, "expectedClaims": 15, "requiredPremiumEUR": 2754, "note": "Premium becomes unaffordable — pool requires sponsor subsidy or LP backstop expansion" }
+    ]
+  },
+
+  "crossPlanComparison": {
+    "description": "Side-by-side summary of THR vs TKR plans on the devnet",
+    "table": [
+      { "field": "Surgery + hospital (7 days)", "THR": "€18,000", "TKR": "€16,000" },
+      { "field": "Rehab facility (35 days)", "THR": "€4,550", "TKR": "€4,550" },
+      { "field": "Home physiotherapy", "THR": "€1,120 (16 sessions x €70)", "TKR": "€1,350 (18 sessions x €75)" },
+      { "field": "Total full cost", "THR": "€23,670", "TKR": "€21,900" },
+      { "field": "Basic 50% reimbursement", "THR": "€11,835", "TKR": "€10,950" },
+      { "field": "Standard 70% reimbursement", "THR": "€16,569", "TKR": "€15,330" },
+      { "field": "Full 100% reimbursement", "THR": "€23,670", "TKR": "€21,900" },
+      { "field": "Basic premium / cycle", "THR": "€178", "TKR": "€165" },
+      { "field": "Standard premium / cycle", "THR": "€249", "TKR": "€230" },
+      { "field": "Full premium / cycle", "THR": "€355", "TKR": "€329" },
+      { "field": "LP backstop cap", "THR": "€50,000", "TKR": "€44,000" },
+      { "field": "LP weight (bps)", "THR": "500 bps", "TKR": "400 bps" },
+      { "field": "Primary outcome measure", "THR": "Harris Hip Score >= 80", "TKR": "Oxford Knee Score >= 34" },
+      { "field": "healthAlphaScore threshold", "THR": "8000", "TKR": "7100" }
+    ]
+  }
+}
