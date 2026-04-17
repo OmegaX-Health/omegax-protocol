@@ -55,8 +55,11 @@ The canonical public flow is:
 
 1. `open_claim_case`
 2. optional `attach_claim_evidence_ref`
-3. `adjudicate_claim_case`
-4. `settle_claim_case`
+3. optional `attest_claim_case`
+4. `adjudicate_claim_case`
+5. either:
+   - `settle_claim_case` for unlinked claims, or
+   - `reserve_obligation` -> `settle_obligation` for linked protection liabilities
 
 The economic consequence is expressed through `Obligation` state transitions:
 
@@ -105,7 +108,8 @@ For the live program surface, start with:
 The localnet audit covers:
 
 - explicit protection-series premium funding
-- claim-case creation and linkage
+- claim-case creation, attestation, and linkage
 - approved and settled claim states
 - obligation linkage back to plan-side and capital-side funding
+- linked claim cases mirroring reserve and settlement state from the obligation path
 - reserve visibility during payout and post-settlement

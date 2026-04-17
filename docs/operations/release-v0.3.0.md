@@ -34,6 +34,8 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - the canonical public program now includes first-class oracle registry state: `OracleProfile`, `PoolOracleApproval`, `PoolOraclePolicy`, and `PoolOraclePermissionSet`
 - the canonical public program now includes first-class schema registry state: `OutcomeSchema` and `SchemaDependencyLedger`
 - the canonical public program now includes `attest_claim_case`, which anchors schema-bound oracle attestations directly against live `ClaimCase` state
+- linked protection claims now settle through the obligation path, with reserve, release, and settlement lifecycle mirrored back onto the linked `ClaimCase`
+- claim-to-obligation linkage is now stricter: linked claims cannot silently relink or bypass the obligation path through direct `settle_claim_case`
 - checked-in generated artifacts in `idl/`, `shared/`, `frontend/lib/generated/`, and `android-native/protocol/` are aligned with the current public program surface
 
 ## Console release notes
@@ -50,6 +52,8 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - oracle profile authoring now runs through dedicated `/oracles/register` and `/oracles/[oracleAddress]/update` wizard flows, while `/oracles` stays focused on registry and readiness operations
 - `/schemas` now renders the live versioned schema registry, dependency posture, and shared binding context for policy series
 - the launch flow continues to create plans, policy series, and funding lines through the canonical launch wizard instead of the retired pool-first workspace
+- `/plans/new?template=genesis-protect-acute` now bootstraps the canonical Genesis Protect Acute shell in place, including Event 7 and Travel 30 series, funding lanes, pool shell, capital classes, and launch allocations
+- `/plans?...&setup=genesis-protect-acute` now exposes the Genesis setup checklist, reserve-warning posture, and per-SKU issuance posture inside the mounted sponsor/operator workspace
 
 ## Frontend release notes
 
@@ -57,6 +61,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - the oracles workspace now matches the same plans and overview visual system so governance and oracle operations read as one shared control surface
 - the oracle register/update flows now share the same full-page wizard grammar as `/plans/new`, including guarded bootstrap handling when live schema reads degrade
 - the hosted frontend keeps the canonical `v0.3.0` surface while improving workbench readability, queue visibility, and operator-facing chrome for the public deployment
+- Genesis-facing console and metadata copy now align to the actual launch posture: bounded end-of-month mainnet target, Travel 30 primary / Event 7 fast-demo, and Phase 0 operator-backed claim review with later AI and decentralized review framed as roadmap
 - publish the matching docs update alongside the frontend deployment so [docs.omegax.health](https://docs.omegax.health/docs) reflects the current console experience
 
 ## Operations release notes
@@ -64,6 +69,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - shared-devnet bootstrap now includes `npm run protocol:bootstrap:devnet-live` to seed the canonical plan/capital/oracle/schema graph
 - frontend parity sign-off now runs through `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff`
 - governance rollout sign-off now records a created proposal, a post-execution readonly governance check, and structured observability output
+- the checked-in release notes and public docs now document the Genesis launch-readiness workflow and public-safe status language alongside the mounted console changes
 
 ## Known follow-up work
 
@@ -74,6 +80,7 @@ The most important follow-ups after this release candidate are:
 - deepen inline detail/history views for member participation, claims, and obligations without reviving retired legacy route patterns
 - expand mounted schema-maintenance and governance-template authoring flows beyond the current registry and proposal coverage
 - continue localnet and devnet persona sign-off for broader sponsor, oracle, reviewer, and LP operational sequences
+- complete the shared-devnet rollout window and any downstream docs-site refresh needed for the Genesis launch surfaces outside this repository
 
 This patch updates the mounted console behavior and verification coverage without introducing a public contract-surface delta unless regenerated artifacts in this release package say otherwise.
 

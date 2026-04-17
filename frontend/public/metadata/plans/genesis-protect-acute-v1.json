@@ -1,0 +1,33 @@
+{
+  "planId": "genesis-protect-acute-v1",
+  "displayName": "Genesis Protect Acute",
+  "sponsorLabel": "Genesis Protect Cohorts",
+  "metadataUri": "/metadata/plans/genesis-protect-acute-v1.json",
+  "description": "Canonical operator bootstrap metadata for the bounded Genesis Protect Acute launch shell.",
+  "pool": {
+    "poolId": "genesis-protect-acute-pool",
+    "displayName": "Genesis Protect Acute Pool",
+    "strategyThesis": "Dedicated acute emergency travel reserve sleeve with explicit Event 7 and Travel 30 attribution."
+  },
+  "capitalClasses": [
+    {
+      "classId": "genesis-senior-class",
+      "displayName": "Genesis Acute Senior Class",
+      "role": "Senior open capital"
+    },
+    {
+      "classId": "genesis-junior-class",
+      "displayName": "Genesis Acute First-Loss Class",
+      "role": "Junior first-loss capital"
+    }
+  ],
+  "launchTruth": {
+    "primaryLaunchSku": "travel30",
+    "fastDemoSku": "event7",
+    "publicStatus": "end_of_month_mainnet_target",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false,
+    "predictionMarketsCountAsReserve": false,
+    "appMembershipBillingSeparate": true
+  }
+}

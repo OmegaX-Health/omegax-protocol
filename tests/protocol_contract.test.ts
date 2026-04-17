@@ -61,6 +61,12 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(serializedAccounts.includes("membership_anchor_seat"));
   assert(PROTOCOL_INSTRUCTION_ARGS.deposit_into_capital_class.length === 1);
   assert(idl.instructions.some((instruction) => instruction.name === "update_lp_position_credentialing"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.reserve_obligation.some((account) => account.name === "claim_case"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.release_reserve.some((account) => account.name === "claim_case"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_obligation.some((account) => account.name === "claim_case"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.reserve_obligation.find((account) => account.name === "claim_case")?.pdaSeeds);
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.release_reserve.find((account) => account.name === "claim_case")?.pdaSeeds);
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_obligation.find((account) => account.name === "claim_case")?.pdaSeeds);
   assert.equal(depositArgs?.type.kind, "struct");
   assert.deepEqual(
     depositArgs?.type.fields?.map((field) => field.name),

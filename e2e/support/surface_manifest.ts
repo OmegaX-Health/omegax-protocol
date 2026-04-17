@@ -95,11 +95,12 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
   },
   protection_claim_lifecycle: {
     title: "Protection Claim Lifecycle",
-    focus: "Protection flows record premium income, explicit claim cases, adjudication, and settlement consequences.",
+    focus: "Protection flows record premium income, explicit claim cases, attestation-ready adjudication, and linked obligation settlement consequences.",
     instructions: [
       "record_premium_payment",
       "open_claim_case",
       "attach_claim_evidence_ref",
+      "attest_claim_case",
       "adjudicate_claim_case",
       "settle_claim_case",
     ],

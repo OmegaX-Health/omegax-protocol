@@ -131,6 +131,14 @@ Required page sections:
 
 The launch workspace must be a single canonical on-chain launch wizard. The UI may use `Rewards`, `Insurance`, and `Hybrid` as launch-intent language, but the protocol root remains a neutral `HealthPlan`; product semantics are expressed only by the `PolicySeries` lanes created under it.
 
+Genesis Protect Acute is a required mounted variant of this same workspace, not a separate console. The mounted rules for that template are:
+
+- `/plans/new?template=genesis-protect-acute` must prefill and lock the canonical Genesis shell ids, metadata URIs, and launch SKU definitions.
+- the template flow must bootstrap the public-safe Genesis plan, pool, capital classes, protection series, funding lines, and allocation positions in place by orchestrating existing builders rather than introducing a parallel launch surface
+- after bootstrap, the operator must land back in `/plans?...&setup=genesis-protect-acute` so the live checklist and issuance posture remain visible until launch readiness is complete
+- all mounted Genesis copy must describe a bounded launch-readiness posture: end-of-month mainnet target, not broadly live insurance today, and Phase 0 operator-backed claim review
+- any later AI recommendation or decentralized review language must be explicitly framed as roadmap or next phase rather than current fact
+
 ##### Step 1: neutral plan root
 
 | Element | Type | Required functionality | Required states / rules |
@@ -224,6 +232,7 @@ This step is required only for `Insurance` and `Hybrid` launches.
 | `Create canonical launch` | Primary button | Submit the neutral `HealthPlan`, each required `PolicySeries`, and the initial reward/protection funding lines. | Disabled until every required step is valid and a wallet is connected. |
 | Created artifact list | Read-only summary | Show the resulting `HealthPlan`, reward `PolicySeries`, protection `PolicySeries`, sponsor-budget line, and premium-income line addresses when created. | Must update after signature confirmation and expose explorer links. |
 | `Open workspace` | Secondary button | Open the new plan in its canonical route context after creation. | Hidden until launch succeeds. |
+| `Open Genesis workspace` | Secondary button | For the Genesis template, open `/plans?...&setup=genesis-protect-acute` with the created primary Travel 30 series in context. | Hidden until the template bootstrap succeeds. |
 | Protocol and accounting details disclosure | Disclosure | Show payout mint, base-unit previews, PDA derivations, and hash commitments. | Must stay collapsed by default and must not describe any retired root product-type field. |
 | Coverage references disclosure | Disclosure | Show the structured protection posture metadata and link into the post-launch coverage tab. | Only for launches with a protection lane. The post-launch link must open `/plans?...&tab=coverage`, not a generic overview route. |
 | Recent transactions disclosure | Disclosure | Show create/configure transaction history with explorer links. | Append-only for the current session. |
@@ -239,6 +248,12 @@ This step is required only for `Insurance` and `Hybrid` launches.
 | Sponsor register | List | Show each existing plan, canonical id, sponsor label, status, series count, and claim count. | Must support empty state if no plans exist. |
 | Reserve posture rail | Rail card | Show reserve-domain count, policy-series count, current claims, and capital-connected pools. | Read-only summary only; no capital actions here. |
 | `Open capital route` | Cross-route button | Move from plan launch into the relevant capital route once the capital funding line matters. | Preserve pool context when available. |
+
+Genesis setup mode on `/plans` must also expose:
+
+- one checklist card set covering plan shell, Event 7 and Travel 30 series, canonical funding lines, pool shell, capital classes, allocations, authorities, reserve review, pool terms, and oracle policy
+- one issuance posture readout with `healthy`, `caution`, and `paused` states derived from live reserve, queue-only, impairment, and pause-flag signals
+- one per-SKU summary for Event 7 and Travel 30 showing cover window, reimbursement posture, claims-paying capital, pending payout, and the frozen `issueWhen` / `pauseWhen` rules from the canonical Genesis metadata
 
 ### 3.3 `/capital`
 

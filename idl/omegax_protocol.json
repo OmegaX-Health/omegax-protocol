@@ -5448,6 +5448,39 @@
               }
             ]
           }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -5962,6 +5995,39 @@
                 "kind": "account",
                 "path": "obligation.obligation_id",
                 "account": "Obligation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
               }
             ]
           }
@@ -7247,6 +7313,39 @@
                 "kind": "account",
                 "path": "obligation.obligation_id",
                 "account": "Obligation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
               }
             ]
           }
@@ -9206,176 +9305,191 @@
     },
     {
       "code": 6013,
+      "name": "FundingLineMismatch",
+      "msg": "Funding line mismatch"
+    },
+    {
+      "code": 6014,
       "name": "FundingLineTypeMismatch",
       "msg": "Funding line type mismatch"
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "InvalidObligationStateTransition",
       "msg": "Invalid obligation state transition"
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "AmountExceedsOutstandingObligation",
       "msg": "Amount exceeds outstanding obligation"
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "AmountExceedsReservedBalance",
       "msg": "Amount exceeds reserved balance"
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "AmountExceedsApprovedClaim",
       "msg": "Amount exceeds approved claim"
     },
     {
-      "code": 6018,
+      "code": 6019,
+      "name": "ClaimCaseLinkMismatch",
+      "msg": "Claim case linkage mismatch"
+    },
+    {
+      "code": 6020,
+      "name": "LinkedClaimMustSettleThroughObligation",
+      "msg": "Linked claims must settle through the obligation path"
+    },
+    {
+      "code": 6021,
       "name": "AmountExceedsAvailableShares",
       "msg": "Amount exceeds available shares"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "AmountExceedsPendingRedemption",
       "msg": "Amount exceeds pending redemption"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "RestrictedCapitalClass",
       "msg": "Restricted capital class access failed"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "LPPositionHasActiveCapital",
       "msg": "LP position with active capital cannot be decredentialed"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "LockupActive",
       "msg": "Capital class lockup is still active"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "AllocationCapExceeded",
       "msg": "Allocation cap exceeded"
     },
     {
-      "code": 6024,
+      "code": 6027,
       "name": "InsufficientFreeAllocationCapacity",
       "msg": "Insufficient free allocation capacity"
     },
     {
-      "code": 6025,
+      "code": 6028,
       "name": "ArithmeticError",
       "msg": "Arithmetic overflow or underflow"
     },
     {
-      "code": 6026,
+      "code": 6029,
       "name": "MembershipGateConfigurationInvalid",
       "msg": "Membership gate configuration is invalid"
     },
     {
-      "code": 6027,
+      "code": 6030,
       "name": "MembershipProofModeMismatch",
       "msg": "Membership proof mode does not match the configured plan posture"
     },
     {
-      "code": 6028,
+      "code": 6031,
       "name": "MembershipInviteAuthorityInvalid",
       "msg": "Invite authority is missing or invalid for this plan"
     },
     {
-      "code": 6029,
+      "code": 6032,
       "name": "MembershipInvitePermitExpired",
       "msg": "Invite permit is expired"
     },
     {
-      "code": 6030,
+      "code": 6033,
       "name": "MembershipTokenGateAccountMissing",
       "msg": "Token-gate proof account is missing"
     },
     {
-      "code": 6031,
+      "code": 6034,
       "name": "MembershipTokenGateOwnerMismatch",
       "msg": "Token-gate proof account owner does not match the enrolling wallet"
     },
     {
-      "code": 6032,
+      "code": 6035,
       "name": "MembershipTokenGateMintMismatch",
       "msg": "Token-gate proof account mint does not match the configured gate mint"
     },
     {
-      "code": 6033,
+      "code": 6036,
       "name": "MembershipTokenGateAmountTooLow",
       "msg": "Token-gate proof amount is below the configured minimum"
     },
     {
-      "code": 6034,
+      "code": 6037,
       "name": "MembershipAnchorSeatRequired",
       "msg": "Anchor-backed membership requires an anchor seat account"
     },
     {
-      "code": 6035,
+      "code": 6038,
       "name": "MembershipAnchorSeatAlreadyActive",
       "msg": "Anchor-backed membership seat is already active"
     },
     {
-      "code": 6036,
+      "code": 6039,
       "name": "MembershipAnchorSeatMismatch",
       "msg": "Anchor-backed membership seat does not match the provided anchor reference"
     },
     {
-      "code": 6037,
+      "code": 6040,
       "name": "MembershipAnchorReferenceMissing",
       "msg": "Anchor-backed membership requires a non-zero anchor reference"
     },
     {
-      "code": 6038,
+      "code": 6041,
       "name": "StringTooLong",
       "msg": "Bounded string field exceeds the canonical maximum"
     },
     {
-      "code": 6039,
+      "code": 6042,
       "name": "InvalidOracleQuorum",
       "msg": "Oracle quorum configuration is invalid"
     },
     {
-      "code": 6040,
+      "code": 6043,
       "name": "TooManyOracleSupportedSchemas",
       "msg": "Too many supported schema hashes were provided for one oracle profile"
     },
     {
-      "code": 6041,
+      "code": 6044,
       "name": "PoolOracleApprovalRequired",
       "msg": "Pool oracle approval is required before permissions can be granted"
     },
     {
-      "code": 6042,
+      "code": 6045,
       "name": "OracleProfileInactive",
       "msg": "Oracle profile is inactive"
     },
     {
-      "code": 6043,
+      "code": 6046,
       "name": "OracleProfileUnclaimed",
       "msg": "Oracle profile has not been claimed by its signing key"
     },
     {
-      "code": 6044,
+      "code": 6047,
       "name": "InvalidClaimAttestationDecision",
       "msg": "Claim attestation decision is not a recognized value"
     },
     {
-      "code": 6045,
+      "code": 6048,
       "name": "ClaimAttestationSchemaRequired",
       "msg": "Claim attestation must reference a registered schema key hash"
     },
     {
-      "code": 6046,
+      "code": 6049,
       "name": "ClaimAttestationSchemaUnsupported",
       "msg": "Oracle profile does not advertise support for the selected claim-attestation schema"
     },
     {
-      "code": 6047,
+      "code": 6050,
       "name": "TooManySchemaDependencies",
       "msg": "Too many schema dependency addresses were provided"
     }

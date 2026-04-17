@@ -5,7 +5,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useConnection } from "@solana/wallet-adapter-react";
 
+import { GenesisProtectAcuteSetupPanel } from "@/components/genesis-protect-acute-setup-panel";
 import { PlanCoveragePanel } from "@/components/plan-coverage-panel";
 import {
   ClaimIntakePanel,
@@ -17,6 +19,12 @@ import {
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount, plansForPool, seriesOutcomeCount } from "@/lib/canonical-ui";
+import { GENESIS_PROTECT_ACUTE_PLAN_ID } from "@/lib/genesis-protect-acute";
+import {
+  buildGenesisProtectAcuteSetupModel,
+  GENESIS_PROTECT_ACUTE_PRIMARY_SKU,
+  GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+} from "@/lib/genesis-protect-acute-operator";
 import { isUnsetDevnetWalletAddress } from "@/lib/devnet-fixtures";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
@@ -33,6 +41,8 @@ import {
   describeObligationStatus,
   describeSeriesMode,
   describeSeriesStatus,
+  fetchProtocolReadiness,
+  type ProtocolReadiness,
   SERIES_MODE_PROTECTION,
   shortenAddress,
 } from "@/lib/protocol";
@@ -210,6 +220,7 @@ type PlansWorkbenchProps = {
 };
 
 export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
+  const { connection } = useConnection();
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
@@ -221,6 +232,8 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   /* ── Selection state ── */
 
   const requestedTab = firstSearchParamValue(searchParams.tab);
+  const requestedSetup = firstSearchParamValue(searchParams.setup);
+  const genesisRequested = requestedSetup === GENESIS_PROTECT_ACUTE_TEMPLATE_KEY;
   const queryPool = firstSearchParamValue(searchParams.pool)?.trim() ?? "";
   const allPlans = useMemo(
     () => (queryPool ? plansForPool(queryPool, snapshot) : snapshot.healthPlans),
@@ -228,11 +241,16 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   );
   const queryPlan = firstSearchParamValue(searchParams.plan)?.trim() ?? "";
   const matchedPlan = useMemo(() => allPlans.find((plan) => plan.address === queryPlan) ?? null, [allPlans, queryPlan]);
+  const genesisPlan = useMemo(
+    () => snapshot.healthPlans.find((plan) => plan.planId === GENESIS_PROTECT_ACUTE_PLAN_ID) ?? null,
+    [snapshot.healthPlans],
+  );
   const hasInvalidPlan = Boolean(queryPlan) && !matchedPlan;
   const selectedPlan = useMemo(() => {
     if (hasInvalidPlan) return null;
+    if (genesisRequested) return genesisPlan;
     return matchedPlan ?? allPlans[0] ?? null;
-  }, [allPlans, hasInvalidPlan, matchedPlan]);
+  }, [allPlans, genesisPlan, genesisRequested, hasInvalidPlan, matchedPlan]);
 
   const planSeries = useMemo(() => {
     if (!selectedPlan) return [];
@@ -267,13 +285,19 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     [planSeries, querySeries],
   );
   const hasInvalidSeries = Boolean(querySeries) && !matchedSeries;
+  const preferredProtectionSeries = useMemo(() => {
+    if (selectedPlan?.planId !== GENESIS_PROTECT_ACUTE_PLAN_ID) return planProtectionSeries[0] ?? null;
+    return planProtectionSeries.find((series) => series.seriesId === GENESIS_PROTECT_ACUTE_PRIMARY_SKU.seriesId)
+      ?? planProtectionSeries[0]
+      ?? null;
+  }, [planProtectionSeries, selectedPlan?.planId]);
   const selectedSeries = useMemo(() => {
     if (hasInvalidSeries) return null;
     if (matchedSeries && (activeTab !== "coverage" || matchedSeries.mode === SERIES_MODE_PROTECTION)) return matchedSeries;
-    if (activeTab === "coverage") return planProtectionSeries[0] ?? null;
+    if (activeTab === "coverage") return preferredProtectionSeries;
     if (seriesSelectionOptional) return null;
     return planSeries[0] ?? null;
-  }, [activeTab, hasInvalidSeries, matchedSeries, planProtectionSeries, planSeries, seriesSelectionOptional]);
+  }, [activeTab, hasInvalidSeries, matchedSeries, planSeries, preferredProtectionSeries, seriesSelectionOptional]);
 
   /* ── Derived data ── */
 
@@ -321,6 +345,30 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     () => snapshot.reserveDomains.find((domain) => domain.address === selectedPlan?.reserveDomain) ?? null,
     [selectedPlan?.reserveDomain, snapshot.reserveDomains],
   );
+  const genesisSetupVisible = routeMode === "plans"
+    && (genesisRequested || selectedPlan?.planId === GENESIS_PROTECT_ACUTE_PLAN_ID || genesisPlan?.address === selectedPlan?.address);
+  const [genesisReadiness, setGenesisReadiness] = useState<ProtocolReadiness | null>(null);
+  const genesisSetupModel = useMemo(
+    () => buildGenesisProtectAcuteSetupModel({ snapshot, readiness: genesisReadiness }),
+    [genesisReadiness, snapshot],
+  );
+  const genesisPoolAddress = genesisSetupModel.pool?.address ?? null;
+  const genesisPlanAddress = genesisSetupModel.plan?.address ?? genesisPlan?.address ?? null;
+  const genesisPrimarySeriesAddress = genesisSetupModel.seriesBySku.travel30?.address ?? null;
+  const genesisBootstrapHref = `/plans/new?template=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`;
+  const genesisWorkspaceHref = genesisPlanAddress
+    ? `/plans?plan=${encodeURIComponent(genesisPlanAddress)}${genesisPrimarySeriesAddress ? `&series=${encodeURIComponent(genesisPrimarySeriesAddress)}` : ""}&tab=overview&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`
+    : `/plans?tab=overview&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`;
+  const genesisTreasuryHref = genesisPlanAddress
+    ? `/plans?plan=${encodeURIComponent(genesisPlanAddress)}&tab=treasury&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`
+    : `/plans?tab=treasury&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`;
+  const genesisCapitalClassesHref = genesisPoolAddress
+    ? `/capital?pool=${encodeURIComponent(genesisPoolAddress)}&tab=classes`
+    : "/capital?tab=classes";
+  const genesisCapitalAllocationsHref = genesisPoolAddress
+    ? `/capital?pool=${encodeURIComponent(genesisPoolAddress)}&tab=allocations`
+    : "/capital?tab=allocations";
+  const genesisOracleBindingsHref = "/oracles?tab=bindings";
   const seriesSelectorOptions = activeTab === "coverage" ? planProtectionSeries : planSeries;
   const auditTrail = useMemo(
     () => buildAuditTrail({
@@ -347,6 +395,32 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
       return !(label.includes("eligible") || label.includes("active") || label.includes("pending") || label.includes("review"));
     });
   }, [filteredMembers, memberSearch, memberStatusFilter]);
+
+  useEffect(() => {
+    if (!genesisSetupVisible || !genesisPoolAddress) {
+      setGenesisReadiness(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const nextReadiness = await fetchProtocolReadiness({
+          connection,
+          poolAddress: genesisPoolAddress,
+        });
+        if (!cancelled) {
+          setGenesisReadiness(nextReadiness);
+        }
+      } catch {
+        if (!cancelled) {
+          setGenesisReadiness(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, genesisPoolAddress, genesisSetupVisible]);
 
   /* ── URL sync ── */
 
@@ -459,6 +533,12 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                 </span>
                 {routeMode === "plans" ? "NEW_PLAN" : "OPEN_PLAN_WORKSPACE"}
               </Link>
+              {routeMode === "plans" ? (
+                <Link href={genesisPlanAddress ? genesisWorkspaceHref : genesisBootstrapHref} className="plans-hero-cta">
+                  <span className="material-symbols-outlined" aria-hidden="true">rocket_launch</span>
+                  {genesisPlanAddress ? "OPEN_GENESIS" : "GENESIS_TEMPLATE"}
+                </Link>
+              ) : null}
             </div>
           </div>
         </header>
@@ -545,6 +625,17 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── OVERVIEW ── */}
               {activeTab === "overview" ? (
                 <div className="plans-stack">
+                  {genesisSetupVisible ? (
+                    <GenesisProtectAcuteSetupPanel
+                      model={genesisSetupModel}
+                      planAddress={genesisPlanAddress}
+                      treasuryHref={genesisTreasuryHref}
+                      capitalClassesHref={genesisCapitalClassesHref}
+                      capitalAllocationsHref={genesisCapitalAllocationsHref}
+                      bootstrapHref={genesisBootstrapHref}
+                      oracleBindingsHref={genesisOracleBindingsHref}
+                    />
+                  ) : null}
                   <article className="plans-card plans-vitality heavy-glass">
                     <div className="plans-card-head">
                       <div>
@@ -940,6 +1031,39 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── TREASURY ── */}
               {activeTab === "treasury" ? (
                 <div className="plans-stack">
+                  {genesisSetupVisible ? (
+                    <article className="plans-card heavy-glass">
+                      <div className="plans-card-head">
+                        <div>
+                          <p className="plans-card-eyebrow">GENESIS_TREASURY_MODE</p>
+                          <h2 className="plans-card-title plans-card-title-display">
+                            Reserve and <em>launch controls</em>
+                          </h2>
+                        </div>
+                        <span className={`status-pill ${genesisSetupModel.posture.state === "healthy" ? "status-ok" : genesisSetupModel.posture.state === "paused" ? "status-error" : "status-off"}`}>
+                          {genesisSetupModel.posture.state.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="plans-card-body">
+                        Use the existing treasury, capital, and oracle panels below to finish reserve floor review, operator bindings,
+                        and issuance posture for the canonical Event 7 and Travel 30 launch shell.
+                      </p>
+                      <div className="plans-wizard-support-actions">
+                        <Link href={genesisBootstrapHref} className="secondary-button inline-flex w-fit">
+                          Rerun Genesis template
+                        </Link>
+                        <Link href={genesisCapitalClassesHref} className="secondary-button inline-flex w-fit">
+                          Open capital classes
+                        </Link>
+                        <Link href={genesisCapitalAllocationsHref} className="secondary-button inline-flex w-fit">
+                          Open allocations
+                        </Link>
+                        <Link href={genesisOracleBindingsHref} className="secondary-button inline-flex w-fit">
+                          Open oracle bindings
+                        </Link>
+                      </div>
+                    </article>
+                  ) : null}
                   <TreasuryOperatorPanel
                     plan={selectedPlan}
                     series={selectedSeries}

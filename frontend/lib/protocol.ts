@@ -3662,6 +3662,7 @@ function buildObligationFlowTx(params: {
   assetMint: PublicKeyish;
   obligationAddress: PublicKeyish;
   recentBlockhash: string;
+  claimCaseAddress?: PublicKeyish | null;
   policySeriesAddress?: PublicKeyish | null;
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
@@ -3713,6 +3714,7 @@ function buildObligationFlowTx(params: {
       optionalProtocolAccount(params.allocationPositionAddress, true),
       optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
       { pubkey: params.obligationAddress, isWritable: true },
+      optionalProtocolAccount(params.claimCaseAddress, true),
     ],
   });
 }
@@ -3726,6 +3728,7 @@ export function buildReserveObligationTx(params: {
   obligationAddress: PublicKeyish;
   recentBlockhash: string;
   amount: bigint;
+  claimCaseAddress?: PublicKeyish | null;
   policySeriesAddress?: PublicKeyish | null;
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
@@ -3747,6 +3750,7 @@ export function buildReleaseReserveTx(params: {
   obligationAddress: PublicKeyish;
   recentBlockhash: string;
   amount: bigint;
+  claimCaseAddress?: PublicKeyish | null;
   policySeriesAddress?: PublicKeyish | null;
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
@@ -3770,6 +3774,7 @@ export function buildSettleObligationTx(params: {
   nextStatus: number;
   amount: bigint;
   settlementReasonHashHex?: string | null;
+  claimCaseAddress?: PublicKeyish | null;
   policySeriesAddress?: PublicKeyish | null;
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;

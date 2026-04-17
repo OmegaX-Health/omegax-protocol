@@ -86,9 +86,9 @@
     ]
   },
   "claimsTrustModel": {
-    "phase0": "OmegaX Health operator-backed oracle flow plus hidden concierge review.",
-    "phase1": "AI claim recommendation with human override kept private when needed.",
-    "phase2": "Explicit claims operators with governance-visible dispute handling."
+    "phase0": "OmegaX Health operator-backed oracle review for the current Phase 0 launch window, with internal operator escalation when needed.",
+    "phase1": "Next phase: AI claim recommendation with operator override kept internal when needed.",
+    "phase2": "Roadmap: more explicit claims-operator and governance-visible dispute handling after the bounded launch window."
   },
   "commercialLayers": {
     "appMembership": "Separate OmegaX Health app subscription for AI health agent value and premium app features.",
@@ -106,7 +106,7 @@
   },
   "issuanceControls": {
     "reserveAttribution": "Only posted capital, collected premiums, and explicit backstop funds count as claims-paying reserve.",
-    "publicStatusRule": "Keep Travel 30 as the primary launch SKU, but do not market it as broadly live insurance until reserve posting and operator readiness are both active.",
+    "publicStatusRule": "Keep Travel 30 positioned as the primary SKU for a bounded end-of-month mainnet launch target. Do not describe it as broadly live insurance today.",
     "issueWhen": [
       "Travel 30 reserve lanes are funded onchain with published premium and liquidity support.",
       "Operator-backed claim review is staffed for the active issuance window.",

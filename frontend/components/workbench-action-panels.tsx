@@ -518,7 +518,16 @@ type ClaimsOperatorPanelProps = {
   plan: HealthPlanSnapshot | null;
   series: PolicySeriesSnapshot | null;
   claimCases: ClaimCaseSnapshot[];
-  obligations: Array<{ address: string; fundingLine: string; policySeries?: string | null; capitalClass?: string | null; allocationPosition?: string | null; assetMint: string; status: number }>;
+  obligations: Array<{
+    address: string;
+    fundingLine: string;
+    claimCase?: string | null;
+    policySeries?: string | null;
+    capitalClass?: string | null;
+    allocationPosition?: string | null;
+    assetMint: string;
+    status: number;
+  }>;
   members: MemberPositionSnapshot[];
   fundingLines: FundingLineSnapshot[];
   allocations: AllocationPositionSnapshot[];
@@ -610,10 +619,12 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
     [props.classes, selectedAllocation?.capitalClass, selectedObligation?.capitalClass],
   );
   const selectedPool = useMemo(
-    () => props.pools.find((pool) => pool.address === selectedAllocation?.liquidityPool)
+    () => props.pools.find((pool) =>
+      pool.address === (selectedClass?.liquidityPool ?? selectedAllocation?.liquidityPool),
+    )
       ?? props.pools[0]
       ?? null,
-    [props.pools, selectedAllocation?.liquidityPool],
+    [props.pools, selectedAllocation?.liquidityPool, selectedClass?.liquidityPool],
   );
 
   async function run(label: string, factory: () => Promise<Transaction>) {
@@ -911,6 +922,7 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
                   obligationAddress: selectedObligation!.address,
                   recentBlockhash: blockhash,
                   amount: parseBigIntInput(reserveFlowAmount),
+                  claimCaseAddress: selectedObligation!.claimCase ?? null,
                   policySeriesAddress: selectedObligation!.policySeries ?? null,
                   capitalClassAddress: selectedObligation!.capitalClass ?? null,
                   allocationPositionAddress: selectedObligation!.allocationPosition ?? null,
@@ -935,6 +947,7 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
                   obligationAddress: selectedObligation!.address,
                   recentBlockhash: blockhash,
                   amount: parseBigIntInput(reserveFlowAmount),
+                  claimCaseAddress: selectedObligation!.claimCase ?? null,
                   policySeriesAddress: selectedObligation!.policySeries ?? null,
                   capitalClassAddress: selectedObligation!.capitalClass ?? null,
                   allocationPositionAddress: selectedObligation!.allocationPosition ?? null,
@@ -986,6 +999,7 @@ export function ClaimsOperatorPanel(props: ClaimsOperatorPanelProps) {
                   nextStatus: Number.parseInt(settleObligationStatus, 10) || OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
                   amount: parseBigIntInput(settleObligationAmount),
                   settlementReasonHashHex: await hashInputToHex(decisionSupport || evidenceRef || obligationId),
+                  claimCaseAddress: selectedObligation!.claimCase ?? null,
                   policySeriesAddress: selectedObligation!.policySeries ?? null,
                   capitalClassAddress: selectedObligation!.capitalClass ?? null,
                   allocationPositionAddress: selectedObligation!.allocationPosition ?? null,

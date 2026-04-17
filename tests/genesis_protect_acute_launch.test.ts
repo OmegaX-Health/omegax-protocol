@@ -72,6 +72,11 @@ type GenesisProtectionMetadataDocument = {
       reserveRole: string;
     };
   };
+  claimsTrustModel: {
+    phase0: string;
+    phase1: string;
+    phase2: string;
+  };
   issuanceControls: {
     reserveAttribution: string;
     publicStatusRule: string;
@@ -154,6 +159,16 @@ test("Genesis Protect Acute metadata documents encode the canonical Event 7 and 
   assert.equal(event7Document.fundingLanes.premium.lineId, GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.premium);
   assert.equal(event7Document.fundingLanes.sponsor?.lineId, GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.sponsor);
   assert.equal(event7Document.fundingLanes.liquidity.lineId, GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.liquidity);
+  assert.equal(
+    event7Document.claimsTrustModel.phase0,
+    "OmegaX Health operator-backed oracle review for the current Phase 0 launch window, with internal operator escalation when needed.",
+  );
+  assert.match(event7Document.claimsTrustModel.phase1, /^Next phase:/);
+  assert.match(event7Document.claimsTrustModel.phase2, /^Roadmap:/);
+  assert.equal(
+    event7Document.issuanceControls.publicStatusRule,
+    GENESIS_PROTECT_ACUTE_SKUS.event7.issuanceControls.publicStatusRule,
+  );
   assert.equal(event7Document.issuanceControls.issueWhen.length, 3);
   assert.equal(event7Document.issuanceControls.pauseWhen.length, 3);
   assert.equal(event7Document.launchTruth.primaryLaunchSku, GENESIS_PROTECT_ACUTE_LAUNCH_TRUTH.primaryLaunchSku);
@@ -184,6 +199,16 @@ test("Genesis Protect Acute metadata documents encode the canonical Event 7 and 
   assert.equal(travel30Document.evidenceSchema.schemaVersion, GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_VERSION);
   assert.equal(travel30Document.fundingLanes.premium.lineId, GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium);
   assert.equal(travel30Document.fundingLanes.liquidity.lineId, GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.liquidity);
+  assert.equal(
+    travel30Document.claimsTrustModel.phase0,
+    "OmegaX Health operator-backed oracle review for the current Phase 0 launch window, with internal operator escalation when needed.",
+  );
+  assert.match(travel30Document.claimsTrustModel.phase1, /^Next phase:/);
+  assert.match(travel30Document.claimsTrustModel.phase2, /^Roadmap:/);
+  assert.equal(
+    travel30Document.issuanceControls.publicStatusRule,
+    GENESIS_PROTECT_ACUTE_SKUS.travel30.issuanceControls.publicStatusRule,
+  );
   assert.equal(travel30Document.issuanceControls.issueWhen.length, 3);
   assert.equal(travel30Document.issuanceControls.pauseWhen.length, 3);
   assert.equal(travel30Document.launchTruth.publicStatus, "end_of_month_mainnet_target");
@@ -198,13 +223,13 @@ test("Genesis Protect Acute metadata documents encode the canonical Event 7 and 
 test("Genesis Protect Acute pool resolves to a unique plan context but keeps series routing explicit", () => {
   const genesisPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) => plan.planId === GENESIS_PROTECT_ACUTE_PLAN_ID)!;
   const genesisPool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((pool) => pool.poolId === GENESIS_PROTECT_ACUTE_POOL_ID)!;
-  const event7Series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
-    (series) => series.seriesId === GENESIS_PROTECT_ACUTE_SKUS.event7.seriesId,
+  const primaryLaunchSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
+    (series) => series.seriesId === GENESIS_PROTECT_ACUTE_SKUS.travel30.seriesId,
   )!;
 
   assert.deepEqual(linkedContextForPool(genesisPool.address), {
     plan: genesisPlan.address,
     series: null,
   });
-  assert.equal(firstProtectionSeriesAddressForPlan(genesisPlan.address), event7Series.address);
+  assert.equal(firstProtectionSeriesAddressForPlan(genesisPlan.address), primaryLaunchSeries.address);
 });

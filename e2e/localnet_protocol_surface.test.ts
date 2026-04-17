@@ -28,11 +28,15 @@ const {
   ELIGIBILITY_ELIGIBLE,
   FUNDING_LINE_TYPE_PREMIUM_INCOME,
   FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+  OBLIGATION_STATUS_CANCELED,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   OBLIGATION_STATUS_SETTLED,
   SERIES_MODE_PROTECTION,
   SERIES_MODE_REWARD,
+  buildAdjudicateClaimCaseTx,
+  buildAttestClaimCaseTx,
+  buildCreateObligationTx,
   buildBackfillSchemaDependencyLedgerTx,
   buildClaimOracleTx,
   buildCloseOutcomeSchemaTx,
@@ -45,13 +49,17 @@ const {
   buildOpenFundingLineTx,
   buildOpenMemberPositionTx,
   buildRegisterOracleTx,
+  buildReleaseReserveTx,
+  buildReserveObligationTx,
   buildRegisterOutcomeSchemaTx,
   buildSetPoolOraclePermissionsTx,
   buildSetPoolOraclePolicyTx,
   buildSetPoolOracleTx,
+  buildSettleObligationTx,
   buildUpdateLpPositionCredentialingTx,
   buildUpdateOracleProfileTx,
   buildVerifyOutcomeSchemaTx,
+  deriveClaimAttestationPda,
   deriveDomainAssetLedgerPda,
   deriveDomainAssetVaultPda,
   deriveFundingLineLedgerPda,
@@ -468,6 +476,111 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
       claimantAddress: protectionClaim.claimant,
       evidenceRefHashHex: SAMPLE_EVIDENCE_HASH_HEX,
     });
+    const attestClaimCaseTx = buildAttestClaimCaseTx({
+      oracle: oracleWallet.address,
+      claimCaseAddress: protectionClaim.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      decision: 0,
+      attestationHashHex: SAMPLE_REASON_HASH_HEX,
+      attestationRefHashHex: SAMPLE_EVIDENCE_HASH_HEX,
+      schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+    });
+    const createObligationTx = buildCreateObligationTx({
+      authority: claimsOperatorWallet.address,
+      healthPlanAddress: plan.address,
+      reserveDomainAddress: plan.reserveDomain,
+      fundingLineAddress: protectionLine.address,
+      assetMint: protectionLine.assetMint,
+      recentBlockhash: STATIC_BLOCKHASH,
+      obligationId: linkedObligation.obligationId,
+      policySeriesAddress: protectionSeries.address,
+      memberWalletAddress: protectionClaim.claimant,
+      beneficiaryAddress: protectionClaim.claimant,
+      claimCaseAddress: protectionClaim.address,
+      liquidityPoolAddress: pool.address,
+      capitalClassAddress: openClass.address,
+      allocationPositionAddress: impairedAllocation.address,
+      deliveryMode: linkedObligation.deliveryMode,
+      amount: linkedObligation.principalAmount,
+      creationReasonHashHex: SAMPLE_REASON_HASH_HEX,
+      poolAssetMint: pool.depositAssetMint,
+    });
+    const adjudicateClaimCaseTx = buildAdjudicateClaimCaseTx({
+      authority: claimsOperatorWallet.address,
+      healthPlanAddress: plan.address,
+      claimCaseAddress: protectionClaim.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      reviewState: 1,
+      approvedAmount: protectionClaim.approvedAmount,
+      deniedAmount: protectionClaim.deniedAmount,
+      reserveAmount: linkedObligation.outstandingAmount,
+      decisionSupportHashHex: SAMPLE_REASON_HASH_HEX,
+      obligationAddress: linkedObligation.address,
+    });
+    const reserveObligationTx = buildReserveObligationTx({
+      authority: claimsOperatorWallet.address,
+      healthPlanAddress: plan.address,
+      reserveDomainAddress: plan.reserveDomain,
+      fundingLineAddress: protectionLine.address,
+      assetMint: protectionLine.assetMint,
+      obligationAddress: linkedObligation.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      amount: linkedObligation.outstandingAmount,
+      claimCaseAddress: protectionClaim.address,
+      policySeriesAddress: protectionSeries.address,
+      capitalClassAddress: openClass.address,
+      allocationPositionAddress: impairedAllocation.address,
+      poolAssetMint: pool.depositAssetMint,
+    });
+    const releaseReserveTx = buildReleaseReserveTx({
+      authority: claimsOperatorWallet.address,
+      healthPlanAddress: plan.address,
+      reserveDomainAddress: plan.reserveDomain,
+      fundingLineAddress: protectionLine.address,
+      assetMint: protectionLine.assetMint,
+      obligationAddress: linkedObligation.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      amount: linkedObligation.outstandingAmount,
+      claimCaseAddress: protectionClaim.address,
+      policySeriesAddress: protectionSeries.address,
+      capitalClassAddress: openClass.address,
+      allocationPositionAddress: impairedAllocation.address,
+      poolAssetMint: pool.depositAssetMint,
+    });
+    const settleObligationToDeliveryTx = buildSettleObligationTx({
+      authority: claimsOperatorWallet.address,
+      healthPlanAddress: plan.address,
+      reserveDomainAddress: plan.reserveDomain,
+      fundingLineAddress: protectionLine.address,
+      assetMint: protectionLine.assetMint,
+      obligationAddress: linkedObligation.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      nextStatus: OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
+      amount: linkedObligation.outstandingAmount,
+      settlementReasonHashHex: SAMPLE_REASON_HASH_HEX,
+      claimCaseAddress: protectionClaim.address,
+      policySeriesAddress: protectionSeries.address,
+      capitalClassAddress: openClass.address,
+      allocationPositionAddress: impairedAllocation.address,
+      poolAssetMint: pool.depositAssetMint,
+    });
+    const settleObligationFinalTx = buildSettleObligationTx({
+      authority: claimsOperatorWallet.address,
+      healthPlanAddress: plan.address,
+      reserveDomainAddress: plan.reserveDomain,
+      fundingLineAddress: protectionLine.address,
+      assetMint: protectionLine.assetMint,
+      obligationAddress: linkedObligation.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      nextStatus: OBLIGATION_STATUS_SETTLED,
+      amount: linkedObligation.outstandingAmount,
+      settlementReasonHashHex: SAMPLE_REASON_HASH_HEX,
+      claimCaseAddress: protectionClaim.address,
+      policySeriesAddress: protectionSeries.address,
+      capitalClassAddress: openClass.address,
+      allocationPositionAddress: impairedAllocation.address,
+      poolAssetMint: pool.depositAssetMint,
+    });
     const updateCredentialingTx = buildUpdateLpPositionCredentialingTx({
       authority: governanceWallet.address,
       poolAddress: pool.address,
@@ -542,6 +655,20 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     }).toBase58());
     assert.equal(openMemberPositionTx.instructions[0]!.keys[3]!.pubkey.toBase58(), protectionMember.address);
     assert.equal(openClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(attestClaimCaseTx.instructions[0]!.keys[2]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(
+      attestClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(),
+      deriveClaimAttestationPda({
+        claimCase: protectionClaim.address,
+        oracle: oracleWallet.address,
+      }).toBase58(),
+    );
+    assert.equal(adjudicateClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(), linkedObligation.address);
+    assert.equal(reserveObligationTx.instructions[0]!.keys[12]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(releaseReserveTx.instructions[0]!.keys[12]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(settleObligationToDeliveryTx.instructions[0]!.keys[13]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(settleObligationFinalTx.instructions[0]!.keys[13]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(createObligationTx.instructions[0]!.keys[10]!.pubkey.toBase58(), linkedObligation.address);
     assert.equal(updateCredentialingTx.instructions[0]!.keys[4]!.pubkey.toBase58(), deriveLpPositionPda({
       capitalClass: openClass.address,
       owner: credentialedLp.owner,
@@ -648,6 +775,17 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     assert(protectionClaims.some((claimCase) => claimCase.intakeStatus === CLAIM_INTAKE_APPROVED));
     assert(protectionClaims.some((claimCase) => claimCase.intakeStatus === CLAIM_INTAKE_SETTLED));
     assert.equal(protectionClaims.every((claimCase) => Boolean(claimCase.linkedObligation)), true);
+    assert.equal(
+      protectionClaims.every((claimCase) => {
+        const linkedObligation = protectionObligations.find(
+          (obligation) => obligation.address === claimCase.linkedObligation,
+        );
+        return Boolean(linkedObligation)
+          && claimCase.reservedAmount === linkedObligation!.reservedAmount
+          && claimCase.paidAmount === linkedObligation!.settledAmount;
+      }),
+      true,
+    );
     assert(protectionObligations.some((obligation) => obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE));
     assert(protectionObligations.some((obligation) => obligation.status === OBLIGATION_STATUS_SETTLED));
   },
@@ -671,9 +809,22 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     const openClassAllocations = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
       (allocation) => allocation.capitalClass === openClass.address,
     );
+    const protectionAllocations = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
+      (allocation) =>
+        DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.address === allocation.policySeries)?.mode === SERIES_MODE_PROTECTION,
+    );
+    const genesisPool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find(
+      (liquidityPool) => liquidityPool.poolId === "genesis-protect-acute-pool",
+    )!;
 
-    assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.length, 3);
+    assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.length, 6);
     assert.equal(openClassAllocations.length, 2);
+    assert.equal(
+      DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
+        (allocation) => allocation.liquidityPool === genesisPool.address,
+      ).length,
+      3,
+    );
     assert.equal(
       DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.every(
         (allocation) => allocation.allocatedAmount <= allocation.capAmount,
@@ -688,11 +839,8 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
       true,
     );
     assert.equal(
-      DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
-        (allocation) =>
-          DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.address === allocation.policySeries)?.mode === SERIES_MODE_PROTECTION,
-      ).length,
-      2,
+      protectionAllocations.length,
+      5,
     );
   },
   impairment_and_redemption_queue_lifecycle: () => {

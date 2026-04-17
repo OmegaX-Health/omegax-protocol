@@ -5867,6 +5867,40 @@
               }
             ]
           }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "signer": false,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
+              }
+            ]
+          }
         }
       ]
     },
@@ -6415,6 +6449,40 @@
                 "kind": "account",
                 "path": "obligation.obligation_id",
                 "account": "Obligation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "signer": false,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
               }
             ]
           }
@@ -7798,6 +7866,40 @@
                 "kind": "account",
                 "path": "obligation.obligation_id",
                 "account": "Obligation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "signer": false,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
               }
             ]
           }

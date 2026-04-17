@@ -12,6 +12,7 @@ const { DEVNET_PROTOCOL_FIXTURE_STATE } = fixturesModule as typeof import("../fr
 const {
   CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY,
   FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
+  FUNDING_LINE_TYPE_PREMIUM_INCOME,
   FUNDING_LINE_TYPE_SPONSOR_BUDGET,
   OBLIGATION_STATUS_IMPAIRED,
   OBLIGATION_STATUS_RESERVED,
@@ -249,4 +250,60 @@ test("13. oracle attestation feed stays inside the selected pool and series", ()
   assert(protectionClaims.length > 0);
   assert(protectionClaims.every((claim) => claim.policySeries === protectionSeries.address));
   assert.equal(unboundClaims.length, 0);
+});
+
+test("14. linked protection claims mirror obligation reserve and settlement state", () => {
+  const linkedProtectionClaims = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.filter(
+    (claimCase) => Boolean(claimCase.linkedObligation),
+  );
+
+  assert(linkedProtectionClaims.length > 0);
+  assert.equal(
+    linkedProtectionClaims.every((claimCase) => {
+      const linkedObligation = DEVNET_PROTOCOL_FIXTURE_STATE.obligations.find(
+        (obligation) => obligation.address === claimCase.linkedObligation,
+      );
+      return Boolean(linkedObligation)
+        && claimCase.reservedAmount === linkedObligation!.reservedAmount
+        && claimCase.paidAmount === linkedObligation!.settledAmount;
+    }),
+    true,
+  );
+});
+
+test("15. genesis protection launch lanes span sponsor, premium, LP-backed, and mixed-capital funding", () => {
+  const genesisPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) =>
+    plan.displayName.includes("Genesis Protect Acute")
+  )!;
+  const genesisSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.filter(
+    (series) => series.healthPlan === genesisPlan.address,
+  );
+  const event7 = genesisSeries.find((series) => series.displayName.includes("Event 7"))!;
+  const travel30 = genesisSeries.find((series) => series.displayName.includes("Travel 30"))!;
+  const event7Lines = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.filter(
+    (line) => line.policySeries === event7.address,
+  );
+  const travel30Lines = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.filter(
+    (line) => line.policySeries === travel30.address,
+  );
+
+  assert(event7Lines.some((line) => line.lineType === FUNDING_LINE_TYPE_SPONSOR_BUDGET));
+  assert(event7Lines.some((line) => line.lineType === FUNDING_LINE_TYPE_PREMIUM_INCOME));
+  assert(event7Lines.some((line) => line.lineType === FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION));
+  assert.equal(
+    travel30Lines.some((line) => line.lineType === FUNDING_LINE_TYPE_SPONSOR_BUDGET),
+    false,
+  );
+  assert(travel30Lines.some((line) => line.lineType === FUNDING_LINE_TYPE_PREMIUM_INCOME));
+  assert(travel30Lines.some((line) => line.lineType === FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION));
+  assert(
+    DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.some(
+      (allocation) => allocation.policySeries === event7.address,
+    ),
+  );
+  assert(
+    DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.some(
+      (allocation) => allocation.policySeries === travel30.address,
+    ),
+  );
 });

@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 4f1771c1dc8cb8b4fd531b93329e293ca519fb9ce30900c08cc1d4daa98ee1c1
+// contract_sha256: 68a561bdc0c78024138757f08cc6dc593cfcb6f7f63378943f5157cdfe1af437
 
 export type ProtocolInstructionName =
   | "adjudicate_claim_case"
@@ -498,6 +498,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "allocation_position", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "allocation_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
+      { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
   ],
   "request_redemption": [
       { name: "owner", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
@@ -520,6 +521,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "allocation_position", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "allocation_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
+      { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
   ],
   "set_pool_oracle": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
@@ -579,6 +581,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "allocation_position", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "allocation_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
+      { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
   ],
   "update_allocation_caps": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },

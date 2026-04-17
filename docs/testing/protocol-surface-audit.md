@@ -46,7 +46,7 @@ Each family owns a specific subset of instruction names and a matching determini
 
 The manifest also includes one cross-scenario release-candidate journey:
 
-- `bootstrap_to_self_serve_plan_journey`, which verifies the canonical path from protocol bootstrap through launch, oracle onboarding, member enrollment, claim intake, LP credentialing, and impairment handling
+- `bootstrap_to_self_serve_plan_journey`, which verifies the canonical path from protocol bootstrap through launch, oracle onboarding, member enrollment, claim intake, attestation, linked-obligation settlement wiring, LP credentialing, and impairment handling
 
 ## What the audit enforces
 

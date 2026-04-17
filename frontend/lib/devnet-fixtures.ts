@@ -974,7 +974,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       approvedAmount: 90_000n,
       deniedAmount: 0n,
       paidAmount: 40_000n,
-      reservedAmount: 50_000n,
+      reservedAmount: 0n,
       linkedObligation: blendedProtectionReservedObligation,
     },
     {

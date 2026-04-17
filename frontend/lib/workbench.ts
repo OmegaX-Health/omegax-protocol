@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureRole } from "./devnet-fixtures";
+import { GENESIS_PROTECT_ACUTE_PLAN_ID } from "./genesis-protect-acute";
+import { GENESIS_PROTECT_ACUTE_PRIMARY_SKU } from "./genesis-protect-acute-operator";
 import {
   availableFundingLineBalance,
   CLAIM_INTAKE_APPROVED,
@@ -486,6 +488,18 @@ export function firstSeriesAddressForPlan(planAddress?: string | null): string |
 }
 
 export function firstProtectionSeriesAddressForPlan(planAddress?: string | null): string | null {
+  const plan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((entry) => entry.address === (planAddress ?? "")) ?? null;
+  if (plan?.planId === GENESIS_PROTECT_ACUTE_PLAN_ID) {
+    return (
+      DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
+        (series) =>
+          series.healthPlan === plan.address
+          && series.mode === SERIES_MODE_PROTECTION
+          && series.seriesId === GENESIS_PROTECT_ACUTE_PRIMARY_SKU.seriesId,
+      )?.address
+      ?? null
+    );
+  }
   return (
     DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
       (series) => series.healthPlan === (planAddress ?? "") && series.mode === SERIES_MODE_PROTECTION,

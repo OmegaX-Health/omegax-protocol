@@ -101,6 +101,8 @@ This is the first publishable canonical OmegaX health-capital-markets surface.
 - allocation positions bridge capital sleeves into plan-side liabilities without hiding attribution
 - the canonical console now mounts `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas` against live snapshot-backed protocol reads
 - `/plans/new` now launches from live reserve-domain, vault-rail, oracle, and schema registry data rather than fixture-only defaults
+- `/plans/new?template=genesis-protect-acute` now bootstraps the canonical Genesis Protect Acute shell in place using the frozen Event 7 and Travel 30 launch truth
+- `/plans?...&setup=genesis-protect-acute` now exposes the Genesis setup checklist, issuance posture, and reserve-warning view inside the mounted sponsor/operator workspace
 - `/governance` now exposes mounted protocol bootstrap actions for governance, reserve domains, and domain asset vaults
 - `/members` now leads with self-serve enrollment and `/claims` now leads with self-serve claim intake on the canonical model
 - mounted workbenches now include sponsor-side post-launch series and funding-line actions, LP credentialing updates, and claim impairment handling
@@ -111,8 +113,10 @@ Genesis Protect Acute sprint-1 launch truth is frozen in the public metadata and
 - `Travel 30` is the primary launch SKU and `Event 7` is the fast demo SKU
 - the current public target is end-of-month mainnet readiness, not broadly live insurance issuance today
 - phase-0 claims trust is an operator-backed oracle flow rather than decentralized adjudication
+- AI recommendation and more explicit decentralized review remain next-phase work, not current public fact
 - prediction markets do not count as reserve truth; only posted premiums, sponsor funds, liquidity, and explicit backstops do
 - app membership billing remains separate from per-window protection premiums
+- the public sponsor/operator console now carries the Genesis bootstrap, checklist, and reserve-posture read path directly on `/plans`
 
 Read the canonical design set first:
 

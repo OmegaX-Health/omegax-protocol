@@ -19,6 +19,8 @@ The public UI should treat these as first-order objects:
 
 - `/overview` is the editorial systems-map entrypoint for the protocol workbench
 - `/plans` is the sponsor/operator view
+- `/plans/new?template=genesis-protect-acute` is the canonical Genesis bootstrap entrypoint
+- `/plans?...&setup=genesis-protect-acute` is the bounded Genesis setup, reserve-warning, and issuance-posture view inside the mounted plan workspace
 - `/capital` is the LP and capital-markets view
 - `/claims` is the member claim-intake plus operator liability and adjudication view
 - `/members` is the self-serve enrollment and member-rights posture view
@@ -30,6 +32,15 @@ The public UI should treat these as first-order objects:
 Legacy `/pools/*` routes are retained only as redirects to avoid carrying pool-first concepts forward in the main UX.
 
 Mounted canonical routes should resolve their primary data from the live protocol snapshot adapter rather than from checked-in fixture state. Fixtures remain valid for tests, docs, bootstrap generation, and local previews, but they should not be the default operator truth surface for the mounted workbenches.
+
+## Genesis operator mode
+
+Genesis Protect Acute uses the same mounted `/plans` workspace rather than a separate launch console.
+
+- `/plans/new?template=genesis-protect-acute` seeds the canonical plan, pool, class, series, funding-line, and allocation shell for Event 7 and Travel 30.
+- `/plans?...&setup=genesis-protect-acute` keeps the operator on the live plan workspace while exposing the Genesis checklist, reserve-warning posture, and per-SKU launch truth.
+- Travel 30 is the primary launch SKU and Event 7 remains the fast demo SKU when no explicit Genesis series is selected.
+- This mounted mode must speak in launch-readiness language: end-of-month mainnet target, not broadly live insurance today, and Phase 0 operator-backed claim review with later AI and decentralized steps framed as roadmap.
 
 ## Overview route
 

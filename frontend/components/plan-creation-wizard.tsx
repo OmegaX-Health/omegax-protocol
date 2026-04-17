@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PublicKey, Transaction } from "@solana/web3.js";
@@ -19,9 +19,26 @@ import {
   deriveLaunchLedgerAddresses,
 } from "@/lib/plan-launch-tx";
 import {
+  buildGenesisProtectAcuteArtifactAddresses,
+  buildGenesisProtectAcuteWizardDefaults,
+  genesisProtectAcuteBootstrapAllocations,
+  genesisProtectAcuteBootstrapCapitalClasses,
+  genesisProtectAcuteBootstrapFundingLines,
+  GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU,
+  GENESIS_PROTECT_ACUTE_PRIMARY_SKU,
+  GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+} from "@/lib/genesis-protect-acute-operator";
+import {
+  GENESIS_PROTECT_ACUTE_PLAN_ID,
+  GENESIS_PROTECT_ACUTE_PLAN_METADATA_URI,
+  GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
+  GENESIS_PROTECT_ACUTE_POOL_ID,
+  GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS,
+} from "@/lib/genesis-protect-acute";
+import {
   buildLaunchAddressPreview,
-  deriveLaunchPreflightAccountAddresses,
   buildLaunchReviewLinks,
+  deriveLaunchPreflightAccountAddresses,
   dedupeOracleOptions,
   requiresProtectionLane,
   requiresRewardLane,
@@ -38,14 +55,25 @@ import {
   type MembershipMode,
   type PayoutAssetMode,
 } from "@/lib/plan-launch";
-import { validateProtectionMetadataAgainstPosture } from "@/lib/protection-metadata";
+import {
+  fetchProtectionMetadataDocument,
+  validateProtectionMetadataAgainstPosture,
+} from "@/lib/protection-metadata";
 import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
+  buildCreateAllocationPositionTx,
+  buildCreateCapitalClassTx,
+  buildCreateLiquidityPoolTx,
+  buildUpdateCapitalClassControlsTx,
+  CAPITAL_CLASS_RESTRICTION_OPEN,
   deriveFundingLinePda,
   deriveHealthPlanPda,
+  deriveLiquidityPoolPda,
   derivePolicySeriesPda,
   FUNDING_LINE_TYPE_PREMIUM_INCOME,
+  FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
   FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+  REDEMPTION_POLICY_QUEUE_ONLY,
   SERIES_MODE_PROTECTION,
   SERIES_MODE_REWARD,
   SERIES_STATUS_ACTIVE,
@@ -96,6 +124,11 @@ type CreatedArtifacts = {
   protectionSeriesAddress: string | null;
   rewardFundingLineAddress: string | null;
   protectionFundingLineAddress: string | null;
+  poolAddress?: string | null;
+  capitalClassAddresses?: string[];
+  allocationAddresses?: string[];
+  extraSeriesAddresses?: string[];
+  extraFundingLineAddresses?: string[];
 };
 
 type RulePreview = {
@@ -117,6 +150,10 @@ const DEFAULT_PROTECTION_METADATA_URIS = {
 
 function defaultProtectionMetadataUri(pathway: Exclude<CoveragePathway, "">): string {
   return DEFAULT_PROTECTION_METADATA_URIS[pathway];
+}
+
+function isGenesisProtectAcuteTemplate(value: string | null): boolean {
+  return (value ?? "").trim() === GENESIS_PROTECT_ACUTE_TEMPLATE_KEY;
 }
 
 const STEP_COPY: Record<StepId, StepCopy> = {
@@ -230,12 +267,16 @@ function baseUnitsPreview(value: string, mode: PayoutAssetMode, splDecimals: num
   }
 }
 
-function buildWorkflowSteps(intent: LaunchIntent): StepDescriptor[] {
+function buildWorkflowSteps(intent: LaunchIntent, genesisTemplateMode = false): StepDescriptor[] {
   const steps: StepDescriptor[] = [
     { id: "basics", number: "01", label: "Basics" },
     { id: "membership", number: "02", label: "Membership" },
     { id: "verification", number: "03", label: "Verification" },
   ];
+  if (genesisTemplateMode) {
+    steps.push({ id: "review", number: String(steps.length + 1).padStart(2, "0"), label: "Review" });
+    return steps;
+  }
   if (requiresRewardLane(intent)) {
     steps.push({ id: "reward-lane", number: String(steps.length + 1).padStart(2, "0"), label: "Reward Lane" });
   }
@@ -329,9 +370,11 @@ function wizardDetailKey(detail: WizardDetailState): string {
 
 export function PlanCreationWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { connection } = useConnection();
   const { connected, publicKey, sendTransaction } = useWallet();
   const { snapshot } = useProtocolConsoleSnapshot();
+  const genesisTemplateMode = isGenesisProtectAcuteTemplate(searchParams.get("template"));
 
   const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("hybrid");
   const [stepIndex, setStepIndex] = useState(0);
@@ -430,13 +473,17 @@ export function PlanCreationWizard() {
       })),
     [snapshot.oracleProfiles],
   );
-  const steps = useMemo(() => buildWorkflowSteps(launchIntent), [launchIntent]);
+  const genesisWizardDefaults = useMemo(
+    () => buildGenesisProtectAcuteWizardDefaults(reserveDomainAddress),
+    [reserveDomainAddress],
+  );
+  const steps = useMemo(() => buildWorkflowSteps(launchIntent, genesisTemplateMode), [genesisTemplateMode, launchIntent]);
   const activeStep = steps[stepIndex] ?? steps[0]!;
   const isFirstStep = stepIndex === 0;
   const progressPct = ((stepIndex + 1) / steps.length) * 100;
   const copy = STEP_COPY[activeStep.id];
-  const rewardLaneRequired = requiresRewardLane(launchIntent);
-  const protectionLaneRequired = requiresProtectionLane(launchIntent);
+  const rewardLaneRequired = !genesisTemplateMode && requiresRewardLane(launchIntent);
+  const protectionLaneRequired = !genesisTemplateMode && requiresProtectionLane(launchIntent);
   const payoutAssetAddress = payoutAssetMode === "spl" ? payoutMint : ZERO_PUBKEY;
   const reserveDomainPk = toAssetPublicKey(reserveDomainAddress);
   const payoutMintPk = toAssetPublicKey(payoutAssetAddress);
@@ -523,6 +570,21 @@ export function PlanCreationWizard() {
       setPayoutMint(availableRailMints[0]);
     }
   }, [availableRailMints, payoutMint]);
+
+  useEffect(() => {
+    if (!genesisTemplateMode) return;
+    setLaunchIntent("insurance");
+    setPlanId(genesisWizardDefaults.planId);
+    setDisplayName(genesisWizardDefaults.displayName);
+    setOrganizationRef(genesisWizardDefaults.organizationRef);
+    setPlanMetadataUri(GENESIS_PROTECT_ACUTE_PLAN_METADATA_URI);
+    setPayoutAssetMode("spl");
+    if (genesisWizardDefaults.payoutMint) {
+      setPayoutMint(genesisWizardDefaults.payoutMint);
+    }
+    setCoveragePathway("defi_native");
+    setDefiSettlementMode("onchain_programmatic");
+  }, [genesisTemplateMode, genesisWizardDefaults]);
 
   useEffect(() => {
     if (!rewardSeriesId) {
@@ -706,6 +768,12 @@ export function PlanCreationWizard() {
       rewardLaneRequired,
       rewardSeriesId,
     ],
+  );
+  const genesisArtifactPreview = useMemo(
+    () => (genesisTemplateMode && reserveDomainPk
+      ? buildGenesisProtectAcuteArtifactAddresses(reserveDomainPk.toBase58())
+      : null),
+    [genesisTemplateMode, reserveDomainPk],
   );
 
   const protectionPosture = useMemo(
@@ -960,21 +1028,34 @@ export function PlanCreationWizard() {
     verificationErrors,
   ]);
 
-  const reviewLinks = useMemo(
-    () => (createdArtifacts
-      ? buildLaunchReviewLinks({
-        launchIntent,
-        healthPlanAddress: createdArtifacts.healthPlanAddress,
-        rewardSeriesAddress: createdArtifacts.rewardSeriesAddress,
-        protectionSeriesAddress: createdArtifacts.protectionSeriesAddress,
-      })
-      : null),
-    [createdArtifacts, launchIntent],
-  );
+  const reviewLinks = useMemo(() => {
+    if (!createdArtifacts) return null;
+    if (genesisTemplateMode) {
+      const primarySeries = createdArtifacts.protectionSeriesAddress;
+      const encodedPlan = encodeURIComponent(createdArtifacts.healthPlanAddress);
+      const encodedSeries = primarySeries ? encodeURIComponent(primarySeries) : null;
+      return {
+        workspaceHref: `/plans?plan=${encodedPlan}${encodedSeries ? `&series=${encodedSeries}` : ""}&tab=overview&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`,
+        rewardLaneHref: null,
+        protectionLaneHref: encodedSeries
+          ? `/plans?plan=${encodedPlan}&series=${encodedSeries}&tab=coverage&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`
+          : null,
+        coverageWorkspaceHref: encodedSeries
+          ? `/plans?plan=${encodedPlan}&series=${encodedSeries}&tab=coverage&setup=${GENESIS_PROTECT_ACUTE_TEMPLATE_KEY}`
+          : null,
+      };
+    }
+    return buildLaunchReviewLinks({
+      launchIntent,
+      healthPlanAddress: createdArtifacts.healthPlanAddress,
+      rewardSeriesAddress: createdArtifacts.rewardSeriesAddress,
+      protectionSeriesAddress: createdArtifacts.protectionSeriesAddress,
+    });
+  }, [createdArtifacts, genesisTemplateMode, launchIntent]);
 
   const launchPreviewMeta: WizardDetailMetaItem[] = [
     {
-      label: `LANES ${String(Number(rewardLaneRequired) + Number(protectionLaneRequired)).padStart(2, "0")}`,
+      label: `LANES ${String(genesisTemplateMode ? 2 : Number(rewardLaneRequired) + Number(protectionLaneRequired)).padStart(2, "0")}`,
       tone: "accent",
     },
     {
@@ -1181,6 +1262,24 @@ export function PlanCreationWizard() {
         signature: result.signature,
       });
     };
+    const createBuiltTransaction = async (label: string, tx: Transaction) => {
+      const result = await executeProtocolTransaction({
+        connection,
+        sendTransaction,
+        tx,
+        label,
+      });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      addActionLog({
+        action: label,
+        message: result.message,
+        explorerUrl: result.explorerUrl,
+        signature: result.signature,
+      });
+    };
+    const nextRecentBlockhash = async () => (await connection.getLatestBlockhash("confirmed")).blockhash;
 
     try {
       setBusyAction("Launching canonical health plan");
@@ -1263,6 +1362,389 @@ export function PlanCreationWizard() {
         requireVerifiedSchema,
         allowDelegatedClaims,
       });
+
+      if (genesisTemplateMode) {
+        const genesisArtifacts = buildGenesisProtectAcuteArtifactAddresses(reserveDomainPk.toBase58());
+        const genesisPlanPk = new PublicKey(genesisArtifacts.healthPlanAddress);
+        const genesisPoolPk = new PublicKey(genesisArtifacts.poolAddress);
+        const genesisSeriesDefinitions = [
+          GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU,
+          GENESIS_PROTECT_ACUTE_PRIMARY_SKU,
+        ] as const;
+        const genesisSeriesBySku = {
+          event7: new PublicKey(genesisArtifacts.seriesAddresses.event7),
+          travel30: new PublicKey(genesisArtifacts.seriesAddresses.travel30),
+        } as const;
+        const genesisFundingLineDefinitions = genesisProtectAcuteBootstrapFundingLines();
+        const genesisFundingLineById = Object.fromEntries(
+          Object.entries(genesisArtifacts.fundingLineAddresses).map(([lineId, address]) => [lineId, new PublicKey(address)]),
+        ) as Record<string, PublicKey>;
+        const genesisClassDefinitions = genesisProtectAcuteBootstrapCapitalClasses();
+        const genesisClassById = {
+          [genesisClassDefinitions[0]!.classId]: new PublicKey(genesisArtifacts.classAddresses.senior),
+          [genesisClassDefinitions[1]!.classId]: new PublicKey(genesisArtifacts.classAddresses.junior),
+        } as Record<string, PublicKey>;
+        const genesisAllocationDefinitions = genesisProtectAcuteBootstrapAllocations();
+        const genesisAllocationByKey = Object.fromEntries(
+          Object.entries(genesisArtifacts.allocationAddresses).map(([key, address]) => [key, new PublicKey(address)]),
+        ) as Record<string, PublicKey>;
+        const genesisDocuments = Object.fromEntries(
+          await Promise.all(
+            genesisSeriesDefinitions.map(async (definition) => {
+              const fetched = await fetchProtectionMetadataDocument(definition.metadataUri);
+              if (fetched.error || !fetched.document) {
+                throw new Error(
+                  `Genesis protection metadata is unavailable for ${definition.displayName}: ${fetched.error?.message ?? "missing document"}`,
+                );
+              }
+              return [definition.key, fetched.document] as const;
+            }),
+          ),
+        ) as Record<(typeof genesisSeriesDefinitions)[number]["key"], Awaited<ReturnType<typeof fetchProtectionMetadataDocument>>["document"]>;
+
+        const genesisPreflightTargets = deriveLaunchPreflightAccountAddresses({
+          reserveDomain: reserveDomainPk,
+          healthPlan: genesisPlanPk,
+          assetMint: assetMintPk,
+          protectionSeries: genesisSeriesBySku.travel30,
+          protectionFundingLine: genesisFundingLineById[GENESIS_PROTECT_ACUTE_PRIMARY_SKU.fundingLineIds.premium]!,
+        });
+        const genesisPreflightInfos = await connection.getMultipleAccountsInfo(genesisPreflightTargets, "confirmed");
+        if (genesisPreflightInfos[0] === null) {
+          throw new Error("The selected reserve domain account is not available on the connected cluster.");
+        }
+        const missingGenesisRailIndex = genesisPreflightInfos.findIndex((info, index) => index > 0 && info === null);
+        if (missingGenesisRailIndex >= 0) {
+          throw new Error("The selected reserve domain does not expose the required domain asset vault and ledger for the Genesis payout rail.");
+        }
+
+        const genesisArtifactTargets = [
+          genesisPlanPk,
+          genesisPoolPk,
+          ...Object.values(genesisSeriesBySku),
+          ...Object.values(genesisFundingLineById),
+          ...Object.values(genesisClassById),
+          ...Object.values(genesisAllocationByKey),
+        ];
+        const genesisArtifactInfos = await connection.getMultipleAccountsInfo(genesisArtifactTargets, "confirmed");
+        const genesisArtifactExists = new Map<string, boolean>();
+        genesisArtifactTargets.forEach((pk, index) => {
+          genesisArtifactExists.set(pk.toBase58(), genesisArtifactInfos[index] !== null);
+        });
+
+        const genesisMembershipGateMintPk = membershipMode === "token_gate"
+          ? new PublicKey(normalize(tokenGateMint))
+          : new PublicKey(ZERO_PUBKEY);
+        const genesisMembershipInviteAuthorityPk = membershipMode === "invite_only"
+          ? new PublicKey(normalize(inviteIssuer))
+          : new PublicKey(ZERO_PUBKEY);
+        const genesisMembershipGateMinAmount = membershipMode === "token_gate"
+          ? BigInt(normalize(tokenGateMinBalance) || "0")
+          : 0n;
+        const genesisSchemaBindingHashHex = await stableSha256Hex({
+          schemaKey: GENESIS_PROTECT_ACUTE_PRIMARY_SKU.evidenceSchema.schemaKey,
+          schemaVersion: GENESIS_PROTECT_ACUTE_PRIMARY_SKU.evidenceSchema.schemaVersion,
+          skuKeys: genesisSeriesDefinitions.map((definition) => definition.key),
+        });
+        const genesisComplianceBaselineHashHex = await stableSha256Hex({
+          template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+          membershipMode,
+          membershipGateKind,
+          membershipGateMint: genesisMembershipGateMintPk.toBase58(),
+          membershipGateMinAmount: genesisMembershipGateMinAmount.toString(),
+          membershipInviteAuthority: genesisMembershipInviteAuthorityPk.toBase58(),
+          reserveDomainAddress,
+          payoutMint: payoutAssetAddress,
+        });
+
+        if (!genesisArtifactExists.get(genesisPlanPk.toBase58())) {
+          await createTransaction(
+            "Create Genesis health plan",
+            buildCreateHealthPlanInstruction({
+              planAdmin: publicKey,
+              reserveDomain: reserveDomainPk,
+              healthPlan: genesisPlanPk,
+              args: {
+                planId: GENESIS_PROTECT_ACUTE_PLAN_ID,
+                displayName: genesisWizardDefaults.displayName,
+                organizationRef: genesisWizardDefaults.organizationRef,
+                metadataUri: GENESIS_PROTECT_ACUTE_PLAN_METADATA_URI,
+                sponsor: publicKey,
+                sponsorOperator: publicKey,
+                claimsOperator: publicKey,
+                oracleAuthority,
+                membershipMode,
+                membershipGateKind,
+                membershipGateMint: genesisMembershipGateMintPk,
+                membershipGateMinAmount: genesisMembershipGateMinAmount,
+                membershipInviteAuthority: genesisMembershipInviteAuthorityPk,
+                allowedRailMask: 0xffff,
+                defaultFundingPriority: 0,
+                oraclePolicyHashHex,
+                schemaBindingHashHex: genesisSchemaBindingHashHex,
+                complianceBaselineHashHex: genesisComplianceBaselineHashHex,
+                pauseFlags: 0,
+              },
+            }),
+          );
+        } else {
+          addActionLog({
+            action: "Create Genesis health plan",
+            message: "Skipped because the Genesis health plan PDA already exists.",
+          });
+        }
+
+        for (const definition of genesisSeriesDefinitions) {
+          const seriesPk = genesisSeriesBySku[definition.key];
+          const document = genesisDocuments[definition.key];
+          const protectionTermsHashHex = await stableSha256Hex({
+            template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+            planId: GENESIS_PROTECT_ACUTE_PLAN_ID,
+            seriesId: definition.seriesId,
+            metadata: document,
+          });
+          const protectionPricingHashHex = await stableSha256Hex({
+            skuKey: definition.key,
+            pricing: definition.pricing,
+            waitingPeriods: definition.waitingPeriods,
+          });
+          const protectionPayoutHashHex = await stableSha256Hex({
+            skuKey: definition.key,
+            benefitTiers: definition.benefitTiers,
+            reimbursementTopUp: definition.reimbursementTopUp ?? null,
+          });
+          const protectionReserveModelHashHex = await stableSha256Hex({
+            skuKey: definition.key,
+            reserveAttribution: definition.issuanceControls.reserveAttribution,
+            fundingLineIds: definition.fundingLineIds,
+          });
+          const protectionEvidenceHashHex = await stableSha256Hex({
+            skuKey: definition.key,
+            evidenceSchema: definition.evidenceSchema,
+          });
+          const protectionComparabilityHashHex = await stableSha256Hex({
+            comparabilityKey: definition.comparabilityKey,
+          });
+          const protectionPolicyOverridesHashHex = await stableSha256Hex({
+            publicStatusRule: definition.issuanceControls.publicStatusRule,
+            launchTruth: definition.launchTruth,
+          });
+
+          if (!genesisArtifactExists.get(seriesPk.toBase58())) {
+            const leadFundingLine = genesisFundingLineDefinitions.find((line) => line.skuKey === definition.key)!;
+            const seriesLedgers = deriveLaunchLedgerAddresses({
+              reserveDomain: reserveDomainPk,
+              healthPlan: genesisPlanPk,
+              assetMint: assetMintPk,
+              policySeries: seriesPk,
+              fundingLine: genesisFundingLineById[leadFundingLine.lineId]!,
+            });
+
+            await createTransaction(
+              `Create ${definition.displayName}`,
+              buildCreatePolicySeriesInstruction({
+                authority: publicKey,
+                healthPlan: genesisPlanPk,
+                policySeries: seriesPk,
+                seriesReserveLedger: seriesLedgers.seriesReserveLedger,
+                args: {
+                  seriesId: definition.seriesId,
+                  displayName: definition.displayName,
+                  metadataUri: definition.metadataUri,
+                  assetMint: assetMintPk,
+                  mode: SERIES_MODE_PROTECTION,
+                  status: SERIES_STATUS_ACTIVE,
+                  adjudicationMode: 0,
+                  termsHashHex: protectionTermsHashHex,
+                  pricingHashHex: protectionPricingHashHex,
+                  payoutHashHex: protectionPayoutHashHex,
+                  reserveModelHashHex: protectionReserveModelHashHex,
+                  evidenceRequirementsHashHex: protectionEvidenceHashHex,
+                  comparabilityHashHex: protectionComparabilityHashHex,
+                  policyOverridesHashHex: protectionPolicyOverridesHashHex,
+                  cycleSeconds: BigInt(definition.coverWindowDays * 86_400),
+                  termsVersion: 1,
+                },
+              }),
+            );
+          } else {
+            addActionLog({
+              action: `Create ${definition.displayName}`,
+              message: "Skipped because the protection policy series PDA already exists.",
+            });
+          }
+
+          for (const fundingLine of genesisFundingLineDefinitions.filter((line) => line.skuKey === definition.key)) {
+            const fundingLinePk = genesisFundingLineById[fundingLine.lineId]!;
+            if (genesisArtifactExists.get(fundingLinePk.toBase58())) {
+              addActionLog({
+                action: `Open ${fundingLine.displayName}`,
+                message: "Skipped because the Genesis funding line PDA already exists.",
+              });
+              continue;
+            }
+            const ledgers = deriveLaunchLedgerAddresses({
+              reserveDomain: reserveDomainPk,
+              healthPlan: genesisPlanPk,
+              assetMint: assetMintPk,
+              policySeries: seriesPk,
+              fundingLine: fundingLinePk,
+            });
+            await createTransaction(
+              `Open ${fundingLine.displayName}`,
+              buildOpenFundingLineInstruction({
+                authority: publicKey,
+                reserveDomain: reserveDomainPk,
+                healthPlan: genesisPlanPk,
+                assetMint: assetMintPk,
+                fundingLine: fundingLinePk,
+                fundingLineLedger: ledgers.fundingLineLedger,
+                planReserveLedger: ledgers.planReserveLedger,
+                seriesReserveLedger: ledgers.seriesReserveLedger,
+                args: {
+                  lineId: fundingLine.lineId,
+                  policySeries: seriesPk,
+                  lineType: fundingLine.lineType,
+                  fundingPriority: fundingLine.fundingPriority,
+                  committedAmount: 0n,
+                  capsHashHex: await stableSha256Hex({
+                    template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+                    skuKey: definition.key,
+                    lineId: fundingLine.lineId,
+                    reserveRole: fundingLine.displayName,
+                  }),
+                },
+              }),
+            );
+          }
+        }
+
+        if (!genesisArtifactExists.get(genesisPoolPk.toBase58())) {
+          await createBuiltTransaction(
+            "Create Genesis liquidity pool",
+            buildCreateLiquidityPoolTx({
+              authority: publicKey,
+              reserveDomainAddress: reserveDomainPk,
+              recentBlockhash: await nextRecentBlockhash(),
+              poolId: GENESIS_PROTECT_ACUTE_POOL_ID,
+              displayName: GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
+              curator: publicKey,
+              allocator: publicKey,
+              sentinel: publicKey,
+              depositAssetMint: assetMintPk,
+              strategyHashHex: await stableSha256Hex({
+                template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+                strategyThesis: GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS,
+              }),
+              feeBps: 0,
+              redemptionPolicy: REDEMPTION_POLICY_QUEUE_ONLY,
+              pauseFlags: 0,
+            }),
+          );
+        } else {
+          addActionLog({
+            action: "Create Genesis liquidity pool",
+            message: "Skipped because the Genesis liquidity pool PDA already exists.",
+          });
+        }
+
+        for (const classDefinition of genesisClassDefinitions) {
+          const capitalClassPk = genesisClassById[classDefinition.classId]!;
+          if (genesisArtifactExists.get(capitalClassPk.toBase58())) {
+            addActionLog({
+              action: `Create ${classDefinition.displayName}`,
+              message: "Skipped because the Genesis capital class PDA already exists.",
+            });
+            continue;
+          }
+          await createBuiltTransaction(
+            `Create ${classDefinition.displayName}`,
+            buildCreateCapitalClassTx({
+              authority: publicKey,
+              poolAddress: genesisPoolPk,
+              poolDepositAssetMint: assetMintPk,
+              recentBlockhash: await nextRecentBlockhash(),
+              classId: classDefinition.classId,
+              displayName: classDefinition.displayName,
+              priority: classDefinition.priority,
+              impairmentRank: classDefinition.impairmentRank,
+              restrictionMode: CAPITAL_CLASS_RESTRICTION_OPEN,
+              redemptionTermsMode: 0,
+              feeBps: 0,
+              minLockupSeconds: classDefinition.minLockupSeconds,
+              pauseFlags: 0,
+            }),
+          );
+          await createBuiltTransaction(
+            `Configure ${classDefinition.displayName} controls`,
+            buildUpdateCapitalClassControlsTx({
+              authority: publicKey,
+              poolAddress: genesisPoolPk,
+              capitalClassAddress: capitalClassPk,
+              recentBlockhash: await nextRecentBlockhash(),
+              pauseFlags: 0,
+              queueOnlyRedemptions: classDefinition.queueOnlyRedemptions,
+              active: true,
+              reasonHashHex: await stableSha256Hex({
+                template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+                classId: classDefinition.classId,
+                queueOnlyRedemptions: classDefinition.queueOnlyRedemptions,
+              }),
+            }),
+          );
+        }
+
+        for (const allocation of genesisAllocationDefinitions) {
+          const allocationPk = genesisAllocationByKey[allocation.key]!;
+          if (genesisArtifactExists.get(allocationPk.toBase58())) {
+            addActionLog({
+              action: `Create ${allocation.key} allocation`,
+              message: "Skipped because the Genesis allocation position PDA already exists.",
+            });
+            continue;
+          }
+          const allocationSeriesPk = allocation.policySeriesId === GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU.seriesId
+            ? genesisSeriesBySku.event7
+            : genesisSeriesBySku.travel30;
+          await createBuiltTransaction(
+            `Create ${allocation.key} allocation`,
+            buildCreateAllocationPositionTx({
+              authority: publicKey,
+              poolAddress: genesisPoolPk,
+              capitalClassAddress: genesisClassById[allocation.classId]!,
+              healthPlanAddress: genesisPlanPk,
+              fundingLineAddress: genesisFundingLineById[allocation.fundingLineId]!,
+              fundingLineAssetMint: assetMintPk,
+              recentBlockhash: await nextRecentBlockhash(),
+              policySeriesAddress: allocationSeriesPk,
+              capAmount: allocation.capAmount,
+              weightBps: allocation.weightBps,
+              allocationMode: 0,
+              deallocationOnly: false,
+            }),
+          );
+        }
+
+        const nextArtifacts: CreatedArtifacts = {
+          healthPlanAddress: genesisPlanPk.toBase58(),
+          rewardSeriesAddress: null,
+          protectionSeriesAddress: genesisSeriesBySku.travel30.toBase58(),
+          rewardFundingLineAddress: null,
+          protectionFundingLineAddress: genesisFundingLineById[GENESIS_PROTECT_ACUTE_PRIMARY_SKU.fundingLineIds.premium]!.toBase58(),
+          poolAddress: genesisPoolPk.toBase58(),
+          capitalClassAddresses: Object.values(genesisClassById).map((entry) => entry.toBase58()),
+          allocationAddresses: Object.values(genesisAllocationByKey).map((entry) => entry.toBase58()),
+          extraSeriesAddresses: Object.values(genesisSeriesBySku).map((entry) => entry.toBase58()),
+          extraFundingLineAddresses: Object.values(genesisFundingLineById).map((entry) => entry.toBase58()),
+        };
+        setCreatedArtifacts(nextArtifacts);
+        setStatusTone("ok");
+        setStatusMessage(
+          "Genesis Protect Acute shell bootstrap completed. This is still launch-readiness setup: reserve posting, oracle policy, pool settings, and final operator sign-off remain outstanding.",
+        );
+        return;
+      }
+
       const schemaBindingHashHex = rewardLaneRequired
         ? await stableSha256Hex({
           schemaKey: selectedSchema?.schemaKey ?? "",
@@ -1736,6 +2218,15 @@ export function PlanCreationWizard() {
 
             {activeStep.id === "basics" ? (
               <div className="plans-wizard-step-body">
+                {genesisTemplateMode ? (
+                  <div className="plans-notice liquid-glass" role="status">
+                    <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">check_circle</span>
+                    <p>
+                      Genesis template mode locks the canonical plan identity and SKU shell. Reserve domain, payout rail,
+                      operator quorum, and final treasury settings stay configurable for this launch-readiness flow.
+                    </p>
+                  </div>
+                ) : null}
                 <FieldGroup label="Launch Intent">
                   <div className="flex flex-wrap gap-2">
                     {(["rewards", "insurance", "hybrid"] as const).map((intent) => (
@@ -1744,6 +2235,7 @@ export function PlanCreationWizard() {
                         type="button"
                         className={cn("plans-wizard-chip", launchIntent === intent && "plans-wizard-chip-active")}
                         onClick={() => setLaunchIntent(intent)}
+                        disabled={genesisTemplateMode}
                       >
                         {intent.toUpperCase()}
                       </button>
@@ -1758,6 +2250,7 @@ export function PlanCreationWizard() {
                       className="plans-wizard-input"
                       value={planId}
                       onChange={(event) => setPlanId(event.target.value)}
+                      disabled={genesisTemplateMode}
                     />
                   </FieldGroup>
                   <FieldGroup label="Display Name">
@@ -1766,6 +2259,7 @@ export function PlanCreationWizard() {
                       className="plans-wizard-input"
                       value={displayName}
                       onChange={(event) => setDisplayName(event.target.value)}
+                      disabled={genesisTemplateMode}
                     />
                   </FieldGroup>
                 </div>
@@ -1777,6 +2271,7 @@ export function PlanCreationWizard() {
                       className="plans-wizard-input"
                       value={organizationRef}
                       onChange={(event) => setOrganizationRef(event.target.value)}
+                      disabled={genesisTemplateMode}
                     />
                   </FieldGroup>
                   <FieldGroup label="Reserve Domain">
@@ -1801,6 +2296,7 @@ export function PlanCreationWizard() {
                     className="plans-wizard-input plans-wizard-input-lg"
                     value={planMetadataUri}
                     onChange={(event) => setPlanMetadataUri(event.target.value)}
+                    disabled={genesisTemplateMode}
                   />
                 </FieldGroup>
 
@@ -2440,14 +2936,42 @@ export function PlanCreationWizard() {
               <div className="plans-wizard-step-body">
                 <div className="plans-wizard-review-grid">
                   <ReviewRow label="LAUNCH_INTENT" value={launchIntent.toUpperCase()} />
-                  <ReviewRow label="LANES" value={requiresRewardLane(launchIntent) && requiresProtectionLane(launchIntent) ? "REWARD + PROTECTION" : requiresRewardLane(launchIntent) ? "REWARD" : "PROTECTION"} />
-                  <ReviewRow label="HEALTH_PLAN" value={addressPreview.healthPlanAddress ?? "pending"} muted={!addressPreview.healthPlanAddress} />
-                  <ReviewRow label="REWARD_SERIES" value={addressPreview.rewardSeriesAddress ?? "n/a"} muted={!addressPreview.rewardSeriesAddress} />
-                  <ReviewRow label="PROTECTION_SERIES" value={addressPreview.protectionSeriesAddress ?? "n/a"} muted={!addressPreview.protectionSeriesAddress} />
-                  <ReviewRow label="SPONSOR_LINE" value={addressPreview.rewardFundingLineAddress ?? "n/a"} muted={!addressPreview.rewardFundingLineAddress} />
-                  <ReviewRow label="PREMIUM_LINE" value={addressPreview.protectionFundingLineAddress ?? "n/a"} muted={!addressPreview.protectionFundingLineAddress} />
-                  <ReviewRow label="REWARD_COMMITMENT" value={rewardLaneRequired ? baseUnitsPreview(rewardCommittedBudgetUi, payoutAssetMode, splDecimals) : "n/a"} muted={!rewardLaneRequired} />
-                  <ReviewRow label="PREMIUM_COMMITMENT" value={protectionLaneRequired ? baseUnitsPreview(protectionExpectedPremiumUi, payoutAssetMode, splDecimals) : "n/a"} muted={!protectionLaneRequired} />
+                  <ReviewRow
+                    label="LANES"
+                    value={
+                      genesisTemplateMode
+                        ? "EVENT 7 + TRAVEL 30"
+                        : requiresRewardLane(launchIntent) && requiresProtectionLane(launchIntent)
+                          ? "REWARD + PROTECTION"
+                          : requiresRewardLane(launchIntent)
+                            ? "REWARD"
+                            : "PROTECTION"
+                    }
+                  />
+                  <ReviewRow
+                    label="HEALTH_PLAN"
+                    value={genesisTemplateMode ? genesisArtifactPreview?.healthPlanAddress ?? "pending" : addressPreview.healthPlanAddress ?? "pending"}
+                    muted={genesisTemplateMode ? !genesisArtifactPreview?.healthPlanAddress : !addressPreview.healthPlanAddress}
+                  />
+                  {genesisTemplateMode ? (
+                    <>
+                      <ReviewRow label="EVENT7_SERIES" value={genesisArtifactPreview?.seriesAddresses.event7 ?? "pending"} muted={!genesisArtifactPreview?.seriesAddresses.event7} />
+                      <ReviewRow label="TRAVEL30_SERIES" value={genesisArtifactPreview?.seriesAddresses.travel30 ?? "pending"} muted={!genesisArtifactPreview?.seriesAddresses.travel30} />
+                      <ReviewRow label="GENESIS_POOL" value={genesisArtifactPreview?.poolAddress ?? "pending"} muted={!genesisArtifactPreview?.poolAddress} />
+                      <ReviewRow label="FUNDING_LINES" value={String(Object.keys(genesisArtifactPreview?.fundingLineAddresses ?? {}).length)} muted={!genesisArtifactPreview} />
+                      <ReviewRow label="CAPITAL_CLASSES" value={String(genesisProtectAcuteBootstrapCapitalClasses().length)} muted={!genesisArtifactPreview} />
+                      <ReviewRow label="ALLOCATIONS" value={String(genesisProtectAcuteBootstrapAllocations().length)} muted={!genesisArtifactPreview} />
+                    </>
+                  ) : (
+                    <>
+                      <ReviewRow label="REWARD_SERIES" value={addressPreview.rewardSeriesAddress ?? "n/a"} muted={!addressPreview.rewardSeriesAddress} />
+                      <ReviewRow label="PROTECTION_SERIES" value={addressPreview.protectionSeriesAddress ?? "n/a"} muted={!addressPreview.protectionSeriesAddress} />
+                      <ReviewRow label="SPONSOR_LINE" value={addressPreview.rewardFundingLineAddress ?? "n/a"} muted={!addressPreview.rewardFundingLineAddress} />
+                      <ReviewRow label="PREMIUM_LINE" value={addressPreview.protectionFundingLineAddress ?? "n/a"} muted={!addressPreview.protectionFundingLineAddress} />
+                      <ReviewRow label="REWARD_COMMITMENT" value={rewardLaneRequired ? baseUnitsPreview(rewardCommittedBudgetUi, payoutAssetMode, splDecimals) : "n/a"} muted={!rewardLaneRequired} />
+                      <ReviewRow label="PREMIUM_COMMITMENT" value={protectionLaneRequired ? baseUnitsPreview(protectionExpectedPremiumUi, payoutAssetMode, splDecimals) : "n/a"} muted={!protectionLaneRequired} />
+                    </>
+                  )}
                 </div>
 
                 <div className="plans-wizard-divider" aria-hidden="true" />
@@ -2457,7 +2981,9 @@ export function PlanCreationWizard() {
                     <div className="space-y-1">
                       <h3 className="plans-wizard-support-title">Review links</h3>
                       <p className="plans-wizard-support-copy">
-                        New artifacts open with the created plan and series context after the launch confirms.
+                        {genesisTemplateMode
+                          ? "Genesis template runs land in the bounded-launch workspace so the remaining treasury, reserve, and oracle items stay visible."
+                          : "New artifacts open with the created plan and series context after the launch confirms."}
                       </p>
                     </div>
                     {reviewLinks ? (
@@ -2485,7 +3011,9 @@ export function PlanCreationWizard() {
                     <div className="space-y-1">
                       <h3 className="plans-wizard-support-title">Membership and transaction trail</h3>
                       <p className="plans-wizard-support-copy">
-                        Protection enrollment gates decide who can activate coverage seats. Active-cycle claim rights follow coverage and premium status, not live wallet possession checks at claim time.
+                        {genesisTemplateMode
+                          ? "Bootstrap transactions only create the canonical Genesis shell. Reserve posting, pool settings, and final operator sign-off still happen from the live workspace before any bounded launch window opens."
+                          : "Protection enrollment gates decide who can activate coverage seats. Active-cycle claim rights follow coverage and premium status, not live wallet possession checks at claim time."}
                       </p>
                     </div>
                     {createdArtifacts ? (
@@ -2493,6 +3021,11 @@ export function PlanCreationWizard() {
                         <a href={toExplorerAddressLink(createdArtifacts.healthPlanAddress)} target="_blank" rel="noreferrer" className="secondary-button inline-flex w-fit">
                           View health plan on explorer
                         </a>
+                        {createdArtifacts.poolAddress ? (
+                          <a href={toExplorerAddressLink(createdArtifacts.poolAddress)} target="_blank" rel="noreferrer" className="secondary-button inline-flex w-fit">
+                            View liquidity pool on explorer
+                          </a>
+                        ) : null}
                         {createdArtifacts.rewardSeriesAddress ? (
                           <a href={toExplorerAddressLink(createdArtifacts.rewardSeriesAddress)} target="_blank" rel="noreferrer" className="secondary-button inline-flex w-fit">
                             View reward series on explorer
@@ -2600,14 +3133,24 @@ export function PlanCreationWizard() {
               <div className="plans-launch-preview-metrics">
                 <LaunchPreviewMetric
                   label="Plan"
-                  value={addressPreview.healthPlanAddress ? shortAddress(addressPreview.healthPlanAddress) : "Pending"}
+                  value={
+                    genesisTemplateMode
+                      ? genesisArtifactPreview?.healthPlanAddress
+                        ? shortAddress(genesisArtifactPreview.healthPlanAddress)
+                        : "Pending"
+                      : addressPreview.healthPlanAddress
+                        ? shortAddress(addressPreview.healthPlanAddress)
+                        : "Pending"
+                  }
                   detail={protocolToken(planId)}
                 />
                 <LaunchPreviewMetric
                   label="Lanes"
-                  value={String(Number(rewardLaneRequired) + Number(protectionLaneRequired)).padStart(2, "0")}
+                  value={String(genesisTemplateMode ? 2 : Number(rewardLaneRequired) + Number(protectionLaneRequired)).padStart(2, "0")}
                   detail={
-                    rewardLaneRequired && protectionLaneRequired
+                    genesisTemplateMode
+                      ? "Event 7 + Travel 30"
+                      : rewardLaneRequired && protectionLaneRequired
                       ? "Reward + Protection"
                       : rewardLaneRequired
                         ? "Reward only"
@@ -2624,7 +3167,7 @@ export function PlanCreationWizard() {
                 <LaunchPreviewMetric
                   label="Payout"
                   value={payoutAssetMode === "sol" ? "SOL" : "SPL"}
-                  detail={baseUnitsPreview(rewardPayoutUi, payoutAssetMode, splDecimals)}
+                  detail={genesisTemplateMode ? shortAddress(payoutAssetAddress) : baseUnitsPreview(rewardPayoutUi, payoutAssetMode, splDecimals)}
                 />
               </div>
             </section>
@@ -2654,7 +3197,83 @@ export function PlanCreationWizard() {
                 </div>
               </article>
 
-              {rewardLaneRequired ? (
+              {genesisTemplateMode && genesisArtifactPreview ? (
+                <>
+                  <article className="plans-launch-preview-panel">
+                    <div className="plans-launch-preview-panel-head">
+                      <div>
+                        <p className="plans-launch-preview-panel-eyebrow">EVENT7_SKU</p>
+                        <h4 className="plans-launch-preview-panel-title">{GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU.displayName}</h4>
+                      </div>
+                      <span className="plans-launch-preview-panel-badge">FAST DEMO</span>
+                    </div>
+                    <div className="plans-launch-preview-list">
+                      <div className="plans-launch-preview-row">
+                        <span>Series PDA</span>
+                        <span className="protocol-address">{genesisArtifactPreview.seriesAddresses.event7}</span>
+                      </div>
+                      <div className="plans-launch-preview-row">
+                        <span>Funding lanes</span>
+                        <span className="plans-launch-preview-value">Premium · Sponsor · Liquidity</span>
+                      </div>
+                      <div className="plans-launch-preview-row">
+                        <span>Window</span>
+                        <span className="plans-launch-preview-value">{GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU.coverWindowDays} days</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article className="plans-launch-preview-panel">
+                    <div className="plans-launch-preview-panel-head">
+                      <div>
+                        <p className="plans-launch-preview-panel-eyebrow">TRAVEL30_SKU</p>
+                        <h4 className="plans-launch-preview-panel-title">{GENESIS_PROTECT_ACUTE_PRIMARY_SKU.displayName}</h4>
+                      </div>
+                      <span className="plans-launch-preview-panel-badge">PRIMARY LAUNCH</span>
+                    </div>
+                    <div className="plans-launch-preview-list">
+                      <div className="plans-launch-preview-row">
+                        <span>Series PDA</span>
+                        <span className="protocol-address">{genesisArtifactPreview.seriesAddresses.travel30}</span>
+                      </div>
+                      <div className="plans-launch-preview-row">
+                        <span>Funding lanes</span>
+                        <span className="plans-launch-preview-value">Premium · Liquidity</span>
+                      </div>
+                      <div className="plans-launch-preview-row">
+                        <span>Window</span>
+                        <span className="plans-launch-preview-value">{GENESIS_PROTECT_ACUTE_PRIMARY_SKU.coverWindowDays} days</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article className="plans-launch-preview-panel">
+                    <div className="plans-launch-preview-panel-head">
+                      <div>
+                        <p className="plans-launch-preview-panel-eyebrow">POOL_AND_CLASSES</p>
+                        <h4 className="plans-launch-preview-panel-title">{GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME}</h4>
+                      </div>
+                      <span className="plans-launch-preview-panel-badge">QUEUE ONLY</span>
+                    </div>
+                    <div className="plans-launch-preview-list">
+                      <div className="plans-launch-preview-row">
+                        <span>Pool PDA</span>
+                        <span className="protocol-address">{genesisArtifactPreview.poolAddress}</span>
+                      </div>
+                      <div className="plans-launch-preview-row">
+                        <span>Capital classes</span>
+                        <span className="plans-launch-preview-value">{genesisProtectAcuteBootstrapCapitalClasses().length}</span>
+                      </div>
+                      <div className="plans-launch-preview-row">
+                        <span>Allocations</span>
+                        <span className="plans-launch-preview-value">{genesisProtectAcuteBootstrapAllocations().length}</span>
+                      </div>
+                    </div>
+                  </article>
+                </>
+              ) : null}
+
+              {!genesisTemplateMode && rewardLaneRequired ? (
                 <article className="plans-launch-preview-panel">
                   <div className="plans-launch-preview-panel-head">
                     <div>

@@ -80,12 +80,15 @@ export type GenesisProtectAcuteSkuDefinition = {
 
 export const GENESIS_PROTECT_ACUTE_PLAN_ID = "genesis-protect-acute-v1";
 export const GENESIS_PROTECT_ACUTE_PLAN_DISPLAY_NAME = "Genesis Protect Acute";
+export const GENESIS_PROTECT_ACUTE_PLAN_METADATA_URI = "/metadata/plans/genesis-protect-acute-v1.json";
 export const GENESIS_PROTECT_ACUTE_SPONSOR_LABEL = "Genesis Protect Cohorts";
 export const GENESIS_PROTECT_ACUTE_TERMS_VERSION = "genesis-acute-v1";
 export const GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_KEY = "genesis-protect-acute-claim";
 export const GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_VERSION = 1;
 export const GENESIS_PROTECT_ACUTE_POOL_ID = "genesis-protect-acute-pool";
 export const GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME = "Genesis Protect Acute Pool";
+export const GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS =
+  "Dedicated acute emergency travel reserve sleeve with explicit Event 7 and Travel 30 attribution.";
 export const GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID = "genesis-senior-class";
 export const GENESIS_PROTECT_ACUTE_SENIOR_CLASS_DISPLAY_NAME = "Genesis Acute Senior Class";
 export const GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_ID = "genesis-junior-class";
@@ -175,7 +178,8 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
     },
     issuanceControls: {
       reserveAttribution: "Only posted capital, collected premiums, and explicit sponsor or backstop funds count as claims-paying reserve.",
-      publicStatusRule: "Keep Event 7 positioned as a limited demo SKU until reserve posting and operator readiness are both live.",
+      publicStatusRule:
+        "Keep Event 7 positioned as the fast-demo SKU for a bounded end-of-month mainnet launch target. Do not describe it as broadly live insurance today.",
       issueWhen: [
         "Event 7 reserve lanes are funded onchain or by explicit sponsor/backstop posting.",
         "Operator-backed claim review is staffed for the active issuance window.",
@@ -252,7 +256,8 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
     },
     issuanceControls: {
       reserveAttribution: "Only posted capital, collected premiums, and explicit backstop funds count as claims-paying reserve.",
-      publicStatusRule: "Keep Travel 30 as the primary launch SKU, but do not market it as broadly live insurance until reserve posting and operator readiness are both active.",
+      publicStatusRule:
+        "Keep Travel 30 positioned as the primary SKU for a bounded end-of-month mainnet launch target. Do not describe it as broadly live insurance today.",
       issueWhen: [
         "Travel 30 reserve lanes are funded onchain with published premium and liquidity support.",
         "Operator-backed claim review is staffed for the active issuance window.",

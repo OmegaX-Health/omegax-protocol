@@ -55,14 +55,14 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | `fund_sponsor_budget` | record sponsor budget funding |
 | `record_premium_payment` | record premium income into the reserve kernel |
 | `create_obligation` | create a canonical liability unit |
-| `reserve_obligation` | reserve liability against plan-side capital |
-| `settle_obligation` | move an obligation into claimable, payable, settled, or canceled states |
-| `release_reserve` | release reserved liability back to free capital |
+| `reserve_obligation` | reserve liability against plan-side capital and optionally mirror a linked `ClaimCase` reserve balance |
+| `settle_obligation` | move an obligation into claimable, payable, settled, or canceled states and mirror linked protection-claim settlement state |
+| `release_reserve` | release reserved liability back to free capital and mirror linked protection-claim reserve state |
 | `open_claim_case` | open an explicit claim lifecycle |
 | `attach_claim_evidence_ref` | attach evidence and decision-support references |
 | `attest_claim_case` | anchor a schema-bound oracle attestation against a live claim case |
-| `adjudicate_claim_case` | approve or deny a claim case |
-| `settle_claim_case` | settle approved claim payouts through the reserve kernel |
+| `adjudicate_claim_case` | approve or deny a claim case and optionally bind it to the matching `Obligation` |
+| `settle_claim_case` | settle approved claim payouts through the reserve kernel only when no linked `Obligation` exists |
 | `mark_impairment` | record impairment against the affected ledgers and optional obligation |
 
 ## Capital Surface

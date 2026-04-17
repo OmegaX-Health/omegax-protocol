@@ -853,7 +853,9 @@ pub mod omegax_protocol {
             &ctx.accounts.health_plan,
         )?;
         let reserve_amount = args.amount;
+        let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
+        let obligation_key = obligation.key();
         require!(
             obligation.status == OBLIGATION_STATUS_PROPOSED,
             OmegaXProtocolError::InvalidObligationStateTransition
@@ -865,7 +867,7 @@ pub mod omegax_protocol {
 
         obligation.status = OBLIGATION_STATUS_RESERVED;
         obligation.reserved_amount = reserve_amount;
-        obligation.updated_at = Clock::get()?.unix_timestamp;
+        obligation.updated_at = now_ts;
 
         ctx.accounts.funding_line.reserved_amount =
             checked_add(ctx.accounts.funding_line.reserved_amount, reserve_amount)?;
@@ -892,6 +894,18 @@ pub mod omegax_protocol {
             book_reserve(&mut allocation_ledger.sheet, reserve_amount)?;
         }
 
+        if let Some(claim_case) = ctx.accounts.claim_case.as_deref_mut() {
+            let claim_case_key = claim_case.key();
+            sync_linked_claim_case_reserve(
+                claim_case,
+                claim_case_key,
+                obligation,
+                obligation_key,
+                ctx.accounts.health_plan.key(),
+                now_ts,
+            )?;
+        }
+
         emit!(ObligationStatusChangedEvent {
             obligation: obligation.key(),
             funding_line: obligation.funding_line,
@@ -913,13 +927,39 @@ pub mod omegax_protocol {
         )?;
 
         let amount = args.amount;
+        let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
+        let obligation_key = obligation.key();
+        require!(
+            amount <= obligation.outstanding_amount,
+            OmegaXProtocolError::AmountExceedsOutstandingObligation
+        );
+
+        if let Some(claim_case) = ctx.accounts.claim_case.as_deref() {
+            require_matching_linked_claim_case(
+                claim_case,
+                claim_case.key(),
+                obligation,
+                obligation.key(),
+                ctx.accounts.health_plan.key(),
+            )?;
+            if args.next_status == OBLIGATION_STATUS_SETTLED {
+                require!(
+                    amount <= remaining_claim_amount(claim_case),
+                    OmegaXProtocolError::AmountExceedsApprovedClaim
+                );
+            }
+        }
 
         match args.next_status {
             OBLIGATION_STATUS_CLAIMABLE_PAYABLE => {
                 require!(
                     obligation.status == OBLIGATION_STATUS_RESERVED,
                     OmegaXProtocolError::InvalidObligationStateTransition
+                );
+                require!(
+                    amount <= obligation.reserved_amount,
+                    OmegaXProtocolError::AmountExceedsReservedBalance
                 );
                 release_reserved_to_delivery(
                     &mut ctx.accounts.domain_asset_ledger.sheet,
@@ -986,7 +1026,36 @@ pub mod omegax_protocol {
         }
 
         obligation.settlement_reason_hash = args.settlement_reason_hash;
-        obligation.updated_at = Clock::get()?.unix_timestamp;
+        obligation.updated_at = now_ts;
+
+        if let Some(claim_case) = ctx.accounts.claim_case.as_deref_mut() {
+            match args.next_status {
+                OBLIGATION_STATUS_SETTLED => {
+                    let claim_case_key = claim_case.key();
+                    sync_linked_claim_case_after_settlement(
+                        claim_case,
+                        claim_case_key,
+                        obligation,
+                        obligation_key,
+                        ctx.accounts.health_plan.key(),
+                        amount,
+                        now_ts,
+                    )?
+                }
+                OBLIGATION_STATUS_CLAIMABLE_PAYABLE | OBLIGATION_STATUS_CANCELED => {
+                    let claim_case_key = claim_case.key();
+                    sync_linked_claim_case_reserve(
+                        claim_case,
+                        claim_case_key,
+                        obligation,
+                        obligation_key,
+                        ctx.accounts.health_plan.key(),
+                        now_ts,
+                    )?
+                }
+                _ => {}
+            }
+        }
 
         emit!(ObligationStatusChangedEvent {
             obligation: obligation.key(),
@@ -1006,7 +1075,9 @@ pub mod omegax_protocol {
         )?;
 
         let amount = args.amount;
+        let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
+        let obligation_key = obligation.key();
         require!(
             obligation.status == OBLIGATION_STATUS_RESERVED,
             OmegaXProtocolError::InvalidObligationStateTransition
@@ -1023,7 +1094,7 @@ pub mod omegax_protocol {
         } else {
             OBLIGATION_STATUS_RESERVED
         };
-        obligation.updated_at = Clock::get()?.unix_timestamp;
+        obligation.updated_at = now_ts;
 
         ctx.accounts.funding_line.reserved_amount =
             checked_sub(ctx.accounts.funding_line.reserved_amount, amount)?;
@@ -1040,6 +1111,18 @@ pub mod omegax_protocol {
             ctx.accounts.allocation_ledger.as_deref_mut(),
             amount,
         )?;
+
+        if let Some(claim_case) = ctx.accounts.claim_case.as_deref_mut() {
+            let claim_case_key = claim_case.key();
+            sync_linked_claim_case_reserve(
+                claim_case,
+                claim_case_key,
+                obligation,
+                obligation_key,
+                ctx.accounts.health_plan.key(),
+                now_ts,
+            )?;
+        }
 
         Ok(())
     }
@@ -1112,8 +1195,13 @@ pub mod omegax_protocol {
             &ctx.accounts.protocol_governance,
             &ctx.accounts.health_plan,
         )?;
+        require!(
+            args.reserve_amount <= args.approved_amount,
+            OmegaXProtocolError::AmountExceedsApprovedClaim
+        );
 
         let claim_case = &mut ctx.accounts.claim_case;
+        let claim_case_key = claim_case.key();
         claim_case.adjudicator = ctx.accounts.authority.key();
         claim_case.review_state = args.review_state;
         claim_case.approved_amount = args.approved_amount;
@@ -1127,12 +1215,24 @@ pub mod omegax_protocol {
         claim_case.updated_at = Clock::get()?.unix_timestamp;
 
         if let Some(obligation) = ctx.accounts.obligation.as_deref_mut() {
-            claim_case.linked_obligation = obligation.key();
-            obligation.claim_case = claim_case.key();
-        }
-
-        if args.reserve_amount > 0 {
-            claim_case.reserved_amount = args.reserve_amount;
+            let obligation_key = obligation.key();
+            sync_adjudicated_claim_liability(
+                claim_case,
+                claim_case_key,
+                Some((obligation, obligation_key)),
+                ctx.accounts.health_plan.key(),
+                args.approved_amount,
+                args.reserve_amount,
+            )?;
+        } else {
+            sync_adjudicated_claim_liability(
+                claim_case,
+                claim_case_key,
+                None,
+                ctx.accounts.health_plan.key(),
+                args.approved_amount,
+                args.reserve_amount,
+            )?;
         }
 
         emit!(ClaimCaseStateChangedEvent {
@@ -1153,8 +1253,9 @@ pub mod omegax_protocol {
             &ctx.accounts.protocol_governance,
             &ctx.accounts.health_plan,
         )?;
+        require_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
         require!(
-            args.amount <= ctx.accounts.claim_case.approved_amount,
+            args.amount <= remaining_claim_amount(&ctx.accounts.claim_case),
             OmegaXProtocolError::AmountExceedsApprovedClaim
         );
 
@@ -1186,15 +1287,6 @@ pub mod omegax_protocol {
             &mut ctx.accounts.funding_line,
             amount,
         )?;
-
-        if let Some(obligation) = ctx.accounts.obligation.as_deref_mut() {
-            obligation.status = OBLIGATION_STATUS_SETTLED;
-            obligation.settled_amount = checked_add(obligation.settled_amount, amount)?;
-            obligation.outstanding_amount = checked_sub(obligation.outstanding_amount, amount)?;
-            obligation.claimable_amount = obligation.claimable_amount.saturating_sub(amount);
-            obligation.payable_amount = obligation.payable_amount.saturating_sub(amount);
-            obligation.updated_at = Clock::get()?.unix_timestamp;
-        }
 
         emit!(ClaimCaseStateChangedEvent {
             claim_case: claim_case.key(),
@@ -2426,6 +2518,8 @@ pub struct ReserveObligation<'info> {
     pub allocation_ledger: Option<Box<Account<'info, AllocationLedger>>>,
     #[account(mut, seeds = [SEED_OBLIGATION, funding_line.key().as_ref(), obligation.obligation_id.as_bytes()], bump = obligation.bump)]
     pub obligation: Box<Account<'info, Obligation>>,
+    #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
+    pub claim_case: Option<Box<Account<'info, ClaimCase>>>,
 }
 
 #[derive(Accounts)]
@@ -2455,6 +2549,8 @@ pub struct SettleObligation<'info> {
     pub allocation_ledger: Option<Box<Account<'info, AllocationLedger>>>,
     #[account(mut, seeds = [SEED_OBLIGATION, funding_line.key().as_ref(), obligation.obligation_id.as_bytes()], bump = obligation.bump)]
     pub obligation: Box<Account<'info, Obligation>>,
+    #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
+    pub claim_case: Option<Box<Account<'info, ClaimCase>>>,
 }
 
 #[derive(Accounts)]
@@ -2482,6 +2578,8 @@ pub struct ReleaseReserve<'info> {
     pub allocation_ledger: Option<Box<Account<'info, AllocationLedger>>>,
     #[account(mut, seeds = [SEED_OBLIGATION, funding_line.key().as_ref(), obligation.obligation_id.as_bytes()], bump = obligation.bump)]
     pub obligation: Box<Account<'info, Obligation>>,
+    #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
+    pub claim_case: Option<Box<Account<'info, ClaimCase>>>,
 }
 
 #[derive(Accounts)]
@@ -4254,6 +4352,8 @@ pub enum OmegaXProtocolError {
     SeriesLedgerUnexpected,
     #[msg("Asset mint mismatch")]
     AssetMintMismatch,
+    #[msg("Funding line mismatch")]
+    FundingLineMismatch,
     #[msg("Funding line type mismatch")]
     FundingLineTypeMismatch,
     #[msg("Invalid obligation state transition")]
@@ -4264,6 +4364,10 @@ pub enum OmegaXProtocolError {
     AmountExceedsReservedBalance,
     #[msg("Amount exceeds approved claim")]
     AmountExceedsApprovedClaim,
+    #[msg("Claim case linkage mismatch")]
+    ClaimCaseLinkMismatch,
+    #[msg("Linked claims must settle through the obligation path")]
+    LinkedClaimMustSettleThroughObligation,
     #[msg("Amount exceeds available shares")]
     AmountExceedsAvailableShares,
     #[msg("Amount exceeds pending redemption")]
@@ -4952,6 +5056,173 @@ fn book_owed(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {
     recompute_sheet(sheet)
 }
 
+fn remaining_claim_amount(claim_case: &ClaimCase) -> u64 {
+    claim_case
+        .approved_amount
+        .saturating_sub(claim_case.paid_amount)
+}
+
+fn require_direct_claim_case_settlement(claim_case: &ClaimCase) -> Result<()> {
+    require!(
+        claim_case.linked_obligation == ZERO_PUBKEY,
+        OmegaXProtocolError::LinkedClaimMustSettleThroughObligation
+    );
+    Ok(())
+}
+
+fn require_matching_linked_claim_case(
+    claim_case: &ClaimCase,
+    claim_case_key: Pubkey,
+    obligation: &Obligation,
+    obligation_key: Pubkey,
+    health_plan_key: Pubkey,
+) -> Result<()> {
+    require!(
+        claim_case.health_plan == health_plan_key && obligation.health_plan == health_plan_key,
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+    require!(
+        claim_case.policy_series == obligation.policy_series,
+        OmegaXProtocolError::PolicySeriesMismatch
+    );
+    require!(
+        claim_case.funding_line == obligation.funding_line,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require!(
+        claim_case.asset_mint == obligation.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require!(
+        obligation.claim_case == ZERO_PUBKEY || obligation.claim_case == claim_case_key,
+        OmegaXProtocolError::ClaimCaseLinkMismatch
+    );
+    require!(
+        claim_case.linked_obligation == ZERO_PUBKEY
+            || claim_case.linked_obligation == obligation_key,
+        OmegaXProtocolError::ClaimCaseLinkMismatch
+    );
+    Ok(())
+}
+
+fn establish_or_validate_claim_obligation_link(
+    claim_case: &mut ClaimCase,
+    claim_case_key: Pubkey,
+    obligation: &mut Obligation,
+    obligation_key: Pubkey,
+    health_plan_key: Pubkey,
+) -> Result<()> {
+    require_matching_linked_claim_case(
+        claim_case,
+        claim_case_key,
+        obligation,
+        obligation_key,
+        health_plan_key,
+    )?;
+    claim_case.linked_obligation = obligation_key;
+    obligation.claim_case = claim_case_key;
+    claim_case.reserved_amount = obligation.reserved_amount;
+    Ok(())
+}
+
+fn sync_adjudicated_claim_liability(
+    claim_case: &mut ClaimCase,
+    claim_case_key: Pubkey,
+    obligation: Option<(&mut Obligation, Pubkey)>,
+    health_plan_key: Pubkey,
+    approved_amount: u64,
+    reserve_amount: u64,
+) -> Result<()> {
+    if let Some((obligation, obligation_key)) = obligation {
+        establish_or_validate_claim_obligation_link(
+            claim_case,
+            claim_case_key,
+            obligation,
+            obligation_key,
+            health_plan_key,
+        )?;
+        require!(
+            obligation.reserved_amount <= approved_amount,
+            OmegaXProtocolError::AmountExceedsApprovedClaim
+        );
+        claim_case.reserved_amount = obligation.reserved_amount;
+    } else {
+        require!(
+            claim_case.linked_obligation == ZERO_PUBKEY,
+            OmegaXProtocolError::ClaimCaseLinkMismatch
+        );
+        claim_case.reserved_amount = reserve_amount;
+    }
+    Ok(())
+}
+
+fn sync_linked_claim_case_reserve(
+    claim_case: &mut ClaimCase,
+    claim_case_key: Pubkey,
+    obligation: &mut Obligation,
+    obligation_key: Pubkey,
+    health_plan_key: Pubkey,
+    now_ts: i64,
+) -> Result<()> {
+    require_matching_linked_claim_case(
+        claim_case,
+        claim_case_key,
+        obligation,
+        obligation_key,
+        health_plan_key,
+    )?;
+    obligation.claim_case = claim_case_key;
+    claim_case.linked_obligation = obligation_key;
+    claim_case.reserved_amount = obligation.reserved_amount;
+    if obligation.status == OBLIGATION_STATUS_CANCELED && obligation.outstanding_amount == 0 {
+        claim_case.intake_status = CLAIM_INTAKE_CLOSED;
+        claim_case.closed_at = now_ts;
+    }
+    claim_case.updated_at = now_ts;
+    Ok(())
+}
+
+fn sync_linked_claim_case_after_settlement(
+    claim_case: &mut ClaimCase,
+    claim_case_key: Pubkey,
+    obligation: &mut Obligation,
+    obligation_key: Pubkey,
+    health_plan_key: Pubkey,
+    amount: u64,
+    now_ts: i64,
+) -> Result<()> {
+    require_matching_linked_claim_case(
+        claim_case,
+        claim_case_key,
+        obligation,
+        obligation_key,
+        health_plan_key,
+    )?;
+    require!(
+        amount <= remaining_claim_amount(claim_case),
+        OmegaXProtocolError::AmountExceedsApprovedClaim
+    );
+
+    obligation.claim_case = claim_case_key;
+    claim_case.linked_obligation = obligation_key;
+    claim_case.paid_amount = checked_add(claim_case.paid_amount, amount)?;
+    claim_case.reserved_amount = obligation.reserved_amount;
+    claim_case.intake_status = if claim_case.paid_amount >= claim_case.approved_amount
+        || obligation.outstanding_amount == 0
+    {
+        CLAIM_INTAKE_SETTLED
+    } else {
+        CLAIM_INTAKE_APPROVED
+    };
+    claim_case.closed_at = if claim_case.intake_status == CLAIM_INTAKE_SETTLED {
+        now_ts
+    } else {
+        0
+    };
+    claim_case.updated_at = now_ts;
+    Ok(())
+}
+
 fn book_reserve(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {
     sheet.reserved = checked_add(sheet.reserved, amount)?;
     recompute_sheet(sheet)
@@ -5401,6 +5672,335 @@ mod tests {
         book_impairment(&mut sheet, 100).unwrap();
         assert_eq!(sheet.free, 750);
         assert_eq!(sheet.redeemable, 350);
+    }
+
+    fn sample_claim_case(
+        health_plan: Pubkey,
+        policy_series: Pubkey,
+        funding_line: Pubkey,
+        asset_mint: Pubkey,
+    ) -> ClaimCase {
+        ClaimCase {
+            reserve_domain: Pubkey::new_unique(),
+            health_plan,
+            policy_series,
+            member_position: Pubkey::new_unique(),
+            funding_line,
+            asset_mint,
+            claim_id: "claim-protect-001".to_string(),
+            claimant: Pubkey::new_unique(),
+            adjudicator: ZERO_PUBKEY,
+            evidence_ref_hash: [0u8; 32],
+            decision_support_hash: [0u8; 32],
+            intake_status: CLAIM_INTAKE_APPROVED,
+            review_state: 0,
+            approved_amount: 100,
+            denied_amount: 0,
+            paid_amount: 40,
+            reserved_amount: 60,
+            recovered_amount: 0,
+            appeal_count: 0,
+            linked_obligation: ZERO_PUBKEY,
+            opened_at: 0,
+            updated_at: 0,
+            closed_at: 0,
+            bump: 0,
+        }
+    }
+
+    fn sample_obligation(
+        health_plan: Pubkey,
+        policy_series: Pubkey,
+        funding_line: Pubkey,
+        asset_mint: Pubkey,
+    ) -> Obligation {
+        Obligation {
+            reserve_domain: Pubkey::new_unique(),
+            asset_mint,
+            health_plan,
+            policy_series,
+            member_wallet: Pubkey::new_unique(),
+            beneficiary: Pubkey::new_unique(),
+            funding_line,
+            claim_case: ZERO_PUBKEY,
+            liquidity_pool: ZERO_PUBKEY,
+            capital_class: ZERO_PUBKEY,
+            allocation_position: ZERO_PUBKEY,
+            obligation_id: "protection-obligation-001".to_string(),
+            creation_reason_hash: [0u8; 32],
+            settlement_reason_hash: [0u8; 32],
+            status: OBLIGATION_STATUS_RESERVED,
+            delivery_mode: OBLIGATION_DELIVERY_MODE_PAYABLE,
+            principal_amount: 100,
+            outstanding_amount: 60,
+            reserved_amount: 60,
+            claimable_amount: 0,
+            payable_amount: 0,
+            settled_amount: 40,
+            impaired_amount: 0,
+            recovered_amount: 0,
+            created_at: 0,
+            updated_at: 0,
+            bump: 0,
+        }
+    }
+
+    #[test]
+    fn linked_claims_cannot_rebind_to_a_different_obligation() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+        let obligation_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        let mut obligation =
+            sample_obligation(health_plan, policy_series, funding_line, asset_mint);
+        claim_case.linked_obligation = Pubkey::new_unique();
+
+        let result = establish_or_validate_claim_obligation_link(
+            &mut claim_case,
+            claim_case_key,
+            &mut obligation,
+            obligation_key,
+            health_plan,
+        );
+
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("Claim case linkage mismatch"));
+    }
+
+    #[test]
+    fn settling_linked_claims_updates_paid_and_terminal_state() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+        let obligation_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        let mut obligation =
+            sample_obligation(health_plan, policy_series, funding_line, asset_mint);
+        obligation.outstanding_amount = 0;
+        obligation.reserved_amount = 0;
+        obligation.settled_amount = 100;
+
+        sync_linked_claim_case_after_settlement(
+            &mut claim_case,
+            claim_case_key,
+            &mut obligation,
+            obligation_key,
+            health_plan,
+            60,
+            777,
+        )
+        .unwrap();
+
+        assert_eq!(obligation.claim_case, claim_case_key);
+        assert_eq!(claim_case.linked_obligation, obligation_key);
+        assert_eq!(claim_case.paid_amount, 100);
+        assert_eq!(claim_case.reserved_amount, 0);
+        assert_eq!(claim_case.intake_status, CLAIM_INTAKE_SETTLED);
+        assert_eq!(claim_case.closed_at, 777);
+    }
+
+    #[test]
+    fn reserve_sync_tracks_obligation_reserve_balance() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+        let obligation_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        let mut obligation =
+            sample_obligation(health_plan, policy_series, funding_line, asset_mint);
+        obligation.claim_case = claim_case_key;
+        obligation.reserved_amount = 25;
+        claim_case.linked_obligation = obligation_key;
+        claim_case.reserved_amount = 60;
+
+        sync_linked_claim_case_reserve(
+            &mut claim_case,
+            claim_case_key,
+            &mut obligation,
+            obligation_key,
+            health_plan,
+            555,
+        )
+        .unwrap();
+
+        assert_eq!(claim_case.reserved_amount, 25);
+        assert_eq!(claim_case.updated_at, 555);
+    }
+
+    #[test]
+    fn linking_obligation_resets_stale_direct_reserve_tracking() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+        let obligation_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        let mut obligation =
+            sample_obligation(health_plan, policy_series, funding_line, asset_mint);
+        claim_case.reserved_amount = 60;
+        obligation.reserved_amount = 0;
+
+        establish_or_validate_claim_obligation_link(
+            &mut claim_case,
+            claim_case_key,
+            &mut obligation,
+            obligation_key,
+            health_plan,
+        )
+        .unwrap();
+
+        assert_eq!(obligation.claim_case, claim_case_key);
+        assert_eq!(claim_case.linked_obligation, obligation_key);
+        assert_eq!(claim_case.reserved_amount, 0);
+    }
+
+    #[test]
+    fn canceling_linked_obligation_closes_claim_case() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+        let obligation_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        let mut obligation =
+            sample_obligation(health_plan, policy_series, funding_line, asset_mint);
+        obligation.claim_case = claim_case_key;
+        obligation.status = OBLIGATION_STATUS_CANCELED;
+        obligation.outstanding_amount = 0;
+        obligation.reserved_amount = 0;
+        claim_case.linked_obligation = obligation_key;
+        claim_case.reserved_amount = 60;
+
+        sync_linked_claim_case_reserve(
+            &mut claim_case,
+            claim_case_key,
+            &mut obligation,
+            obligation_key,
+            health_plan,
+            888,
+        )
+        .unwrap();
+
+        assert_eq!(claim_case.reserved_amount, 0);
+        assert_eq!(claim_case.intake_status, CLAIM_INTAKE_CLOSED);
+        assert_eq!(claim_case.closed_at, 888);
+        assert_eq!(claim_case.updated_at, 888);
+    }
+
+    #[test]
+    fn direct_claim_settlement_rejects_linked_claim_cases() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        claim_case.linked_obligation = Pubkey::new_unique();
+
+        let result = require_direct_claim_case_settlement(&claim_case);
+
+        let error = result.unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("Linked claims must settle through the obligation path"));
+    }
+
+    #[test]
+    fn adjudication_requires_linked_obligation_context() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        claim_case.linked_obligation = Pubkey::new_unique();
+
+        let result = sync_adjudicated_claim_liability(
+            &mut claim_case,
+            claim_case_key,
+            None,
+            health_plan,
+            100,
+            0,
+        );
+
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("Claim case linkage mismatch"));
+    }
+
+    #[test]
+    fn adjudication_resets_direct_claim_reserve_to_requested_amount() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        claim_case.reserved_amount = 60;
+
+        sync_adjudicated_claim_liability(
+            &mut claim_case,
+            claim_case_key,
+            None,
+            health_plan,
+            100,
+            0,
+        )
+        .unwrap();
+
+        assert_eq!(claim_case.reserved_amount, 0);
+    }
+
+    #[test]
+    fn adjudication_rejects_linked_obligation_reserve_above_approved_amount() {
+        let health_plan = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let funding_line = Pubkey::new_unique();
+        let asset_mint = Pubkey::new_unique();
+        let claim_case_key = Pubkey::new_unique();
+        let obligation_key = Pubkey::new_unique();
+
+        let mut claim_case =
+            sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+        let mut obligation =
+            sample_obligation(health_plan, policy_series, funding_line, asset_mint);
+        obligation.reserved_amount = 80;
+
+        let result = sync_adjudicated_claim_liability(
+            &mut claim_case,
+            claim_case_key,
+            Some((&mut obligation, obligation_key)),
+            health_plan,
+            40,
+            0,
+        );
+
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("Amount exceeds approved claim"));
     }
 
     fn membership_proof_input(
