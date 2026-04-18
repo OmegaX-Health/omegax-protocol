@@ -47,7 +47,7 @@ const sharedLaunchFacts = [
   },
   {
     label: "Trust phase",
-    value: "Phase 0 operator-backed claim review with later AI and decentralized steps framed as roadmap.",
+    value: "Phase 0 AI-assisted review under operator oversight, with operator-backed attestation and escalation.",
   },
   {
     label: "Retail posture",
@@ -63,20 +63,20 @@ export const GENESIS_PROTECT_DISCLOSURE_PAGES: Record<"technicalTerms" | "riskDi
   technicalTerms: {
     path: GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_PATH,
     canonicalUrl: GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_URL,
-    title: "Genesis Protect Acute Technical Terms",
+    title: "Protocol Protection Technical Terms",
     description:
-      "Public technical terms for the bounded Genesis Protect Acute launch, including Travel 30, Event 7, reserve lanes, trust phase, and commercial-layer separation.",
-    heroEyebrow: "Genesis Protect Acute",
-    heroTitle: "Technical terms for the bounded launch surface",
+      "Public technical terms for the shared DeFi-native protection disclosure route, with the current Genesis Protect Acute launch as the concrete public reference.",
+    heroEyebrow: "Protocol protection disclosures",
+    heroTitle: "Technical terms for the shared protection surface",
     heroSubtitle:
-      "These terms back the public metadata used by the current Genesis Protect Acute protection series. They describe the live public posture without implying broader already-live insurance or fully decentralized review.",
+      "These terms back the shared public metadata route used by DeFi-native protection series on protocol.omegax.health. Genesis Protect Acute is the current public launch reference, but the route itself must stay truthful for generic protection metadata too.",
     statusLabel: "Phase 0 public terms",
     sections: [
       {
         eyebrow: "Launch posture",
-        title: "One launch story",
+        title: "Shared route, current launch reference",
         copy:
-          "Genesis Protect Acute remains a bounded acute emergency travel protection launch. Travel 30 is the primary launch SKU, Event 7 is the fast demo SKU, and both series stay inside the same end-of-month mainnet target rather than a broad always-live insurance claim.",
+          "This route is the shared public technical-terms destination for DeFi-native protection metadata on the protocol frontend. The current live reference implementation is Genesis Protect Acute: Travel 30 is the primary launch SKU, Event 7 is the fast demo SKU, and both stay inside the same bounded end-of-month mainnet target rather than a broad always-live insurance claim.",
         facts: [...sharedLaunchFacts],
       },
       {
@@ -114,7 +114,7 @@ export const GENESIS_PROTECT_DISCLOSURE_PAGES: Record<"technicalTerms" | "riskDi
         eyebrow: "Claims trust",
         title: "How claims are checked today",
         copy:
-          "The launch trust model is intentionally explicit. Phase 0 claim review is operator-backed through OmegaX Health. Evidence packets, review artifacts, attestation, and dispute state can exist without pretending that Phase 1 AI recommendation or later decentralized review is already the current live truth.",
+          "The launch trust model is intentionally explicit. Phase 0 review is AI-assisted under operator oversight through OmegaX Health, with operator-backed attestation, escalation, and dispute handling. Evidence packets, review artifacts, attestation, and dispute state can exist without pretending that later decentralized review is already the current live truth.",
         bullets: [
           "Raw medical evidence remains offchain.",
           "Structured claim review and attestation write into the protocol path.",
@@ -150,20 +150,20 @@ export const GENESIS_PROTECT_DISCLOSURE_PAGES: Record<"technicalTerms" | "riskDi
   riskDisclosures: {
     path: GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_PATH,
     canonicalUrl: GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_URL,
-    title: "Genesis Protect Acute Risk Disclosures",
+    title: "Protocol Protection Risk Disclosures",
     description:
-      "Public Genesis Protect Acute risk disclosures for the current bounded launch, including reserve, claim review, waiting period, payout, and queue-stress caveats.",
-    heroEyebrow: "Genesis Protect Acute",
-    heroTitle: "Risk disclosures for the current public launch",
+      "Public risk disclosures for the shared DeFi-native protection route, including the current bounded Genesis Protect Acute launch as the live public reference.",
+    heroEyebrow: "Protocol protection disclosures",
+    heroTitle: "Risk disclosures for the shared protection surface",
     heroSubtitle:
-      "These disclosures are intentionally narrower than a full legal policy pack. They exist to keep the current public metadata and launch copy honest about what is live, what is bounded, and what can still pause, hold, or fail under stress.",
+      "These disclosures are intentionally narrower than a full legal policy pack. They exist to keep the shared public metadata route honest about what is live, what is bounded, and what can still pause, hold, or fail under stress.",
     statusLabel: "Launch-risk disclosure",
     sections: [
       {
         eyebrow: "Launch boundary",
-        title: "Bounded, not broad",
+        title: "Shared route, bounded launch reference",
         copy:
-          "Genesis Protect Acute is not described here as broadly live insurance today. The launch remains bounded to the current Event 7 and Travel 30 acute emergency travel products, with public messaging tied to the current end-of-month mainnet target and Phase 0 operator-backed review.",
+          "This route can be referenced by generic DeFi-native protection metadata, so it should not pretend every product is Genesis Protect Acute. The current public launch reference is Genesis Protect Acute, and that launch remains bounded to Event 7 and Travel 30 with messaging tied to the current end-of-month mainnet target and Phase 0 AI-assisted review under operator oversight.",
         bullets: [
           "Do not read this launch as a promise of broad always-open global insurance availability.",
           "Do not read roadmap language about AI or decentralized review as current live fact.",
