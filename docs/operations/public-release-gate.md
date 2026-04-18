@@ -98,6 +98,7 @@ Before any broader production promotion outside devnet:
 - confirm downstream SDK and public docs consumers have the regenerated protocol contract
 - explicitly review any remaining canonical-console action gaps so production claims/capital/governance workflows are not overstated
 - capture the exact commit, generated artifact hash, and devnet sign-off outputs that will back the production announcement
+- for Genesis Protect Acute live seeding, use [`./genesis-live-bootstrap.md`](./genesis-live-bootstrap.md) so the launch bootstrap takes explicit cluster, oracle, schema, and reserve-lane inputs instead of the shared devnet fixture matrix
 
 ## Protocol-surface changes
 

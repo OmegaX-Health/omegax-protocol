@@ -1,0 +1,82 @@
+{
+  "specVersion": "omegax.schema.v1",
+  "name": "Genesis Protect Acute Claim Evidence",
+  "publisher": "OmegaX Health",
+  "schemaKey": "genesis-protect-acute-claim",
+  "schemaVersion": 1,
+  "lane": "protection",
+  "description": "Evidence bundle and operator-attested review schema for Genesis Protect Acute claim handling across Event 7 and Travel 30.",
+  "launchTruth": {
+    "primaryLaunchSku": "travel30",
+    "fastDemoSku": "event7",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false
+  },
+  "requiredFacts": [
+    {
+      "id": "incident_window",
+      "label": "Incident window",
+      "description": "Date and time of the acute event inside the purchased coverage window."
+    },
+    {
+      "id": "care_location",
+      "label": "Care location",
+      "description": "Facility name, city, country, and proof that care happened in the covered travel context."
+    },
+    {
+      "id": "clinical_summary",
+      "label": "Clinical summary",
+      "description": "Doctor note, discharge summary, or equivalent record showing acute emergency treatment."
+    },
+    {
+      "id": "billing_proof",
+      "label": "Billing proof",
+      "description": "Itemized invoice or bill plus proof of payment when reimbursement review is required."
+    }
+  ],
+  "requiredDocuments": [
+    "invoice_or_itemized_bill",
+    "discharge_summary_or_doctor_note",
+    "proof_of_payment",
+    "location_and_date_proof"
+  ],
+  "decisionStates": [
+    {
+      "id": "hold",
+      "label": "Hold",
+      "description": "Insufficient confidence, missing evidence, or exclusion review still pending."
+    },
+    {
+      "id": "approve",
+      "label": "Approve",
+      "description": "Operator-backed oracle review approved the claim and set the reserve amount."
+    },
+    {
+      "id": "deny",
+      "label": "Deny",
+      "description": "Claim failed waiting-period, exclusion, fraud, or evidence requirements."
+    },
+    {
+      "id": "dispute",
+      "label": "Dispute",
+      "description": "Operator escalation or dispute review is active before final settlement."
+    }
+  ],
+  "supportingFields": [
+    {
+      "id": "benefit_tier",
+      "label": "Benefit tier",
+      "description": "Tier 1, Tier 2, or Tier 3 fixed-benefit classification."
+    },
+    {
+      "id": "reimbursement_top_up",
+      "label": "Reimbursement top-up",
+      "description": "Travel 30 only. Actual acute emergency spend above the fixed tier benefit, capped at the aggregate maximum."
+    },
+    {
+      "id": "decision_support_hash",
+      "label": "Decision support hash",
+      "description": "Hash commitment to the operator review packet or internal recommendation bundle."
+    }
+  ]
+}
