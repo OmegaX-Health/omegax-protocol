@@ -29,6 +29,8 @@ import {
   GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
 } from "@/lib/genesis-protect-acute-operator";
 import {
+  GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_URL,
+  GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_URL,
   GENESIS_PROTECT_ACUTE_PLAN_ID,
   GENESIS_PROTECT_ACUTE_PLAN_METADATA_URI,
   GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
@@ -397,8 +399,8 @@ export function PlanCreationWizard() {
 
   const [coveragePathway, setCoveragePathway] = useState<CoveragePathway>("defi_native");
   const [defiSettlementMode, setDefiSettlementMode] = useState<DefiSettlementMode>("onchain_programmatic");
-  const [defiTechnicalTermsUri, setDefiTechnicalTermsUri] = useState("https://protocol.omegax.health/coverage/technical-terms");
-  const [defiRiskDisclosureUri, setDefiRiskDisclosureUri] = useState("https://protocol.omegax.health/coverage/risk-disclosures");
+  const [defiTechnicalTermsUri, setDefiTechnicalTermsUri] = useState(GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_URL);
+  const [defiRiskDisclosureUri, setDefiRiskDisclosureUri] = useState(GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_URL);
   const [rwaLegalEntityName, setRwaLegalEntityName] = useState("");
   const [rwaJurisdiction, setRwaJurisdiction] = useState("");
   const [rwaPolicyTermsUri, setRwaPolicyTermsUri] = useState("");

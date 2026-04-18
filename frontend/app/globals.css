@@ -5547,6 +5547,27 @@
     gap: clamp(0.85rem, 1.2vw, 1.25rem);
   }
 
+  .genesis-disclosure-grid {
+    display: grid;
+    gap: clamp(0.85rem, 1.2vw, 1.25rem);
+  }
+
+  .genesis-disclosure-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.6rem;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .genesis-disclosure-value {
+    max-width: min(100%, 34rem);
+    white-space: normal;
+    text-wrap: balance;
+  }
+
   /* ── Cards (shared) ── */
 
   .plans-card {

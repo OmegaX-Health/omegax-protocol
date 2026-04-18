@@ -15,8 +15,10 @@ const {
   GENESIS_PROTECT_ACUTE_LAUNCH_TRUTH,
   GENESIS_PROTECT_ACUTE_PLAN_ID,
   GENESIS_PROTECT_ACUTE_POOL_ID,
+  GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_URL,
   GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID,
   GENESIS_PROTECT_ACUTE_SKUS,
+  GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_URL,
 } = genesisCatalogModule as typeof import("../frontend/lib/genesis-protect-acute.ts");
 const { DEVNET_PROTOCOL_FIXTURE_STATE } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
 const { parseProtectionPosture } = planLaunchModule as typeof import("../frontend/lib/plan-launch.ts");
@@ -156,6 +158,8 @@ test("Genesis Protect Acute metadata documents encode the canonical Event 7 and 
   assert.equal(event7Document.waitingPeriods.sponsorCohortWaiverAllowed, true);
   assert.equal(event7Document.evidenceSchema.schemaKey, GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_KEY);
   assert.equal(event7Document.evidenceSchema.schemaVersion, GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_VERSION);
+  assert.equal(parsedEvent7.defi?.technicalTermsUri, GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_URL);
+  assert.equal(parsedEvent7.defi?.riskDisclosureUri, GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_URL);
   assert.equal(event7Document.fundingLanes.premium.lineId, GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.premium);
   assert.equal(event7Document.fundingLanes.sponsor?.lineId, GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.sponsor);
   assert.equal(event7Document.fundingLanes.liquidity.lineId, GENESIS_PROTECT_ACUTE_SKUS.event7.fundingLineIds.liquidity);
@@ -197,6 +201,8 @@ test("Genesis Protect Acute metadata documents encode the canonical Event 7 and 
   assert.equal(travel30Document.waitingPeriods.sponsorCohortWaiverAllowed, true);
   assert.equal(travel30Document.evidenceSchema.schemaKey, GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_KEY);
   assert.equal(travel30Document.evidenceSchema.schemaVersion, GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_VERSION);
+  assert.equal(parsedTravel30.defi?.technicalTermsUri, GENESIS_PROTECT_ACUTE_TECHNICAL_TERMS_URL);
+  assert.equal(parsedTravel30.defi?.riskDisclosureUri, GENESIS_PROTECT_ACUTE_RISK_DISCLOSURE_URL);
   assert.equal(travel30Document.fundingLanes.premium.lineId, GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium);
   assert.equal(travel30Document.fundingLanes.liquidity.lineId, GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.liquidity);
   assert.equal(

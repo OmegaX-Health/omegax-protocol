@@ -119,6 +119,7 @@ Genesis Protect Acute sprint-1 launch truth is frozen in the public metadata and
 - prediction markets do not count as reserve truth; only posted premiums, sponsor funds, liquidity, and explicit backstops do
 - app membership billing remains separate from per-window protection premiums
 - the public sponsor/operator console now carries the Genesis bootstrap, checklist, operator claim queue, and reserve-console read path directly on `/plans`
+- the Genesis protection metadata disclosure routes now resolve on the public protocol frontend at `/coverage/technical-terms` and `/coverage/risk-disclosures`
 
 Read the canonical design set first:
 

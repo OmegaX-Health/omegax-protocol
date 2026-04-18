@@ -21,6 +21,11 @@ frontend/.turbo
 frontend/tsconfig.tsbuildinfo
 dist
 coverage
+!frontend/app/coverage/
+!frontend/app/coverage/technical-terms/
+!frontend/app/coverage/technical-terms/page.tsx
+!frontend/app/coverage/risk-disclosures/
+!frontend/app/coverage/risk-disclosures/page.tsx
 *.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
