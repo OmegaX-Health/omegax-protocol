@@ -870,15 +870,16 @@ pub mod omegax_protocol {
         ctx: Context<ReserveObligation>,
         args: ReserveObligationArgs,
     ) -> Result<()> {
-        require_plan_control(
-            &ctx.accounts.authority.key(),
-            &ctx.accounts.protocol_governance,
-            &ctx.accounts.health_plan,
-        )?;
         let reserve_amount = args.amount;
         let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
         let obligation_key = obligation.key();
+        require_obligation_reserve_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.health_plan,
+            obligation,
+        )?;
         require!(
             obligation.status == OBLIGATION_STATUS_PROPOSED,
             OmegaXProtocolError::InvalidObligationStateTransition
@@ -943,16 +944,16 @@ pub mod omegax_protocol {
         ctx: Context<SettleObligation>,
         args: SettleObligationArgs,
     ) -> Result<()> {
-        require_plan_control(
-            &ctx.accounts.authority.key(),
-            &ctx.accounts.protocol_governance,
-            &ctx.accounts.health_plan,
-        )?;
-
         let amount = args.amount;
         let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
         let obligation_key = obligation.key();
+        require_obligation_settlement_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.health_plan,
+            obligation,
+        )?;
         require!(
             amount <= obligation.outstanding_amount,
             OmegaXProtocolError::AmountExceedsOutstandingObligation
@@ -1091,16 +1092,16 @@ pub mod omegax_protocol {
     }
 
     pub fn release_reserve(ctx: Context<ReleaseReserve>, args: ReleaseReserveArgs) -> Result<()> {
-        require_plan_control(
-            &ctx.accounts.authority.key(),
-            &ctx.accounts.protocol_governance,
-            &ctx.accounts.health_plan,
-        )?;
-
         let amount = args.amount;
         let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
         let obligation_key = obligation.key();
+        require_obligation_reserve_control(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+            &ctx.accounts.health_plan,
+            obligation,
+        )?;
         require!(
             obligation.status == OBLIGATION_STATUS_RESERVED,
             OmegaXProtocolError::InvalidObligationStateTransition
@@ -4616,6 +4617,67 @@ fn require_plan_control(
     }
 }
 
+fn obligation_has_linked_claim_case(obligation: &Obligation) -> bool {
+    obligation.claim_case != ZERO_PUBKEY
+}
+
+fn require_linked_claim_reserve_operator(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    plan: &HealthPlan,
+) -> Result<()> {
+    if *authority == plan.oracle_authority
+        || *authority == plan.claims_operator
+        || *authority == plan.plan_admin
+        || *authority == governance.governance_authority
+    {
+        Ok(())
+    } else {
+        err!(OmegaXProtocolError::Unauthorized)
+    }
+}
+
+fn require_linked_claim_settlement_operator(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    plan: &HealthPlan,
+) -> Result<()> {
+    if *authority == plan.claims_operator
+        || *authority == plan.plan_admin
+        || *authority == governance.governance_authority
+    {
+        Ok(())
+    } else {
+        err!(OmegaXProtocolError::Unauthorized)
+    }
+}
+
+fn require_obligation_reserve_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    plan: &HealthPlan,
+    obligation: &Obligation,
+) -> Result<()> {
+    if obligation_has_linked_claim_case(obligation) {
+        require_linked_claim_reserve_operator(authority, governance, plan)
+    } else {
+        require_plan_control(authority, governance, plan)
+    }
+}
+
+fn require_obligation_settlement_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    plan: &HealthPlan,
+    obligation: &Obligation,
+) -> Result<()> {
+    if obligation_has_linked_claim_case(obligation) {
+        require_linked_claim_settlement_operator(authority, governance, plan)
+    } else {
+        require_plan_control(authority, governance, plan)
+    }
+}
+
 fn health_plan_membership_mode(plan: &HealthPlan) -> u8 {
     plan.membership_mode
 }
@@ -6156,6 +6218,219 @@ mod tests {
             audit_nonce: 0,
             bump: 1,
         }
+    }
+
+    fn sample_governance(governance_authority: Pubkey) -> ProtocolGovernance {
+        ProtocolGovernance {
+            governance_authority,
+            protocol_fee_bps: 50,
+            emergency_pause: false,
+            audit_nonce: 0,
+            bump: 1,
+        }
+    }
+
+    fn sample_health_plan_roles(
+        plan_admin: Pubkey,
+        sponsor_operator: Pubkey,
+        claims_operator: Pubkey,
+        oracle_authority: Pubkey,
+    ) -> HealthPlan {
+        HealthPlan {
+            reserve_domain: Pubkey::new_unique(),
+            sponsor: Pubkey::new_unique(),
+            plan_admin,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+            health_plan_id: "sample-plan".to_string(),
+            display_name: "Sample Plan".to_string(),
+            organization_ref: String::new(),
+            metadata_uri: String::new(),
+            membership_mode: MEMBERSHIP_MODE_OPEN,
+            membership_gate_kind: MEMBERSHIP_GATE_KIND_OPEN,
+            membership_gate_mint: ZERO_PUBKEY,
+            membership_gate_min_amount: 0,
+            membership_invite_authority: ZERO_PUBKEY,
+            allowed_rail_mask: 0,
+            default_funding_priority: 0,
+            oracle_policy_hash: [0; 32],
+            schema_binding_hash: [0; 32],
+            compliance_baseline_hash: [0; 32],
+            pause_flags: 0,
+            active: true,
+            audit_nonce: 0,
+            bump: 1,
+        }
+    }
+
+    #[test]
+    fn linked_claim_reserve_control_allows_claim_and_oracle_operators() {
+        let plan_admin = Pubkey::new_unique();
+        let sponsor_operator = Pubkey::new_unique();
+        let claims_operator = Pubkey::new_unique();
+        let oracle_authority = Pubkey::new_unique();
+        let governance_authority = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            plan_admin,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+        );
+        let governance = sample_governance(governance_authority);
+        let mut obligation = sample_obligation(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        obligation.claim_case = Pubkey::new_unique();
+
+        assert!(require_obligation_reserve_control(
+            &claims_operator,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+        assert!(require_obligation_reserve_control(
+            &oracle_authority,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+        assert!(
+            require_obligation_reserve_control(&plan_admin, &governance, &plan, &obligation,)
+                .is_ok()
+        );
+        assert!(require_obligation_reserve_control(
+            &governance_authority,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn linked_claim_reserve_control_rejects_sponsor_operator() {
+        let plan_admin = Pubkey::new_unique();
+        let sponsor_operator = Pubkey::new_unique();
+        let claims_operator = Pubkey::new_unique();
+        let oracle_authority = Pubkey::new_unique();
+        let governance_authority = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            plan_admin,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+        );
+        let governance = sample_governance(governance_authority);
+        let mut obligation = sample_obligation(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        obligation.claim_case = Pubkey::new_unique();
+
+        let error =
+            require_obligation_reserve_control(&sponsor_operator, &governance, &plan, &obligation)
+                .unwrap_err();
+
+        assert!(error.to_string().contains("Unauthorized"));
+    }
+
+    #[test]
+    fn linked_claim_settlement_control_is_claim_operator_scoped() {
+        let plan_admin = Pubkey::new_unique();
+        let sponsor_operator = Pubkey::new_unique();
+        let claims_operator = Pubkey::new_unique();
+        let oracle_authority = Pubkey::new_unique();
+        let governance_authority = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            plan_admin,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+        );
+        let governance = sample_governance(governance_authority);
+        let mut obligation = sample_obligation(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        obligation.claim_case = Pubkey::new_unique();
+
+        assert!(require_obligation_settlement_control(
+            &claims_operator,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+        assert!(require_obligation_settlement_control(
+            &plan_admin,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+        assert!(require_obligation_settlement_control(
+            &governance_authority,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+
+        let error = require_obligation_settlement_control(
+            &oracle_authority,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("Unauthorized"));
+    }
+
+    #[test]
+    fn unlinked_obligation_reserve_control_preserves_sponsor_operator_path() {
+        let plan_admin = Pubkey::new_unique();
+        let sponsor_operator = Pubkey::new_unique();
+        let claims_operator = Pubkey::new_unique();
+        let oracle_authority = Pubkey::new_unique();
+        let governance_authority = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            plan_admin,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+        );
+        let governance = sample_governance(governance_authority);
+        let obligation = sample_obligation(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+
+        assert!(require_obligation_reserve_control(
+            &sponsor_operator,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
+        assert!(require_obligation_settlement_control(
+            &sponsor_operator,
+            &governance,
+            &plan,
+            &obligation,
+        )
+        .is_ok());
     }
 
     #[test]

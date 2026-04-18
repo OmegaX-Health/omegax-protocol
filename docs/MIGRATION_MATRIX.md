@@ -42,7 +42,7 @@ This matrix records the hard-break migration from the legacy pool-centric devnet
 | `request_pool_liquidity_redemption` and queue handlers | `request_redemption` and `process_redemption_queue` |
 | `create_policy_series` / `update_policy_series` | `create_policy_series` / `version_policy_series` |
 | reward-claim settlement | `create_obligation`, `reserve_obligation`, `settle_obligation` |
-| coverage claim review + payout | `open_claim_case`, `attach_claim_evidence_ref`, `adjudicate_claim_case`, `settle_claim_case` |
+| coverage claim review + payout | `open_claim_case`, `attach_claim_evidence_ref`, `adjudicate_claim_case`, and then `settle_claim_case` only for unlinked claims or `reserve_obligation` -> `settle_obligation` for linked protection liabilities |
 | pool treasury impairment/risk toggles | `mark_impairment`, `set_scoped_pause`, `clear_scoped_pause` |
 
 ## Frontend and product naming

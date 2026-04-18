@@ -376,7 +376,7 @@ Required page sections:
 | Claim selection control | Selectable row | Drive the active operator subform from the selected claim case. | Must preserve route state in the URL when possible. |
 | Intake form | Operator action form | Attach evidence references and set intake review posture. | Must support controlled review-state changes before adjudication. |
 | Adjudication form | Operator action form | Approve or deny amounts and create the linked obligation when warranted. | Must surface the beneficiary, obligation id, and delivery mode before signature. |
-| Reserve and settlement form | Operator action form | Reserve liabilities, release reserve, settle claim cases, and settle obligations. | Must make irreversible economic actions explicit before signature. |
+| Reserve and settlement form | Operator action form | Reserve liabilities, release reserve, settle claim cases, and settle obligations. | Must make irreversible economic actions explicit before signature and keep linked-claim reserve/release oracle-scoped while linked-claim obligation settlement remains claims-operator scoped. |
 | Impairment form | Operator action form | Mark impairment against the selected funding-line or obligation context. | Must stay claim-operator scoped and explain the linked liability consequence. |
 
 ### 3.5 `/members`

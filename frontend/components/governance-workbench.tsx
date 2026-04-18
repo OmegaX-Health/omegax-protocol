@@ -119,7 +119,7 @@ const GOVERNANCE_ROLE_ACTIONS: Record<GovernanceAuthorityRole, string[]> = {
   domain_admin: ["update_reserve_domain_controls", "rail_posture"],
   plan_admin: ["update_health_plan_controls", "update_policy_series_controls"],
   sponsor_operator: ["create_funding_line", "fund_plan_liabilities"],
-  claims_operator: ["adjudicate_claim_case", "settle_claim_case"],
+  claims_operator: ["adjudicate_claim_case", "settle_claim_case", "settle_obligation"],
   oracle_authority: ["reserve_obligation", "release_reserve"],
   pool_curator: ["update_liquidity_pool_controls", "update_capital_class_controls"],
   pool_allocator: ["create_allocation_position", "allocate_capital"],

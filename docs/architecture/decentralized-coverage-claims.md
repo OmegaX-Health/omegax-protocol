@@ -41,7 +41,13 @@ This keeps the economic truth portable without turning the chain into a case-man
 - opens materially relevant `ClaimCase` records when needed
 - attaches evidence or decision-support references
 - approves or denies claims through explicit adjudication
-- does not get arbitrary authority to move unrelated money
+- can settle linked claim obligations after reserve is booked
+- does not get arbitrary authority to move unrelated money outside claim-linked liabilities
+
+### Oracle authority
+
+- can reserve or release linked protection liabilities without taking over broader sponsor-budget control
+- does not become the adjudicator for claim approval or the canonical settlement signer
 
 ### Member / beneficiary
 

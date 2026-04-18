@@ -96,7 +96,7 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
   },
   protection_claim_lifecycle: {
     title: "Protection Claim Lifecycle",
-    focus: "Protection flows record premium income, explicit claim cases, attestation-ready adjudication, and linked obligation settlement consequences.",
+    focus: "Protection flows record premium income, explicit claim cases, attestation-ready adjudication, and linked obligation reserve and settlement consequences.",
     instructions: [
       "record_premium_payment",
       "open_claim_case",
@@ -104,6 +104,9 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
       "attest_claim_case",
       "adjudicate_claim_case",
       "settle_claim_case",
+      "reserve_obligation",
+      "settle_obligation",
+      "release_reserve",
     ],
   },
   liquidity_pool_and_capital_class_lifecycle: {
