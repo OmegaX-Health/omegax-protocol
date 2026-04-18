@@ -17,8 +17,9 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 
-import { loadEnvFile } from "./support/load_env_file.ts";
 import { STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX } from "./devnet_governance_smoke_helpers.ts";
+import { loadEnvFile } from "./support/load_env_file.ts";
+import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
 
 type ProtocolModule = typeof import("../frontend/lib/protocol.ts");
 type FixturesModule = typeof import("../frontend/lib/devnet-fixtures.ts");
@@ -75,6 +76,19 @@ function ensureRoleKeypair(name: string): Keypair {
   const keypair = Keypair.generate();
   writeFileSync(path, `${JSON.stringify([...keypair.secretKey])}\n`);
   return keypair;
+}
+
+function configuredGovernanceControlAddress(): string | null {
+  const raw = process.env.GOVERNANCE_CONFIG
+    || process.env.NEXT_PUBLIC_GOVERNANCE_CONFIG
+    || "";
+  const normalized = raw.trim();
+  if (!normalized) return null;
+  try {
+    return new PublicKey(normalized).toBase58();
+  } catch {
+    throw new Error(`Invalid governance config address: ${normalized}`);
+  }
 }
 
 function upsertEnvFile(path: string, updates: Record<string, string>): void {
@@ -257,7 +271,10 @@ async function main() {
     || process.env.NEXT_PUBLIC_SOLANA_RPC_URL
     || process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL
     || DEFAULT_RPC_URL;
-  const connection = new Connection(rpcUrl, "confirmed");
+  const connection = wrapConnectionWithRpcRetry(new Connection(rpcUrl, "confirmed"), {
+    labelPrefix: "live-bootstrap",
+    logPrefix: "live-bootstrap",
+  });
 
   for (const [label, wallet] of Object.entries({
     oracle: roleWallets.oracle,
@@ -1645,6 +1662,35 @@ async function main() {
           { pubkey: null },
           { pubkey: claimSpec.claimAddress, isWritable: true },
           { pubkey: claimSpec.obligationAddress, isWritable: true },
+        ],
+      });
+    }
+  }
+
+  const configuredGovernanceControl = configuredGovernanceControlAddress();
+  if (configuredGovernanceControl) {
+    const protocolConfig = await protocol.fetchProtocolConfig({ connection });
+    if (!protocolConfig) {
+      throw new Error("Protocol governance config could not be loaded after live bootstrap.");
+    }
+    if (protocolConfig.governanceAuthority !== configuredGovernanceControl) {
+      if (protocolConfig.governanceAuthority !== governance.publicKey.toBase58()) {
+        throw new Error(
+          `Protocol governance authority is ${protocolConfig.governanceAuthority}, but live bootstrap can only hand off from ${governance.publicKey.toBase58()} to ${configuredGovernanceControl}.`,
+        );
+      }
+      await sendProtocolInstruction({
+        protocol,
+        connection,
+        feePayer: governance,
+        label: "rotate_protocol_governance_authority",
+        instructionName: "rotate_protocol_governance_authority",
+        args: {
+          new_governance_authority: new PublicKey(configuredGovernanceControl),
+        },
+        accounts: [
+          { pubkey: governance.publicKey, isSigner: true, isWritable: true },
+          { pubkey: governanceAddress, isWritable: true },
         ],
       });
     }

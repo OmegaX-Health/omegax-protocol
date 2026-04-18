@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 68a561bdc0c78024138757f08cc6dc593cfcb6f7f63378943f5157cdfe1af437
+// contract_sha256: 3d2f3351a0d57559648b0dbbb8fb2888ea8ef4376f37a456c62eaa3f05cd9d37
 
 package com.omegax.protocol
 
@@ -38,6 +38,7 @@ object ProtocolContract {
         "release_reserve" to byteArrayOf(170u.toByte(), 102u.toByte(), 52u.toByte(), 144u.toByte(), 33u.toByte(), 176u.toByte(), 41u.toByte(), 60u.toByte()),
         "request_redemption" to byteArrayOf(14u.toByte(), 62u.toByte(), 182u.toByte(), 237u.toByte(), 59u.toByte(), 79u.toByte(), 149u.toByte(), 22u.toByte()),
         "reserve_obligation" to byteArrayOf(48u.toByte(), 113u.toByte(), 133u.toByte(), 225u.toByte(), 40u.toByte(), 36u.toByte(), 197u.toByte(), 86u.toByte()),
+        "rotate_protocol_governance_authority" to byteArrayOf(173u.toByte(), 25u.toByte(), 179u.toByte(), 236u.toByte(), 198u.toByte(), 190u.toByte(), 207u.toByte(), 98u.toByte()),
         "set_pool_oracle" to byteArrayOf(140u.toByte(), 225u.toByte(), 146u.toByte(), 45u.toByte(), 210u.toByte(), 81u.toByte(), 225u.toByte(), 223u.toByte()),
         "set_pool_oracle_permissions" to byteArrayOf(168u.toByte(), 14u.toByte(), 22u.toByte(), 106u.toByte(), 118u.toByte(), 145u.toByte(), 105u.toByte(), 44u.toByte()),
         "set_pool_oracle_policy" to byteArrayOf(190u.toByte(), 13u.toByte(), 51u.toByte(), 113u.toByte(), 230u.toByte(), 140u.toByte(), 103u.toByte(), 82u.toByte()),

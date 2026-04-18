@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import bs58 from "bs58";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { resolve } from "node:path";
 import { InstructionExecutionStatus } from "@solana/spl-governance";
 
 export const DEFAULT_REALMS_GOVERNANCE_PROGRAM_ID = "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw";
@@ -9,6 +13,7 @@ export const DEFAULT_GOVERNANCE_SMOKE_DEPOSIT_TARGET_RAW = 1n;
 export const DEFAULT_GOVERNANCE_SMOKE_MIN_FEE_BALANCE_LAMPORTS = 250_000_000n;
 export const DEFAULT_GOVERNANCE_SMOKE_AIRDROP_LAMPORTS = 1_000_000_000n;
 export const DEFAULT_GOVERNANCE_SMOKE_DESCRIPTION_ORIGIN = "https://protocol.omegax.health";
+const DEFAULT_GOVERNANCE_SIGNER_PATH = resolve(homedir(), ".config/solana/id.json");
 
 export type GovernanceSmokeMode = "create-vote" | "execute";
 
@@ -129,6 +134,20 @@ function parseSharedConfig(env: NodeJS.ProcessEnv): GovernanceSharedConfig {
   };
 }
 
+function readGovernanceSecretKeyBase58(env: NodeJS.ProcessEnv): string {
+  const explicit = readEnvValue(env, ["GOVERNANCE_SECRET_KEY_BASE58"]);
+  if (explicit) {
+    return explicit;
+  }
+  if (!existsSync(DEFAULT_GOVERNANCE_SIGNER_PATH)) {
+    throw new Error(
+      "Missing required env var: GOVERNANCE_SECRET_KEY_BASE58 and no local fallback keypair exists at ~/.config/solana/id.json",
+    );
+  }
+  const raw = JSON.parse(readFileSync(DEFAULT_GOVERNANCE_SIGNER_PATH, "utf8")) as number[];
+  return bs58.encode(Uint8Array.from(raw));
+}
+
 export function normalizeSmokeSchemaKeyHash(value: string): string {
   const normalized = value.trim().toLowerCase().replace(/^0x/, "");
   if (!/^[0-9a-f]{64}$/.test(normalized)) {
@@ -178,11 +197,7 @@ export function readGovernanceWriteSmokeConfig(params?: {
     descriptionOrigin:
       readEnvValue(env, ["GOVERNANCE_SMOKE_DESCRIPTION_ORIGIN"])
       ?? DEFAULT_GOVERNANCE_SMOKE_DESCRIPTION_ORIGIN,
-    governanceSecretKeyBase58: requireEnvValue(
-      env,
-      ["GOVERNANCE_SECRET_KEY_BASE58"],
-      "GOVERNANCE_SECRET_KEY_BASE58",
-    ),
+    governanceSecretKeyBase58: readGovernanceSecretKeyBase58(env),
     minFeeBalanceLamports: parsePositiveBigInt(
       readEnvValue(env, ["GOVERNANCE_SMOKE_MIN_FEE_BALANCE_LAMPORTS"]),
       "GOVERNANCE_SMOKE_MIN_FEE_BALANCE_LAMPORTS",

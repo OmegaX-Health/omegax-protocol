@@ -28,6 +28,7 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
     focus: "Protocol-wide, domain-scoped, plan-scoped, and class-scoped safety controls stay explicit and local.",
     instructions: [
       "initialize_protocol_governance",
+      "rotate_protocol_governance_authority",
       "set_protocol_emergency_pause",
       "update_reserve_domain_controls",
       "update_health_plan_controls",

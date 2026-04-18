@@ -28,6 +28,9 @@ If the launch window requires a rehearsal deployment, run the same sequence agai
 1. Re-lock the checked artifacts with `npm run anchor:idl` and `npm run protocol:contract`, then rerun `npm run verify:public` and `npm run test:e2e:localnet`.
 2. Run `npm run devnet:beta:deploy` to rebuild the checked deploy artifact and refresh the canonical bootstrap bundle under `devnet/` and `frontend/`.
 3. Upgrade the canonical shared-devnet program id explicitly with the checked `target/deploy/omegax_protocol.so`.
+   Use the canonical program id from `Anchor.toml` / `frontend/lib/protocol.ts`, not the raw `target/deploy/omegax_protocol-keypair.json` address if those ever drift.
+   The helper now prints the exact canonical command:
+   `solana program deploy --program-id Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B --upgrade-authority ~/.config/solana/id.json target/deploy/omegax_protocol.so`
 4. Run `npm run protocol:bootstrap:devnet-live` to seed or refresh the canonical plan/capital/oracle/schema graph on shared devnet.
 5. Run `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff` so the mounted console is validated against the refreshed shared-devnet fixture/env set.
 6. Run `npm run devnet:governance:smoke:create-vote` and record the resulting proposal address.

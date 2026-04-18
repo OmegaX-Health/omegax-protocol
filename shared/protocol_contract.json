@@ -6490,6 +6490,71 @@
       ]
     },
     {
+      "name": "rotate_protocol_governance_authority",
+      "discriminator": [
+        173,
+        25,
+        179,
+        236,
+        198,
+        190,
+        207,
+        98
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RotateProtocolGovernanceAuthorityArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "set_pool_oracle",
       "discriminator": [
         140,

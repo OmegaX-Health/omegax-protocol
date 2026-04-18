@@ -21,6 +21,8 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   };
   const depositArgs = idl.types.find((entry) => entry.name === "DepositIntoCapitalClassArgs");
 
+  assert(instructionNames.includes("initialize_protocol_governance"));
+  assert(instructionNames.includes("rotate_protocol_governance_authority"));
   assert(instructionNames.includes("create_reserve_domain"));
   assert(instructionNames.includes("create_health_plan"));
   assert(instructionNames.includes("create_policy_series"));

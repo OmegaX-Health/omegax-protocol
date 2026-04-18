@@ -69,6 +69,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - shared-devnet bootstrap now includes `npm run protocol:bootstrap:devnet-live` to seed the canonical plan/capital/oracle/schema graph
 - frontend parity sign-off now runs through `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff`
 - governance rollout sign-off now records a created proposal, a post-execution readonly governance check, and structured observability output
+- shared-devnet operator deploy guidance now pins upgrades to the canonical program id directly and warns when the checked `target/deploy` keypair drifts away from that id
 - the checked-in release notes and public docs now document the Genesis launch-readiness workflow and public-safe status language alongside the mounted console changes
 
 ## Known follow-up work

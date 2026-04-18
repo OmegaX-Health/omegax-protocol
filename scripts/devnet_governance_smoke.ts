@@ -16,6 +16,7 @@ import {
   timestampedGovernanceSmokeProposalName,
 } from "./devnet_governance_smoke_helpers.ts";
 import { loadEnvFile } from "./support/load_env_file.ts";
+import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
 
 const governance = governanceModule as typeof import("../frontend/lib/governance.ts");
 const protocol = protocolModule as typeof import("../frontend/lib/protocol.ts");
@@ -93,6 +94,23 @@ async function maybeAirdropFees(
     `[governance-smoke] fee_airdrop=${signature} balance_lamports=${nextLamports.toString()}`,
   );
   return nextLamports;
+}
+
+async function assertProtocolGovernanceAuthorityMatches(params: {
+  connection: Connection;
+  expectedGovernanceAuthority: string;
+}): Promise<void> {
+  const protocolConfig = await protocol.fetchProtocolConfig({
+    connection: params.connection,
+  });
+  if (!protocolConfig) {
+    throw new Error("Protocol governance config is not visible from the configured RPC endpoint.");
+  }
+  if (protocolConfig.governanceAuthority !== params.expectedGovernanceAuthority) {
+    throw new Error(
+      `Protocol governance authority mismatch: ${protocolConfig.governanceAuthority} !== ${params.expectedGovernanceAuthority}. Rerun \`npm run protocol:bootstrap:devnet-live\` to complete the governance handoff before running governance smoke.`,
+    );
+  }
 }
 
 function assertDashboardMatchesConfig(
@@ -212,9 +230,16 @@ async function runCreateVote(): Promise<void> {
   applyGovernanceSmokeFrontendEnv(process.env, config);
 
   const signer = Keypair.fromSecretKey(bs58.decode(config.governanceSecretKeyBase58));
-  const connection = new Connection(config.rpcUrl, "confirmed");
+  const connection = wrapConnectionWithRpcRetry(new Connection(config.rpcUrl, "confirmed"), {
+    labelPrefix: "governance-smoke",
+    logPrefix: "governance-smoke",
+  });
   const signatures: string[] = [];
 
+  await assertProtocolGovernanceAuthorityMatches({
+    connection,
+    expectedGovernanceAuthority: config.governanceAddress,
+  });
   await maybeAirdropFees(connection, signer, config);
 
   let dashboard = await governance.loadGovernanceDashboard({
@@ -330,10 +355,17 @@ async function runExecute(): Promise<void> {
   applyGovernanceSmokeFrontendEnv(process.env, config);
 
   const signer = Keypair.fromSecretKey(bs58.decode(config.governanceSecretKeyBase58));
-  const connection = new Connection(config.rpcUrl, "confirmed");
+  const connection = wrapConnectionWithRpcRetry(new Connection(config.rpcUrl, "confirmed"), {
+    labelPrefix: "governance-smoke",
+    logPrefix: "governance-smoke",
+  });
   const proposalAddress = new PublicKey(config.smokeProposalAddress!);
   const signatures: string[] = [];
 
+  await assertProtocolGovernanceAuthorityMatches({
+    connection,
+    expectedGovernanceAuthority: config.governanceAddress,
+  });
   await maybeAirdropFees(connection, signer, config);
 
   const dashboard = await governance.loadGovernanceDashboard({

@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 68a561bdc0c78024138757f08cc6dc593cfcb6f7f63378943f5157cdfe1af437
+// contract_sha256: 3d2f3351a0d57559648b0dbbb8fb2888ea8ef4376f37a456c62eaa3f05cd9d37
 
 export type ProtocolInstructionName =
   | "adjudicate_claim_case"
@@ -33,6 +33,7 @@ export type ProtocolInstructionName =
   | "release_reserve"
   | "request_redemption"
   | "reserve_obligation"
+  | "rotate_protocol_governance_authority"
   | "set_pool_oracle"
   | "set_pool_oracle_permissions"
   | "set_pool_oracle_policy"
@@ -96,6 +97,7 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "release_reserve": Uint8Array.from([170, 102, 52, 144, 33, 176, 41, 60]),
   "request_redemption": Uint8Array.from([14, 62, 182, 237, 59, 79, 149, 22]),
   "reserve_obligation": Uint8Array.from([48, 113, 133, 225, 40, 36, 197, 86]),
+  "rotate_protocol_governance_authority": Uint8Array.from([173, 25, 179, 236, 198, 190, 207, 98]),
   "set_pool_oracle": Uint8Array.from([140, 225, 146, 45, 210, 81, 225, 223]),
   "set_pool_oracle_permissions": Uint8Array.from([168, 14, 22, 106, 118, 145, 105, 44]),
   "set_pool_oracle_policy": Uint8Array.from([190, 13, 51, 113, 230, 140, 103, 82]),
@@ -203,6 +205,9 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   ],
   "reserve_obligation": [
       { name: "args", type: {"defined":{"name":"ReserveObligationArgs"}} },
+  ],
+  "rotate_protocol_governance_authority": [
+      { name: "args", type: {"defined":{"name":"RotateProtocolGovernanceAuthorityArgs"}} },
   ],
   "set_pool_oracle": [
       { name: "args", type: {"defined":{"name":"SetPoolOracleArgs"}} },
@@ -522,6 +527,10 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "allocation_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
       { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
+  ],
+  "rotate_protocol_governance_authority": [
+      { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "protocol_governance", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
   ],
   "set_pool_oracle": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },

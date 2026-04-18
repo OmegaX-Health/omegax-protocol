@@ -201,6 +201,29 @@ pub mod omegax_protocol {
         Ok(())
     }
 
+    pub fn rotate_protocol_governance_authority(
+        ctx: Context<RotateProtocolGovernanceAuthority>,
+        args: RotateProtocolGovernanceAuthorityArgs,
+    ) -> Result<()> {
+        require_governance(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.protocol_governance,
+        )?;
+
+        let governance = &mut ctx.accounts.protocol_governance;
+        let previous_governance_authority =
+            rotate_protocol_governance_authority_state(governance, args.new_governance_authority)?;
+
+        emit!(ProtocolGovernanceAuthorityRotatedEvent {
+            previous_governance_authority,
+            new_governance_authority: governance.governance_authority,
+            authority: ctx.accounts.authority.key(),
+            audit_nonce: governance.audit_nonce,
+        });
+
+        Ok(())
+    }
+
     pub fn create_reserve_domain(
         ctx: Context<CreateReserveDomain>,
         args: CreateReserveDomainArgs,
@@ -2190,6 +2213,13 @@ pub struct SetProtocolEmergencyPause<'info> {
 }
 
 #[derive(Accounts)]
+pub struct RotateProtocolGovernanceAuthority<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+}
+
+#[derive(Accounts)]
 #[instruction(args: CreateReserveDomainArgs)]
 pub struct CreateReserveDomain<'info> {
     #[account(mut)]
@@ -3664,6 +3694,11 @@ pub struct SetProtocolEmergencyPauseArgs {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct RotateProtocolGovernanceAuthorityArgs {
+    pub new_governance_authority: Pubkey,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct CreateReserveDomainArgs {
     #[max_len(MAX_ID_LEN)]
     pub domain_id: String,
@@ -4089,6 +4124,14 @@ pub struct ProtocolGovernanceInitializedEvent {
 }
 
 #[event]
+pub struct ProtocolGovernanceAuthorityRotatedEvent {
+    pub previous_governance_authority: Pubkey,
+    pub new_governance_authority: Pubkey,
+    pub authority: Pubkey,
+    pub audit_nonce: u64,
+}
+
+#[event]
 pub struct ReserveDomainCreatedEvent {
     pub reserve_domain: Pubkey,
     pub domain_admin: Pubkey,
@@ -4328,6 +4371,8 @@ pub enum FundingFlowKind {
 pub enum OmegaXProtocolError {
     #[msg("Caller is not authorized for this scope")]
     Unauthorized,
+    #[msg("Governance authority is invalid")]
+    InvalidGovernanceAuthority,
     #[msg("Protocol governance is emergency paused")]
     ProtocolEmergencyPaused,
     #[msg("Reserve domain is inactive")]
@@ -4450,6 +4495,21 @@ fn require_governance(authority: &Pubkey, governance: &ProtocolGovernance) -> Re
         OmegaXProtocolError::Unauthorized
     );
     Ok(())
+}
+
+fn rotate_protocol_governance_authority_state(
+    governance: &mut ProtocolGovernance,
+    new_governance_authority: Pubkey,
+) -> Result<Pubkey> {
+    require!(
+        new_governance_authority != ZERO_PUBKEY,
+        OmegaXProtocolError::InvalidGovernanceAuthority
+    );
+
+    let previous_governance_authority = governance.governance_authority;
+    governance.governance_authority = new_governance_authority;
+    governance.audit_nonce = governance.audit_nonce.saturating_add(1);
+    Ok(previous_governance_authority)
 }
 
 fn require_domain_control(
@@ -5672,6 +5732,51 @@ mod tests {
         book_impairment(&mut sheet, 100).unwrap();
         assert_eq!(sheet.free, 750);
         assert_eq!(sheet.redeemable, 350);
+    }
+
+    #[test]
+    fn rotating_protocol_governance_authority_updates_state_and_nonce() {
+        let current_governance_authority = Pubkey::new_unique();
+        let next_governance_authority = Pubkey::new_unique();
+        let mut governance = ProtocolGovernance {
+            governance_authority: current_governance_authority,
+            protocol_fee_bps: 50,
+            emergency_pause: false,
+            audit_nonce: 2,
+            bump: 7,
+        };
+
+        let previous =
+            rotate_protocol_governance_authority_state(&mut governance, next_governance_authority)
+                .unwrap();
+
+        assert_eq!(previous, current_governance_authority);
+        assert_eq!(governance.governance_authority, next_governance_authority);
+        assert_eq!(governance.audit_nonce, 3);
+    }
+
+    #[test]
+    fn rotating_protocol_governance_authority_rejects_zero_pubkey() {
+        let current_governance_authority = Pubkey::new_unique();
+        let mut governance = ProtocolGovernance {
+            governance_authority: current_governance_authority,
+            protocol_fee_bps: 50,
+            emergency_pause: false,
+            audit_nonce: 2,
+            bump: 7,
+        };
+
+        let error =
+            rotate_protocol_governance_authority_state(&mut governance, ZERO_PUBKEY).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("Governance authority is invalid"));
+        assert_eq!(
+            governance.governance_authority,
+            current_governance_authority
+        );
+        assert_eq!(governance.audit_nonce, 2);
     }
 
     fn sample_claim_case(

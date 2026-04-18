@@ -13,6 +13,7 @@ import {
   readGovernanceUiReadonlyConfig,
 } from "./devnet_governance_smoke_helpers.ts";
 import { loadEnvFile } from "./support/load_env_file.ts";
+import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
 
 import governanceModule from "../frontend/lib/governance.ts";
 
@@ -103,16 +104,21 @@ async function waitForBodyIncludes(
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   const normalizedFragments = fragments.map((fragment) => fragment.trim().toLowerCase()).filter(Boolean);
+  let lastBodyText = "";
 
   while (Date.now() < deadline) {
-    const bodyText = (await page.locator("body").innerText()).toLowerCase();
-    if (normalizedFragments.every((fragment) => bodyText.includes(fragment))) {
+    lastBodyText = await page.locator("body").innerText();
+    const normalizedBodyText = lastBodyText.toLowerCase();
+    if (normalizedFragments.every((fragment) => normalizedBodyText.includes(fragment))) {
       return;
     }
     await delay(1_000);
   }
 
-  throw new Error(`Timed out waiting for page body to include: ${fragments.join(", ")}`);
+  const excerpt = lastBodyText.replace(/\s+/g, " ").trim().slice(0, 400);
+  throw new Error(
+    `Timed out waiting for page body to include: ${fragments.join(", ")}. Last body excerpt: ${excerpt || "(empty)"}`,
+  );
 }
 
 async function waitForBodyIncludesWithRetry(
@@ -197,7 +203,10 @@ async function main(): Promise<void> {
   const config = readGovernanceUiReadonlyConfig();
   applyGovernanceSmokeFrontendEnv(process.env, config);
 
-  const connection = new Connection(config.rpcUrl, "confirmed");
+  const connection = wrapConnectionWithRpcRetry(new Connection(config.rpcUrl, "confirmed"), {
+    labelPrefix: "governance-ui-readonly",
+    logPrefix: "governance-ui-readonly",
+  });
   const proposalAddress = new PublicKey(config.proposalAddress);
   const detail = await governance.loadGovernanceProposalDetail({
     connection,
@@ -229,22 +238,18 @@ async function main(): Promise<void> {
   try {
     const page = await browser.newPage();
 
-    await page.goto(`${server.baseUrl}/governance`, { waitUntil: "domcontentloaded" });
+    await page.goto(
+      `${server.baseUrl}/governance?proposal=${encodeURIComponent(config.proposalAddress)}`,
+      { waitUntil: "domcontentloaded" },
+    );
     await waitForBodyIncludesWithRetry(page, [
-      "Native Governance Console",
-      "Governance rules",
-      "DAO activity",
-      "Members snapshot",
+      "Control plane",
+      "Live proposals",
+      detail.proposal.name,
     ]);
-    const proposalLink = page.locator(`a[href="/governance/proposals/${config.proposalAddress}"]`).first();
-    await proposalLink.waitFor({
-      state: "visible",
-      timeout: 90_000,
+    await page.goto(`${server.baseUrl}/governance/proposals/${config.proposalAddress}`, {
+      waitUntil: "domcontentloaded",
     });
-    await Promise.all([
-      page.waitForURL(`${server.baseUrl}/governance/proposals/${config.proposalAddress}`, { timeout: 90_000 }),
-      proposalLink.click(),
-    ]);
     await waitForBodyIncludesWithRetry(page, [
       "Proposal detail",
       detail.proposal.name,

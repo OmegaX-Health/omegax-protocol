@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+
+import { Keypair } from "@solana/web3.js";
 
 import protocolModule from "../frontend/lib/protocol.ts";
 
 const { getProgramId } = protocolModule as typeof import("../frontend/lib/protocol.ts");
+const DEPLOY_KEYPAIR_PATH = resolve(process.cwd(), "target/deploy/omegax_protocol-keypair.json");
+const DEFAULT_UPGRADE_AUTHORITY_PATH = "~/.config/solana/id.json";
 
 function run(cmd: string, args: string[]) {
   const result = spawnSync(cmd, args, {
@@ -20,8 +25,16 @@ function run(cmd: string, args: string[]) {
   process.stdout.write(output);
 }
 
+function deployKeypairAddress(): string {
+  const raw = JSON.parse(readFileSync(DEPLOY_KEYPAIR_PATH, "utf8")) as number[];
+  return Keypair.fromSecretKey(Uint8Array.from(raw)).publicKey.toBase58();
+}
+
 function main() {
-  console.log(`[devnet-beta] canonical_program_id=${getProgramId().toBase58()}`);
+  const canonicalProgramId = getProgramId().toBase58();
+  const deployKeypairProgramId = deployKeypairAddress();
+
+  console.log(`[devnet-beta] canonical_program_id=${canonicalProgramId}`);
   console.log("[devnet-beta] running checked build and artifact parity...");
   run("npm", ["run", "anchor:build:checked"]);
   run("npm", ["run", "protocol:contract:check"]);
@@ -30,10 +43,19 @@ function main() {
   run("npm", ["run", "protocol:bootstrap"]);
   run("npm", ["run", "devnet:frontend:bootstrap"]);
 
+  if (deployKeypairProgramId !== canonicalProgramId) {
+    console.log(
+      `[devnet-beta] deploy_keypair_program_id=${deployKeypairProgramId} (differs from canonical program id)`,
+    );
+    console.log(
+      "[devnet-beta] do not deploy shared devnet by relying on target/deploy/omegax_protocol-keypair.json.",
+    );
+  }
   console.log("[devnet-beta] onchain deployment is intentionally operator-mediated for the hard-break migration.");
   console.log(
-    "[devnet-beta] next step: deploy target/deploy/omegax_protocol.so with the canonical program id, then apply the generated manifest under devnet/.",
+    `[devnet-beta] next step: solana program deploy --program-id ${canonicalProgramId} --upgrade-authority ${DEFAULT_UPGRADE_AUTHORITY_PATH} target/deploy/omegax_protocol.so`,
   );
+  console.log("[devnet-beta] then apply the generated manifest under devnet/.");
 }
 
 main();

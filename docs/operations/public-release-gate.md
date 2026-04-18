@@ -72,6 +72,7 @@ Recommended sequence:
 
 1. `npm run devnet:beta:deploy`
 2. upgrade the canonical shared-devnet program id with the checked `target/deploy/omegax_protocol.so`
+   Use the canonical `Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B` program id directly if the checked deploy keypair file has drifted.
 3. `npm run protocol:bootstrap:devnet-live`
 4. `npm run devnet:frontend:bootstrap`
 5. `npm run devnet:frontend:signoff`

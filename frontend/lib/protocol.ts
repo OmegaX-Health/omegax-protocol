@@ -2843,6 +2843,27 @@ export function buildInitializeProtocolGovernanceTx(params: {
   });
 }
 
+export function buildRotateGovernanceAuthorityTx(params: {
+  governanceAuthority: PublicKeyish;
+  newAuthority: PublicKeyish;
+  recentBlockhash: string;
+}): Transaction {
+  const governanceAuthority = toPublicKey(params.governanceAuthority);
+  const newAuthority = toPublicKey(params.newAuthority);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: governanceAuthority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "rotate_protocol_governance_authority",
+    args: {
+      new_governance_authority: newAuthority,
+    },
+    accounts: [
+      { pubkey: governanceAuthority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
+    ],
+  });
+}
+
 export function buildCreateReserveDomainTx(params: {
   authority: PublicKeyish;
   recentBlockhash: string;
