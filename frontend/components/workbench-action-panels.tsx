@@ -1292,6 +1292,8 @@ type TreasuryOperatorPanelProps = {
   allocations: AllocationPositionSnapshot[];
   classes: CapitalClassSnapshot[];
   pools: LiquidityPoolSnapshot[];
+  selectedFundingLineAddress?: string | null;
+  onSelectFundingLine?: (address: string) => void;
   onRefresh?: () => Promise<void> | void;
 };
 
@@ -1301,7 +1303,9 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
   const canAct = Boolean(publicKey && props.plan && props.reserveDomain);
   const [status, setStatus] = useState<ActionStatus>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [fundingLineAddress, setFundingLineAddress] = useState(props.fundingLines[0]?.address ?? "");
+  const [fundingLineAddress, setFundingLineAddress] = useState(
+    props.selectedFundingLineAddress ?? props.fundingLines[0]?.address ?? "",
+  );
   const [amount, setAmount] = useState("0");
   const [planPauseFlags, setPlanPauseFlags] = useState(String(props.plan?.pauseFlags ?? 0));
   const [domainPauseFlags, setDomainPauseFlags] = useState(String(props.reserveDomain?.pauseFlags ?? 0));
@@ -1328,7 +1332,7 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
   const [selectedFundingSeriesAddress, setSelectedFundingSeriesAddress] = useState("");
 
   useEffect(() => {
-    setFundingLineAddress(props.fundingLines[0]?.address ?? "");
+    setFundingLineAddress(props.selectedFundingLineAddress ?? props.fundingLines[0]?.address ?? "");
     setPlanPauseFlags(String(props.plan?.pauseFlags ?? 0));
     setAllowedRailMask("0");
     setDomainPauseFlags(String(props.reserveDomain?.pauseFlags ?? 0));
@@ -1351,7 +1355,7 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
     setNewFundingLineType(String(props.series?.mode === SERIES_MODE_PROTECTION ? FUNDING_LINE_TYPE_PREMIUM_INCOME : FUNDING_LINE_TYPE_SPONSOR_BUDGET));
     setNewFundingPriority(String(props.fundingLines[0]?.fundingPriority ?? 0));
     setSelectedFundingSeriesAddress(props.series?.address ?? "");
-  }, [props.fundingLines, props.plan, props.reserveDomain, props.series]);
+  }, [props.fundingLines, props.plan, props.reserveDomain, props.selectedFundingLineAddress, props.series]);
 
   const selectedFundingLine = useMemo(
     () => props.fundingLines.find((line) => line.address === fundingLineAddress) ?? props.fundingLines[0] ?? null,
@@ -1411,7 +1415,14 @@ export function TreasuryOperatorPanel(props: TreasuryOperatorPanelProps) {
         <label className="plans-wizard-field-group">
           <span className="plans-wizard-field-label">FUNDING_LINE</span>
           <span className="plans-wizard-field-bar">
-            <select className="plans-wizard-input" value={fundingLineAddress} onChange={(event) => setFundingLineAddress(event.target.value)}>
+            <select
+              className="plans-wizard-input"
+              value={fundingLineAddress}
+              onChange={(event) => {
+                setFundingLineAddress(event.target.value);
+                props.onSelectFundingLine?.(event.target.value);
+              }}
+            >
               {props.fundingLines.map((line) => (
                 <option key={line.address} value={line.address}>{line.displayName}</option>
               ))}

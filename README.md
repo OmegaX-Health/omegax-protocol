@@ -103,6 +103,8 @@ This is the first publishable canonical OmegaX health-capital-markets surface.
 - `/plans/new` now launches from live reserve-domain, vault-rail, oracle, and schema registry data rather than fixture-only defaults
 - `/plans/new?template=genesis-protect-acute` now bootstraps the canonical Genesis Protect Acute shell in place using the frozen Event 7 and Travel 30 launch truth
 - `/plans?...&setup=genesis-protect-acute` now exposes the Genesis setup checklist, issuance posture, and reserve-warning view inside the mounted sponsor/operator workspace
+- the mounted Genesis claims tab now behaves as an operator claim queue with summary cards, queue filters, selected-case detail, and contextual handoff into adjudication, reserve, and oracle follow-through
+- the mounted Genesis treasury tab now behaves as a reserve console with lane filters, per-SKU reserve attribution, degraded-visibility warnings, and treasury actions scoped from the selected live funding lane
 - `/governance` now exposes mounted protocol bootstrap actions for governance, reserve domains, and domain asset vaults
 - `/members` now leads with self-serve enrollment and `/claims` now leads with self-serve claim intake on the canonical model
 - mounted workbenches now include sponsor-side post-launch series and funding-line actions, LP credentialing updates, and claim impairment handling
@@ -116,7 +118,7 @@ Genesis Protect Acute sprint-1 launch truth is frozen in the public metadata and
 - AI recommendation and more explicit decentralized review remain next-phase work, not current public fact
 - prediction markets do not count as reserve truth; only posted premiums, sponsor funds, liquidity, and explicit backstops do
 - app membership billing remains separate from per-window protection premiums
-- the public sponsor/operator console now carries the Genesis bootstrap, checklist, and reserve-posture read path directly on `/plans`
+- the public sponsor/operator console now carries the Genesis bootstrap, checklist, operator claim queue, and reserve-console read path directly on `/plans`
 
 Read the canonical design set first:
 
@@ -189,6 +191,7 @@ These helpers are for repo maintainers and shared-devnet operators rather than f
   - runs the checked build and artifact parity
   - regenerates the canonical bootstrap artifacts
   - leaves the final live deploy step operator-mediated for auditability
+  - prints the exact canonical `solana program deploy --program-id ...` upgrade command and warns if `target/deploy/omegax_protocol-keypair.json` has drifted away from the canonical program id
 - `npm run devnet:frontend:smoke`
   - checks that the canonical fixture set is present and coherent
 - `npm run devnet:frontend:signoff`

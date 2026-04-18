@@ -39,8 +39,11 @@ Genesis Protect Acute uses the same mounted `/plans` workspace rather than a sep
 
 - `/plans/new?template=genesis-protect-acute` seeds the canonical plan, pool, class, series, funding-line, and allocation shell for Event 7 and Travel 30.
 - `/plans?...&setup=genesis-protect-acute` keeps the operator on the live plan workspace while exposing the Genesis checklist, reserve-warning posture, and per-SKU launch truth.
+- `/plans?...&setup=genesis-protect-acute&tab=claims` is the Genesis operator claim queue, with queue filters and selected-case detail inside the mounted workspace rather than a separate operator app.
+- `/plans?...&setup=genesis-protect-acute&tab=treasury` is the Genesis reserve console, with lane filters, degraded-visibility warnings, and treasury actions scoped from the selected live funding lane.
 - Travel 30 is the primary launch SKU and Event 7 remains the fast demo SKU when no explicit Genesis series is selected.
 - This mounted mode must speak in launch-readiness language: end-of-month mainnet target, not broadly live insurance today, and Phase 0 operator-backed claim review with later AI and decentralized steps framed as roadmap.
+- Setup, claims, and treasury must share one Genesis-derived posture model so queue warnings, reserve warnings, and launch-readiness copy do not drift between tabs.
 
 ## Overview route
 

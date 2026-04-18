@@ -5,6 +5,7 @@
 import Link from "next/link";
 
 import { formatAmount } from "@/lib/canonical-ui";
+import type { GenesisProtectAcuteSkuKey } from "@/lib/genesis-protect-acute";
 import {
   GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU,
   GENESIS_PROTECT_ACUTE_PRIMARY_SKU,
@@ -20,6 +21,11 @@ type GenesisProtectAcuteSetupPanelProps = {
   capitalAllocationsHref: string;
   bootstrapHref: string;
   oracleBindingsHref: string;
+  claimsHref: string;
+  skuConsoleHrefs: Record<GenesisProtectAcuteSkuKey, {
+    claims: string;
+    treasury: string;
+  }>;
 };
 
 function posturePillClass(state: GenesisProtectAcuteSetupModel["posture"]["state"]): string {
@@ -282,6 +288,14 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
                   </ul>
                 </div>
               </div>
+              <div className="plans-wizard-support-actions">
+                <Link href={props.skuConsoleHrefs[sku.skuKey].claims} className="secondary-button inline-flex w-fit">
+                  Open claim console
+                </Link>
+                <Link href={props.skuConsoleHrefs[sku.skuKey].treasury} className="secondary-button inline-flex w-fit">
+                  Open reserve console
+                </Link>
+              </div>
             </section>
           ))}
         </div>
@@ -290,6 +304,11 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
           <Link href={props.bootstrapHref} className="secondary-button inline-flex w-fit">
             Rerun Genesis template
           </Link>
+          {props.planAddress ? (
+            <Link href={props.claimsHref} className="secondary-button inline-flex w-fit">
+              Open claim console
+            </Link>
+          ) : null}
           {props.planAddress ? (
             <Link href={props.treasuryHref} className="secondary-button inline-flex w-fit">
               Open Genesis treasury

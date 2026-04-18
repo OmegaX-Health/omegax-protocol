@@ -136,6 +136,8 @@ Genesis Protect Acute is a required mounted variant of this same workspace, not 
 - `/plans/new?template=genesis-protect-acute` must prefill and lock the canonical Genesis shell ids, metadata URIs, and launch SKU definitions.
 - the template flow must bootstrap the public-safe Genesis plan, pool, capital classes, protection series, funding lines, and allocation positions in place by orchestrating existing builders rather than introducing a parallel launch surface
 - after bootstrap, the operator must land back in `/plans?...&setup=genesis-protect-acute` so the live checklist and issuance posture remain visible until launch readiness is complete
+- `/plans?...&setup=genesis-protect-acute&tab=claims` must become the mounted Genesis operator claim queue, with summary cards, queue filters, selected-case detail, and only contextual action handoff into adjudication, reserve, impairment, or oracle follow-through
+- `/plans?...&setup=genesis-protect-acute&tab=treasury` must become the mounted Genesis reserve console, with per-lane reserve attribution, degraded-visibility warnings, and treasury actions scoped from the selected live funding lane
 - all mounted Genesis copy must describe a bounded launch-readiness posture: end-of-month mainnet target, not broadly live insurance today, and Phase 0 operator-backed claim review
 - any later AI recommendation or decentralized review language must be explicitly framed as roadmap or next phase rather than current fact
 
@@ -254,6 +256,9 @@ Genesis setup mode on `/plans` must also expose:
 - one checklist card set covering plan shell, Event 7 and Travel 30 series, canonical funding lines, pool shell, capital classes, allocations, authorities, reserve review, pool terms, and oracle policy
 - one issuance posture readout with `healthy`, `caution`, and `paused` states derived from live reserve, queue-only, impairment, and pause-flag signals
 - one per-SKU summary for Event 7 and Travel 30 showing cover window, reimbursement posture, claims-paying capital, pending payout, and the frozen `issueWhen` / `pauseWhen` rules from the canonical Genesis metadata
+- direct handoff links from checklist items and per-SKU cards into the mounted claim queue or reserve console with the correct `tab`, `series`, and filter state already in the URL
+- one claim-queue register showing submitted, operator-review, attestation-ready, reserve-active, payout-in-flight, and closed Genesis claims without exposing raw action forms until a case is selected
+- one reserve-console register showing premium, sponsor, and liquidity lanes with claims-paying capital, reserved amount, pending payout, queue-only posture, impairment signals, and explicit degraded-visibility messaging when live snapshot context is incomplete
 
 ### 3.3 `/capital`
 
