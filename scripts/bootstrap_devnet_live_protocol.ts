@@ -91,6 +91,14 @@ function configuredGovernanceControlAddress(): string | null {
   }
 }
 
+async function directProtocolGovernanceAuthority(
+  protocol: ProtocolModule,
+  connection: Connection,
+): Promise<string | null> {
+  const protocolConfig = await protocol.fetchProtocolConfig({ connection });
+  return protocolConfig?.governanceAuthority ?? null;
+}
+
 function upsertEnvFile(path: string, updates: Record<string, string>): void {
   const existing = new Map<string, string>();
   if (existsSync(path)) {
@@ -840,29 +848,36 @@ async function main() {
     });
   }
 
-  await sendProtocolInstruction({
-    protocol,
-    connection,
-    feePayer: governance,
-    label: "backfill_schema_dependency_ledger:standard",
-    instructionName: "backfill_schema_dependency_ledger",
-    args: {
-      schema_key_hash: STANDARD_SCHEMA_KEY_HASH_BYTES,
-      pool_rule_addresses: [new PublicKey(pool.address)],
-    },
-    accounts: [
-      { pubkey: governance.publicKey, isSigner: true, isWritable: true },
-      { pubkey: governanceAddress },
-      { pubkey: standardSchemaAddress },
-      { pubkey: standardSchemaDependencyLedger, isWritable: true },
-      { pubkey: SystemProgram.programId },
-    ],
-  }).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes("already in use")) {
-      throw error;
-    }
-  });
+  const directGovernanceAuthority = await directProtocolGovernanceAuthority(protocol, connection);
+  if (directGovernanceAuthority === governance.publicKey.toBase58()) {
+    await sendProtocolInstruction({
+      protocol,
+      connection,
+      feePayer: governance,
+      label: "backfill_schema_dependency_ledger:standard",
+      instructionName: "backfill_schema_dependency_ledger",
+      args: {
+        schema_key_hash: STANDARD_SCHEMA_KEY_HASH_BYTES,
+        pool_rule_addresses: [new PublicKey(pool.address)],
+      },
+      accounts: [
+        { pubkey: governance.publicKey, isSigner: true, isWritable: true },
+        { pubkey: governanceAddress },
+        { pubkey: standardSchemaAddress },
+        { pubkey: standardSchemaDependencyLedger, isWritable: true },
+        { pubkey: SystemProgram.programId },
+      ],
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes("already in use")) {
+        throw error;
+      }
+    });
+  } else {
+    console.log(
+      `[bootstrap-live] skipping direct schema backfill because protocol governance authority is ${directGovernanceAuthority ?? "(unset)"} instead of ${governance.publicKey.toBase58()}; use governance proposal flow if a schema dependency backfill is still required.`,
+    );
+  }
 
   if (!currentValue(snapshot, oracleProfileAddress).oracleProfile) {
     await sendProtocolInstruction({
