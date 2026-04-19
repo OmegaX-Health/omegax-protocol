@@ -25,6 +25,14 @@ Public repository. Keep instructions and changes public-safe.
 - Do not hand-edit generated outputs in `idl/`, `shared/`, `frontend/lib/generated/`, or `android-native/protocol/` unless a documented maintenance workflow explicitly requires it.
 - If you change the protocol surface or shared protocol builders, regenerate artifacts with `npm run anchor:idl` and `npm run protocol:contract`.
 
+## Genesis Protect Launch Keys
+
+- The prepared public vanity operator wallet is `oxhocTdPyENqy9RS13iaq2upoNAovMJHu9PMaBxrK8h`.
+- Do not commit the private keypair, seed phrase, absolute local keypair path, or funding details to this public repository.
+- When intentionally using this wallet as the Genesis live oracle/operator, set `OMEGAX_LIVE_ORACLE_WALLET` to the public key above and provide the private keypair only through the local operator environment via `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH`.
+- When intentionally using this wallet as a deploy or governance signer, provide the private keypair only through the local operator environment via `SOLANA_KEYPAIR`.
+- Confirm funding and signer role before any mainnet transaction; the vanity wallet was created for launch prep, not automatically authorized or funded.
+
 ## Verification
 
 - Run the narrowest relevant checks before finishing.
