@@ -322,6 +322,11 @@ async function main() {
     (row) => row.planId === "nexus-protect-plus",
     "blended plan",
   );
+  const genesisPlan = findRequired(
+    fixtureState.healthPlans,
+    (row) => row.planId === "genesis-protect-acute-v1",
+    "genesis protect plan",
+  );
   const seekerRewardSeries = findRequired(
     fixtureState.policySeries,
     (row) => row.seriesId === "daily-activity-rewards",
@@ -336,6 +341,16 @@ async function main() {
     fixtureState.policySeries,
     (row) => row.seriesId === "catastrophic-protection-2026",
     "blended protection series",
+  );
+  const genesisEvent7Series = findRequired(
+    fixtureState.policySeries,
+    (row) => row.seriesId === "genesis-event-7-v1",
+    "genesis event 7 series",
+  );
+  const genesisTravel30Series = findRequired(
+    fixtureState.policySeries,
+    (row) => row.seriesId === "genesis-travel-30-v1",
+    "genesis travel 30 series",
   );
   const seekerSponsorLine = findRequired(
     fixtureState.fundingLines,
@@ -361,6 +376,19 @@ async function main() {
     fixtureState.fundingLines,
     (row) => row.lineId === "blended-reward-liquidity",
     "blended reward liquidity line",
+  );
+  const genesisFundingLines = [
+    "genesis-event7-sponsor",
+    "genesis-event7-premiums",
+    "genesis-event7-liquidity",
+    "genesis-travel30-premiums",
+    "genesis-travel30-liquidity",
+  ].map((lineId) =>
+    findRequired(
+      fixtureState.fundingLines,
+      (row) => row.lineId === lineId,
+      `${lineId} funding line`,
+    ),
   );
   const pool = findRequired(
     fixtureState.liquidityPools,
@@ -601,6 +629,16 @@ async function main() {
       membershipGateKind: MEMBERSHIP_GATE_KIND_OPEN,
       membershipInviteAuthority: protocol.ZERO_PUBKEY_KEY,
     },
+    {
+      fixture: genesisPlan,
+      sponsor: governance.publicKey,
+      sponsorOperator: governance.publicKey,
+      claimsOperator: governance.publicKey,
+      oracleAuthority: roleWallets.oracle.publicKey,
+      membershipMode: MEMBERSHIP_MODE_OPEN,
+      membershipGateKind: MEMBERSHIP_GATE_KIND_OPEN,
+      membershipInviteAuthority: protocol.ZERO_PUBKEY_KEY,
+    },
   ];
   for (const planSpec of planSpecs) {
     if (await protocol.accountExists(connection, planSpec.fixture.address)) continue;
@@ -645,6 +683,8 @@ async function main() {
     seekerRewardSeries,
     blendedRewardSeries,
     blendedProtectionSeries,
+    genesisEvent7Series,
+    genesisTravel30Series,
   ];
   for (const series of seriesSpecs) {
     if (await protocol.accountExists(connection, series.address)) continue;
@@ -689,6 +729,7 @@ async function main() {
     blendedPremiumLine,
     blendedProtectionLiquidityLine,
     blendedRewardLiquidityLine,
+    ...genesisFundingLines,
   ];
   for (const line of fundingLineSpecs) {
     if (await protocol.accountExists(connection, line.address)) continue;
