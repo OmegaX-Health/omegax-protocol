@@ -7,10 +7,12 @@ import { resolve } from "node:path";
 import { Keypair } from "@solana/web3.js";
 
 import protocolModule from "../frontend/lib/protocol.ts";
+import { loadEnvFile } from "./support/load_env_file.ts";
 
 const { getProgramId } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 const DEPLOY_KEYPAIR_PATH = resolve(process.cwd(), "target/deploy/omegax_protocol-keypair.json");
 const DEFAULT_UPGRADE_AUTHORITY_PATH = "~/.config/solana/id.json";
+const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 
 function run(cmd: string, args: string[]) {
   const result = spawnSync(cmd, args, {
@@ -31,6 +33,8 @@ function deployKeypairAddress(): string {
 }
 
 function main() {
+  loadEnvFile(FRONTEND_ENV_PATH);
+
   const canonicalProgramId = getProgramId().toBase58();
   const deployKeypairProgramId = deployKeypairAddress();
 
