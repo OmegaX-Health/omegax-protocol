@@ -104,9 +104,6 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
       "attest_claim_case",
       "adjudicate_claim_case",
       "settle_claim_case",
-      "reserve_obligation",
-      "settle_obligation",
-      "release_reserve",
     ],
   },
   liquidity_pool_and_capital_class_lifecycle: {
