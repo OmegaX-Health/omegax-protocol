@@ -10,3 +10,4 @@ they are not part of the shared-devnet release truth by default.
 Current examples:
 
 - [Italian Rehab and Full-Cover Research Product](./research-products/italian-rehab-and-fullcover/README.md)
+- [Genesis Protect Acute — Claim Simulations](./genesis-protect-acute-claims/)
