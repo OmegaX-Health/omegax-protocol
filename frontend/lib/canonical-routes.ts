@@ -36,7 +36,8 @@ export function buildCanonicalPoolHref(
       if (linked.series) params.set("series", linked.series);
       break;
     case "members":
-      pathname = "/members";
+      pathname = "/plans";
+      params.set("tab", "members");
       params.set("panel", panel?.trim() || "enroll");
       if (linked.plan) params.set("plan", linked.plan);
       if (linked.series) params.set("series", linked.series);

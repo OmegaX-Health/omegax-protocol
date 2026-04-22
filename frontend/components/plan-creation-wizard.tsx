@@ -160,40 +160,40 @@ function isGenesisProtectAcuteTemplate(value: string | null): boolean {
 
 const STEP_COPY: Record<StepId, StepCopy> = {
   basics: {
-    headline: "Set up the foundation for your",
-    emphasis: "Health Plan.",
-    body: "Start with the core details for your plan. You’ll choose the reward and protection options it should launch with in the next steps.",
-    tip: "Choose a plan name, reserve domain, and public metadata you’ll be comfortable keeping long term. You can fine-tune rewards and coverage after this.",
+    headline: "Set up your",
+    emphasis: "plan.",
+    body: "Start with the basics. You’ll pick rewards and coverage in the next steps.",
+    tip: "Pick a name, identifier, and public link you’re comfortable keeping long term.",
   },
   membership: {
-    headline: "Set the enrollment posture for your",
-    emphasis: "Membership Surface.",
-    body: "Enrollment rules live on the plan root and apply before members can participate in any attached reward or protection lane.",
-    tip: "Keep the first launch simple. You can tighten enrollment later, but confusing membership posture creates support load immediately.",
+    headline: "Choose who can",
+    emphasis: "join.",
+    body: "Enrollment rules apply before members participate in any reward or coverage lane.",
+    tip: "Keep it simple at launch. You can tighten enrollment rules later.",
   },
   verification: {
-    headline: "Anchor a real verifier set for",
-    emphasis: "Oracle Policy.",
-    body: "The selected verifiers and quorum are committed into plan-level policy hashes so lane behavior stays tied back to one verification baseline.",
-    tip: "Pick enough verifiers to avoid single-operator fragility, but keep quorum understandable for launch-day operations.",
+    headline: "Choose who verifies",
+    emphasis: "outcomes.",
+    body: "The verifiers and quorum you pick decide when rewards unlock and when claims pay out.",
+    tip: "Pick enough verifiers to avoid single-operator risk, but keep the quorum simple.",
   },
   "reward-lane": {
-    headline: "Create the initial incentive lane for",
-    emphasis: "Rewards.",
-    body: "Reward lanes carry outcome selection, rule IDs, payout commitments, and the sponsor-budget line that will fund incentives later.",
-    tip: "Keep the first reward lane narrow. It is better to launch one crisp outcome lane than a broad lane with muddy comparability.",
+    headline: "Set up your",
+    emphasis: "rewards.",
+    body: "Pick the outcomes that should trigger a reward, name each rule, and connect the budget that will fund payouts.",
+    tip: "Start narrow. One crisp reward is better than many muddy ones.",
   },
   "protection-lane": {
-    headline: "Wire the first premium rail for",
-    emphasis: "Protection.",
-    body: "Protection posture stays real through structured metadata commitments, a protection policy series, and an initial premium-income funding line.",
-    tip: "Use public terms and disclosure links that people can actually inspect. The hashes should commit to something humans can read.",
+    headline: "Set up your",
+    emphasis: "coverage.",
+    body: "Define the protection terms, premium schedule, and public policy details members can inspect.",
+    tip: "Link to terms and disclosures real people can read.",
   },
   review: {
-    headline: "Review every lane, address, and",
-    emphasis: "Launch Artifact.",
-    body: "The final launch sends only canonical plan, series, and funding-line instructions. No stale pool typing survives this step.",
-    tip: "If creation partially succeeds, rerunning is safe for account creation. Existing plan, series, and funding lines are skipped automatically.",
+    headline: "Review and",
+    emphasis: "launch.",
+    body: "Final check before the plan, series, and funding lines are created on-chain.",
+    tip: "If launch partially succeeds, rerunning is safe — existing accounts are skipped.",
   },
 };
 
@@ -1103,7 +1103,7 @@ export function PlanCreationWizard() {
       : activeDetail?.key === "rule-commitments"
         ? [
           {
-            label: activeRulePreview ? "DERIVED READY" : "HASHES PENDING",
+            label: activeRulePreview ? "Ready" : "Pending",
             tone: activeRulePreview ? "accent" : "muted",
           },
           {
@@ -2155,13 +2155,11 @@ export function PlanCreationWizard() {
       <div className="plans-wizard-scroll">
         <header className="plans-wizard-header">
           <div className="plans-wizard-header-ident">
-            <span className="plans-wizard-wordmark">PROTOCOL_CONSOLE</span>
-            <span className="plans-wizard-header-divider" aria-hidden="true" />
-            <span className="plans-wizard-header-label">Canonical Plan Launch</span>
+            <span className="plans-wizard-wordmark">New plan</span>
           </div>
           <Link href="/plans" className="plans-wizard-cancel">
             <span className="material-symbols-outlined" aria-hidden="true">close</span>
-            CANCEL_FLOW
+            Cancel
           </Link>
         </header>
 
@@ -2201,7 +2199,7 @@ export function PlanCreationWizard() {
             </h1>
             <p className="plans-wizard-body-text">{copy.body}</p>
             <div className="plans-wizard-tip">
-              <span className="plans-wizard-tip-label">[PROTOCOL_TIP]</span>
+              <span className="plans-wizard-tip-label">Tip</span>
               <p>{copy.tip}</p>
             </div>
           </aside>
@@ -2629,7 +2627,7 @@ export function PlanCreationWizard() {
                           Reward lanes keep their schema commitments tied to the verified catalog.
                         </span>
                         <span className="wizard-toggle-badge">
-                          {requireVerifiedSchema ? "ENFORCED" : "OPTIONAL"}
+                          {requireVerifiedSchema ? "On" : "Off"}
                         </span>
                       </span>
                     </span>
@@ -2817,22 +2815,11 @@ export function PlanCreationWizard() {
                           </label>
                           <WizardDetailTriggerRow
                             title="Rule commitments"
-                            summary="Open the derived hashes and optional overrides for this outcome."
+                            summary="Open the derived hashes for this outcome."
                             meta={[
                               {
-                                label: preview ? "DERIVED READY" : "HASHES PENDING",
+                                label: preview ? "Ready" : "Pending",
                                 tone: preview ? "accent" : "muted",
-                              },
-                              {
-                                label: `OVERRIDES ${
-                                  Number(Boolean(normalize(ruleHashOverridesByOutcome[outcomeId] ?? ""))) +
-                                  Number(Boolean(normalize(payoutHashOverridesByOutcome[outcomeId] ?? "")))
-                                }`,
-                                tone:
-                                  normalize(ruleHashOverridesByOutcome[outcomeId] ?? "") ||
-                                  normalize(payoutHashOverridesByOutcome[outcomeId] ?? "")
-                                    ? "accent"
-                                    : "muted",
                               },
                             ]}
                             className="wizard-detail-trigger-compact"
@@ -2937,41 +2924,41 @@ export function PlanCreationWizard() {
             {activeStep.id === "review" ? (
               <div className="plans-wizard-step-body">
                 <div className="plans-wizard-review-grid">
-                  <ReviewRow label="LAUNCH_INTENT" value={launchIntent.toUpperCase()} />
+                  <ReviewRow label="Plan type" value={launchIntent.charAt(0).toUpperCase() + launchIntent.slice(1)} />
                   <ReviewRow
-                    label="LANES"
+                    label="Lanes"
                     value={
                       genesisTemplateMode
-                        ? "EVENT 7 + TRAVEL 30"
+                        ? "Event 7 + Travel 30"
                         : requiresRewardLane(launchIntent) && requiresProtectionLane(launchIntent)
-                          ? "REWARD + PROTECTION"
+                          ? "Reward + Protection"
                           : requiresRewardLane(launchIntent)
-                            ? "REWARD"
-                            : "PROTECTION"
+                            ? "Reward"
+                            : "Protection"
                     }
                   />
                   <ReviewRow
-                    label="HEALTH_PLAN"
+                    label="Plan address"
                     value={genesisTemplateMode ? genesisArtifactPreview?.healthPlanAddress ?? "pending" : addressPreview.healthPlanAddress ?? "pending"}
                     muted={genesisTemplateMode ? !genesisArtifactPreview?.healthPlanAddress : !addressPreview.healthPlanAddress}
                   />
                   {genesisTemplateMode ? (
                     <>
-                      <ReviewRow label="EVENT7_SERIES" value={genesisArtifactPreview?.seriesAddresses.event7 ?? "pending"} muted={!genesisArtifactPreview?.seriesAddresses.event7} />
-                      <ReviewRow label="TRAVEL30_SERIES" value={genesisArtifactPreview?.seriesAddresses.travel30 ?? "pending"} muted={!genesisArtifactPreview?.seriesAddresses.travel30} />
-                      <ReviewRow label="GENESIS_POOL" value={genesisArtifactPreview?.poolAddress ?? "pending"} muted={!genesisArtifactPreview?.poolAddress} />
-                      <ReviewRow label="FUNDING_LINES" value={String(Object.keys(genesisArtifactPreview?.fundingLineAddresses ?? {}).length)} muted={!genesisArtifactPreview} />
-                      <ReviewRow label="CAPITAL_CLASSES" value={String(genesisProtectAcuteBootstrapCapitalClasses().length)} muted={!genesisArtifactPreview} />
-                      <ReviewRow label="ALLOCATIONS" value={String(genesisProtectAcuteBootstrapAllocations().length)} muted={!genesisArtifactPreview} />
+                      <ReviewRow label="Event 7 series" value={genesisArtifactPreview?.seriesAddresses.event7 ?? "pending"} muted={!genesisArtifactPreview?.seriesAddresses.event7} />
+                      <ReviewRow label="Travel 30 series" value={genesisArtifactPreview?.seriesAddresses.travel30 ?? "pending"} muted={!genesisArtifactPreview?.seriesAddresses.travel30} />
+                      <ReviewRow label="Capital pool" value={genesisArtifactPreview?.poolAddress ?? "pending"} muted={!genesisArtifactPreview?.poolAddress} />
+                      <ReviewRow label="Funding lines" value={String(Object.keys(genesisArtifactPreview?.fundingLineAddresses ?? {}).length)} muted={!genesisArtifactPreview} />
+                      <ReviewRow label="Capital classes" value={String(genesisProtectAcuteBootstrapCapitalClasses().length)} muted={!genesisArtifactPreview} />
+                      <ReviewRow label="Allocations" value={String(genesisProtectAcuteBootstrapAllocations().length)} muted={!genesisArtifactPreview} />
                     </>
                   ) : (
                     <>
-                      <ReviewRow label="REWARD_SERIES" value={addressPreview.rewardSeriesAddress ?? "n/a"} muted={!addressPreview.rewardSeriesAddress} />
-                      <ReviewRow label="PROTECTION_SERIES" value={addressPreview.protectionSeriesAddress ?? "n/a"} muted={!addressPreview.protectionSeriesAddress} />
-                      <ReviewRow label="SPONSOR_LINE" value={addressPreview.rewardFundingLineAddress ?? "n/a"} muted={!addressPreview.rewardFundingLineAddress} />
-                      <ReviewRow label="PREMIUM_LINE" value={addressPreview.protectionFundingLineAddress ?? "n/a"} muted={!addressPreview.protectionFundingLineAddress} />
-                      <ReviewRow label="REWARD_COMMITMENT" value={rewardLaneRequired ? baseUnitsPreview(rewardCommittedBudgetUi, payoutAssetMode, splDecimals) : "n/a"} muted={!rewardLaneRequired} />
-                      <ReviewRow label="PREMIUM_COMMITMENT" value={protectionLaneRequired ? baseUnitsPreview(protectionExpectedPremiumUi, payoutAssetMode, splDecimals) : "n/a"} muted={!protectionLaneRequired} />
+                      <ReviewRow label="Reward series" value={addressPreview.rewardSeriesAddress ?? "n/a"} muted={!addressPreview.rewardSeriesAddress} />
+                      <ReviewRow label="Protection series" value={addressPreview.protectionSeriesAddress ?? "n/a"} muted={!addressPreview.protectionSeriesAddress} />
+                      <ReviewRow label="Sponsor line" value={addressPreview.rewardFundingLineAddress ?? "n/a"} muted={!addressPreview.rewardFundingLineAddress} />
+                      <ReviewRow label="Premium line" value={addressPreview.protectionFundingLineAddress ?? "n/a"} muted={!addressPreview.protectionFundingLineAddress} />
+                      <ReviewRow label="Reward commitment" value={rewardLaneRequired ? baseUnitsPreview(rewardCommittedBudgetUi, payoutAssetMode, splDecimals) : "n/a"} muted={!rewardLaneRequired} />
+                      <ReviewRow label="Premium commitment" value={protectionLaneRequired ? baseUnitsPreview(protectionExpectedPremiumUi, payoutAssetMode, splDecimals) : "n/a"} muted={!protectionLaneRequired} />
                     </>
                   )}
                 </div>
@@ -3178,7 +3165,7 @@ export function PlanCreationWizard() {
               <article className="plans-launch-preview-panel">
                 <div className="plans-launch-preview-panel-head">
                   <div>
-                    <p className="plans-launch-preview-panel-eyebrow">PLAN_ROOT</p>
+                    <p className="plans-launch-preview-panel-eyebrow">Plan</p>
                     <h4 className="plans-launch-preview-panel-title">Canonical health plan</h4>
                   </div>
                   <span className="plans-launch-preview-panel-badge">{protocolToken(organizationRef || "sponsor")}</span>
@@ -3204,10 +3191,10 @@ export function PlanCreationWizard() {
                   <article className="plans-launch-preview-panel">
                     <div className="plans-launch-preview-panel-head">
                       <div>
-                        <p className="plans-launch-preview-panel-eyebrow">EVENT7_SKU</p>
+                        <p className="plans-launch-preview-panel-eyebrow">Event 7</p>
                         <h4 className="plans-launch-preview-panel-title">{GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU.displayName}</h4>
                       </div>
-                      <span className="plans-launch-preview-panel-badge">FAST DEMO</span>
+                      <span className="plans-launch-preview-panel-badge">Fast demo</span>
                     </div>
                     <div className="plans-launch-preview-list">
                       <div className="plans-launch-preview-row">
@@ -3228,10 +3215,10 @@ export function PlanCreationWizard() {
                   <article className="plans-launch-preview-panel">
                     <div className="plans-launch-preview-panel-head">
                       <div>
-                        <p className="plans-launch-preview-panel-eyebrow">TRAVEL30_SKU</p>
+                        <p className="plans-launch-preview-panel-eyebrow">Travel 30</p>
                         <h4 className="plans-launch-preview-panel-title">{GENESIS_PROTECT_ACUTE_PRIMARY_SKU.displayName}</h4>
                       </div>
-                      <span className="plans-launch-preview-panel-badge">PRIMARY LAUNCH</span>
+                      <span className="plans-launch-preview-panel-badge">Primary</span>
                     </div>
                     <div className="plans-launch-preview-list">
                       <div className="plans-launch-preview-row">
@@ -3252,10 +3239,10 @@ export function PlanCreationWizard() {
                   <article className="plans-launch-preview-panel">
                     <div className="plans-launch-preview-panel-head">
                       <div>
-                        <p className="plans-launch-preview-panel-eyebrow">POOL_AND_CLASSES</p>
+                        <p className="plans-launch-preview-panel-eyebrow">Capital</p>
                         <h4 className="plans-launch-preview-panel-title">{GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME}</h4>
                       </div>
-                      <span className="plans-launch-preview-panel-badge">QUEUE ONLY</span>
+                      <span className="plans-launch-preview-panel-badge">Queue only</span>
                     </div>
                     <div className="plans-launch-preview-list">
                       <div className="plans-launch-preview-row">
@@ -3279,7 +3266,7 @@ export function PlanCreationWizard() {
                 <article className="plans-launch-preview-panel">
                   <div className="plans-launch-preview-panel-head">
                     <div>
-                      <p className="plans-launch-preview-panel-eyebrow">REWARD_LANE</p>
+                      <p className="plans-launch-preview-panel-eyebrow">Reward lane</p>
                       <h4 className="plans-launch-preview-panel-title">{rewardSeriesDisplayName || "Reward lane pending"}</h4>
                     </div>
                     <span className="plans-launch-preview-panel-badge">{selectedOutcomeIds.length} outcomes</span>
@@ -3305,7 +3292,7 @@ export function PlanCreationWizard() {
                 <article className="plans-launch-preview-panel">
                   <div className="plans-launch-preview-panel-head">
                     <div>
-                      <p className="plans-launch-preview-panel-eyebrow">PROTECTION_LANE</p>
+                      <p className="plans-launch-preview-panel-eyebrow">Protection lane</p>
                       <h4 className="plans-launch-preview-panel-title">
                         {protectionSeriesDisplayName || "Protection lane pending"}
                       </h4>
@@ -3334,7 +3321,7 @@ export function PlanCreationWizard() {
               <article className="plans-launch-preview-panel plans-launch-preview-panel-rails">
                 <div className="plans-launch-preview-panel-head">
                   <div>
-                    <p className="plans-launch-preview-panel-eyebrow">RAIL_SUPPORT</p>
+                    <p className="plans-launch-preview-panel-eyebrow">Reserve rails</p>
                     <h4 className="plans-launch-preview-panel-title">Reserve-domain launch rails</h4>
                   </div>
                   <span className="plans-launch-preview-panel-badge">{availableRailMints.length || 0} live</span>
@@ -3353,33 +3340,6 @@ export function PlanCreationWizard() {
               </article>
             </div>
 
-            <section className="plans-launch-preview-overrides">
-              <div className="plans-launch-preview-overrides-head">
-                <div>
-                  <p className="plans-launch-preview-panel-eyebrow">COMMITMENT_OVERRIDES</p>
-                  <h4 className="plans-launch-preview-panel-title">Protocol hash overrides</h4>
-                </div>
-                <span className="plans-launch-preview-overrides-copy">Optional 32-byte hex values</span>
-              </div>
-              <div className="plans-wizard-row">
-                <FieldGroup label="Terms hash override">
-                  <input
-                    className="plans-wizard-input"
-                    value={termsHashHex}
-                    onChange={(event) => setTermsHashHex(event.target.value)}
-                    placeholder="Optional 32-byte hex"
-                  />
-                </FieldGroup>
-                <FieldGroup label="Payout policy hash override">
-                  <input
-                    className="plans-wizard-input"
-                    value={payoutPolicyHashHex}
-                    onChange={(event) => setPayoutPolicyHashHex(event.target.value)}
-                    placeholder="Optional 32-byte hex"
-                  />
-                </FieldGroup>
-              </div>
-            </section>
           </div>
         ) : null}
 
@@ -3389,10 +3349,10 @@ export function PlanCreationWizard() {
               <article className="wizard-detail-card">
                 <div className="wizard-detail-card-head">
                   <div>
-                    <p className="wizard-detail-card-eyebrow">DERIVED_RULE_HASH</p>
+                    <p className="wizard-detail-card-eyebrow">Rule</p>
                     <h3 className="wizard-detail-card-title">Outcome rule commitment</h3>
                   </div>
-                  <span className="wizard-detail-chip wizard-detail-chip-accent">AUTO</span>
+                  <span className="wizard-detail-chip wizard-detail-chip-accent">Auto</span>
                 </div>
                 <p className="wizard-detail-hash">{activeRulePreview?.derivedRuleHashHex ?? "pending"}</p>
               </article>
@@ -3400,37 +3360,15 @@ export function PlanCreationWizard() {
               <article className="wizard-detail-card">
                 <div className="wizard-detail-card-head">
                   <div>
-                    <p className="wizard-detail-card-eyebrow">DERIVED_PAYOUT_HASH</p>
+                    <p className="wizard-detail-card-eyebrow">Payout</p>
                     <h3 className="wizard-detail-card-title">Payout commitment</h3>
                   </div>
-                  <span className="wizard-detail-chip wizard-detail-chip-accent">AUTO</span>
+                  <span className="wizard-detail-chip wizard-detail-chip-accent">Auto</span>
                 </div>
                 <p className="wizard-detail-hash">{activeRulePreview?.derivedPayoutHashHex ?? "pending"}</p>
               </article>
             </div>
 
-            {activeRuleOutcomeId ? (
-              <div className="plans-wizard-row wizard-detail-form-row">
-                <FieldGroup label="Rule hash override">
-                  <input
-                    className="plans-wizard-input"
-                    value={ruleHashOverridesByOutcome[activeRuleOutcomeId] ?? ""}
-                    onChange={(event) =>
-                      setRuleHashOverridesByOutcome((current) => ({ ...current, [activeRuleOutcomeId]: event.target.value }))}
-                    placeholder="Optional 32-byte hex"
-                  />
-                </FieldGroup>
-                <FieldGroup label="Payout hash override">
-                  <input
-                    className="plans-wizard-input"
-                    value={payoutHashOverridesByOutcome[activeRuleOutcomeId] ?? ""}
-                    onChange={(event) =>
-                      setPayoutHashOverridesByOutcome((current) => ({ ...current, [activeRuleOutcomeId]: event.target.value }))}
-                    placeholder="Optional 32-byte hex"
-                  />
-                </FieldGroup>
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -3439,11 +3377,11 @@ export function PlanCreationWizard() {
             <article className="wizard-detail-card">
               <div className="wizard-detail-card-head">
                 <div>
-                  <p className="wizard-detail-card-eyebrow">POSTURE_PAYLOAD</p>
+                  <p className="wizard-detail-card-eyebrow">Posture</p>
                   <h3 className="wizard-detail-card-title">Structured protection commitment</h3>
                 </div>
                 <span className={cn("wizard-detail-chip", protectionPosture ? "wizard-detail-chip-accent" : "wizard-detail-chip-muted")}>
-                  {protectionPosture ? "READY" : "INCOMPLETE"}
+                  {protectionPosture ? "Ready" : "Incomplete"}
                 </span>
               </div>
               <pre className="wizard-detail-code-block">

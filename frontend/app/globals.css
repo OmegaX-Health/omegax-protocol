@@ -5480,24 +5480,6 @@
       inset 0 0 0 1px rgba(51, 197, 244, 0.18);
   }
 
-  .plans-tab-number {
-    font-family: var(--font-mono), "Fira Code", monospace;
-    font-size: 0.56rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    padding: 0.1rem 0.35rem;
-    border-radius: 0.3rem;
-    border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
-    color: var(--muted-foreground);
-    transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
-  }
-
-  .plans-tab-active .plans-tab-number {
-    color: var(--accent);
-    background: color-mix(in oklab, var(--signal-soft) 65%, transparent);
-    border-color: color-mix(in oklab, var(--accent) 25%, transparent);
-  }
-
   .plans-tab-icon {
     font-size: 1.05rem;
     opacity: 0.65;
@@ -8856,10 +8838,6 @@
       font-size: 0.74rem;
     }
 
-    .plans-tab-number {
-      display: none;
-    }
-
     .plans-member-grid {
       grid-template-columns: 1fr;
     }
@@ -9063,6 +9041,133 @@
       text-transform: uppercase;
       letter-spacing: 0.18em;
       color: var(--muted-foreground);
+    }
+  }
+}
+
+@layer components {
+  .operator-drawer {
+    display: grid;
+    gap: 1.15rem;
+  }
+
+  .operator-drawer-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .operator-drawer-nav-item {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--surface-elevated) 60%, transparent);
+    color: var(--foreground);
+    text-align: left;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease;
+  }
+
+  .operator-drawer-nav-item:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--accent) 32%, var(--border));
+  }
+
+  .operator-drawer-nav-item:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+    outline-offset: 2px;
+  }
+
+  .operator-drawer-nav-item-active {
+    border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+    background: color-mix(in oklab, var(--accent) 10%, var(--surface-elevated));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+
+  .operator-drawer-nav-label {
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .operator-drawer-nav-blurb {
+    color: var(--muted-foreground);
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .operator-drawer-body {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .operator-drawer-section {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .operator-drawer-fieldset {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 1rem 1.05rem 1.1rem;
+    border: 1px solid color-mix(in oklab, var(--border) 68%, transparent);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--surface-elevated) 52%, transparent);
+  }
+
+  .operator-drawer-legend {
+    padding: 0 0.35rem;
+    color: var(--foreground);
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .operator-drawer-hint {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .operator-drawer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .operator-drawer-divider {
+    height: 1px;
+    background: color-mix(in oklab, var(--border) 72%, transparent);
+    margin: 0.25rem 0;
+  }
+
+  .operator-drawer-advanced-toggle {
+    justify-self: start;
+    padding: 0.35rem 0.65rem;
+    border: 1px dashed color-mix(in oklab, var(--border-strong) 35%, var(--border));
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .operator-drawer-advanced-toggle:hover {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+  }
+
+  @media (max-width: 720px) {
+    .operator-drawer-nav {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 }

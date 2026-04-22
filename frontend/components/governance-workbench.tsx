@@ -40,35 +40,28 @@ const TAB_ICONS: Record<GovernanceTabId, string> = {
   templates: "hub",
 };
 
-const TAB_NUMBERS: Record<GovernanceTabId, string> = {
-  overview: "01",
-  queue: "02",
-  authorities: "03",
-  templates: "04",
-};
-
 /* ── Helpers ────────────────────────────────────────── */
 
 function personaHeroCopy(persona: string): { eyebrow: string; subtitle: string } {
   switch (persona) {
     case "sponsor":
       return {
-        eyebrow: "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE",
+        eyebrow: "Governance",
         subtitle: "Track plan and series controls under governance review before they reach the operational rail.",
       };
     case "capital":
       return {
-        eyebrow: "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE",
+        eyebrow: "Governance",
         subtitle: "Inspect protocol controls and authority posture that shape the capital lanes you're allocated to.",
       };
     case "governance":
       return {
-        eyebrow: "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE",
+        eyebrow: "Governance",
         subtitle: "Operate the proposal queue, control authorities, and template surface for the shared protocol shell.",
       };
     default:
       return {
-        eyebrow: "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE",
+        eyebrow: "Governance",
         subtitle: "Live proposals, control authorities, and operational templates exposed by the OmegaX protocol shell.",
       };
   }
@@ -519,7 +512,6 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                   onClick={() => handleTabChange(tab.id)}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <span className="plans-tab-number">{TAB_NUMBERS[tab.id as GovernanceTabId]}</span>
                   <span className="material-symbols-outlined plans-tab-icon">{TAB_ICONS[tab.id as GovernanceTabId]}</span>
                   <span className="plans-tab-label">{tab.label}</span>
                 </button>

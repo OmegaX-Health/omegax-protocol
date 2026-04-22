@@ -37,14 +37,6 @@ const TAB_ICONS: Record<OracleTabId, string> = {
   staking: "shield",
 };
 
-const TAB_NUMBERS: Record<OracleTabId, string> = {
-  registry: "01",
-  bindings: "02",
-  attestations: "03",
-  disputes: "04",
-  staking: "05",
-};
-
 const TAB_LABELS: Record<OracleTabId, string> = {
   registry: "Operators",
   bindings: "Bindings",
@@ -96,22 +88,22 @@ function personaHeroCopy(persona: string): { eyebrow: string; subtitle: string }
   switch (persona) {
     case "sponsor":
       return {
-        eyebrow: "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE",
+        eyebrow: "Oracles",
         subtitle: "Track which operators sign your coverage lanes and where the dispute watch is currently elevated.",
       };
     case "capital":
       return {
-        eyebrow: "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE",
+        eyebrow: "Oracles",
         subtitle: "Audit oracle bindings, attestation throughput, and reserve obligation integrity across the pool surface.",
       };
     case "governance":
       return {
-        eyebrow: "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE",
+        eyebrow: "Oracles",
         subtitle: "Operate the attestation mesh — adjudicate disputes, review feeds, and approve operator posture changes.",
       };
     default:
       return {
-        eyebrow: "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE",
+        eyebrow: "Oracles",
         subtitle: "Operator coverage, attestation feeds, and dispute watch across the protocol's reserve obligation mesh.",
       };
   }
@@ -493,7 +485,6 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                   onClick={() => updateParams({ tab: tab.id })}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <span className="plans-tab-number">{TAB_NUMBERS[tab.id as OracleTabId]}</span>
                   <span className="material-symbols-outlined plans-tab-icon">{TAB_ICONS[tab.id as OracleTabId]}</span>
                   <span className="plans-tab-label">{TAB_LABELS[tab.id as OracleTabId]}</span>
                 </button>

@@ -3,10 +3,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { CapitalOperatorPanel } from "@/components/workbench-action-panels";
+import {
+  CapitalOperatorDrawer,
+  type CapitalOperatorSection,
+} from "@/components/capital-operator-drawer";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
@@ -28,58 +31,50 @@ import { cn } from "@/lib/cn";
 
 /* ── Constants ──────────────────────────────────────── */
 
-const TAB_NUMBERS: Record<CapitalTabId, string> = {
-  overview: "01",
-  classes: "02",
-  allocations: "03",
-  queue: "04",
-  "linked-plans": "05",
-};
-
 type TabHero = { eyebrow: string; title: string; emphasis: string; tail: string; subtitle: string };
 
 const TAB_HEROES: Record<CapitalTabId, TabHero> = {
   overview: {
-    eyebrow: "RESERVE_TREASURY_CONSOLE",
+    eyebrow: "Reserve treasury",
     title: "Reserve",
     emphasis: "Treasury.",
     tail: "",
     subtitle:
-      "A single operational heartbeat for protocol capital — pool depth, class allocation and redemption pressure across every lane.",
+      "Pool depth, class allocation, and redemption pressure across every lane.",
   },
   classes: {
-    eyebrow: "CAPITAL_CLASS_REGISTER",
+    eyebrow: "Capital classes",
     title: "Capital",
     emphasis: "Classes.",
     tail: "",
     subtitle:
-      "Tranche restrictions, NAV depth and lockup posture for each class linked to the active liquidity pool.",
+      "Tranche restrictions, NAV depth, and lockup posture for classes in this pool.",
   },
   allocations: {
-    eyebrow: "ALLOCATION_DEPLOYMENT_LANES",
+    eyebrow: "Allocation lanes",
     title: "Allocation",
     emphasis: "Lanes.",
     tail: "",
     subtitle:
-      "Live deployment between class capacity and the health plans currently consuming this pool's reserves.",
+      "Capacity deployed from this pool into the plans it currently funds.",
   },
   queue: {
-    eyebrow: "REDEMPTION_QUEUE_MONITOR",
+    eyebrow: "Redemption queue",
     title: "Redemption",
     emphasis: "Queue.",
     tail: "",
-    subtitle:
-      "Pending exits and processing windows in protocol custody. Trace queue depth and clear redemption pressure.",
+    subtitle: "Pending exits waiting on protocol processing.",
   },
   "linked-plans": {
-    eyebrow: "LINKED_PLAN_ROUTING",
+    eyebrow: "Linked plans",
     title: "Linked",
     emphasis: "Plans.",
     tail: "",
-    subtitle:
-      "Health plans currently funded by this pool. Trace which sponsors depend on the selected reserve and open them in context.",
+    subtitle: "Plans currently drawing from this reserve.",
   },
 };
+
+const OPERATOR_PERSONAS: ReadonlySet<string> = new Set(["capital", "governance", "sponsor"]);
 
 /* ── Helpers ────────────────────────────────────────── */
 
@@ -102,13 +97,8 @@ function buildPlansWorkbenchHref(input: {
   return `/plans?${params.toString()}`;
 }
 
-function personaEyebrow(persona: string): string {
-  switch (persona) {
-    case "sponsor": return "PROTOCOL_CONSOLE // SPONSOR_WORKSPACE";
-    case "capital": return "PROTOCOL_CONSOLE // CAPITAL_WORKSPACE";
-    case "governance": return "PROTOCOL_CONSOLE // GOVERNANCE_WORKSPACE";
-    default: return "PROTOCOL_CONSOLE // OBSERVER_WORKSPACE";
-  }
+function personaEyebrow(_persona: string): string {
+  return "Capital";
 }
 
 function CapitalEmptyState({ title, copy }: { title: string; copy: string }) {
@@ -327,6 +317,25 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const hero = TAB_HEROES[activeTab];
   const eyebrow = activeTab === "overview" ? personaEyebrow(effectivePersona) : hero.eyebrow;
 
+  /* ── Operator drawer ── */
+
+  const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
+  const [operatorOpen, setOperatorOpen] = useState(false);
+  const [operatorSection, setOperatorSection] = useState<CapitalOperatorSection>("provision");
+
+  const openOperator = useCallback((section: CapitalOperatorSection) => {
+    setOperatorSection(section);
+    setOperatorOpen(true);
+  }, []);
+
+  const sectionForTab: Record<CapitalTabId, CapitalOperatorSection> = {
+    overview: "provision",
+    classes: "controls",
+    allocations: "allocate",
+    queue: "queue",
+    "linked-plans": "allocate",
+  };
+
   /* ── Invalid selection guard ── */
 
   const invalidSelection = hasInvalidPool
@@ -361,7 +370,16 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
               <p className="plans-hero-subtitle">{hero.subtitle}</p>
             </div>
             <div className="plans-hero-actions">
-              {linkedPlanContext.plan ? (
+              {canOperate ? (
+                <button
+                  type="button"
+                  className="plans-hero-cta"
+                  onClick={() => openOperator(sectionForTab[activeTab])}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">tune</span>
+                  Operator actions
+                </button>
+              ) : linkedPlanContext.plan ? (
                 <Link
                   href={buildPlansWorkbenchHref({
                     plan: linkedPlanContext.plan,
@@ -371,7 +389,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                   className="plans-hero-cta"
                 >
                   <span className="material-symbols-outlined" aria-hidden="true">north_east</span>
-                  OPEN_PLAN_TREASURY
+                  Open plan treasury
                 </Link>
               ) : (
                 <button
@@ -380,7 +398,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                   onClick={() => updateParams({ tab: "queue" })}
                 >
                   <span className="material-symbols-outlined" aria-hidden="true">stacks</span>
-                  REVIEW_QUEUE
+                  Review queue
                 </button>
               )}
             </div>
@@ -451,7 +469,6 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                   onClick={() => updateParams({ tab: tab.id })}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <span className="plans-tab-number">{TAB_NUMBERS[tab.id as CapitalTabId]}</span>
                   <span className="plans-tab-label">{tab.label}</span>
                 </button>
               );
@@ -465,21 +482,6 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
         ) : (
           <div className="plans-body">
             <section className="plans-main">
-              <CapitalOperatorPanel
-                reserveDomains={snapshot.reserveDomains}
-                pools={snapshot.liquidityPools}
-                selectedPool={selectedPool}
-                selectedClass={selectedClass}
-                classes={snapshot.capitalClasses}
-                lpPositions={snapshot.lpPositions.filter((position) =>
-                  poolClasses.some((capitalClass) => capitalClass.address === position.capitalClass))}
-                allocations={poolAllocations}
-                plans={snapshot.healthPlans}
-                fundingLines={snapshot.fundingLines}
-                series={snapshot.policySeries}
-                onRefresh={refresh}
-              />
-
               {/* ── OVERVIEW ── */}
               {activeTab === "overview" ? (
                 <div className="plans-stack">
@@ -1012,6 +1014,24 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
           </div>
         )}
       </div>
+
+      {canOperate ? (
+        <CapitalOperatorDrawer
+          open={operatorOpen}
+          initialSection={operatorSection}
+          onOpenChange={setOperatorOpen}
+          onRefresh={refresh}
+          reserveDomains={snapshot.reserveDomains}
+          selectedPool={selectedPool}
+          selectedClass={selectedClass}
+          lpPositions={snapshot.lpPositions.filter((position) =>
+            poolClasses.some((capitalClass) => capitalClass.address === position.capitalClass),
+          )}
+          allocations={poolAllocations}
+          plans={snapshot.healthPlans}
+          fundingLines={snapshot.fundingLines}
+        />
+      ) : null}
     </div>
   );
 }
