@@ -79,7 +79,20 @@ const OPERATOR_PERSONAS: ReadonlySet<string> = new Set(["capital", "governance",
 /* ── Helpers ────────────────────────────────────────── */
 
 function describeRedemptionPolicyInline(queueOnly?: boolean) {
-  return queueOnly ? "QUEUE_ONLY" : "OPEN";
+  return queueOnly ? "Queue only" : "Open";
+}
+
+function humanizeCapitalRestriction(restrictionMode: number): string {
+  switch (describeCapitalRestriction(restrictionMode)) {
+    case "open":
+      return "Open";
+    case "restricted":
+      return "Restricted";
+    case "wrapper_only":
+      return "Wrapper only";
+    default:
+      return describeCapitalRestriction(restrictionMode);
+  }
 }
 
 function buildPlansWorkbenchHref(input: {
@@ -446,7 +459,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
               options={poolClasses}
               renderLabel={(capitalClass) => capitalClass.displayName}
               renderMeta={(capitalClass) =>
-                `${capitalClass.classId} · ${describeCapitalRestriction(capitalClass.restrictionMode)}`
+                `${capitalClass.classId} · ${humanizeCapitalRestriction(capitalClass.restrictionMode)}`
               }
               placeholder={poolClasses.length > 0 ? "All classes" : "No classes"}
               disabled={!selectedPool || poolClasses.length === 0}
@@ -589,7 +602,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                               </div>
                               <div className="plans-lane-meta">
                                 <span className="plans-lane-mode">
-                                  {describeCapitalRestriction(capitalClass.restrictionMode)}
+                                  {humanizeCapitalRestriction(capitalClass.restrictionMode)}
                                 </span>
                                 <span className="plans-lane-outcomes">
                                   ${formatAmount(capitalClass.navAssets)} NAV
@@ -651,7 +664,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                                   </button>
                                 </td>
                                 <td data-label="Restriction">
-                                  {describeCapitalRestriction(capitalClass.restrictionMode)}
+                                  {humanizeCapitalRestriction(capitalClass.restrictionMode)}
                                 </td>
                                 <td data-label="NAV">
                                   <span className="plans-table-amount">
@@ -964,7 +977,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                     </div>
                     <div className="plans-rail-row">
                       <span>Restriction</span>
-                      <strong>{describeCapitalRestriction(selectedClass.restrictionMode)}</strong>
+                      <strong>{humanizeCapitalRestriction(selectedClass.restrictionMode)}</strong>
                     </div>
                     <div className="plans-rail-row">
                       <span>Allocated</span>

@@ -341,7 +341,7 @@ export function SchemasWorkbench({ searchParams = {} }: SchemasWorkbenchProps) {
             <div className="plans-hero-actions">
               <Link href={selectedSeries ? `/plans?plan=${encodeURIComponent(selectedSeries.healthPlan)}&series=${encodeURIComponent(selectedSeries.address)}` : "/plans"} className="plans-hero-cta">
                 <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-                OPEN_PLAN_WORKSPACE
+                Back to plans
               </Link>
             </div>
           </div>

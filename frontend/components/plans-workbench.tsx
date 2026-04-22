@@ -107,6 +107,12 @@ function StatusBadge({ label }: { label: string }) {
   return <span className={`plans-badge plans-badge-${statusVariant(label)}`}>{label}</span>;
 }
 
+function humanizeFundingLineType(lineType: number): string {
+  const raw = describeFundingLineType(lineType);
+  if (raw.startsWith("unknown")) return raw;
+  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function PlansEmptyState({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="plans-empty liquid-glass">
@@ -963,7 +969,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                                 <div className="plans-funding-row-head">
                                   <div>
                                     <span className="plans-funding-name">{line.displayName}</span>
-                                    <span className="plans-funding-type">{describeFundingLineType(line.lineType)}</span>
+                                    <span className="plans-funding-type">{humanizeFundingLineType(line.lineType)}</span>
                                   </div>
                                   <span className="plans-funding-amount">${formatAmount(fundedVal)}</span>
                                 </div>

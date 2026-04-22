@@ -109,19 +109,6 @@ function formatCompact(value: bigint): string {
   return `$${num.toLocaleString()}`;
 }
 
-function sectionLabelForPersona(persona: string) {
-  switch (persona) {
-    case "sponsor":
-      return "Sponsor / Operator";
-    case "capital":
-      return "Capital Provider";
-    case "governance":
-      return "Governance / Operator";
-    default:
-      return "Observer";
-  }
-}
-
 function SignalWave() {
   return (
     <svg className="ov-wave-svg" viewBox="0 0 1000 120" aria-hidden="true" preserveAspectRatio="none">
@@ -473,7 +460,7 @@ export function OverviewWorkbench() {
           <div className="ov-hero-stack">
             <section className="ov-hero">
               <div className="ov-hero-glow" aria-hidden="true" />
-              <span className="ov-eyebrow">OVERVIEW_SYNC // {sectionLabelForPersona(effectivePersona)}</span>
+              <span className="ov-eyebrow">Overview</span>
               <h1 className="ov-hero-title">Health Capital Markets</h1>
 
               <div className="ov-wave-panel">

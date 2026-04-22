@@ -34,6 +34,32 @@ type PlanCoveragePanelProps = {
   policySeries: PolicySeriesSnapshot[];
 };
 
+function humanizeFundingLineType(lineType: number): string {
+  const raw = describeFundingLineType(lineType);
+  if (raw.startsWith("unknown")) return raw;
+  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function humanizePathway(value?: string): string {
+  if (!value) return "—";
+  switch (value) {
+    case "defi_native": return "DeFi native";
+    case "traditional": return "Traditional";
+    case "hybrid": return "Hybrid";
+    default: return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
+
+function humanizeSettlement(value?: string): string {
+  if (!value) return "—";
+  switch (value) {
+    case "onchain_programmatic": return "On-chain programmatic";
+    case "onchain_attested": return "On-chain attested";
+    case "offchain_manual": return "Off-chain manual";
+    default: return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
+
 function cadenceLabel(cycleSeconds?: number): string {
   if (!cycleSeconds || cycleSeconds <= 0) return "—";
   const cycleDays = Math.round(cycleSeconds / 86_400);
@@ -193,13 +219,13 @@ export function PlanCoveragePanel({
           <div className="plans-wizard-review-grid">
             <div className="plans-review-row">
               <span className="plans-review-label">Pathway</span>
-              <span className="plans-review-value">{metadataDocument.coveragePathway}</span>
+              <span className="plans-review-value">{humanizePathway(metadataDocument.coveragePathway)}</span>
             </div>
             {metadataDocument.defi ? (
               <>
                 <div className="plans-review-row">
                   <span className="plans-review-label">Settlement</span>
-                  <span className="plans-review-value">{metadataDocument.defi.settlementStyle}</span>
+                  <span className="plans-review-value">{humanizeSettlement(metadataDocument.defi.settlementStyle)}</span>
                 </div>
                 <div className="plans-review-row">
                   <span className="plans-review-label">Technical terms</span>
@@ -287,7 +313,7 @@ export function PlanCoveragePanel({
                 {premiumLines.map((line) => (
                   <tr key={line.address}>
                     <td data-label="Line">{line.displayName}</td>
-                    <td data-label="Type">{describeFundingLineType(line.lineType)}</td>
+                    <td data-label="Type">{humanizeFundingLineType(line.lineType)}</td>
                     <td data-label="Funded">{formatAmount(line.fundedAmount)}</td>
                     <td data-label="Available">{formatAmount(availableFundingLineBalance(line))}</td>
                   </tr>
