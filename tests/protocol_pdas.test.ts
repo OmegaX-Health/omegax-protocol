@@ -11,6 +11,7 @@ const {
 } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
 const {
   buildAttestClaimCaseTx,
+  buildOpenMemberPositionTx,
   deriveClaimAttestationPda,
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
@@ -23,6 +24,8 @@ const {
   deriveProtocolGovernancePda,
   deriveReserveDomainPda,
   deriveSchemaDependencyLedgerPda,
+  MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
+  ZERO_PUBKEY,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 test("fixture addresses stay deterministic under canonical seeds", () => {
@@ -112,4 +115,28 @@ test("claim attestation builders reject unsupported decisions before chain submi
       }),
     /claim attestation decision must be one of 0/,
   );
+});
+
+test("member enrollment builder marks invite authority as a signer", () => {
+  const plan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]!;
+  const memberWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "member")!.address;
+  const inviteAuthority = plan.membershipInviteAuthority!;
+  const tx = buildOpenMemberPositionTx({
+    wallet: memberWallet,
+    healthPlanAddress: plan.address,
+    recentBlockhash: "11111111111111111111111111111111",
+    seriesScopeAddress: ZERO_PUBKEY,
+    subjectCommitmentHashHex: "11".repeat(32),
+    eligibilityStatus: 0,
+    delegatedRightsMask: 0,
+    proofMode: MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
+    tokenGateAmountSnapshot: 0n,
+    inviteIdHashHex: "22".repeat(32),
+    inviteExpiresAt: 0n,
+    inviteAuthorityAddress: inviteAuthority,
+  });
+
+  const keys = tx.instructions[0]!.keys;
+  assert.equal(keys.find((key) => key.pubkey.toBase58() === memberWallet)?.isSigner, true);
+  assert.equal(keys.find((key) => key.pubkey.toBase58() === inviteAuthority)?.isSigner, true);
 });

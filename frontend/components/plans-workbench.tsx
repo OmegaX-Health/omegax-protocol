@@ -8,12 +8,9 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { PlanCoveragePanel } from "@/components/plan-coverage-panel";
 import {
-  ClaimIntakePanel,
-  ClaimsOperatorPanel,
-  MemberSelfServePanel,
-  MembersOperatorPanel,
-  TreasuryOperatorPanel,
-} from "@/components/workbench-action-panels";
+  PlanOperatorDrawer,
+  type PlanOperatorSection,
+} from "@/components/plan-operator-drawer";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount, plansForPool, seriesOutcomeCount } from "@/lib/canonical-ui";
@@ -40,6 +37,7 @@ import { cn } from "@/lib/cn";
 /* ── Constants ──────────────────────────────────────── */
 
 const SERIES_OPTIONAL_TABS = new Set<PlanTabId>(["members", "claims", "treasury", "overview"]);
+const OPERATOR_PERSONAS: ReadonlySet<string> = new Set(["capital", "governance", "sponsor"]);
 
 type TabHero = { eyebrow: string; title: string; emphasis: string; tail: string; subtitle: string };
 type PlansRouteMode = "plans" | "claims";
@@ -248,7 +246,6 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   const querySeries = firstSearchParamValue(searchParams.series)?.trim() ?? "";
   const queryClaim = firstSearchParamValue(searchParams.claim)?.trim() ?? "";
   const queryMember = firstSearchParamValue(searchParams.member)?.trim() ?? "";
-  const routePanel = firstSearchParamValue(searchParams.panel)?.trim() ?? "";
   const seriesSelectionOptional = SERIES_OPTIONAL_TABS.has(activeTab);
   const matchedSeries = useMemo(
     () => planSeries.find((series) => series.address === querySeries) ?? null,
@@ -386,6 +383,25 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     if (activeButton) activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [activeTab]);
 
+  /* ── Operator drawer ── */
+
+  const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
+  const [operatorOpen, setOperatorOpen] = useState(false);
+  const [operatorSection, setOperatorSection] = useState<PlanOperatorSection>("funding");
+
+  const openOperator = useCallback((next: PlanOperatorSection) => {
+    setOperatorSection(next);
+    setOperatorOpen(true);
+  }, []);
+
+  const sectionForTab: Record<PlanTabId, PlanOperatorSection> = {
+    overview: "funding",
+    coverage: "funding",
+    members: "members",
+    claims: "claims",
+    treasury: "funding",
+  };
+
   /* ── Derived stats ── */
 
   const planClaimCount = sponsorView?.activeClaimCount ?? 0;
@@ -449,7 +465,20 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               <p className="plans-hero-subtitle">{hero.subtitle}</p>
             </div>
             <div className="plans-hero-actions">
-              <Link href={routeMode === "plans" ? "/plans/new" : planWorkspaceHref} className="plans-hero-cta">
+              {canOperate ? (
+                <button
+                  type="button"
+                  className="plans-hero-cta"
+                  onClick={() => openOperator(sectionForTab[activeTab])}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">tune</span>
+                  Operator actions
+                </button>
+              ) : null}
+              <Link
+                href={routeMode === "plans" ? "/plans/new" : planWorkspaceHref}
+                className={canOperate ? "plans-secondary-cta" : "plans-hero-cta"}
+              >
                 <span className="material-symbols-outlined" aria-hidden="true">
                   {routeMode === "plans" ? "add" : "arrow_back"}
                 </span>
@@ -662,22 +691,6 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── MEMBERS ── */}
               {activeTab === "members" ? (
                 <div className="plans-stack">
-                  <MemberSelfServePanel
-                    plan={selectedPlan}
-                    series={selectedSeries}
-                    members={filteredMembers}
-                    onRefresh={refresh}
-                  />
-                  <MembersOperatorPanel
-                    plan={selectedPlan}
-                    series={selectedSeries}
-                    members={filteredMembers}
-                    selectedMemberAddress={selectedMember?.address ?? null}
-                    selectedPanel={routePanel}
-                    onSelectMember={(address) => updateParams({ member: address, panel: "review" })}
-                    onSelectPanel={(panel) => updateParams({ panel })}
-                    onRefresh={refresh}
-                  />
                   <article className="plans-card heavy-glass">
                     <div className="plans-members-head">
                       <div>
@@ -686,18 +699,16 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                           {filteredMembers.length} <em>members</em> enlisted
                         </h2>
                       </div>
-                      <Link
-                        href={`/plans?${new URLSearchParams({
-                          ...(selectedPlan ? { plan: selectedPlan.address } : {}),
-                          ...(selectedSeries ? { series: selectedSeries.address } : {}),
-                          tab: "members",
-                          panel: "enroll",
-                        }).toString()}`}
-                        className="plans-primary-cta"
-                      >
-                        <span className="material-symbols-outlined">person_add</span>
-                        Enlist member
-                      </Link>
+                      {canOperate ? (
+                        <button
+                          type="button"
+                          className="plans-primary-cta"
+                          onClick={() => openOperator("members")}
+                        >
+                          <span className="material-symbols-outlined">person_add</span>
+                          Enlist member
+                        </button>
+                      ) : null}
                     </div>
 
                     <div className="plans-members-toolbar">
@@ -770,29 +781,6 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── CLAIMS ── */}
               {activeTab === "claims" ? (
                 <div className="plans-stack">
-                  <ClaimIntakePanel
-                    plan={selectedPlan}
-                    series={selectedSeries}
-                    members={filteredMembers}
-                    fundingLines={planFundingLines}
-                    onRefresh={refresh}
-                  />
-                  <ClaimsOperatorPanel
-                    plan={selectedPlan}
-                    series={selectedSeries}
-                    claimCases={filteredClaims}
-                    obligations={filteredObligations}
-                    members={filteredMembers}
-                    fundingLines={planFundingLines}
-                    allocations={snapshot.allocationPositions}
-                    classes={snapshot.capitalClasses}
-                    pools={snapshot.liquidityPools}
-                    selectedClaimAddress={selectedClaim?.address ?? null}
-                    selectedPanel={routePanel}
-                    onSelectClaim={(address) => updateParams({ claim: address, panel: "adjudication" })}
-                    onSelectPanel={(panel) => updateParams({ panel })}
-                    onRefresh={refresh}
-                  />
                   <article className="plans-card plans-claims-control heavy-glass">
                         <div className="plans-claims-control-segment">
                           <span className="plans-control-label">Plan</span>
@@ -816,20 +804,18 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                           </span>
                           <span className="plans-control-meta">Adjudication queue live</span>
                         </div>
-                        <div className="plans-claims-control-actions">
-                          <Link
-                            href={`/claims?${new URLSearchParams({
-                              ...(selectedPlan ? { plan: selectedPlan.address } : {}),
-                              ...(selectedSeries ? { series: selectedSeries.address } : {}),
-                              ...(selectedClaim ? { claim: selectedClaim.address } : filteredClaims[0] ? { claim: filteredClaims[0].address } : {}),
-                              panel: "reserve",
-                            }).toString()}`}
-                            className="plans-primary-cta"
-                          >
-                            <span className="material-symbols-outlined">bolt</span>
-                            Initiate reserve
-                          </Link>
-                        </div>
+                        {canOperate ? (
+                          <div className="plans-claims-control-actions">
+                            <button
+                              type="button"
+                              className="plans-primary-cta"
+                              onClick={() => openOperator("claims")}
+                            >
+                              <span className="material-symbols-outlined">bolt</span>
+                              Initiate reserve
+                            </button>
+                          </div>
+                        ) : null}
                       </article>
 
                       <article className="plans-card heavy-glass">
@@ -932,19 +918,6 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
               {/* ── TREASURY ── */}
               {activeTab === "treasury" ? (
                 <div className="plans-stack">
-                  <TreasuryOperatorPanel
-                    plan={selectedPlan}
-                    series={selectedSeries}
-                    seriesOptions={planSeries}
-                    reserveDomain={selectedReserveDomain}
-                    fundingLines={planFundingLines}
-                    allocations={snapshot.allocationPositions.filter((allocation) => allocation.healthPlan === selectedPlan?.address)}
-                    classes={snapshot.capitalClasses}
-                    pools={snapshot.liquidityPools}
-                    selectedFundingLineAddress={null}
-                    onSelectFundingLine={(fundingLineAddress) => updateParams({ line: fundingLineAddress })}
-                    onRefresh={refresh}
-                  />
                   <article className="plans-card heavy-glass">
                       <div className="plans-card-head">
                         <div>
@@ -1054,6 +1027,28 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
           </div>
         )}
       </div>
+
+      {canOperate ? (
+        <PlanOperatorDrawer
+          open={operatorOpen}
+          initialSection={operatorSection}
+          onOpenChange={setOperatorOpen}
+          onRefresh={refresh}
+          plan={selectedPlan}
+          series={selectedSeries}
+          reserveDomain={selectedReserveDomain}
+          fundingLines={planFundingLines}
+          seriesOptions={planSeries}
+          members={filteredMembers}
+          claimCases={filteredClaims}
+          obligations={filteredObligations}
+          allocations={snapshot.allocationPositions.filter(
+            (allocation) => allocation.healthPlan === selectedPlan?.address,
+          )}
+          classes={snapshot.capitalClasses}
+          pools={snapshot.liquidityPools}
+        />
+      ) : null}
     </div>
   );
 }

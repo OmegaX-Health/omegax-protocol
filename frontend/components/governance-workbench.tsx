@@ -8,7 +8,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useConnection } from "@solana/wallet-adapter-react";
 
 import { GovernanceConsole } from "@/components/governance-console";
-import { ProtocolBootstrapPanel } from "@/components/protocol-bootstrap-panel";
+import {
+  GovernanceOperatorDrawer,
+  type GovernanceOperatorSection,
+} from "@/components/governance-operator-drawer";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { GovernanceQueueSkeleton } from "@/components/governance-queue-skeleton";
 import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
@@ -39,6 +42,8 @@ const TAB_ICONS: Record<GovernanceTabId, string> = {
   authorities: "shield_person",
   templates: "hub",
 };
+
+const OPERATOR_PERSONAS: ReadonlySet<string> = new Set(["capital", "governance", "sponsor"]);
 
 /* ── Helpers ────────────────────────────────────────── */
 
@@ -146,6 +151,14 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [proposalQueueLoaded, setProposalQueueLoaded] = useState(false);
   const [proposalQueueError, setProposalQueueError] = useState<string | null>(null);
+  const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
+  const [operatorOpen, setOperatorOpen] = useState(false);
+  const [operatorSection, setOperatorSection] = useState<GovernanceOperatorSection>("governance");
+
+  const openOperator = useCallback((next: GovernanceOperatorSection) => {
+    setOperatorSection(next);
+    setOperatorOpen(true);
+  }, []);
   const queue = useMemo(() => buildGovernanceQueue(governanceProposalRows), [governanceProposalRows]);
 
   /* ── Selection state ── */
@@ -399,6 +412,18 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
               </h1>
               <p className="plans-hero-subtitle">{heroSubtitle}</p>
             </div>
+            {canOperate ? (
+              <div className="plans-hero-actions">
+                <button
+                  type="button"
+                  className="plans-hero-cta"
+                  onClick={() => openOperator("governance")}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">tune</span>
+                  Operator actions
+                </button>
+              </div>
+            ) : null}
           </div>
         </header>
 
@@ -534,7 +559,54 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
             {/* ── Overview tab ── */}
             {activeTab === "overview" ? (
               <div className="plans-overview-grid">
-                <ProtocolBootstrapPanel snapshot={snapshot} onRefresh={refresh} />
+                <article className="plans-card heavy-glass">
+                  <div className="plans-card-head">
+                    <div>
+                      <p className="plans-card-eyebrow">Bootstrap</p>
+                      <h2 className="plans-card-title plans-card-title-display">
+                        Protocol <em>status</em>
+                      </h2>
+                    </div>
+                    {canOperate ? (
+                      <button
+                        type="button"
+                        className="plans-secondary-cta"
+                        onClick={() =>
+                          openOperator(
+                            snapshot.protocolGovernance
+                              ? snapshot.reserveDomains.length === 0
+                                ? "domain"
+                                : "vault"
+                              : "governance",
+                          )
+                        }
+                      >
+                        <span className="material-symbols-outlined" aria-hidden="true">tune</span>
+                        Operator actions
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="plans-data-grid">
+                    <div className="plans-data-row">
+                      <span className="plans-data-label">Governance</span>
+                      <span className="plans-data-value">
+                        {snapshot.protocolGovernance ? "Initialized" : "Missing"}
+                      </span>
+                    </div>
+                    <div className="plans-data-row">
+                      <span className="plans-data-label">Reserve domains</span>
+                      <span className="plans-data-value">
+                        {snapshot.reserveDomains.length}
+                      </span>
+                    </div>
+                    <div className="plans-data-row">
+                      <span className="plans-data-label">Domain vaults</span>
+                      <span className="plans-data-value">
+                        {snapshot.domainAssetVaults.length}
+                      </span>
+                    </div>
+                  </div>
+                </article>
                 <article className="plans-card plans-vitality heavy-glass">
                   <div className="plans-card-head">
                     <div>
@@ -940,6 +1012,16 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
           </aside>
         </div>
       </div>
+
+      {canOperate ? (
+        <GovernanceOperatorDrawer
+          open={operatorOpen}
+          initialSection={operatorSection}
+          onOpenChange={setOperatorOpen}
+          onRefresh={refresh}
+          snapshot={snapshot}
+        />
+      ) : null}
     </div>
   );
 }

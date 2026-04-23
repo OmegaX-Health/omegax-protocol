@@ -63,6 +63,20 @@ export const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY = 1;
 export const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW = 2;
 export const CLAIM_ATTESTATION_DECISION_ABSTAIN = 3;
 
+export const MEMBERSHIP_MODE_OPEN = 0;
+export const MEMBERSHIP_MODE_TOKEN_GATE = 1;
+export const MEMBERSHIP_MODE_INVITE_ONLY = 2;
+
+export const MEMBERSHIP_GATE_KIND_OPEN = 0;
+export const MEMBERSHIP_GATE_KIND_INVITE_ONLY = 1;
+export const MEMBERSHIP_GATE_KIND_NFT_ANCHOR = 2;
+export const MEMBERSHIP_GATE_KIND_STAKE_ANCHOR = 3;
+export const MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT = 4;
+
+export const MEMBERSHIP_PROOF_MODE_OPEN = 0;
+export const MEMBERSHIP_PROOF_MODE_TOKEN_GATE = 1;
+export const MEMBERSHIP_PROOF_MODE_INVITE_PERMIT = 2;
+
 function assertValidClaimAttestationDecision(decision: number): void {
   if (
     decision !== CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE &&
@@ -212,6 +226,8 @@ export type HealthPlanSnapshot = {
   oracleAuthority?: string;
   membershipModel: string;
   membershipGateKind?: string;
+  membershipModeValue?: number;
+  membershipGateKindValue?: number;
   membershipGateMint?: string;
   membershipGateMinAmount?: BigNumberish;
   membershipInviteAuthority?: string;
@@ -1660,6 +1676,22 @@ function membershipModelLabel(membershipMode: number, membershipGateKind: number
   return "open";
 }
 
+function membershipGateKindLabel(membershipGateKind: number): string {
+  switch (membershipGateKind) {
+    case MEMBERSHIP_GATE_KIND_INVITE_ONLY:
+      return "invite_only";
+    case MEMBERSHIP_GATE_KIND_NFT_ANCHOR:
+      return "nft_anchor";
+    case MEMBERSHIP_GATE_KIND_STAKE_ANCHOR:
+      return "stake_anchor";
+    case MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT:
+      return "fungible_snapshot";
+    case MEMBERSHIP_GATE_KIND_OPEN:
+    default:
+      return "open";
+  }
+}
+
 function delegatedRightsFromMask(mask: number): string[] {
   const rights: string[] = [];
   for (let index = 0; index < MEMBER_DELEGATED_RIGHT_FLAGS.length; index += 1) {
@@ -1780,32 +1812,32 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
         );
         break;
       case "HealthPlan":
-        snapshot.healthPlans.push({
-          address,
-          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
-          planId: stringFromAnchorValue(decodedField(decoded, "healthPlanId", "health_plan_id")),
-          displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
-          sponsorLabel: stringFromAnchorValue(decodedField(decoded, "organizationRef"))
-            || shortenAddress(asAddress(decodedField(decoded, "sponsor")), 6),
-          planAdmin: asAddress(decodedField(decoded, "planAdmin")),
-          sponsorOperator: asAddress(decodedField(decoded, "sponsorOperator")),
-          claimsOperator: asAddress(decodedField(decoded, "claimsOperator")),
-          oracleAuthority: asAddress(decodedField(decoded, "oracleAuthority")),
-          membershipModel: membershipModelLabel(
-            Number(decodedField(decoded, "membershipMode") ?? 0),
-            Number(decodedField(decoded, "membershipGateKind") ?? 0),
-          ),
-          membershipGateKind: membershipModelLabel(
-            Number(decodedField(decoded, "membershipMode") ?? 0),
-            Number(decodedField(decoded, "membershipGateKind") ?? 0),
-          ),
-          membershipGateMint: asAddress(decodedField(decoded, "membershipGateMint")),
-          membershipGateMinAmount: bigintFromAnchorValue(decodedField(decoded, "membershipGateMinAmount")),
-          membershipInviteAuthority: asAddress(decodedField(decoded, "membershipInviteAuthority")),
-          pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
-          active: Boolean(decodedField(decoded, "active")),
-        });
-        break;
+        {
+          const membershipModeValue = Number(decodedField(decoded, "membershipMode") ?? 0);
+          const membershipGateKindValue = Number(decodedField(decoded, "membershipGateKind") ?? 0);
+          snapshot.healthPlans.push({
+            address,
+            reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+            planId: stringFromAnchorValue(decodedField(decoded, "healthPlanId", "health_plan_id")),
+            displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
+            sponsorLabel: stringFromAnchorValue(decodedField(decoded, "organizationRef"))
+              || shortenAddress(asAddress(decodedField(decoded, "sponsor")), 6),
+            planAdmin: asAddress(decodedField(decoded, "planAdmin")),
+            sponsorOperator: asAddress(decodedField(decoded, "sponsorOperator")),
+            claimsOperator: asAddress(decodedField(decoded, "claimsOperator")),
+            oracleAuthority: asAddress(decodedField(decoded, "oracleAuthority")),
+            membershipModel: membershipModelLabel(membershipModeValue, membershipGateKindValue),
+            membershipGateKind: membershipGateKindLabel(membershipGateKindValue),
+            membershipModeValue,
+            membershipGateKindValue,
+            membershipGateMint: asAddress(decodedField(decoded, "membershipGateMint")),
+            membershipGateMinAmount: bigintFromAnchorValue(decodedField(decoded, "membershipGateMinAmount")),
+            membershipInviteAuthority: asAddress(decodedField(decoded, "membershipInviteAuthority")),
+            pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
+            active: Boolean(decodedField(decoded, "active")),
+          });
+          break;
+        }
       case "PolicySeries":
         {
           const comparabilityHashHex = bytesToHex(decodedField(decoded, "comparabilityHash"));
@@ -3294,7 +3326,9 @@ export function buildOpenMemberPositionTx(params: {
       { pubkey: memberPosition, isWritable: true },
       optionalProtocolAccount(membershipAnchorSeat, true),
       optionalProtocolAccount(params.tokenGateAccountAddress),
-      optionalProtocolAccount(params.inviteAuthorityAddress),
+      params.inviteAuthorityAddress
+        ? { pubkey: params.inviteAuthorityAddress, isSigner: true }
+        : optionalProtocolAccount(undefined),
       { pubkey: SystemProgram.programId },
     ],
   });

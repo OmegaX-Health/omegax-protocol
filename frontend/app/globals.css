@@ -9165,8 +9165,51 @@
     border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
   }
 
+  .operator-drawer-subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid color-mix(in oklab, var(--border) 58%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface-elevated) 38%, transparent);
+  }
+
+  .operator-drawer-subtab {
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  }
+
+  .operator-drawer-subtab:hover {
+    color: var(--foreground);
+  }
+
+  .operator-drawer-subtab-active {
+    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+    color: var(--foreground);
+  }
+
+  .operator-drawer-rights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.4rem 0.75rem;
+  }
+
   @media (max-width: 720px) {
     .operator-drawer-nav {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .operator-drawer-rights {
       grid-template-columns: minmax(0, 1fr);
     }
   }
