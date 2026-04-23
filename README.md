@@ -5,7 +5,7 @@ OmegaX Protocol is a Solana settlement layer for builders creating health apps, 
 On Solana devnet beta today, the public surface in this repository can already anchor:
 
 - normalized outcome events produced by OmegaX Health or future compatible oracle operators
-- member enrollment, claim intake, obligations, reserve booking, and payouts
+- operator-mediated member enrollment, claim intake, obligations, reserve booking, and payouts
 - sponsor-funded reward or protection lanes
 - LP-facing capital pools, classes, allocations, redemptions, and impairment handling
 
@@ -53,7 +53,7 @@ Start with:
 
 - reserve domains and domain asset vaults define settlement boundaries and payment rails
 - health plans, policy series, and funding lines define sponsor and member-side products
-- member enrollment, claim intake, obligations, settlement, and impairment are mounted in the canonical console
+- operator-mediated member enrollment, claim intake, obligations, settlement, and impairment are mounted in the canonical console
 - liquidity pools, capital classes, allocations, and redemptions define LP-facing exposure and queue behavior
 - oracle registry and schema registry accounts let outside event producers and integrations target the same public surface
 
@@ -106,7 +106,7 @@ This is the first publishable canonical OmegaX health-capital-markets surface.
 - the mounted Genesis claims tab now behaves as an operator claim queue with summary cards, queue filters, selected-case detail, and contextual handoff into adjudication, reserve, and oracle follow-through
 - the mounted Genesis treasury tab now behaves as a reserve console with lane filters, per-SKU reserve attribution, degraded-visibility warnings, and treasury actions scoped from the selected live funding lane
 - `/governance` now exposes mounted protocol bootstrap actions for governance, reserve domains, and domain asset vaults
-- `/members` now leads with self-serve enrollment and `/claims` now leads with self-serve claim intake on the canonical model
+- `/members` and `/claims` now route into the mounted plan/operator workspace instead of advertising standalone self-serve dapp actions
 - mounted workbenches now include sponsor-side post-launch series and funding-line actions, LP credentialing updates, and claim impairment handling
 - the protocol now includes first-class oracle registry and outcome-schema registry accounts with checked-in generated artifacts
 

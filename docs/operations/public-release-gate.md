@@ -41,10 +41,11 @@ The fast public gate intentionally does **not** include the heavier localnet pro
 For public release candidates, public tags, or other protocol-surface publication points, also run:
 
 ```bash
+npm run devnet:operator:drawer:sim
 npm run test:e2e:localnet
 ```
 
-Treat that command as an additional maintainer sign-off step, not as a per-PR or public-CI requirement. Review the latest scenario-ownership policy in [`../testing/protocol-surface-audit.md`](../testing/protocol-surface-audit.md).
+Treat these commands as additional maintainer sign-off steps, not as per-PR or public-CI requirements. The operator drawer smoke is simulate-only and should fail on real builder/wiring mistakes such as membership proof-mode or gate-configuration mismatches. Review the latest scenario-ownership policy in [`../testing/protocol-surface-audit.md`](../testing/protocol-surface-audit.md).
 
 ## Main-branch prep
 
@@ -53,6 +54,7 @@ Before merging a release candidate to `main`, confirm:
 - `npm run anchor:idl`
 - `npm run protocol:contract`
 - `npm run verify:public`
+- `npm run devnet:operator:drawer:sim`
 - `npm run test:e2e:localnet`
 - the checked-in docs describe the same public surface as the code and generated artifacts
 - [`./release-v0.3.0.md`](./release-v0.3.0.md) reflects the current release notes and known follow-up work
@@ -62,6 +64,7 @@ For this release train, reviewers should be able to discover from the checked-in
 - the canonical console mounts `/plans`, `/capital`, `/claims`, `/members`, `/governance`, `/oracles`, and `/schemas`
 - the mounted workbenches read live protocol snapshot data rather than fixture-only state
 - the oracle and outcome-schema registries are part of the current public protocol surface
+- member enrollment and claim intake are operator-mediated in the mounted protocol console rather than standalone self-serve dapp actions
 - the shared-devnet sign-off flow includes frontend parity, governance smoke, and observability
 
 ## Shared-devnet sign-off
@@ -97,6 +100,7 @@ Before any broader production promotion outside devnet:
 - confirm the release notes match the generated artifacts and public docs
 - confirm downstream SDK and public docs consumers have the regenerated protocol contract
 - explicitly review any remaining canonical-console action gaps so production claims/capital/governance workflows are not overstated
+- run the operator drawer simulate-only smoke before presenting membership, claim, reserve, or plan-control actions as usable from the public console
 - capture the exact commit, generated artifact hash, and devnet sign-off outputs that will back the production announcement
 - for Genesis Protect Acute live seeding, use [`./genesis-live-bootstrap.md`](./genesis-live-bootstrap.md) so the launch bootstrap takes explicit cluster, oracle, schema, and reserve-lane inputs instead of the shared devnet fixture matrix
 

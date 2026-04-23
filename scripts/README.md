@@ -40,6 +40,7 @@ This directory contains the repository's command-line helpers.
 - `devnet_frontend_role_smoke.ts` validates the canonical fixture matrix in smoke or strict mode
 - `devnet_governance_smoke.ts` runs the shared-devnet native governance smoke in `create-vote` and `execute` phases
 - `devnet_governance_ui_readonly.ts` boots the local frontend and verifies readonly governance routes against devnet data
+- `devnet_operator_drawer_sim.ts` simulates the mounted operator drawer transactions against devnet and fails on real builder/wiring mismatches such as membership proof-mode or gate-configuration errors
 - `deploy_devnet_beta.ts` runs the checked build, artifact parity, and canonical manifest/bootstrap preparation for the hard-break migration
 - `governance_schema_state_update.ts` updates governance-controlled schema state, including historical schema-dependency backfills when older accounts must be retired safely
 - `upload_schema_to_ipfs.ts` publishes schema content to IPFS
@@ -49,6 +50,7 @@ This directory contains the repository's command-line helpers.
 - Prefer package scripts from the repository root when they exist.
 - Use `npm run verify:public` for the public release gate.
 - Use `npm run frontend:workbench:mobile-sidebar:smoke` for the targeted mobile drawer accessibility smoke.
+- Use `npm run devnet:operator:drawer:sim` for the targeted plan/governance operator drawer transaction smoke.
 - Use `npm run test:e2e:localnet` as an additional release-candidate sign-off step when the public protocol surface changes.
 - Use `npm run semantic:readiness:check` when you want the canonical-surface wording guard on its own.
 - Treat deployment and bootstrap helpers as operator tooling, not general contributor entry points.

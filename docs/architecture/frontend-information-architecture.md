@@ -22,8 +22,8 @@ The public UI should treat these as first-order objects:
 - `/plans/new?template=genesis-protect-acute` is the canonical Genesis bootstrap entrypoint
 - `/plans?...&setup=genesis-protect-acute` is the bounded Genesis setup, reserve-warning, and issuance-posture view inside the mounted plan workspace
 - `/capital` is the LP and capital-markets view
-- `/claims` is the member claim-intake plus operator liability and adjudication view
-- `/members` is the self-serve enrollment and member-rights posture view
+- `/claims` is the operator claim-intake, liability, and adjudication view
+- `/members` is the operator-mediated enrollment and member-rights posture view
 - `/governance` is the scoped-control, bootstrap, and authority view
 - `/oracles` is the oracle registry, readiness, and pool-binding dashboard
 - `/oracles/register` and `/oracles/[oracleAddress]/update` are the dedicated oracle profile authoring flows

@@ -341,7 +341,7 @@ Required page sections:
 
 1. Hero with route narrative
 2. Route snapshot rail
-3. Self-serve claim-intake workspace
+3. Operator claim-intake workspace
 4. Operator adjudication and liability workspace
 5. Claim and obligation side rails
 
@@ -351,7 +351,7 @@ Required page sections:
 | --- | --- | --- | --- |
 | Plan selector | Searchable selector | Select the active `HealthPlan` in the current pool context. | Must react to `pool` filtering when present. |
 | Series selector | Searchable selector | Select the active `PolicySeries` for the selected plan. | Reset when plan changes. |
-| Operator panel tabs | Segment buttons | Switch the operator workspace between `Intake`, `Adjudication`, `Reserve`, and `Impairment`. | Reads/writes `panel` in the URL without hiding the self-serve intake card. |
+| Operator panel tabs | Segment buttons | Switch the operator workspace between `Intake`, `Adjudication`, `Reserve`, and `Impairment`. | Reads/writes `panel` in the URL without hiding the selected claim context. |
 | Claimant posture card | Read-only card | Show wallet, recognized role, and current participation count. | Observer mode must remain useful. |
 | Context card | Read-only card | Show pool filter, canonical route, and cross-link to member rights. | Pool filter should say `all pools` when unset. |
 
@@ -360,8 +360,8 @@ Required page sections:
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
 | Claim case id | Text input | Capture the canonical `ClaimCase` id seed. | Required before final submission; may be preseeded locally for convenience. |
-| Claimant field | Read-only field | Show the connected wallet that will own the submission. | Read-only for the self-serve flow. |
-| Member position selector | Select | Choose one of the connected wallet's enrolled `MemberPosition` records. | Must show an empty state when no self-owned member position exists for the selected plan context. |
+| Claimant field | Read-only field | Show the claimant wallet that will own the submission. | Read-only unless the operator flow explicitly allows claimant override. |
+| Member position selector | Select | Choose one enrolled `MemberPosition` record for the selected plan context. | Must show an empty state when no member position exists for the selected plan context. |
 | Funding line selector | Select | Choose the plan-side `FundingLine` the claim should open against. | Must be drawn from the selected plan context. |
 | Initial evidence reference | Text input | Capture a public pointer such as `ipfs://...`, URI, CID, or digest seed. | Must reject raw file uploads to chain-bound state. |
 | Eligibility notice | Inline notice | Explain when the connected wallet cannot submit because no eligible member position exists. | Must remain visible before the primary action. |
@@ -383,7 +383,7 @@ Required page sections:
 
 Purpose:
 
-- Member-rights route for self-serve enrollment, active rights, and operator review.
+- Member-rights route for operator-mediated enrollment, active rights, and eligibility review.
 
 Primary users:
 
@@ -396,7 +396,7 @@ Required page sections:
 
 1. Hero with route narrative
 2. Route snapshot rail
-3. Self-serve enrollment workspace
+3. Operator-mediated enrollment workspace
 4. Member review and eligibility workspace
 5. Rights posture rail
 
@@ -414,7 +414,7 @@ Required page sections:
 
 | Element | Type | Required functionality | Required states / rules |
 | --- | --- | --- | --- |
-| Connected wallet | Read-only field | Show the wallet that will own the member position. | Required for self-serve clarity. |
+| Connected wallet | Read-only field | Show the wallet that will own the member position. | Required for audit clarity. |
 | Series scope | Read-only/meta field | Show the selected lane or `plan root` when no series is selected. | Must match the plan/series context used by the transaction. |
 | Membership model | Read-only/meta field | Show the selected plan's enrollment rule. | Must match plan configuration. |
 | Existing position field | Read-only field | Show whether the enrollment already exists. | Distinguish new draft vs existing position. |
@@ -425,7 +425,7 @@ Required page sections:
 | Delegated-rights posture | Status chips / register field | Show any delegated rights already recorded on existing member positions. | Read-only on this route for the current canonical model. |
 | `Open member position` | Primary button | Create the member position when the wallet and enrollment rule allow it. | Disabled with reason when blocked by token gate, invite-only authority mismatch, missing wallet, or duplicate member position. |
 
-Standalone grant/revoke delegation is not part of the current mounted self-serve route because the live canonical program does not expose that as a separate member-facing transaction surface.
+Standalone grant/revoke delegation is not part of the current mounted route because the live canonical program does not expose that as a separate member-facing transaction surface.
 
 ### 3.6 `/governance`
 
