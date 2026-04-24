@@ -389,6 +389,9 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
       authority: governanceWallet.address,
       reserveDomainAddress: reserveDomain.address,
       assetMint: domainAssetVault.assetMint,
+      vaultTokenAccountAddress:
+        (domainAssetVault as { vaultTokenAccount?: string }).vaultTokenAccount
+        ?? domainAssetVault.address,
       recentBlockhash: STATIC_BLOCKHASH,
     });
     const registerOracleTx = buildRegisterOracleTx({
