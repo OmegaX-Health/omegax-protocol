@@ -31,7 +31,8 @@ If the launch window requires a rehearsal deployment, run the same sequence agai
    Use the canonical program id from `Anchor.toml` / `frontend/lib/protocol.ts`, not the raw `target/deploy/omegax_protocol-keypair.json` address if those ever drift.
    The helper now prints the exact canonical command:
    `solana program deploy --program-id Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B --upgrade-authority ~/.config/solana/id.json target/deploy/omegax_protocol.so`
-4. Run `npm run protocol:bootstrap:devnet-live` to seed or refresh the canonical plan/capital/oracle/schema graph on shared devnet.
+4. Run `npm run protocol:bootstrap:devnet-live` to seed or refresh the canonical plan/capital/oracle/schema graph on shared devnet. Funding and LP seed deposits require real SPL token custody inputs:
+   `OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT`, `OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT`, `OMEGAX_DEVNET_WRAPPER_SETTLEMENT_VAULT_TOKEN_ACCOUNT`, `OMEGAX_DEVNET_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT`, `OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT`, `OMEGAX_DEVNET_LP_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT`, and `OMEGAX_DEVNET_WRAPPER_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT`.
 5. Run `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff` so the mounted console is validated against the refreshed shared-devnet fixture/env set.
 6. Run `npm run devnet:governance:smoke:create-vote` and record the resulting proposal address.
 7. After the DAO voting and hold-up windows expire, run `npm run devnet:governance:smoke:execute`.

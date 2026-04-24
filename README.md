@@ -183,6 +183,7 @@ These helpers are for repo maintainers and shared-devnet operators rather than f
   - emits stable canonical fixture ids for the new model
 - `npm run protocol:bootstrap:devnet-live`
   - seeds the canonical plan/capital/oracle/schema graph onto shared devnet using the configured signer
+  - requires real SPL source/vault token accounts for funding and LP deposit seed transactions
   - provisions reusable local role wallets under `$HOME/.config/solana/omegax-devnet/`
   - syncs canonical public role addresses back into `frontend/.env.local`
 - `npm run devnet:frontend:bootstrap`

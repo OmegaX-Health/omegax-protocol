@@ -1047,6 +1047,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
           )}
           classes={snapshot.capitalClasses}
           pools={snapshot.liquidityPools}
+          domainAssetVaults={snapshot.domainAssetVaults}
         />
       ) : null}
     </div>

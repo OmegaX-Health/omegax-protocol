@@ -13,6 +13,7 @@ import {
   PublicKey,
   SystemProgram,
 } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import protocolModule from "../frontend/lib/protocol.ts";
 import { loadEnvFile } from "./support/load_env_file.ts";
@@ -59,6 +60,14 @@ function keypairFromFile(path: string): Keypair {
     throw new Error(`Missing keypair file: ${path}`);
   }
   return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
+}
+
+function requiredPublicKeyEnv(name: string): PublicKey {
+  const value = (process.env[name] ?? "").trim();
+  if (!value) {
+    throw new Error(`${name} must be set to a real SPL token account for live treasury custody.`);
+  }
+  return new PublicKey(value);
 }
 
 function parseArgs(argv: string[]): { planOnly: boolean } {
@@ -290,7 +299,7 @@ async function main() {
       instructionName: "create_domain_asset_vault",
       args: {
         asset_mint: new PublicKey(config.settlementMint),
-        vault_token_account: protocol.ZERO_PUBKEY_KEY,
+        vault_token_account: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"),
       },
       accounts: [
         { pubkey: governance.publicKey, isSigner: true, isWritable: true },
@@ -806,6 +815,10 @@ async function main() {
           { pubkey: fundingLineLedgerFor(config.fundingLines.event7Sponsor.address), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: config.healthPlan.address, assetMint: config.settlementMint }), isWritable: true },
           { pubkey: seriesReserveLedgerFor(config.policySeries.event7.address), isWritable: true },
+          { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+          { pubkey: config.settlementMint },
+          { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+          { pubkey: TOKEN_PROGRAM_ID },
         ],
       });
     }
@@ -847,7 +860,10 @@ async function main() {
         { pubkey: fundingLineLedgerFor(premium.fundingLine), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: config.healthPlan.address, assetMint: config.settlementMint }), isWritable: true },
         { pubkey: seriesReserveLedgerFor(premium.policySeries), isWritable: true },
-        { pubkey: classLedgerFor(config.capitalClasses.senior.address), isWritable: true },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: config.settlementMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
   }
@@ -894,6 +910,17 @@ async function main() {
         { pubkey: lpSeed.capitalClass, isWritable: true },
         { pubkey: classLedgerFor(lpSeed.capitalClass), isWritable: true },
         { pubkey: lpPosition, isWritable: true },
+        {
+          pubkey: requiredPublicKeyEnv(
+            lpSeed.label === "senior"
+              ? "OMEGAX_GENESIS_SENIOR_LP_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"
+              : "OMEGAX_GENESIS_JUNIOR_LP_SETTLEMENT_SOURCE_TOKEN_ACCOUNT",
+          ),
+          isWritable: true,
+        },
+        { pubkey: config.settlementMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],
     });

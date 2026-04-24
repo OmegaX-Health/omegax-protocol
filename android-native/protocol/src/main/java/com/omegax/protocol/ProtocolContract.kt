@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 3d2f3351a0d57559648b0dbbb8fb2888ea8ef4376f37a456c62eaa3f05cd9d37
+// contract_sha256: 4647a68cdb6a5af415590df903f15d7c1e30dc0d257c2c5013685da05ab5027f
 
 package com.omegax.protocol
 

@@ -3,7 +3,7 @@
 //! Canonical OmegaX health capital markets program surface.
 
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::TokenAccount;
+use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 
 declare_id!("Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B");
 
@@ -294,6 +294,10 @@ pub mod omegax_protocol {
             &ctx.accounts.protocol_governance,
             &ctx.accounts.reserve_domain,
         )?;
+        require!(
+            args.asset_mint != ZERO_PUBKEY && args.vault_token_account != ZERO_PUBKEY,
+            OmegaXProtocolError::VaultTokenAccountInvalid
+        );
 
         let vault = &mut ctx.accounts.domain_asset_vault;
         vault.reserve_domain = ctx.accounts.reserve_domain.key();
@@ -716,15 +720,31 @@ pub mod omegax_protocol {
         ctx: Context<FundSponsorBudget>,
         args: FundSponsorBudgetArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_plan_control(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
             &ctx.accounts.health_plan,
         )?;
+        require_positive_amount(args.amount)?;
         require!(
             ctx.accounts.funding_line.line_type == FUNDING_LINE_TYPE_SPONSOR_BUDGET,
             OmegaXProtocolError::FundingLineTypeMismatch
         );
+        transfer_to_domain_vault(
+            args.amount,
+            &ctx.accounts.authority,
+            &ctx.accounts.source_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.token_program,
+            &ctx.accounts.domain_asset_vault,
+        )?;
+        validate_optional_series_ledger(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.funding_line.policy_series,
+            ctx.accounts.funding_line.asset_mint,
+        )?;
 
         let amount = args.amount;
         let funding_line = &mut ctx.accounts.funding_line;
@@ -735,10 +755,6 @@ pub mod omegax_protocol {
         book_inflow_sheet(&mut ctx.accounts.funding_line_ledger.sheet, amount)?;
 
         if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
-            require!(
-                funding_line.policy_series != ZERO_PUBKEY,
-                OmegaXProtocolError::PolicySeriesMissing
-            );
             book_inflow_sheet(&mut series_ledger.sheet, amount)?;
         }
 
@@ -755,15 +771,31 @@ pub mod omegax_protocol {
         ctx: Context<RecordPremiumPayment>,
         args: RecordPremiumPaymentArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_plan_control(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
             &ctx.accounts.health_plan,
         )?;
+        require_positive_amount(args.amount)?;
         require!(
             ctx.accounts.funding_line.line_type == FUNDING_LINE_TYPE_PREMIUM_INCOME,
             OmegaXProtocolError::FundingLineTypeMismatch
         );
+        transfer_to_domain_vault(
+            args.amount,
+            &ctx.accounts.authority,
+            &ctx.accounts.source_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.token_program,
+            &ctx.accounts.domain_asset_vault,
+        )?;
+        validate_optional_series_ledger(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.funding_line.policy_series,
+            ctx.accounts.funding_line.asset_mint,
+        )?;
 
         let amount = args.amount;
         let funding_line = &mut ctx.accounts.funding_line;
@@ -775,12 +807,6 @@ pub mod omegax_protocol {
 
         if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
             book_inflow_sheet(&mut series_ledger.sheet, amount)?;
-        }
-
-        if let Some(pool_class_ledger) = ctx.accounts.pool_class_ledger.as_deref_mut() {
-            pool_class_ledger.realized_yield_amount =
-                checked_add(pool_class_ledger.realized_yield_amount, amount)?;
-            book_inflow_sheet(&mut pool_class_ledger.sheet, amount)?;
         }
 
         emit!(FundingFlowRecordedEvent {
@@ -797,6 +823,7 @@ pub mod omegax_protocol {
         args: CreateObligationArgs,
     ) -> Result<()> {
         require_id(&args.obligation_id)?;
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_plan_control(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
@@ -810,6 +837,22 @@ pub mod omegax_protocol {
             ctx.accounts.funding_line.asset_mint == args.asset_mint,
             OmegaXProtocolError::AssetMintMismatch
         );
+        require_positive_amount(args.amount)?;
+        validate_optional_series_ledger(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            args.policy_series,
+            args.asset_mint,
+        )?;
+        validate_optional_pool_class_ledger(
+            ctx.accounts.pool_class_ledger.as_deref(),
+            args.capital_class,
+            args.asset_mint,
+        )?;
+        validate_optional_allocation_ledger(
+            ctx.accounts.allocation_ledger.as_deref(),
+            args.allocation_position,
+            args.asset_mint,
+        )?;
 
         let obligation = &mut ctx.accounts.obligation;
         obligation.reserve_domain = ctx.accounts.health_plan.reserve_domain;
@@ -870,7 +913,9 @@ pub mod omegax_protocol {
         ctx: Context<ReserveObligation>,
         args: ReserveObligationArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         let reserve_amount = args.amount;
+        require_positive_amount(reserve_amount)?;
         let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
         let obligation_key = obligation.key();
@@ -888,6 +933,15 @@ pub mod omegax_protocol {
             reserve_amount <= obligation.outstanding_amount,
             OmegaXProtocolError::AmountExceedsOutstandingObligation
         );
+        validate_treasury_mutation_bindings(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.pool_class_ledger.as_deref(),
+            ctx.accounts.allocation_position.as_deref(),
+            ctx.accounts.allocation_ledger.as_deref(),
+            obligation,
+            ctx.accounts.funding_line.key(),
+            ctx.accounts.funding_line.asset_mint,
+        )?;
 
         obligation.status = OBLIGATION_STATUS_RESERVED;
         obligation.reserved_amount = reserve_amount;
@@ -944,7 +998,9 @@ pub mod omegax_protocol {
         ctx: Context<SettleObligation>,
         args: SettleObligationArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         let amount = args.amount;
+        require_positive_amount(amount)?;
         let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
         let obligation_key = obligation.key();
@@ -958,6 +1014,15 @@ pub mod omegax_protocol {
             amount <= obligation.outstanding_amount,
             OmegaXProtocolError::AmountExceedsOutstandingObligation
         );
+        validate_treasury_mutation_bindings(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.pool_class_ledger.as_deref(),
+            ctx.accounts.allocation_position.as_deref(),
+            ctx.accounts.allocation_ledger.as_deref(),
+            obligation,
+            ctx.accounts.funding_line.key(),
+            ctx.accounts.funding_line.asset_mint,
+        )?;
 
         if let Some(claim_case) = ctx.accounts.claim_case.as_deref() {
             require_matching_linked_claim_case(
@@ -1092,7 +1157,9 @@ pub mod omegax_protocol {
     }
 
     pub fn release_reserve(ctx: Context<ReleaseReserve>, args: ReleaseReserveArgs) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         let amount = args.amount;
+        require_positive_amount(amount)?;
         let now_ts = Clock::get()?.unix_timestamp;
         let obligation = &mut ctx.accounts.obligation;
         let obligation_key = obligation.key();
@@ -1110,6 +1177,15 @@ pub mod omegax_protocol {
             amount <= obligation.reserved_amount,
             OmegaXProtocolError::AmountExceedsReservedBalance
         );
+        validate_treasury_mutation_bindings(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.pool_class_ledger.as_deref(),
+            ctx.accounts.allocation_position.as_deref(),
+            ctx.accounts.allocation_ledger.as_deref(),
+            obligation,
+            ctx.accounts.funding_line.key(),
+            ctx.accounts.funding_line.asset_mint,
+        )?;
 
         obligation.reserved_amount = checked_sub(obligation.reserved_amount, amount)?;
         obligation.outstanding_amount = checked_sub(obligation.outstanding_amount, amount)?;
@@ -1214,6 +1290,7 @@ pub mod omegax_protocol {
         ctx: Context<AdjudicateClaimCase>,
         args: AdjudicateClaimCaseArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_claim_operator(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
@@ -1272,6 +1349,7 @@ pub mod omegax_protocol {
         ctx: Context<SettleClaimCase>,
         args: SettleClaimCaseArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_claim_operator(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
@@ -1282,6 +1360,16 @@ pub mod omegax_protocol {
             args.amount <= remaining_claim_amount(&ctx.accounts.claim_case),
             OmegaXProtocolError::AmountExceedsApprovedClaim
         );
+        require_positive_amount(args.amount)?;
+        validate_direct_claim_settlement_bindings(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.pool_class_ledger.as_deref(),
+            ctx.accounts.allocation_position.as_deref(),
+            ctx.accounts.allocation_ledger.as_deref(),
+            &ctx.accounts.claim_case,
+            ctx.accounts.funding_line.key(),
+            ctx.accounts.funding_line.asset_mint,
+        )?;
 
         let amount = args.amount;
         let claim_case = &mut ctx.accounts.claim_case;
@@ -1480,14 +1568,21 @@ pub mod omegax_protocol {
         ctx: Context<DepositIntoCapitalClass>,
         args: DepositIntoCapitalClassArgs,
     ) -> Result<()> {
-        require!(
-            !ctx.accounts.protocol_governance.emergency_pause,
-            OmegaXProtocolError::ProtocolEmergencyPaused
-        );
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+        require_positive_amount(args.amount)?;
         require!(
             ctx.accounts.capital_class.pause_flags & PAUSE_FLAG_CAPITAL_SUBSCRIPTIONS == 0,
             OmegaXProtocolError::CapitalSubscriptionsPaused
         );
+        transfer_to_domain_vault(
+            args.amount,
+            &ctx.accounts.owner,
+            &ctx.accounts.source_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.token_program,
+            &ctx.accounts.domain_asset_vault,
+        )?;
 
         let amount = args.amount;
         let shares = if args.shares == 0 {
@@ -1533,6 +1628,8 @@ pub mod omegax_protocol {
         ctx: Context<RequestRedemption>,
         args: RequestRedemptionArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+        require_positive_amount(args.shares)?;
         require_class_access(
             &ctx.accounts.capital_class,
             ctx.accounts.lp_position.credentialed,
@@ -1556,10 +1653,18 @@ pub mod omegax_protocol {
             OmegaXProtocolError::AmountExceedsAvailableShares
         );
 
-        let asset_amount = args.asset_amount;
+        let asset_amount = redeemable_assets_for_shares(
+            args.shares,
+            ctx.accounts.capital_class.total_shares,
+            ctx.accounts.capital_class.nav_assets,
+        )?;
         ctx.accounts.lp_position.pending_redemption_shares = checked_add(
             ctx.accounts.lp_position.pending_redemption_shares,
             args.shares,
+        )?;
+        ctx.accounts.lp_position.pending_redemption_assets = checked_add(
+            ctx.accounts.lp_position.pending_redemption_assets,
+            asset_amount,
         )?;
         ctx.accounts.lp_position.queue_status = LP_QUEUE_STATUS_PENDING;
         ctx.accounts.capital_class.pending_redemptions =
@@ -1586,28 +1691,43 @@ pub mod omegax_protocol {
         ctx: Context<ProcessRedemptionQueue>,
         args: ProcessRedemptionQueueArgs,
     ) -> Result<()> {
-        require_pool_control(
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+        require_curator_control(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
             &ctx.accounts.liquidity_pool,
         )?;
+        require_positive_amount(args.shares)?;
         require!(
             args.shares <= ctx.accounts.lp_position.pending_redemption_shares,
             OmegaXProtocolError::AmountExceedsPendingRedemption
         );
 
-        let asset_amount = args.asset_amount;
+        let asset_amount = redemption_assets_to_process(
+            args.shares,
+            ctx.accounts.lp_position.pending_redemption_shares,
+            ctx.accounts.lp_position.pending_redemption_assets,
+        )?;
         ctx.accounts.lp_position.pending_redemption_shares = checked_sub(
             ctx.accounts.lp_position.pending_redemption_shares,
             args.shares,
         )?;
+        ctx.accounts.lp_position.pending_redemption_assets = checked_sub(
+            ctx.accounts.lp_position.pending_redemption_assets,
+            asset_amount,
+        )?;
         ctx.accounts.lp_position.shares =
             checked_sub(ctx.accounts.lp_position.shares, args.shares)?;
-        ctx.accounts.lp_position.queue_status = LP_QUEUE_STATUS_PROCESSED;
         ctx.accounts.lp_position.realized_distributions = checked_add(
             ctx.accounts.lp_position.realized_distributions,
             asset_amount,
         )?;
+        ctx.accounts.lp_position.queue_status =
+            if ctx.accounts.lp_position.pending_redemption_shares == 0 {
+                LP_QUEUE_STATUS_PROCESSED
+            } else {
+                LP_QUEUE_STATUS_PENDING
+            };
 
         ctx.accounts.capital_class.total_shares =
             checked_sub(ctx.accounts.capital_class.total_shares, args.shares)?;
@@ -1721,6 +1841,7 @@ pub mod omegax_protocol {
         ctx: Context<AllocateCapital>,
         args: AllocateCapitalArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_allocator(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
@@ -1728,6 +1849,7 @@ pub mod omegax_protocol {
         )?;
 
         let amount = args.amount;
+        require_positive_amount(amount)?;
         require!(
             checked_add(ctx.accounts.allocation_position.allocated_amount, amount)?
                 <= ctx.accounts.allocation_position.cap_amount,
@@ -1759,6 +1881,7 @@ pub mod omegax_protocol {
         ctx: Context<DeallocateCapital>,
         args: DeallocateCapitalArgs,
     ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_allocator(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
@@ -1766,6 +1889,7 @@ pub mod omegax_protocol {
         )?;
 
         let amount = args.amount;
+        require_positive_amount(amount)?;
         let free_allocated = ctx
             .accounts
             .allocation_position
@@ -1790,10 +1914,21 @@ pub mod omegax_protocol {
     }
 
     pub fn mark_impairment(ctx: Context<MarkImpairment>, args: MarkImpairmentArgs) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
         require_claim_operator(
             &ctx.accounts.authority.key(),
             &ctx.accounts.protocol_governance,
             &ctx.accounts.health_plan,
+        )?;
+        require_positive_amount(args.amount)?;
+        validate_impairment_bindings(
+            ctx.accounts.series_reserve_ledger.as_deref(),
+            ctx.accounts.pool_class_ledger.as_deref(),
+            ctx.accounts.allocation_position.as_deref(),
+            ctx.accounts.allocation_ledger.as_deref(),
+            ctx.accounts.obligation.as_deref(),
+            ctx.accounts.funding_line.key(),
+            &ctx.accounts.funding_line,
         )?;
 
         let amount = args.amount;
@@ -2450,44 +2585,54 @@ pub struct OpenFundingLine<'info> {
 pub struct FundSponsorBudget<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
-    pub health_plan: Account<'info, HealthPlan>,
+    pub health_plan: Box<Account<'info, HealthPlan>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, health_plan.reserve_domain.as_ref(), funding_line.asset_mint.as_ref()], bump = domain_asset_vault.bump)]
-    pub domain_asset_vault: Account<'info, DomainAssetVault>,
+    pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_LEDGER, health_plan.reserve_domain.as_ref(), funding_line.asset_mint.as_ref()], bump = domain_asset_ledger.bump)]
-    pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(mut, seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()], bump = funding_line.bump)]
-    pub funding_line: Account<'info, FundingLine>,
+    pub funding_line: Box<Account<'info, FundingLine>>,
     #[account(mut, seeds = [SEED_FUNDING_LINE_LEDGER, funding_line.key().as_ref(), funding_line.asset_mint.as_ref()], bump = funding_line_ledger.bump)]
-    pub funding_line_ledger: Account<'info, FundingLineLedger>,
+    pub funding_line_ledger: Box<Account<'info, FundingLineLedger>>,
     #[account(mut, seeds = [SEED_PLAN_RESERVE_LEDGER, health_plan.key().as_ref(), funding_line.asset_mint.as_ref()], bump = plan_reserve_ledger.bump)]
-    pub plan_reserve_ledger: Account<'info, PlanReserveLedger>,
+    pub plan_reserve_ledger: Box<Account<'info, PlanReserveLedger>>,
     #[account(mut)]
     pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
+    #[account(mut)]
+    pub source_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut)]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
 pub struct RecordPremiumPayment<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
-    pub health_plan: Account<'info, HealthPlan>,
+    pub health_plan: Box<Account<'info, HealthPlan>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, health_plan.reserve_domain.as_ref(), funding_line.asset_mint.as_ref()], bump = domain_asset_vault.bump)]
-    pub domain_asset_vault: Account<'info, DomainAssetVault>,
+    pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_LEDGER, health_plan.reserve_domain.as_ref(), funding_line.asset_mint.as_ref()], bump = domain_asset_ledger.bump)]
-    pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(mut, seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()], bump = funding_line.bump)]
-    pub funding_line: Account<'info, FundingLine>,
+    pub funding_line: Box<Account<'info, FundingLine>>,
     #[account(mut, seeds = [SEED_FUNDING_LINE_LEDGER, funding_line.key().as_ref(), funding_line.asset_mint.as_ref()], bump = funding_line_ledger.bump)]
-    pub funding_line_ledger: Account<'info, FundingLineLedger>,
+    pub funding_line_ledger: Box<Account<'info, FundingLineLedger>>,
     #[account(mut, seeds = [SEED_PLAN_RESERVE_LEDGER, health_plan.key().as_ref(), funding_line.asset_mint.as_ref()], bump = plan_reserve_ledger.bump)]
-    pub plan_reserve_ledger: Account<'info, PlanReserveLedger>,
+    pub plan_reserve_ledger: Box<Account<'info, PlanReserveLedger>>,
     #[account(mut)]
     pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
     #[account(mut)]
-    pub pool_class_ledger: Option<Box<Account<'info, PoolClassLedger>>>,
+    pub source_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut)]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -2812,17 +2957,17 @@ pub struct DepositIntoCapitalClass<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_vault.bump)]
-    pub domain_asset_vault: Account<'info, DomainAssetVault>,
+    pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_LEDGER, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_ledger.bump)]
-    pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
-    pub liquidity_pool: Account<'info, LiquidityPool>,
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
     #[account(mut, seeds = [SEED_CAPITAL_CLASS, liquidity_pool.key().as_ref(), capital_class.class_id.as_bytes()], bump = capital_class.bump)]
-    pub capital_class: Account<'info, CapitalClass>,
+    pub capital_class: Box<Account<'info, CapitalClass>>,
     #[account(mut, seeds = [SEED_POOL_CLASS_LEDGER, capital_class.key().as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = pool_class_ledger.bump)]
-    pub pool_class_ledger: Account<'info, PoolClassLedger>,
+    pub pool_class_ledger: Box<Account<'info, PoolClassLedger>>,
     #[account(
         init_if_needed,
         payer = owner,
@@ -2830,13 +2975,21 @@ pub struct DepositIntoCapitalClass<'info> {
         seeds = [SEED_LP_POSITION, capital_class.key().as_ref(), owner.key().as_ref()],
         bump
     )]
-    pub lp_position: Account<'info, LPPosition>,
+    pub lp_position: Box<Account<'info, LPPosition>>,
+    #[account(mut)]
+    pub source_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut)]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct RequestRedemption<'info> {
     pub owner: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[account(mut, seeds = [SEED_CAPITAL_CLASS, liquidity_pool.key().as_ref(), capital_class.class_id.as_bytes()], bump = capital_class.bump)]
@@ -3469,6 +3622,7 @@ pub struct LPPosition {
     pub shares: u64,
     pub subscription_basis: u64,
     pub pending_redemption_shares: u64,
+    pub pending_redemption_assets: u64,
     pub realized_distributions: u64,
     pub impaired_principal: u64,
     pub lockup_ends_at: i64,
@@ -3990,13 +4144,11 @@ pub struct DepositIntoCapitalClassArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct RequestRedemptionArgs {
     pub shares: u64,
-    pub asset_amount: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct ProcessRedemptionQueueArgs {
     pub shares: u64,
-    pub asset_amount: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -4378,6 +4530,8 @@ pub enum OmegaXProtocolError {
     ProtocolEmergencyPaused,
     #[msg("Reserve domain is inactive")]
     ReserveDomainInactive,
+    #[msg("Domain asset vault token account is missing or invalid")]
+    VaultTokenAccountInvalid,
     #[msg("Health plan is paused")]
     HealthPlanPaused,
     #[msg("Claim intake is paused")]
@@ -4398,6 +4552,12 @@ pub enum OmegaXProtocolError {
     SeriesLedgerUnexpected,
     #[msg("Asset mint mismatch")]
     AssetMintMismatch,
+    #[msg("Source token account owner does not match the signer")]
+    TokenAccountOwnerMismatch,
+    #[msg("Source and vault token accounts must be different accounts")]
+    TokenAccountSelfTransferInvalid,
+    #[msg("Vault token account does not match the domain asset vault")]
+    VaultTokenAccountMismatch,
     #[msg("Funding line mismatch")]
     FundingLineMismatch,
     #[msg("Funding line type mismatch")]
@@ -4410,6 +4570,8 @@ pub enum OmegaXProtocolError {
     AmountExceedsReservedBalance,
     #[msg("Amount exceeds approved claim")]
     AmountExceedsApprovedClaim,
+    #[msg("Amount must be greater than zero")]
+    AmountMustBePositive,
     #[msg("Claim case linkage mismatch")]
     ClaimCaseLinkMismatch,
     #[msg("Linked claims must settle through the obligation path")]
@@ -4418,14 +4580,20 @@ pub enum OmegaXProtocolError {
     AmountExceedsAvailableShares,
     #[msg("Amount exceeds pending redemption")]
     AmountExceedsPendingRedemption,
+    #[msg("Redemption amount cannot be derived from the queued share state")]
+    InvalidRedemptionAmount,
     #[msg("Restricted capital class access failed")]
     RestrictedCapitalClass,
+    #[msg("Capital class ledger mismatch")]
+    CapitalClassMismatch,
     #[msg("LP position with active capital cannot be decredentialed")]
     LPPositionHasActiveCapital,
     #[msg("Capital class lockup is still active")]
     LockupActive,
     #[msg("Allocation cap exceeded")]
     AllocationCapExceeded,
+    #[msg("Allocation position mismatch")]
+    AllocationPositionMismatch,
     #[msg("Insufficient free allocation capacity")]
     InsufficientFreeAllocationCapacity,
     #[msg("Arithmetic overflow or underflow")]
@@ -4495,6 +4663,19 @@ fn require_governance(authority: &Pubkey, governance: &ProtocolGovernance) -> Re
         governance.governance_authority,
         OmegaXProtocolError::Unauthorized
     );
+    Ok(())
+}
+
+fn require_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
+    require!(
+        !governance.emergency_pause,
+        OmegaXProtocolError::ProtocolEmergencyPaused
+    );
+    Ok(())
+}
+
+fn require_positive_amount(amount: u64) -> Result<()> {
+    require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
     Ok(())
 }
 
@@ -5083,6 +5264,7 @@ fn ensure_lp_position_binding(
         lp_position.shares = 0;
         lp_position.subscription_basis = 0;
         lp_position.pending_redemption_shares = 0;
+        lp_position.pending_redemption_assets = 0;
         lp_position.realized_distributions = 0;
         lp_position.impaired_principal = 0;
         lp_position.lockup_ends_at = 0;
@@ -5112,7 +5294,9 @@ fn update_lp_position_credentialing_state(
 ) -> Result<()> {
     if !credentialed {
         require!(
-            lp_position.shares == 0 && lp_position.pending_redemption_shares == 0,
+            lp_position.shares == 0
+                && lp_position.pending_redemption_shares == 0
+                && lp_position.pending_redemption_assets == 0,
             OmegaXProtocolError::LPPositionHasActiveCapital
         );
     }
@@ -5144,6 +5328,315 @@ fn checked_add(lhs: u64, rhs: u64) -> Result<u64> {
 fn checked_sub(lhs: u64, rhs: u64) -> Result<u64> {
     lhs.checked_sub(rhs)
         .ok_or_else(|| OmegaXProtocolError::ArithmeticError.into())
+}
+
+fn checked_u128_to_u64(value: u128) -> Result<u64> {
+    u64::try_from(value).map_err(|_| OmegaXProtocolError::ArithmeticError.into())
+}
+
+fn prorata_amount(numerator: u64, denominator: u64, amount: u64) -> Result<u64> {
+    require!(
+        numerator > 0 && denominator > 0 && numerator <= denominator,
+        OmegaXProtocolError::InvalidRedemptionAmount
+    );
+    let prorata = (amount as u128)
+        .checked_mul(numerator as u128)
+        .ok_or(OmegaXProtocolError::ArithmeticError)?
+        .checked_div(denominator as u128)
+        .ok_or(OmegaXProtocolError::ArithmeticError)?;
+    let value = checked_u128_to_u64(prorata)?;
+    require!(value > 0, OmegaXProtocolError::InvalidRedemptionAmount);
+    Ok(value)
+}
+
+fn redeemable_assets_for_shares(shares: u64, total_shares: u64, nav_assets: u64) -> Result<u64> {
+    prorata_amount(shares, total_shares, nav_assets)
+}
+
+fn redemption_assets_to_process(
+    shares: u64,
+    pending_redemption_shares: u64,
+    pending_redemption_assets: u64,
+) -> Result<u64> {
+    if shares == pending_redemption_shares {
+        require!(
+            pending_redemption_assets > 0,
+            OmegaXProtocolError::InvalidRedemptionAmount
+        );
+        Ok(pending_redemption_assets)
+    } else {
+        prorata_amount(shares, pending_redemption_shares, pending_redemption_assets)
+    }
+}
+
+fn transfer_to_domain_vault<'info>(
+    amount: u64,
+    authority: &Signer<'info>,
+    source_token_account: &InterfaceAccount<'info, TokenAccount>,
+    asset_mint: &InterfaceAccount<'info, Mint>,
+    vault_token_account: &InterfaceAccount<'info, TokenAccount>,
+    token_program: &Interface<'info, TokenInterface>,
+    domain_asset_vault: &DomainAssetVault,
+) -> Result<()> {
+    require_keys_eq!(
+        source_token_account.owner,
+        authority.key(),
+        OmegaXProtocolError::TokenAccountOwnerMismatch
+    );
+    require_keys_neq!(
+        source_token_account.key(),
+        vault_token_account.key(),
+        OmegaXProtocolError::TokenAccountSelfTransferInvalid
+    );
+    require_keys_eq!(
+        source_token_account.mint,
+        domain_asset_vault.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require_keys_eq!(
+        asset_mint.key(),
+        domain_asset_vault.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require_keys_eq!(
+        vault_token_account.key(),
+        domain_asset_vault.vault_token_account,
+        OmegaXProtocolError::VaultTokenAccountMismatch
+    );
+    require_keys_eq!(
+        vault_token_account.mint,
+        domain_asset_vault.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+
+    let accounts = TransferChecked {
+        from: source_token_account.to_account_info(),
+        mint: asset_mint.to_account_info(),
+        to: vault_token_account.to_account_info(),
+        authority: authority.to_account_info(),
+    };
+    token_interface::transfer_checked(
+        CpiContext::new(token_program.to_account_info(), accounts),
+        amount,
+        asset_mint.decimals,
+    )
+}
+
+fn validate_optional_series_ledger(
+    series_ledger: Option<&Account<SeriesReserveLedger>>,
+    expected_policy_series: Pubkey,
+    expected_asset_mint: Pubkey,
+) -> Result<()> {
+    if let Some(ledger) = series_ledger {
+        require!(
+            expected_policy_series != ZERO_PUBKEY,
+            OmegaXProtocolError::PolicySeriesMissing
+        );
+        require_keys_eq!(
+            ledger.policy_series,
+            expected_policy_series,
+            OmegaXProtocolError::PolicySeriesMismatch
+        );
+        require_keys_eq!(
+            ledger.asset_mint,
+            expected_asset_mint,
+            OmegaXProtocolError::AssetMintMismatch
+        );
+    }
+    Ok(())
+}
+
+fn validate_optional_pool_class_ledger(
+    pool_class_ledger: Option<&Account<PoolClassLedger>>,
+    expected_capital_class: Pubkey,
+    expected_asset_mint: Pubkey,
+) -> Result<()> {
+    if let Some(ledger) = pool_class_ledger {
+        require!(
+            expected_capital_class != ZERO_PUBKEY,
+            OmegaXProtocolError::CapitalClassMismatch
+        );
+        require_keys_eq!(
+            ledger.capital_class,
+            expected_capital_class,
+            OmegaXProtocolError::CapitalClassMismatch
+        );
+        require_keys_eq!(
+            ledger.asset_mint,
+            expected_asset_mint,
+            OmegaXProtocolError::AssetMintMismatch
+        );
+    }
+    Ok(())
+}
+
+fn validate_optional_allocation_position(
+    allocation_position: Option<&Account<AllocationPosition>>,
+    expected_allocation_position: Pubkey,
+    expected_funding_line: Pubkey,
+) -> Result<()> {
+    if let Some(position) = allocation_position {
+        require!(
+            expected_allocation_position != ZERO_PUBKEY,
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+        require_keys_eq!(
+            position.key(),
+            expected_allocation_position,
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+        require_keys_eq!(
+            position.funding_line,
+            expected_funding_line,
+            OmegaXProtocolError::FundingLineMismatch
+        );
+    }
+    Ok(())
+}
+
+fn validate_optional_allocation_ledger(
+    allocation_ledger: Option<&Account<AllocationLedger>>,
+    expected_allocation_position: Pubkey,
+    expected_asset_mint: Pubkey,
+) -> Result<()> {
+    if let Some(ledger) = allocation_ledger {
+        require!(
+            expected_allocation_position != ZERO_PUBKEY,
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+        require_keys_eq!(
+            ledger.allocation_position,
+            expected_allocation_position,
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+        require_keys_eq!(
+            ledger.asset_mint,
+            expected_asset_mint,
+            OmegaXProtocolError::AssetMintMismatch
+        );
+    }
+    Ok(())
+}
+
+fn validate_treasury_mutation_bindings(
+    series_ledger: Option<&Account<SeriesReserveLedger>>,
+    pool_class_ledger: Option<&Account<PoolClassLedger>>,
+    allocation_position: Option<&Account<AllocationPosition>>,
+    allocation_ledger: Option<&Account<AllocationLedger>>,
+    obligation: &Obligation,
+    funding_line_key: Pubkey,
+    funding_line_asset_mint: Pubkey,
+) -> Result<()> {
+    require_keys_eq!(
+        obligation.funding_line,
+        funding_line_key,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require_keys_eq!(
+        obligation.asset_mint,
+        funding_line_asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    validate_optional_series_ledger(
+        series_ledger,
+        obligation.policy_series,
+        obligation.asset_mint,
+    )?;
+    validate_optional_pool_class_ledger(
+        pool_class_ledger,
+        obligation.capital_class,
+        obligation.asset_mint,
+    )?;
+    validate_optional_allocation_position(
+        allocation_position,
+        obligation.allocation_position,
+        obligation.funding_line,
+    )?;
+    validate_optional_allocation_ledger(
+        allocation_ledger,
+        obligation.allocation_position,
+        obligation.asset_mint,
+    )
+}
+
+fn validate_direct_claim_settlement_bindings(
+    series_ledger: Option<&Account<SeriesReserveLedger>>,
+    pool_class_ledger: Option<&Account<PoolClassLedger>>,
+    allocation_position: Option<&Account<AllocationPosition>>,
+    allocation_ledger: Option<&Account<AllocationLedger>>,
+    claim_case: &ClaimCase,
+    funding_line_key: Pubkey,
+    funding_line_asset_mint: Pubkey,
+) -> Result<()> {
+    require_keys_eq!(
+        claim_case.funding_line,
+        funding_line_key,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require_keys_eq!(
+        claim_case.asset_mint,
+        funding_line_asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    validate_optional_series_ledger(
+        series_ledger,
+        claim_case.policy_series,
+        claim_case.asset_mint,
+    )?;
+    if pool_class_ledger.is_some() || allocation_position.is_some() || allocation_ledger.is_some() {
+        return err!(OmegaXProtocolError::AllocationPositionMismatch);
+    }
+    Ok(())
+}
+
+fn validate_impairment_bindings(
+    series_ledger: Option<&Account<SeriesReserveLedger>>,
+    pool_class_ledger: Option<&Account<PoolClassLedger>>,
+    allocation_position: Option<&Account<AllocationPosition>>,
+    allocation_ledger: Option<&Account<AllocationLedger>>,
+    obligation: Option<&Account<Obligation>>,
+    funding_line_key: Pubkey,
+    funding_line: &FundingLine,
+) -> Result<()> {
+    validate_optional_series_ledger(
+        series_ledger,
+        funding_line.policy_series,
+        funding_line.asset_mint,
+    )?;
+
+    if let Some(obligation) = obligation {
+        return validate_treasury_mutation_bindings(
+            series_ledger,
+            pool_class_ledger,
+            allocation_position,
+            allocation_ledger,
+            obligation,
+            funding_line_key,
+            funding_line.asset_mint,
+        );
+    }
+
+    let allocation_key = allocation_position
+        .as_ref()
+        .map(|position| position.key())
+        .unwrap_or(ZERO_PUBKEY);
+    if pool_class_ledger.is_some() || allocation_ledger.is_some() {
+        require!(
+            allocation_key != ZERO_PUBKEY,
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+    }
+    validate_optional_allocation_position(allocation_position, allocation_key, funding_line_key)?;
+    if let (Some(class_ledger), Some(position)) = (pool_class_ledger, allocation_position) {
+        validate_optional_pool_class_ledger(
+            Some(class_ledger),
+            position.capital_class,
+            funding_line.asset_mint,
+        )?;
+    } else if pool_class_ledger.is_some() {
+        return err!(OmegaXProtocolError::CapitalClassMismatch);
+    }
+    validate_optional_allocation_ledger(allocation_ledger, allocation_key, funding_line.asset_mint)
 }
 
 fn recompute_sheet(sheet: &mut ReserveBalanceSheet) -> Result<()> {
@@ -5681,6 +6174,7 @@ mod tests {
             shares: 10,
             subscription_basis: 10,
             pending_redemption_shares: 1,
+            pending_redemption_assets: 1,
             realized_distributions: 0,
             impaired_principal: 0,
             lockup_ends_at: 0,
@@ -5701,6 +6195,7 @@ mod tests {
             shares: 0,
             subscription_basis: 0,
             pending_redemption_shares: 0,
+            pending_redemption_assets: 0,
             realized_distributions: 0,
             impaired_principal: 0,
             lockup_ends_at: 0,
@@ -5716,6 +6211,7 @@ mod tests {
         assert_eq!(lp_position.capital_class, capital_class);
         assert_eq!(lp_position.owner, owner);
         assert_eq!(lp_position.queue_status, LP_QUEUE_STATUS_NONE);
+        assert_eq!(lp_position.pending_redemption_assets, 0);
         assert_eq!(lp_position.bump, 9);
         assert!(!lp_position.credentialed);
     }
@@ -5728,6 +6224,7 @@ mod tests {
             shares: 100,
             subscription_basis: 90,
             pending_redemption_shares: 12,
+            pending_redemption_assets: 18,
             realized_distributions: 7,
             impaired_principal: 3,
             lockup_ends_at: 50,
@@ -5741,11 +6238,69 @@ mod tests {
         assert_eq!(lp_position.shares, 130);
         assert_eq!(lp_position.subscription_basis, 115);
         assert_eq!(lp_position.pending_redemption_shares, 12);
+        assert_eq!(lp_position.pending_redemption_assets, 18);
         assert_eq!(lp_position.realized_distributions, 7);
         assert_eq!(lp_position.impaired_principal, 3);
         assert_eq!(lp_position.queue_status, LP_QUEUE_STATUS_PENDING);
         assert!(lp_position.credentialed);
         assert_eq!(lp_position.lockup_ends_at, 1_120);
+    }
+
+    #[test]
+    fn redemption_assets_are_derived_from_nav() {
+        assert_eq!(redeemable_assets_for_shares(25, 100, 1_000).unwrap(), 250);
+        assert_eq!(redeemable_assets_for_shares(3, 7, 700).unwrap(), 300);
+        assert!(redeemable_assets_for_shares(1, 0, 100).is_err());
+        assert!(redeemable_assets_for_shares(1, 100, 0).is_err());
+    }
+
+    #[test]
+    fn redemption_processing_uses_queued_assets() {
+        assert_eq!(redemption_assets_to_process(4, 10, 250).unwrap(), 100);
+        assert_eq!(redemption_assets_to_process(6, 6, 149).unwrap(), 149);
+        assert!(redemption_assets_to_process(1, 10, 0).is_err());
+        assert!(redemption_assets_to_process(11, 10, 250).is_err());
+    }
+
+    #[test]
+    fn sentinel_is_not_curator_control() {
+        let curator = Pubkey::new_unique();
+        let sentinel = Pubkey::new_unique();
+        let governance_authority = Pubkey::new_unique();
+        let governance = ProtocolGovernance {
+            governance_authority,
+            protocol_fee_bps: 0,
+            emergency_pause: false,
+            audit_nonce: 0,
+            bump: 1,
+        };
+        let pool = LiquidityPool {
+            reserve_domain: Pubkey::new_unique(),
+            curator,
+            allocator: Pubkey::new_unique(),
+            sentinel,
+            pool_id: "pool-001".to_string(),
+            display_name: "Protect Pool".to_string(),
+            deposit_asset_mint: Pubkey::new_unique(),
+            strategy_hash: [0u8; 32],
+            allowed_exposure_hash: [0u8; 32],
+            external_yield_adapter_hash: [0u8; 32],
+            fee_bps: 0,
+            redemption_policy: 0,
+            pause_flags: 0,
+            total_value_locked: 0,
+            total_allocated: 0,
+            total_reserved: 0,
+            total_impaired: 0,
+            total_pending_redemptions: 0,
+            active: true,
+            audit_nonce: 0,
+            bump: 1,
+        };
+
+        assert!(require_curator_control(&curator, &governance, &pool).is_ok());
+        assert!(require_curator_control(&governance_authority, &governance, &pool).is_ok());
+        assert!(require_curator_control(&sentinel, &governance, &pool).is_err());
     }
 
     #[test]

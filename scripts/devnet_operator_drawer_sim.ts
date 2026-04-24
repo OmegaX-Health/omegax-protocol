@@ -274,6 +274,21 @@ async function main(): Promise<void> {
     planFundingLines.find((l) => l.lineType === protocol.FUNDING_LINE_TYPE_SPONSOR_BUDGET) ?? null;
   const premiumLine =
     planFundingLines.find((l) => l.lineType === protocol.FUNDING_LINE_TYPE_PREMIUM_INCOME) ?? null;
+  const operatorSourceTokenAccount =
+    process.env.NEXT_PUBLIC_DEVNET_OPERATOR_SOURCE_TOKEN_ACCOUNT ||
+    process.env.OMEGAX_DEVNET_OPERATOR_SOURCE_TOKEN_ACCOUNT ||
+    "";
+  const vaultTokenForLine = (line: { assetMint: string } | null): string => {
+    if (!line) return "";
+    const fixtureVault = fixtures.domainAssetVaults.find(
+      (vault) => vault.reserveDomain === plan?.reserveDomain && vault.assetMint === line.assetMint,
+    ) as { vaultTokenAccount?: string } | undefined;
+    if (fixtureVault?.vaultTokenAccount) return fixtureVault.vaultTokenAccount;
+    const envName = line.assetMint === fixtures.rewardMint
+      ? "OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT"
+      : "OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT";
+    return process.env[envName] ?? "";
+  };
   const firstLine = planFundingLines[0] ?? null;
   const claim = planClaims[0] ?? null;
   const obligation =
@@ -354,8 +369,13 @@ async function main(): Promise<void> {
       process.env.NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT ||
       process.env.NEXT_PUBLIC_DEFAULT_INSURANCE_PAYOUT_MINT ||
       "";
+    const vaultTokenAccount =
+      process.env.OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT ||
+      "";
     if (!assetMint) {
       results.push(skip("Create domain asset vault", "governance", "no settlement mint configured"));
+    } else if (!vaultTokenAccount) {
+      results.push(skip("Create domain asset vault", "governance", "no vault token account configured"));
     } else {
       results.push(
         await simulate(
@@ -367,6 +387,7 @@ async function main(): Promise<void> {
             reserveDomainAddress: reserveDomain.address,
             assetMint,
             recentBlockhash: blockhash,
+            vaultTokenAccountAddress: vaultTokenAccount,
           }),
           "Create domain asset vault",
           "governance",
@@ -388,7 +409,8 @@ async function main(): Promise<void> {
 
   if (plan) {
     // Fund sponsor budget
-    if (sponsorLine) {
+    const sponsorVaultTokenAccount = vaultTokenForLine(sponsorLine);
+    if (sponsorLine && operatorSourceTokenAccount && sponsorVaultTokenAccount) {
       results.push(
         await simulate(
           connection,
@@ -400,6 +422,8 @@ async function main(): Promise<void> {
             reserveDomainAddress: plan.reserveDomain,
             fundingLineAddress: sponsorLine.address,
             assetMint: sponsorLine.assetMint,
+            sourceTokenAccountAddress: operatorSourceTokenAccount,
+            vaultTokenAccountAddress: sponsorVaultTokenAccount,
             recentBlockhash: blockhash,
             amount: 100_000n,
             policySeriesAddress: sponsorLine.policySeries ?? null,
@@ -409,11 +433,20 @@ async function main(): Promise<void> {
         ),
       );
     } else {
-      results.push(skip("Fund sponsor budget", "plan", "no SPONSOR_BUDGET funding line"));
+      results.push(
+        skip(
+          "Fund sponsor budget",
+          "plan",
+          sponsorLine
+            ? "operator source token account or vault token account missing"
+            : "no SPONSOR_BUDGET funding line",
+        ),
+      );
     }
 
     // Record premium payment
-    if (premiumLine) {
+    const premiumVaultTokenAccount = vaultTokenForLine(premiumLine);
+    if (premiumLine && operatorSourceTokenAccount && premiumVaultTokenAccount) {
       results.push(
         await simulate(
           connection,
@@ -425,6 +458,8 @@ async function main(): Promise<void> {
             reserveDomainAddress: plan.reserveDomain,
             fundingLineAddress: premiumLine.address,
             assetMint: premiumLine.assetMint,
+            sourceTokenAccountAddress: operatorSourceTokenAccount,
+            vaultTokenAccountAddress: premiumVaultTokenAccount,
             recentBlockhash: blockhash,
             amount: 100_000n,
             policySeriesAddress: premiumLine.policySeries ?? null,
@@ -436,7 +471,15 @@ async function main(): Promise<void> {
         ),
       );
     } else {
-      results.push(skip("Record premium payment", "plan", "no PREMIUM_INCOME funding line"));
+      results.push(
+        skip(
+          "Record premium payment",
+          "plan",
+          premiumLine
+            ? "operator source token account or vault token account missing"
+            : "no PREMIUM_INCOME funding line",
+        ),
+      );
     }
 
     // Open claim case (use random claim id to probe builder shape)

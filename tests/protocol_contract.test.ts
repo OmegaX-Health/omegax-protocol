@@ -20,6 +20,8 @@ test("canonical contract exposes the health-capital-markets surface", () => {
     types: Array<{ name: string; type: { kind: string; fields?: Array<{ name: string }> } }>;
   };
   const depositArgs = idl.types.find((entry) => entry.name === "DepositIntoCapitalClassArgs");
+  const requestRedemptionArgs = idl.types.find((entry) => entry.name === "RequestRedemptionArgs");
+  const processRedemptionArgs = idl.types.find((entry) => entry.name === "ProcessRedemptionQueueArgs");
 
   assert(instructionNames.includes("initialize_protocol_governance"));
   assert(instructionNames.includes("rotate_protocol_governance_authority"));
@@ -69,9 +71,22 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.reserve_obligation.find((account) => account.name === "claim_case")?.pdaSeeds);
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.release_reserve.find((account) => account.name === "claim_case")?.pdaSeeds);
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_obligation.find((account) => account.name === "claim_case")?.pdaSeeds);
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.fund_sponsor_budget.some((account) => account.name === "source_token_account"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.fund_sponsor_budget.some((account) => account.name === "vault_token_account"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.record_premium_payment.some((account) => account.name === "token_program"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.deposit_into_capital_class.some((account) => account.name === "source_token_account"));
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.request_redemption.some((account) => account.name === "protocol_governance"));
   assert.equal(depositArgs?.type.kind, "struct");
   assert.deepEqual(
     depositArgs?.type.fields?.map((field) => field.name),
     ["amount", "shares"],
+  );
+  assert.deepEqual(
+    requestRedemptionArgs?.type.fields?.map((field) => field.name),
+    ["shares"],
+  );
+  assert.deepEqual(
+    processRedemptionArgs?.type.fields?.map((field) => field.name),
+    ["shares"],
   );
 });

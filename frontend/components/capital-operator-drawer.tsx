@@ -131,7 +131,6 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
   // Queue
   const [lpOwner, setLpOwner] = useState("");
   const [queueShares, setQueueShares] = useState("0");
-  const [queueAssets, setQueueAssets] = useState("0");
   const [lpCredentialed, setLpCredentialed] = useState(true);
   const [lpReason, setLpReason] = useState("");
 
@@ -669,12 +668,10 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                         value={queueShares}
                         onChange={setQueueShares}
                       />
-                      <TextField
-                        label="Asset amount"
-                        value={queueAssets}
-                        onChange={setQueueAssets}
-                      />
                     </div>
+                    <p className="operator-drawer-hint">
+                      Asset payout is derived on-chain from the queued redemption assets.
+                    </p>
                     <div className="operator-drawer-actions">
                       <button
                         type="button"
@@ -692,7 +689,6 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                               lpOwnerAddress: lpOwner,
                               recentBlockhash: blockhash,
                               shares: parseBigIntInput(queueShares),
-                              assetAmount: parseBigIntInput(queueAssets),
                             });
                           })
                         }

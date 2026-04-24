@@ -399,7 +399,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
                   label="Vault token account"
                   value={vaultTokenAccount}
                   onChange={setVaultTokenAccount}
-                  placeholder="Optional external token account reference"
+                  placeholder="Required SPL token account for this vault"
                 />
                 {selectedReserveDomain ? (
                   <p className="operator-drawer-hint">
@@ -419,6 +419,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
                       !governanceReady ||
                       !selectedReserveDomainAddress ||
                       !assetMint.trim() ||
+                      !vaultTokenAccount.trim() ||
                       vaultAlreadyExists ||
                       busyOn("Create domain asset vault")
                     }
@@ -430,7 +431,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
                           reserveDomainAddress: selectedReserveDomainAddress,
                           assetMint: assetMint.trim(),
                           recentBlockhash: blockhash,
-                          vaultTokenAccountAddress: vaultTokenAccount.trim() || undefined,
+                          vaultTokenAccountAddress: vaultTokenAccount.trim(),
                         });
                       })
                     }

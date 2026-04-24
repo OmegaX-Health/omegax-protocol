@@ -67,6 +67,7 @@ import {
   type AllocationPositionSnapshot,
   type CapitalClassSnapshot,
   type ClaimCaseSnapshot,
+  type DomainAssetVaultSnapshot,
   type FundingLineSnapshot,
   type HealthPlanSnapshot,
   type LiquidityPoolSnapshot,
@@ -101,6 +102,7 @@ type PlanOperatorDrawerProps = {
   allocations: AllocationPositionSnapshot[];
   classes: CapitalClassSnapshot[];
   pools: LiquidityPoolSnapshot[];
+  domainAssetVaults: DomainAssetVaultSnapshot[];
 };
 
 const SECTIONS: Array<{ id: PlanOperatorSection; label: string; blurb: string }> = [
@@ -236,6 +238,8 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
   // Funding state
   const [fundingLineAddress, setFundingLineAddress] = useState("");
   const [flowAmount, setFlowAmount] = useState("0");
+  const [sourceTokenAccount, setSourceTokenAccount] = useState("");
+  const [vaultTokenAccount, setVaultTokenAccount] = useState("");
 
   // Claims state
   const [claimSubTab, setClaimSubTab] = useState<ClaimSubTab>("intake");
@@ -471,6 +475,18 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
     () => props.pools.find((pool) => pool.address === selectedAllocation?.liquidityPool) ?? null,
     [props.pools, selectedAllocation?.liquidityPool],
   );
+  const selectedFundingVault = useMemo(
+    () =>
+      props.domainAssetVaults.find(
+        (vault) =>
+          vault.reserveDomain === props.plan?.reserveDomain &&
+          vault.assetMint === selectedFundingLine?.assetMint,
+      ) ?? null,
+    [props.domainAssetVaults, props.plan?.reserveDomain, selectedFundingLine?.assetMint],
+  );
+  useEffect(() => {
+    setVaultTokenAccount(selectedFundingVault?.vaultTokenAccount ?? "");
+  }, [selectedFundingVault?.vaultTokenAccount]);
   const selectedFundingSeries = useMemo(
     () =>
       props.seriesOptions.find((entry) => entry.address === newFundingLinePolicySeriesAddress) ?? null,
@@ -624,6 +640,22 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                       </SelectField>
                       <TextField label="Amount" value={flowAmount} onChange={setFlowAmount} />
                     </div>
+                    <div className="plans-wizard-row">
+                      <TextField
+                        label="Source token account"
+                        value={sourceTokenAccount}
+                        onChange={setSourceTokenAccount}
+                      />
+                      <TextField
+                        label="Vault token account"
+                        value={vaultTokenAccount}
+                        onChange={setVaultTokenAccount}
+                      />
+                    </div>
+                    <p className="operator-drawer-hint">
+                      Funding now moves tokens into the registered vault before reserve ledgers
+                      increase.
+                    </p>
                     <div className="operator-drawer-actions">
                       <button
                         type="button"
@@ -631,6 +663,8 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                         disabled={
                           !canAct ||
                           !selectedFundingLine ||
+                          !sourceTokenAccount.trim() ||
+                          !vaultTokenAccount.trim() ||
                           selectedFundingLine.lineType !== FUNDING_LINE_TYPE_SPONSOR_BUDGET ||
                           busyOn("Fund sponsor budget")
                         }
@@ -643,6 +677,8 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               reserveDomainAddress: props.plan!.reserveDomain,
                               fundingLineAddress: selectedFundingLine!.address,
                               assetMint: selectedFundingLine!.assetMint,
+                              sourceTokenAccountAddress: sourceTokenAccount.trim(),
+                              vaultTokenAccountAddress: vaultTokenAccount.trim(),
                               recentBlockhash: blockhash,
                               amount: parseBigIntInput(flowAmount),
                               policySeriesAddress: selectedFundingLine!.policySeries ?? null,
@@ -658,6 +694,8 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                         disabled={
                           !canAct ||
                           !selectedFundingLine ||
+                          !sourceTokenAccount.trim() ||
+                          !vaultTokenAccount.trim() ||
                           selectedFundingLine.lineType !== FUNDING_LINE_TYPE_PREMIUM_INCOME ||
                           busyOn("Record premium payment")
                         }
@@ -670,6 +708,8 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               reserveDomainAddress: props.plan!.reserveDomain,
                               fundingLineAddress: selectedFundingLine!.address,
                               assetMint: selectedFundingLine!.assetMint,
+                              sourceTokenAccountAddress: sourceTokenAccount.trim(),
+                              vaultTokenAccountAddress: vaultTokenAccount.trim(),
                               recentBlockhash: blockhash,
                               amount: parseBigIntInput(flowAmount),
                               policySeriesAddress: selectedFundingLine!.policySeries ?? null,

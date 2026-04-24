@@ -37,9 +37,17 @@ export SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 export OMEGAX_LIVE_SETTLEMENT_MINT=<usdc_mint>
 export OMEGAX_LIVE_ORACLE_WALLET=<oracle_pubkey>
 export OMEGAX_LIVE_ORACLE_KEYPAIR_PATH=/absolute/path/to/oracle-keypair.json
+export OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT=<treasury_token_account>
+export OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT=<governance_source_token_account>
 ```
 
 The governance signer defaults to `~/.config/solana/id.json`. Override it with `SOLANA_KEYPAIR` when needed.
+
+If the senior or junior LP seed deposits are enabled, also set
+`OMEGAX_GENESIS_SENIOR_LP_SETTLEMENT_SOURCE_TOKEN_ACCOUNT` and
+`OMEGAX_GENESIS_JUNIOR_LP_SETTLEMENT_SOURCE_TOKEN_ACCOUNT`. Source token accounts must be distinct
+from `OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT`; bootstrap funding now performs checked SPL
+token transfers before reserve ledgers increase.
 
 ## Optional role overrides
 

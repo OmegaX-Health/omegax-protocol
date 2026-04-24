@@ -16,6 +16,7 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import { STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX } from "./devnet_governance_smoke_helpers.ts";
 import { loadEnvFile } from "./support/load_env_file.ts";
@@ -65,6 +66,14 @@ function sha256Bytes(label: string): number[] {
 
 function keypairFromFile(path: string): Keypair {
   return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
+}
+
+function requiredPublicKeyEnv(name: string): PublicKey {
+  const value = (process.env[name] ?? "").trim();
+  if (!value) {
+    throw new Error(`${name} must be set to a real SPL token account for live treasury custody.`);
+  }
+  return new PublicKey(value);
 }
 
 function ensureRoleKeypair(name: string): Keypair {
@@ -562,6 +571,7 @@ async function main() {
       label: "open:settlement",
       reserveDomain: openReserveDomain.address,
       assetMint: fixtureState.settlementMint,
+      vaultTokenAccountEnv: "OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT",
       vault: fixtureState.domainAssetVaults[0]!.address,
       ledger: fixtureState.domainAssetLedgers[0]!.address,
     },
@@ -569,6 +579,7 @@ async function main() {
       label: "open:reward",
       reserveDomain: openReserveDomain.address,
       assetMint: fixtureState.rewardMint,
+      vaultTokenAccountEnv: "OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT",
       vault: openRewardDomainVault,
       ledger: openRewardDomainLedger,
     },
@@ -576,6 +587,7 @@ async function main() {
       label: "wrapper:settlement",
       reserveDomain: wrapperReserveDomain.address,
       assetMint: fixtureState.wrapperSettlementMint,
+      vaultTokenAccountEnv: "OMEGAX_DEVNET_WRAPPER_SETTLEMENT_VAULT_TOKEN_ACCOUNT",
       vault: fixtureState.domainAssetVaults[1]!.address,
       ledger: fixtureState.domainAssetLedgers[1]!.address,
     },
@@ -595,7 +607,7 @@ async function main() {
       instructionName: "create_domain_asset_vault",
       args: {
         asset_mint: new PublicKey(assetVault.assetMint),
-        vault_token_account: protocol.ZERO_PUBKEY_KEY,
+        vault_token_account: requiredPublicKeyEnv(assetVault.vaultTokenAccountEnv),
       },
       accounts: [
         { pubkey: governance.publicKey, isSigner: true, isWritable: true },
@@ -1116,6 +1128,10 @@ async function main() {
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: seekerPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: fixtureState.rewardMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
   }
@@ -1140,6 +1156,10 @@ async function main() {
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: fixtureState.rewardMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
   }
@@ -1164,7 +1184,10 @@ async function main() {
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
-        { pubkey: openClassLedger, isWritable: true },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: fixtureState.settlementMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
   }
@@ -1234,6 +1257,10 @@ async function main() {
         { pubkey: openClass.address, isWritable: true },
         { pubkey: openClassLedger, isWritable: true },
         { pubkey: openLpPosition, isWritable: true },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_LP_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: fixtureState.settlementMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -1259,6 +1286,10 @@ async function main() {
         { pubkey: wrapperClass.address, isWritable: true },
         { pubkey: wrapperClassLedger, isWritable: true },
         { pubkey: wrapperLpPosition, isWritable: true },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_WRAPPER_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: fixtureState.settlementMint },
+        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -1366,10 +1397,10 @@ async function main() {
       instructionName: "request_redemption",
       args: {
         shares: 25_000n,
-        asset_amount: 25_000n,
       },
       accounts: [
         { pubkey: roleWallets.lpProvider.publicKey, isSigner: true },
+        { pubkey: governanceAddress },
         { pubkey: pool.address, isWritable: true },
         { pubkey: openClass.address, isWritable: true },
         { pubkey: openClassLedger, isWritable: true },
