@@ -52,8 +52,8 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | Instruction | Primary purpose |
 | --- | --- |
 | `open_funding_line` | create a sponsor, premium, LP, backstop, or subsidy funding line |
-| `fund_sponsor_budget` | record sponsor budget funding |
-| `record_premium_payment` | record premium income into the reserve kernel |
+| `fund_sponsor_budget` | transfer sponsor budget tokens into the configured domain vault and record reserve funding |
+| `record_premium_payment` | transfer premium tokens into the configured domain vault and record premium income in the reserve kernel |
 | `create_obligation` | create a canonical liability unit |
 | `reserve_obligation` | reserve liability against plan-side capital and optionally mirror a linked `ClaimCase` reserve balance |
 | `settle_obligation` | move an obligation into claimable, payable, settled, or canceled states and mirror linked protection-claim settlement state |
@@ -72,9 +72,9 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | `create_liquidity_pool` | create an LP-facing capital sleeve inside a reserve domain |
 | `create_capital_class` | create a class-specific investor instrument inside a pool |
 | `update_lp_position_credentialing` | grant or revoke managed LP access for restricted classes |
-| `deposit_into_capital_class` | mint or expand LP exposure into a class using on-chain LP credential state |
-| `request_redemption` | queue a class redemption request |
-| `process_redemption_queue` | settle queued redemptions when capacity allows |
+| `deposit_into_capital_class` | transfer LP capital into the configured domain vault and mint or expand class exposure using on-chain LP credential state |
+| `request_redemption` | queue a class redemption request with NAV-derived asset accounting |
+| `process_redemption_queue` | settle queued redemptions using queued share/NAV accounting when curator or governance allows |
 | `create_allocation_position` | bridge a capital class into a plan funding line |
 | `allocate_capital` | allocate class capital into a funding line |
 | `deallocate_capital` | release unneeded allocated capital back to the pool |

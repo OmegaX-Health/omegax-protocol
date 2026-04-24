@@ -44,7 +44,7 @@ If you are an external builder, start with the public docs site before diving in
 
 - [Devnet Beta Runbook](./operations/devnet-beta-runbook.md)
 - [Public Release Gate](./operations/public-release-gate.md)
-- [Release v0.3.0](./operations/release-v0.3.0.md)
+- [Release v0.3.1](./operations/release-v0.3.1.md)
 
 ### Public Site
 

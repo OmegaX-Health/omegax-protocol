@@ -47,7 +47,7 @@ Start with:
 
 - [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
 - [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
-- [Release v0.3.0](./docs/operations/release-v0.3.0.md)
+- [Release v0.3.1](./docs/operations/release-v0.3.1.md)
 
 ## What Exists Today on Devnet Beta
 
@@ -89,10 +89,14 @@ This repository treats the earlier pool-first surface as retired devnet history 
 
 ## Release Status
 
-Current publish target: `v0.3.0`
+Current publish target: `v0.3.1`
 
-This is the first publishable canonical OmegaX health-capital-markets surface.
+This patch hardens the first publishable canonical OmegaX health-capital-markets surface.
 
+- reserve inflows now require checked SPL token transfers into the configured domain vault token account before ledgers increase
+- redemption payouts are derived on-chain from queued shares and NAV rather than caller-supplied payout amounts
+- emergency pause now covers reserve-moving exits and settlement paths
+- optional mutable reserve ledgers are bound to the expected series, class, allocation, funding line, domain, and mint before mutation
 - it is a hard-break devnet migration from the retired pool-first model
 - reserve domains define hard custody and legal settlement boundaries
 - health plans define sponsor, member, liability, and claims administration roots
@@ -128,7 +132,7 @@ Read the canonical design set first:
 - [MIGRATION_MATRIX](./docs/MIGRATION_MATRIX.md)
 - [Public Release Gate](./docs/operations/public-release-gate.md)
 - [Devnet Beta Runbook](./docs/operations/devnet-beta-runbook.md)
-- [Release v0.3.0](./docs/operations/release-v0.3.0.md)
+- [Release v0.3.1](./docs/operations/release-v0.3.1.md)
 
 ## Repository Layout
 

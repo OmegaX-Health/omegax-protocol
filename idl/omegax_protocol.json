@@ -2,7 +2,7 @@
   "address": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",
   "metadata": {
     "name": "omegax_protocol",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "spec": "0.1.0",
     "description": "OmegaX health capital markets protocol with reserve domains, health plans, funding lines, and capital classes"
   },

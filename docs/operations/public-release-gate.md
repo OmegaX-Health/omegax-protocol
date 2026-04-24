@@ -2,7 +2,7 @@
 
 Use this checklist before merging or publishing protocol-facing changes from the public repository.
 
-Current target release: `0.3.0`
+Current target release: `0.3.1`
 
 ## Baseline commands
 
@@ -57,7 +57,7 @@ Before merging a release candidate to `main`, confirm:
 - `npm run devnet:operator:drawer:sim`
 - `npm run test:e2e:localnet`
 - the checked-in docs describe the same public surface as the code and generated artifacts
-- [`./release-v0.3.0.md`](./release-v0.3.0.md) reflects the current release notes and known follow-up work
+- [`./release-v0.3.1.md`](./release-v0.3.1.md) reflects the current release notes and known follow-up work
 
 For this release train, reviewers should be able to discover from the checked-in docs that:
 

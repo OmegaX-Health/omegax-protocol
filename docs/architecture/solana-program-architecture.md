@@ -25,11 +25,13 @@ Read in this order:
 
 Inside a domain:
 
-- actual tokens sit in `DomainAssetVault`
+- actual tokens sit in the SPL token account recorded on `DomainAssetVault`
 - reserve attribution lives in `DomainAssetLedger`
 - health plans and liquidity pools can share the same settlement asset without losing attribution
 
 This is how the protocol supports shared capital without creating accounting soup.
+
+Reserve ledgers must not increase from asserted offchain amounts alone. Funding, premium, and LP deposit instructions require checked SPL token transfers into the configured domain vault token account before ledger-backed balances increase.
 
 ### 3. Plan-side product and liability model
 
@@ -54,6 +56,8 @@ This is how the protocol supports shared capital without creating accounting sou
 `CapitalClass` carries class-specific redemption, restriction, and impairment semantics.
 
 `LPPosition` records the investor position.
+
+Queued redemption assets are derived from class NAV and queued shares. Operators process queued shares; they do not supply the payout amount.
 
 `AllocationPosition` is the bridge from a capital class into a plan funding line. This keeps investor exposure explicit and many-to-many.
 
