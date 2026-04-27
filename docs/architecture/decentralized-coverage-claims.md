@@ -69,6 +69,11 @@ The canonical public flow is:
 
 The economic consequence is expressed through `Obligation` state transitions:
 
+`open_claim_case` is intentionally authorization-bound at intake. The signer must either be the
+enrolled `MemberPosition.wallet` opening a claim for itself, or the plan's claim/plan operator
+opening the case through an operator workflow. The provided member position and funding line must
+belong to the selected plan and policy series, and the funding line must still be open.
+
 - proposed
 - reserved
 - claimable or payable

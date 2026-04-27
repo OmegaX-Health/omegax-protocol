@@ -365,7 +365,7 @@ Required page sections:
 | Funding line selector | Select | Choose the plan-side `FundingLine` the claim should open against. | Must be drawn from the selected plan context. |
 | Initial evidence reference | Text input | Capture a public pointer such as `ipfs://...`, URI, CID, or digest seed. | Must reject raw file uploads to chain-bound state. |
 | Eligibility notice | Inline notice | Explain when the connected wallet cannot submit because no eligible member position exists. | Must remain visible before the primary action. |
-| `Open claim case` | Primary button | Create the claim on-chain with the selected plan, member position, funding line, claimant, and evidence reference. | Must be blocked until wallet, member position, and funding line are all present. |
+| `Open claim case` | Primary button | Create the claim on-chain with the selected plan, member position, funding line, claimant, and evidence reference. | Must be blocked until wallet, eligible member position, and open funding line are all present; member self-submit must keep claimant equal to the member wallet, while plan/operator flows may explicitly override claimant. |
 
 #### `/claims` panel: Operator liability workspace
 

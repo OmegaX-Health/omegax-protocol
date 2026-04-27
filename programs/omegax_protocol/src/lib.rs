@@ -1233,6 +1233,12 @@ pub mod omegax_protocol {
             ctx.accounts.health_plan.pause_flags & PAUSE_FLAG_CLAIM_INTAKE == 0,
             OmegaXProtocolError::ClaimIntakePaused
         );
+        require_claim_intake_submitter(
+            &ctx.accounts.authority.key(),
+            &ctx.accounts.health_plan,
+            &ctx.accounts.member_position,
+            &args,
+        )?;
 
         let claim_case = &mut ctx.accounts.claim_case;
         claim_case.reserve_domain = ctx.accounts.health_plan.reserve_domain;
@@ -2765,9 +2771,22 @@ pub struct OpenClaimCase<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
-    #[account(seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()], bump = member_position.bump)]
+    #[account(
+        seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()],
+        bump = member_position.bump,
+        constraint = member_position.health_plan == health_plan.key() @ OmegaXProtocolError::HealthPlanMismatch,
+        constraint = member_position.policy_series == args.policy_series @ OmegaXProtocolError::PolicySeriesMismatch,
+        constraint = member_position.active @ OmegaXProtocolError::Unauthorized,
+        constraint = member_position.eligibility_status == ELIGIBILITY_ELIGIBLE @ OmegaXProtocolError::Unauthorized,
+    )]
     pub member_position: Account<'info, MemberPosition>,
-    #[account(seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()], bump = funding_line.bump)]
+    #[account(
+        seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()],
+        bump = funding_line.bump,
+        constraint = funding_line.health_plan == health_plan.key() @ OmegaXProtocolError::HealthPlanMismatch,
+        constraint = funding_line.policy_series == args.policy_series @ OmegaXProtocolError::PolicySeriesMismatch,
+        constraint = funding_line.status == FUNDING_LINE_STATUS_OPEN @ OmegaXProtocolError::FundingLineMismatch,
+    )]
     pub funding_line: Account<'info, FundingLine>,
     #[account(
         init,
@@ -5144,6 +5163,23 @@ fn activate_membership_anchor_seat(
     Ok(())
 }
 
+fn require_claim_intake_submitter(
+    authority: &Pubkey,
+    plan: &HealthPlan,
+    member_position: &MemberPosition,
+    args: &OpenClaimCaseArgs,
+) -> Result<()> {
+    let member_self_submit =
+        *authority == member_position.wallet && args.claimant == member_position.wallet;
+    let operator_submit = *authority == plan.claims_operator || *authority == plan.plan_admin;
+
+    if member_self_submit || operator_submit {
+        Ok(())
+    } else {
+        err!(OmegaXProtocolError::Unauthorized)
+    }
+}
+
 fn require_claim_operator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
@@ -6817,6 +6853,117 @@ mod tests {
             audit_nonce: 0,
             bump: 1,
         }
+    }
+
+    fn sample_member_position(wallet: Pubkey, policy_series: Pubkey) -> MemberPosition {
+        MemberPosition {
+            health_plan: Pubkey::new_unique(),
+            policy_series,
+            wallet,
+            subject_commitment: [0u8; 32],
+            eligibility_status: ELIGIBILITY_ELIGIBLE,
+            delegated_rights: 0,
+            enrollment_proof_mode: MEMBERSHIP_PROOF_MODE_OPEN,
+            membership_gate_kind: MEMBERSHIP_GATE_KIND_OPEN,
+            membership_anchor_ref: ZERO_PUBKEY,
+            gate_amount_snapshot: 0,
+            invite_id_hash: [0u8; 32],
+            active: true,
+            opened_at: 1,
+            updated_at: 1,
+            bump: 1,
+        }
+    }
+
+    fn sample_open_claim_case_args(claimant: Pubkey, policy_series: Pubkey) -> OpenClaimCaseArgs {
+        OpenClaimCaseArgs {
+            claim_id: "claim-protect-001".to_string(),
+            policy_series,
+            claimant,
+            evidence_ref_hash: [1u8; 32],
+        }
+    }
+
+    #[test]
+    fn claim_intake_submitter_allows_member_self_submission() {
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        let member_position = sample_member_position(member_wallet, policy_series);
+        let args = sample_open_claim_case_args(member_wallet, policy_series);
+
+        assert!(
+            require_claim_intake_submitter(&member_wallet, &plan, &member_position, &args).is_ok()
+        );
+    }
+
+    #[test]
+    fn claim_intake_submitter_allows_plan_claim_operators() {
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let plan_admin = Pubkey::new_unique();
+        let claims_operator = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            plan_admin,
+            Pubkey::new_unique(),
+            claims_operator,
+            Pubkey::new_unique(),
+        );
+        let member_position = sample_member_position(member_wallet, policy_series);
+        let delegated_claimant = Pubkey::new_unique();
+        let args = sample_open_claim_case_args(delegated_claimant, policy_series);
+
+        assert!(
+            require_claim_intake_submitter(&claims_operator, &plan, &member_position, &args)
+                .is_ok()
+        );
+        assert!(
+            require_claim_intake_submitter(&plan_admin, &plan, &member_position, &args).is_ok()
+        );
+    }
+
+    #[test]
+    fn claim_intake_submitter_rejects_unrelated_signers() {
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        let member_position = sample_member_position(member_wallet, policy_series);
+        let args = sample_open_claim_case_args(member_wallet, policy_series);
+        let attacker = Pubkey::new_unique();
+
+        let error =
+            require_claim_intake_submitter(&attacker, &plan, &member_position, &args).unwrap_err();
+
+        assert!(error.to_string().contains("Unauthorized"));
+    }
+
+    #[test]
+    fn claim_intake_submitter_rejects_member_claimant_override() {
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        let member_position = sample_member_position(member_wallet, policy_series);
+        let args = sample_open_claim_case_args(Pubkey::new_unique(), policy_series);
+
+        let error = require_claim_intake_submitter(&member_wallet, &plan, &member_position, &args)
+            .unwrap_err();
+
+        assert!(error.to_string().contains("Unauthorized"));
     }
 
     #[test]

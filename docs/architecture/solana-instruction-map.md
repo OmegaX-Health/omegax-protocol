@@ -58,7 +58,7 @@ All current public instructions are defined in [`programs/omegax_protocol/src/li
 | `reserve_obligation` | reserve liability against plan-side capital and optionally mirror a linked `ClaimCase` reserve balance |
 | `settle_obligation` | move an obligation into claimable, payable, settled, or canceled states and mirror linked protection-claim settlement state |
 | `release_reserve` | release reserved liability back to free capital and mirror linked protection-claim reserve state |
-| `open_claim_case` | open an explicit claim lifecycle |
+| `open_claim_case` | open an explicit claim lifecycle from the enrolled member wallet or a plan claim/operator path |
 | `attach_claim_evidence_ref` | attach evidence and decision-support references |
 | `attest_claim_case` | anchor a schema-bound oracle attestation against a live claim case |
 | `adjudicate_claim_case` | approve or deny a claim case and optionally bind it to the matching `Obligation` |

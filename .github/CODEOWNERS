@@ -1,0 +1,14 @@
+# Require explicit review ownership for public protocol surfaces.
+
+* @marinosabijan
+
+/programs/omegax_protocol/ @marinosabijan
+/idl/ @marinosabijan
+/shared/ @marinosabijan
+/frontend/lib/generated/ @marinosabijan
+/android-native/protocol/ @marinosabijan
+
+/frontend/ @marinosabijan
+/scripts/ @marinosabijan
+/docs/ @marinosabijan
+/.github/ @marinosabijan
