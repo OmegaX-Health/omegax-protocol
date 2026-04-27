@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 14762dd9beb30e7f1a15ed06a2d7aa01b9660fdb20eb5546bf6bf20a9ff89e20
+// contract_sha256: bdea1a0c7734bf555ef7cb22f0e82b91e1399a7fedcd5f8a25c31a4bc48cfbfd
 
 package com.omegax.protocol
 
@@ -12,6 +12,7 @@ object ProtocolContract {
         "allocate_capital" to byteArrayOf(146u.toByte(), 129u.toByte(), 60u.toByte(), 205u.toByte(), 88u.toByte(), 225u.toByte(), 60u.toByte(), 183u.toByte()),
         "attach_claim_evidence_ref" to byteArrayOf(52u.toByte(), 246u.toByte(), 203u.toByte(), 87u.toByte(), 244u.toByte(), 143u.toByte(), 132u.toByte(), 131u.toByte()),
         "attest_claim_case" to byteArrayOf(111u.toByte(), 40u.toByte(), 46u.toByte(), 51u.toByte(), 76u.toByte(), 157u.toByte(), 214u.toByte(), 136u.toByte()),
+        "authorize_claim_recipient" to byteArrayOf(112u.toByte(), 97u.toByte(), 129u.toByte(), 42u.toByte(), 125u.toByte(), 165u.toByte(), 226u.toByte(), 163u.toByte()),
         "backfill_schema_dependency_ledger" to byteArrayOf(109u.toByte(), 109u.toByte(), 247u.toByte(), 151u.toByte(), 229u.toByte(), 78u.toByte(), 52u.toByte(), 167u.toByte()),
         "claim_oracle" to byteArrayOf(1u.toByte(), 252u.toByte(), 166u.toByte(), 132u.toByte(), 45u.toByte(), 24u.toByte(), 23u.toByte(), 233u.toByte()),
         "close_outcome_schema" to byteArrayOf(196u.toByte(), 81u.toByte(), 8u.toByte(), 61u.toByte(), 95u.toByte(), 145u.toByte(), 225u.toByte(), 2u.toByte()),

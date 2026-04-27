@@ -762,6 +762,151 @@
       ]
     },
     {
+      "name": "authorize_claim_recipient",
+      "discriminator": [
+        112,
+        97,
+        129,
+        42,
+        125,
+        165,
+        226,
+        163
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "AuthorizeClaimRecipientArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "member_position",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "member_position.health_plan",
+                "account": "MemberPosition"
+              },
+              {
+                "kind": "account",
+                "path": "member_position.wallet",
+                "account": "MemberPosition"
+              },
+              {
+                "kind": "account",
+                "path": "member_position.policy_series",
+                "account": "MemberPosition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.health_plan",
+                "account": "ClaimCase"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "backfill_schema_dependency_ledger",
       "discriminator": [
         109,

@@ -1254,6 +1254,7 @@ pub mod omegax_protocol {
         claim_case.claim_id = args.claim_id;
         claim_case.claimant = args.claimant;
         claim_case.adjudicator = ZERO_PUBKEY;
+        claim_case.delegate_recipient = ZERO_PUBKEY;
         claim_case.evidence_ref_hash = args.evidence_ref_hash;
         claim_case.decision_support_hash = [0u8; 32];
         claim_case.intake_status = CLAIM_INTAKE_OPEN;
@@ -1276,6 +1277,20 @@ pub mod omegax_protocol {
             approved_amount: claim_case.approved_amount,
         });
 
+        Ok(())
+    }
+
+    pub fn authorize_claim_recipient(
+        ctx: Context<AuthorizeClaimRecipient>,
+        args: AuthorizeClaimRecipientArgs,
+    ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+        // The Anchor context binds member_position.wallet == authority.key()
+        // and claim_case.member_position == member_position.key(), so reaching
+        // this body means the member of record signed.
+        let claim_case = &mut ctx.accounts.claim_case;
+        claim_case.delegate_recipient = args.delegate_recipient;
+        claim_case.updated_at = Clock::get()?.unix_timestamp;
         Ok(())
     }
 
@@ -2832,6 +2847,32 @@ pub struct OpenClaimCase<'info> {
 }
 
 #[derive(Accounts)]
+pub struct AuthorizeClaimRecipient<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        seeds = [
+            SEED_MEMBER_POSITION,
+            member_position.health_plan.as_ref(),
+            member_position.wallet.as_ref(),
+            member_position.policy_series.as_ref(),
+        ],
+        bump = member_position.bump,
+        constraint = member_position.wallet == authority.key() @ OmegaXProtocolError::Unauthorized,
+        constraint = member_position.active @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub member_position: Box<Account<'info, MemberPosition>>,
+    #[account(
+        mut,
+        seeds = [SEED_CLAIM_CASE, claim_case.health_plan.as_ref(), claim_case.claim_id.as_bytes()],
+        bump = claim_case.bump,
+        constraint = claim_case.member_position == member_position.key() @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub claim_case: Box<Account<'info, ClaimCase>>,
+}
+
+#[derive(Accounts)]
 pub struct AttachClaimEvidenceRef<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
@@ -3593,6 +3634,13 @@ pub struct ClaimCase {
     pub claim_id: String,
     pub claimant: Pubkey,
     pub adjudicator: Pubkey,
+    // PT-2026-04-27-04 design: when settlement transfers SPL out, the recipient
+    // is `delegate_recipient` if non-zero, else `member_position.wallet`. The
+    // `claimant` field above is informational metadata constrained to equal
+    // `member_position.wallet` at intake (see require_claim_intake_submitter);
+    // routing is exclusively controlled here, set by the member via
+    // `authorize_claim_recipient`. ZERO_PUBKEY means "pay member.wallet".
+    pub delegate_recipient: Pubkey,
     pub evidence_ref_hash: [u8; 32],
     pub decision_support_hash: [u8; 32],
     pub intake_status: u8,
@@ -4131,6 +4179,11 @@ pub struct SettleObligationArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct ReleaseReserveArgs {
     pub amount: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct AuthorizeClaimRecipientArgs {
+    pub delegate_recipient: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -6590,6 +6643,7 @@ mod tests {
             claim_id: "claim-protect-001".to_string(),
             claimant: Pubkey::new_unique(),
             adjudicator: ZERO_PUBKEY,
+            delegate_recipient: ZERO_PUBKEY,
             evidence_ref_hash: [0u8; 32],
             decision_support_hash: [0u8; 32],
             intake_status: CLAIM_INTAKE_APPROVED,
