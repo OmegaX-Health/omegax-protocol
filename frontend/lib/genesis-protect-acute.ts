@@ -130,12 +130,12 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
     metadataUri: GENESIS_PROTECT_ACUTE_METADATA_URIS.event7,
     comparabilityKey: "genesis-acute-event-7",
     coverWindowDays: 7,
-    payoutCapUsd: 1_500,
+    payoutCapUsd: 1_000,
     benefitStyle: "fixed_benefit_only",
     pricing: {
       retailUsd: 39,
-      cohortUsdMin: 29,
-      cohortUsdMax: 35,
+      cohortUsdMin: 28,
+      cohortUsdMax: 36,
     },
     benefitTiers: [
       {
@@ -154,7 +154,7 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
         id: "tier_3",
         label: "Tier 3",
         trigger: "Surgery, ICU, or 2+ nights",
-        benefitUsd: 1_500,
+        benefitUsd: 1_000,
       },
     ],
     waitingPeriods: {
@@ -207,12 +207,12 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
     metadataUri: GENESIS_PROTECT_ACUTE_METADATA_URIS.travel30,
     comparabilityKey: "genesis-acute-travel-30",
     coverWindowDays: 30,
-    payoutCapUsd: 5_000,
+    payoutCapUsd: 3_000,
     benefitStyle: "hybrid_fixed_plus_reimbursement",
     pricing: {
-      retailUsd: 99,
-      cohortUsdMin: 69,
-      cohortUsdMax: 89,
+      retailUsd: 159,
+      cohortUsdMin: 112,
+      cohortUsdMax: 144,
       sponsorNote: "Sponsor pricing is negotiated for larger cohorts.",
     },
     benefitTiers: [
@@ -236,7 +236,7 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
       },
     ],
     reimbursementTopUp: {
-      aggregateCapUsd: 5_000,
+      aggregateCapUsd: 3_000,
       description: "Actual acute emergency medical spend above the fixed tier benefit, capped at the aggregate maximum.",
     },
     waitingPeriods: {

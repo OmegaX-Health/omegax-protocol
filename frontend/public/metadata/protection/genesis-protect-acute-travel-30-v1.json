@@ -16,12 +16,12 @@
     "coverWindowDays": 30,
     "currency": "USDC",
     "benefitStyle": "hybrid_fixed_plus_reimbursement",
-    "maxPayoutUsd": 5000
+    "maxPayoutUsd": 3000
   },
   "pricing": {
-    "retailUsd": 99,
-    "cohortUsdMin": 69,
-    "cohortUsdMax": 89,
+    "retailUsd": 159,
+    "cohortUsdMin": 112,
+    "cohortUsdMax": 144,
     "sponsorPricingNote": "Sponsor pricing is negotiated for larger cohorts."
   },
   "benefitSchedule": {
@@ -46,7 +46,7 @@
       }
     ],
     "reimbursementTopUp": {
-      "aggregateCapUsd": 5000,
+      "aggregateCapUsd": 3000,
       "description": "Actual acute emergency medical spend above the fixed tier benefit, capped at the aggregate maximum."
     }
   },

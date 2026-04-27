@@ -71,6 +71,23 @@ type Assumptions = {
     quantiles: number[];
   };
   reserveModel: Record<string, unknown>;
+  approvedCanonicalRedesign?: {
+    status: string;
+    approvedAt: string;
+    approvalBasis: string;
+    historicalPriorDesign: Record<SkuKey, {
+      retailPremiumUsd: number;
+      cohortPremiumUsdMin: number;
+      cohortPremiumUsdMax: number;
+      maxPayoutUsd: number;
+    }>;
+    appliedDesign: Record<SkuKey, {
+      retailPremiumUsd: number;
+      cohortPremiumUsdMin: number;
+      cohortPremiumUsdMax: number;
+      maxPayoutUsd: number;
+    }>;
+  };
   claimsOps: ClaimsOpsModel;
   skus: Record<SkuKey, SkuAssumption>;
   countryPosture: CountryPosture;
@@ -507,9 +524,11 @@ function optimizeSkuPricing(skuKey: SkuKey, assumptions: Assumptions, matrix: Sc
     return evaluation;
   });
   const healthyCandidates = evaluations.filter((entry) => entry.launchGate === "healthy");
-  const recommended = healthyCandidates.sort((left, right) =>
-    left.premiumUsd - right.premiumUsd || left.capUsd - right.capUsd,
-  )[0] ?? evaluations.sort((left, right) => left.additionalReserveNeededUsd - right.additionalReserveNeededUsd)[0]!;
+  const recommended = currentEvaluation?.launchGate === "healthy"
+    ? currentEvaluation
+    : healthyCandidates.sort((left, right) =>
+      left.premiumUsd - right.premiumUsd || left.capUsd - right.capUsd,
+    )[0] ?? evaluations.sort((left, right) => left.additionalReserveNeededUsd - right.additionalReserveNeededUsd)[0]!;
   const cohortBands = sku.pricingDesign.targetCohortDiscountsPct.map((discount) => ({
     discountPct: roundPercent(discount),
     cohortPremiumUsd: Math.ceil(recommended.premiumUsd * (1 - discount)),
@@ -577,8 +596,30 @@ function evaluateCandidate(params: {
   };
 }
 
-function buildCanonicalUpdatePlan(pricingRecommendations: ReturnType<typeof optimizeSkuPricing>[]) {
-  const changes = pricingRecommendations.flatMap((recommendation) => {
+function buildCanonicalUpdatePlan(
+  pricingRecommendations: ReturnType<typeof optimizeSkuPricing>[],
+  assumptions: Assumptions,
+) {
+  const redesign = assumptions.approvedCanonicalRedesign;
+  const appliedChanges = redesign
+    ? (Object.keys(redesign.appliedDesign) as SkuKey[]).flatMap((skuKey) => {
+      const prior = redesign.historicalPriorDesign[skuKey];
+      const applied = redesign.appliedDesign[skuKey];
+      const skuName = skuKey === "event7" ? "Event 7" : "Travel 30";
+      const entries: string[] = [];
+      if (prior.retailPremiumUsd !== applied.retailPremiumUsd) {
+        entries.push(`${skuName}: retail premium ${prior.retailPremiumUsd} -> ${applied.retailPremiumUsd} USD.`);
+      }
+      if (prior.cohortPremiumUsdMin !== applied.cohortPremiumUsdMin || prior.cohortPremiumUsdMax !== applied.cohortPremiumUsdMax) {
+        entries.push(`${skuName}: cohort band ${prior.cohortPremiumUsdMin}-${prior.cohortPremiumUsdMax} -> ${applied.cohortPremiumUsdMin}-${applied.cohortPremiumUsdMax} USD.`);
+      }
+      if (prior.maxPayoutUsd !== applied.maxPayoutUsd) {
+        entries.push(`${skuName}: max payout cap ${prior.maxPayoutUsd} -> ${applied.maxPayoutUsd} USD.`);
+      }
+      return entries;
+    })
+    : [];
+  const recommendedChanges = pricingRecommendations.flatMap((recommendation) => {
     const currentPremium = recommendation.current?.premiumUsd ?? 0;
     const currentCap = recommendation.current?.capUsd ?? 0;
     const recommended = recommendation.recommended;
@@ -592,8 +633,13 @@ function buildCanonicalUpdatePlan(pricingRecommendations: ReturnType<typeof opti
     }
     return entries;
   });
+  const changes = redesign ? appliedChanges : recommendedChanges;
   return {
-    status: changes.length > 0 ? "approval_required" : "no_canonical_change_recommended",
+    status: redesign?.status ?? (changes.length > 0 ? "approval_required" : "no_canonical_change_recommended"),
+    approvedAt: redesign?.approvedAt ?? null,
+    approvalBasis: redesign?.approvalBasis ?? null,
+    historicalPriorDesign: redesign?.historicalPriorDesign ?? null,
+    appliedDesign: redesign?.appliedDesign ?? null,
     changes,
     requiredSurfaces: [
       "frontend public Genesis metadata",
@@ -603,7 +649,9 @@ function buildCanonicalUpdatePlan(pricingRecommendations: ReturnType<typeof opti
       "Dev Tracker pricing/reserve threshold task",
       "public docs and FAQ after doctrine approval",
     ],
-    rule: "Do not apply these canonical changes automatically from the actuarial workbook.",
+    rule: redesign
+      ? "Approved canonical pricing redesign is applied in repo metadata; keep Notion and public copy synchronized to this artifact."
+      : "Do not apply these canonical changes automatically from the actuarial workbook.",
   };
 }
 
@@ -645,7 +693,7 @@ Generated: ${output.generatedAt}
 - Public-open ceiling remains ${output.recommendedLaunchGates.publicOpenCeiling.event7Members} Event 7 + ${output.recommendedLaunchGates.publicOpenCeiling.travel30Members} Travel 30 at baseline.
 - Event 7 same-venue cap remains ${output.recommendedLaunchGates.event7SameVenueHardCapMembers}.
 - Travel 30 sponsor/backstop review threshold remains ${output.recommendedLaunchGates.travel30SponsorReviewThresholdMembers}.
-- Canonical updates are not applied automatically; see canonical-update-plan.md.
+- Canonical redesign status: ${output.canonicalUpdatePlan.status}; see canonical-update-plan.md.
 
 ## Scenario Gates
 
@@ -666,13 +714,13 @@ function buildCanonicalMarkdown(plan: ReturnType<typeof buildCanonicalUpdatePlan
 
 Status: ${plan.status}
 
-This is a non-mutating approval plan. It records what should change only if the pricing redesign is approved.
+${plan.approvedAt ? `Approved: ${plan.approvedAt}\n\nBasis: ${plan.approvalBasis}\n\nThis records the approved canonical pricing redesign now applied in repo metadata.` : "This is a non-mutating approval plan. It records what should change only if the pricing redesign is approved."}
 
-## Proposed Changes
+## Canonical Changes
 
 ${plan.changes.length > 0 ? plan.changes.map((change) => `- ${change}`).join("\n") : "- No canonical pricing or cap changes recommended."}
 
-## Surfaces To Update After Approval
+## Surfaces To Keep Synchronized
 
 ${plan.requiredSurfaces.map((surface) => `- ${surface}`).join("\n")}
 
@@ -695,7 +743,7 @@ function buildReviewOutput() {
   const pricingRecommendations = (Object.keys(assumptions.skus) as SkuKey[]).map((sku, index) =>
     optimizeSkuPricing(sku, assumptions, matrix, 100000 + index * 10000),
   );
-  const canonicalUpdatePlan = buildCanonicalUpdatePlan(pricingRecommendations);
+  const canonicalUpdatePlan = buildCanonicalUpdatePlan(pricingRecommendations, assumptions);
 
   return {
     generated: true,
@@ -726,6 +774,7 @@ function buildReviewOutput() {
       countryPosture: assumptions.countryPosture,
     },
     canonicalUpdatePlan,
+    approvedCanonicalRedesign: assumptions.approvedCanonicalRedesign ?? null,
     limitations: assumptions.methodLimitations,
     sourceReferences: assumptions.sourceReferences,
   };

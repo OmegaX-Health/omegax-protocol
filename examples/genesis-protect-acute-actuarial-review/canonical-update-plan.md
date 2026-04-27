@@ -1,16 +1,22 @@
 # Genesis Protect Acute Canonical Update Plan
 
-Status: approval_required
+Status: approved_applied_in_repo
 
-This is a non-mutating approval plan. It records what should change only if the pricing redesign is approved.
+Approved: 2026-04-27
 
-## Proposed Changes
+Basis: p99.5 actuarial workbook pricing redesign
 
-- Event 7: review max payout cap 1500 -> 1000 USD.
-- Travel 30: review retail premium 99 -> 159 USD.
-- Travel 30: review max payout cap 5000 -> 3000 USD.
+This records the approved canonical pricing redesign now applied in repo metadata.
 
-## Surfaces To Update After Approval
+## Canonical Changes
+
+- Event 7: cohort band 29-35 -> 28-36 USD.
+- Event 7: max payout cap 1500 -> 1000 USD.
+- Travel 30: retail premium 99 -> 159 USD.
+- Travel 30: cohort band 69-89 -> 112-144 USD.
+- Travel 30: max payout cap 5000 -> 3000 USD.
+
+## Surfaces To Keep Synchronized
 
 - frontend public Genesis metadata
 - Genesis Protect Acute canonical Notion plan
@@ -21,4 +27,4 @@ This is a non-mutating approval plan. It records what should change only if the 
 
 ## Rule
 
-Do not apply these canonical changes automatically from the actuarial workbook.
+Approved canonical pricing redesign is applied in repo metadata; keep Notion and public copy synchronized to this artifact.

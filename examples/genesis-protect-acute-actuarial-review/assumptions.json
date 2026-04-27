@@ -23,6 +23,39 @@
     "skuSpecificAccountingRequired": true,
     "predictionMarketsCountAsReserve": false
   },
+  "approvedCanonicalRedesign": {
+    "status": "approved_applied_in_repo",
+    "approvedAt": "2026-04-27",
+    "approvalBasis": "p99.5 actuarial workbook pricing redesign",
+    "historicalPriorDesign": {
+      "event7": {
+        "retailPremiumUsd": 39,
+        "cohortPremiumUsdMin": 29,
+        "cohortPremiumUsdMax": 35,
+        "maxPayoutUsd": 1500
+      },
+      "travel30": {
+        "retailPremiumUsd": 99,
+        "cohortPremiumUsdMin": 69,
+        "cohortPremiumUsdMax": 89,
+        "maxPayoutUsd": 5000
+      }
+    },
+    "appliedDesign": {
+      "event7": {
+        "retailPremiumUsd": 39,
+        "cohortPremiumUsdMin": 28,
+        "cohortPremiumUsdMax": 36,
+        "maxPayoutUsd": 1000
+      },
+      "travel30": {
+        "retailPremiumUsd": 159,
+        "cohortPremiumUsdMin": 112,
+        "cohortPremiumUsdMax": 144,
+        "maxPayoutUsd": 3000
+      }
+    }
+  },
   "claimsOps": {
     "reviewers": 2,
     "casesPerReviewerPerWeek": 18,
@@ -37,9 +70,9 @@
       "coverWindowDays": 7,
       "benefitStyle": "fixed_benefit_only",
       "retailPremiumUsd": 39,
-      "cohortPremiumUsdMin": 29,
-      "cohortPremiumUsdMax": 35,
-      "maxPayoutUsd": 1500,
+      "cohortPremiumUsdMin": 28,
+      "cohortPremiumUsdMax": 36,
+      "maxPayoutUsd": 1000,
       "baselineClaimFrequency": 0.03,
       "baselineLossRatio": 0.415,
       "claimsPayingReserveUsd": 33400,
@@ -52,8 +85,8 @@
       "severityModel": {
         "minUsd": 150,
         "modeUsd": 350,
-        "p95Usd": 1200,
-        "maxUsd": 1500
+        "p95Usd": 900,
+        "maxUsd": 1000
       },
       "pricingDesign": {
         "candidateRetailPremiumsUsd": [29, 35, 39, 45, 49, 55, 65, 79],
@@ -79,13 +112,13 @@
       "displayName": "Genesis Protect Acute - Travel 30",
       "coverWindowDays": 30,
       "benefitStyle": "hybrid_fixed_plus_reimbursement",
-      "retailPremiumUsd": 99,
-      "cohortPremiumUsdMin": 69,
-      "cohortPremiumUsdMax": 89,
-      "maxPayoutUsd": 5000,
+      "retailPremiumUsd": 159,
+      "cohortPremiumUsdMin": 112,
+      "cohortPremiumUsdMax": 144,
+      "maxPayoutUsd": 3000,
       "baselineClaimFrequency": 0.04,
-      "baselineLossRatio": 0.662,
-      "claimsPayingReserveUsd": 54900,
+      "baselineLossRatio": 0.412,
+      "claimsPayingReserveUsd": 84900,
       "safeConcurrentMembersVaR99": 502,
       "waitingPeriods": {
         "illnessDays": 7,
@@ -94,8 +127,8 @@
       "severityModel": {
         "minUsd": 250,
         "modeUsd": 1250,
-        "p95Usd": 4200,
-        "maxUsd": 5000
+        "p95Usd": 2600,
+        "maxUsd": 3000
       },
       "pricingDesign": {
         "candidateRetailPremiumsUsd": [69, 79, 89, 99, 119, 139, 159, 189, 229],
@@ -104,7 +137,7 @@
         "optimizerScenarioId": "adverse-1000-e7-500-t30"
       },
       "capitalStack": {
-        "premiumReserveUsd": 9900,
+        "premiumReserveUsd": 39900,
         "sponsorBackstopUsd": 0,
         "juniorFirstLossUsd": 20000,
         "seniorLpReserveUsd": 25000
