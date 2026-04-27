@@ -1,8 +1,9 @@
 {
   "generated": true,
   "generatedAt": "2026-04-27T00:00:00.000Z",
-  "reviewId": "genesis-protect-acute-launch-gate-2026-04",
-  "purpose": "Repo-first launch-gate actuarial review for the first Genesis Protect Acute policies.",
+  "reviewId": "genesis-protect-acute-end-to-end-actuarial-workbook-2026-04",
+  "purpose": "Repo-first end-to-end actuarial pricing and launch-control workbook for the first Genesis Protect Acute policies.",
+  "targetSolvencyQuantile": 0.995,
   "validation": {
     "metadataAligned": true,
     "claimSimulationCoverage": {
@@ -39,18 +40,6 @@
       }
     }
   },
-  "derivedAssumptions": {
-    "event7": {
-      "expectedClaimCostUsd": 16.18,
-      "conditionalSeverityUsd": 539.5,
-      "surplusPerPolicyUsd": 22.82
-    },
-    "travel30": {
-      "expectedClaimCostUsd": 65.54,
-      "conditionalSeverityUsd": 1638.45,
-      "surplusPerPolicyUsd": 33.46
-    }
-  },
   "scenarioResults": [
     {
       "id": "bootstrap-50-e7-20-t30",
@@ -58,14 +47,19 @@
       "label": "Bootstrap launch",
       "event7Members": 50,
       "travel30Members": 20,
+      "countryTier": "available",
       "grossPremiumUsd": 3930,
       "expectedClaimsUsd": 2120,
       "expectedSurplusUsd": 1810,
+      "averageSimulatedClaimsUsd": 1857,
       "claimsPayingReserveUsd": 88300,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 4915,
-      "p99ClaimsUsd": 6534,
-      "p995ClaimsUsd": 7093,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 5439,
+      "p99ClaimsUsd": 7723,
+      "p995ClaimsUsd": 8671,
+      "capitalRequiredAtTargetUsd": 4741,
+      "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
     },
@@ -75,14 +69,19 @@
       "label": "Phase 2 operating mix",
       "event7Members": 200,
       "travel30Members": 60,
+      "countryTier": "available",
       "grossPremiumUsd": 13740,
       "expectedClaimsUsd": 7169,
       "expectedSurplusUsd": 6571,
+      "averageSimulatedClaimsUsd": 6233,
       "claimsPayingReserveUsd": 88300,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 11969,
-      "p99ClaimsUsd": 14686,
-      "p995ClaimsUsd": 15266,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 12056,
+      "p99ClaimsUsd": 15325,
+      "p995ClaimsUsd": 16508,
+      "capitalRequiredAtTargetUsd": 2768,
+      "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
     },
@@ -92,14 +91,19 @@
       "label": "PDF table safe zone",
       "event7Members": 500,
       "travel30Members": 200,
+      "countryTier": "available",
       "grossPremiumUsd": 39300,
       "expectedClaimsUsd": 21200,
       "expectedSurplusUsd": 18100,
+      "averageSimulatedClaimsUsd": 18550,
       "claimsPayingReserveUsd": 88300,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 29892,
-      "p99ClaimsUsd": 33728,
-      "p995ClaimsUsd": 34887,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 28344,
+      "p99ClaimsUsd": 33211,
+      "p995ClaimsUsd": 35227,
+      "capitalRequiredAtTargetUsd": 0,
+      "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
     },
@@ -109,50 +113,21 @@
       "label": "Recommended public-open ceiling",
       "event7Members": 1000,
       "travel30Members": 500,
+      "countryTier": "available",
       "grossPremiumUsd": 88500,
       "expectedClaimsUsd": 48954,
       "expectedSurplusUsd": 39546,
+      "averageSimulatedClaimsUsd": 43038,
       "claimsPayingReserveUsd": 88300,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 62042,
-      "p99ClaimsUsd": 68016,
-      "p995ClaimsUsd": 70194,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 57626,
+      "p99ClaimsUsd": 64231,
+      "p995ClaimsUsd": 66890,
+      "capitalRequiredAtTargetUsd": 0,
+      "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
-    },
-    {
-      "id": "near-threshold-1400-e7-500-t30",
-      "type": "independent_claims",
-      "label": "Near current reserve threshold",
-      "event7Members": 1400,
-      "travel30Members": 500,
-      "grossPremiumUsd": 104100,
-      "expectedClaimsUsd": 55428,
-      "expectedSurplusUsd": 48672,
-      "claimsPayingReserveUsd": 88300,
-      "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 69015,
-      "p99ClaimsUsd": 74990,
-      "p995ClaimsUsd": 77168,
-      "reserveBreachProbability": 0.00009,
-      "launchGate": "caution"
-    },
-    {
-      "id": "over-threshold-3000-e7-1000-t30",
-      "type": "independent_claims",
-      "label": "Over threshold without LP scaling",
-      "event7Members": 3000,
-      "travel30Members": 1000,
-      "grossPremiumUsd": 216000,
-      "expectedClaimsUsd": 114093,
-      "expectedSurplusUsd": 101907,
-      "claimsPayingReserveUsd": 88300,
-      "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 133175,
-      "p99ClaimsUsd": 141367,
-      "p995ClaimsUsd": 144564,
-      "reserveBreachProbability": 0.99094,
-      "launchGate": "pause"
     },
     {
       "id": "adverse-1000-e7-500-t30",
@@ -160,15 +135,20 @@
       "label": "Adverse public-open mix",
       "event7Members": 1000,
       "travel30Members": 500,
+      "countryTier": "available",
       "grossPremiumUsd": 88500,
       "expectedClaimsUsd": 76491,
       "expectedSurplusUsd": 12009,
+      "averageSimulatedClaimsUsd": 66311,
       "claimsPayingReserveUsd": 88300,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 94586,
-      "p99ClaimsUsd": 102728,
-      "p995ClaimsUsd": 105526,
-      "reserveBreachProbability": 0.14094,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 86118,
+      "p99ClaimsUsd": 95260,
+      "p995ClaimsUsd": 98927,
+      "capitalRequiredAtTargetUsd": 10427,
+      "additionalReserveNeededUsd": 10627,
+      "reserveBreachProbability": 0.035433,
       "launchGate": "pause"
     },
     {
@@ -177,16 +157,109 @@
       "label": "Severe adverse public-open mix",
       "event7Members": 1000,
       "travel30Members": 500,
+      "countryTier": "available",
       "grossPremiumUsd": 88500,
       "expectedClaimsUsd": 91789,
       "expectedSurplusUsd": -3289,
+      "averageSimulatedClaimsUsd": 79527,
       "claimsPayingReserveUsd": 88300,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 111570,
-      "p99ClaimsUsd": 120387,
-      "p995ClaimsUsd": 123234,
-      "reserveBreachProbability": 0.61485,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 101122,
+      "p99ClaimsUsd": 110672,
+      "p995ClaimsUsd": 114101,
+      "capitalRequiredAtTargetUsd": 25601,
+      "additionalReserveNeededUsd": 25801,
+      "reserveBreachProbability": 0.240183,
       "launchGate": "pause"
+    },
+    {
+      "id": "sponsor-cohort-100-e7-250-t30",
+      "type": "independent_claims",
+      "label": "Sponsor-backed cohort",
+      "event7Members": 100,
+      "travel30Members": 250,
+      "countryTier": "sponsor_only",
+      "grossPremiumUsd": 28650,
+      "expectedClaimsUsd": 21784,
+      "expectedSurplusUsd": 6866,
+      "averageSimulatedClaimsUsd": 19592,
+      "claimsPayingReserveUsd": 113300,
+      "reserveReductionUsd": 0,
+      "sponsorBackstopUsd": 25000,
+      "p95ClaimsUsd": 31215,
+      "p99ClaimsUsd": 36721,
+      "p995ClaimsUsd": 38742,
+      "capitalRequiredAtTargetUsd": 10092,
+      "additionalReserveNeededUsd": 0,
+      "reserveBreachProbability": 0,
+      "launchGate": "healthy"
+    },
+    {
+      "id": "founders-pass-12x-100-t30",
+      "type": "independent_claims",
+      "label": "Founders Pass sequential Travel 30 windows",
+      "event7Members": 0,
+      "travel30Members": 1200,
+      "countryTier": "available",
+      "grossPremiumUsd": 118800,
+      "expectedClaimsUsd": 99487,
+      "expectedSurplusUsd": 19313,
+      "averageSimulatedClaimsUsd": 90318,
+      "claimsPayingReserveUsd": 54900,
+      "reserveReductionUsd": 0,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 115290,
+      "p99ClaimsUsd": 126224,
+      "p995ClaimsUsd": 130460,
+      "capitalRequiredAtTargetUsd": 11660,
+      "additionalReserveNeededUsd": 75560,
+      "reserveBreachProbability": 0.9946,
+      "launchGate": "pause"
+    },
+    {
+      "id": "country-tier-sponsor-only-300-t30",
+      "type": "independent_claims",
+      "label": "Sponsor-only country tier Travel 30 cohort",
+      "event7Members": 0,
+      "travel30Members": 300,
+      "countryTier": "sponsor_only",
+      "grossPremiumUsd": 29700,
+      "expectedClaimsUsd": 28263,
+      "expectedSurplusUsd": 1437,
+      "averageSimulatedClaimsUsd": 25575,
+      "claimsPayingReserveUsd": 79900,
+      "reserveReductionUsd": 0,
+      "sponsorBackstopUsd": 25000,
+      "p95ClaimsUsd": 39245,
+      "p99ClaimsUsd": 45708,
+      "p995ClaimsUsd": 48185,
+      "capitalRequiredAtTargetUsd": 18485,
+      "additionalReserveNeededUsd": 0,
+      "reserveBreachProbability": 0,
+      "launchGate": "healthy"
+    },
+    {
+      "id": "country-tier-waitlist-100-t30",
+      "type": "independent_claims",
+      "label": "Waitlist country tier exploratory cohort",
+      "event7Members": 0,
+      "travel30Members": 100,
+      "countryTier": "waitlist",
+      "grossPremiumUsd": 9900,
+      "expectedClaimsUsd": 12288,
+      "expectedSurplusUsd": -2388,
+      "averageSimulatedClaimsUsd": 11010,
+      "claimsPayingReserveUsd": 54900,
+      "reserveReductionUsd": 0,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 20622,
+      "p99ClaimsUsd": 25648,
+      "p995ClaimsUsd": 27622,
+      "capitalRequiredAtTargetUsd": 17722,
+      "additionalReserveNeededUsd": 0,
+      "reserveBreachProbability": 0,
+      "launchGate": "healthy"
     },
     {
       "id": "travel30-only-500",
@@ -194,15 +267,20 @@
       "label": "Travel 30-only current reserve ceiling",
       "event7Members": 0,
       "travel30Members": 500,
+      "countryTier": "available",
       "grossPremiumUsd": 49500,
       "expectedClaimsUsd": 32769,
       "expectedSurplusUsd": 16731,
+      "averageSimulatedClaimsUsd": 29837,
       "claimsPayingReserveUsd": 54900,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 44238,
-      "p99ClaimsUsd": 50792,
-      "p995ClaimsUsd": 52430,
-      "reserveBreachProbability": 0.00218,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 43748,
+      "p99ClaimsUsd": 50160,
+      "p995ClaimsUsd": 52411,
+      "capitalRequiredAtTargetUsd": 2911,
+      "additionalReserveNeededUsd": 0,
+      "reserveBreachProbability": 0.00255,
       "launchGate": "caution"
     },
     {
@@ -211,15 +289,20 @@
       "label": "Travel 30-only adverse reserve check",
       "event7Members": 0,
       "travel30Members": 500,
+      "countryTier": "available",
       "grossPremiumUsd": 49500,
       "expectedClaimsUsd": 51202,
       "expectedSurplusUsd": -1702,
+      "averageSimulatedClaimsUsd": 45855,
       "claimsPayingReserveUsd": 54900,
       "reserveReductionUsd": 0,
-      "p95ClaimsUsd": 67586,
-      "p99ClaimsUsd": 75778,
-      "p995ClaimsUsd": 77826,
-      "reserveBreachProbability": 0.36484,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 64710,
+      "p99ClaimsUsd": 73408,
+      "p995ClaimsUsd": 76394,
+      "capitalRequiredAtTargetUsd": 26894,
+      "additionalReserveNeededUsd": 21494,
+      "reserveBreachProbability": 0.20455,
       "launchGate": "pause"
     },
     {
@@ -262,9 +345,9 @@
       "launchGate": "pause"
     },
     {
-      "id": "travel30-illness-cluster-100",
+      "id": "travel30-regional-illness-cluster-100",
       "type": "correlated_event",
-      "label": "Travel 30 dispersed illness cluster",
+      "label": "Travel 30 regional illness cluster",
       "sku": "travel30",
       "members": 100,
       "affectedRate": 0.15,
@@ -275,9 +358,9 @@
       "launchGate": "caution"
     },
     {
-      "id": "travel30-illness-cluster-200",
+      "id": "travel30-regional-illness-cluster-200",
       "type": "correlated_event",
-      "label": "Travel 30 dispersed illness cluster breach",
+      "label": "Travel 30 regional illness cluster breach",
       "sku": "travel30",
       "members": 200,
       "affectedRate": 0.15,
@@ -293,30 +376,303 @@
       "label": "Event 7 LP exit stress",
       "event7Members": 1000,
       "travel30Members": 0,
+      "countryTier": null,
       "grossPremiumUsd": 39000,
       "expectedClaimsUsd": 16185,
       "expectedSurplusUsd": 22815,
+      "averageSimulatedClaimsUsd": 13254,
       "claimsPayingReserveUsd": 13400,
       "reserveReductionUsd": 20000,
-      "p95ClaimsUsd": 21041,
-      "p99ClaimsUsd": 23199,
-      "p995ClaimsUsd": 24278,
-      "reserveBreachProbability": 0.84804,
+      "sponsorBackstopUsd": 0,
+      "p95ClaimsUsd": 18179,
+      "p99ClaimsUsd": 20308,
+      "p995ClaimsUsd": 21184,
+      "capitalRequiredAtTargetUsd": 0,
+      "additionalReserveNeededUsd": 7784,
+      "reserveBreachProbability": 0.466367,
+      "launchGate": "pause"
+    },
+    {
+      "id": "claims-ops-public-open",
+      "type": "claims_ops",
+      "label": "Claims operations public-open capacity",
+      "weeks": 4,
+      "expectedCases": 62.5,
+      "evidenceHoldCases": 13.75,
+      "operatorCapacityCases": 144,
+      "operatorUtilizationPct": 43.4,
+      "targetReviewHours": 48,
+      "launchGate": "healthy"
+    },
+    {
+      "id": "claims-ops-scale",
+      "type": "claims_ops",
+      "label": "Claims operations scale pressure",
+      "weeks": 4,
+      "expectedCases": 162.5,
+      "evidenceHoldCases": 35.75,
+      "operatorCapacityCases": 144,
+      "operatorUtilizationPct": 112.85,
+      "targetReviewHours": 48,
       "launchGate": "pause"
     }
   ],
+  "pricingRecommendations": [
+    {
+      "sku": "event7",
+      "optimizerScenarioId": "adverse-1000-e7-500-t30",
+      "members": 1000,
+      "current": {
+        "premiumUsd": 39,
+        "capUsd": 1500,
+        "grossPremiumUsd": 39000,
+        "expectedClaimsUsd": 25289,
+        "expectedSurplusUsd": 13711,
+        "claimsPayingReserveUsd": 33400,
+        "p95ClaimsUsd": 27109,
+        "p99ClaimsUsd": 30095,
+        "p995ClaimsUsd": 31111,
+        "reserveBreachProbability": 0.001117,
+        "additionalReserveNeededUsd": 0,
+        "launchGate": "caution"
+      },
+      "recommended": {
+        "premiumUsd": 39,
+        "capUsd": 1000,
+        "grossPremiumUsd": 39000,
+        "expectedClaimsUsd": 25289,
+        "expectedSurplusUsd": 13711,
+        "claimsPayingReserveUsd": 33400,
+        "p95ClaimsUsd": 24251,
+        "p99ClaimsUsd": 26694,
+        "p995ClaimsUsd": 27559,
+        "reserveBreachProbability": 0,
+        "additionalReserveNeededUsd": 0,
+        "launchGate": "healthy"
+      },
+      "cohortBands": [
+        {
+          "discountPct": 10,
+          "cohortPremiumUsd": 36
+        },
+        {
+          "discountPct": 20,
+          "cohortPremiumUsd": 32
+        },
+        {
+          "discountPct": 30,
+          "cohortPremiumUsd": 28
+        }
+      ],
+      "currentReserveUsd": 33400,
+      "additionalReserveNeededAtRecommendedUsd": 0,
+      "lpApyBandPct": {
+        "conservative": 49.86,
+        "modeled": 83.1,
+        "aggressive": 103.87
+      },
+      "event7CurrentPremiumUsd": 39,
+      "travel30CurrentPremiumUsd": 99
+    },
+    {
+      "sku": "travel30",
+      "optimizerScenarioId": "adverse-1000-e7-500-t30",
+      "members": 500,
+      "current": {
+        "premiumUsd": 99,
+        "capUsd": 5000,
+        "grossPremiumUsd": 49500,
+        "expectedClaimsUsd": 51202,
+        "expectedSurplusUsd": -1702,
+        "claimsPayingReserveUsd": 54900,
+        "p95ClaimsUsd": 64544,
+        "p99ClaimsUsd": 73009,
+        "p995ClaimsUsd": 76299,
+        "reserveBreachProbability": 0.20085,
+        "additionalReserveNeededUsd": 21399,
+        "launchGate": "pause"
+      },
+      "recommended": {
+        "premiumUsd": 159,
+        "capUsd": 3000,
+        "grossPremiumUsd": 79500,
+        "expectedClaimsUsd": 51202,
+        "expectedSurplusUsd": 28298,
+        "claimsPayingReserveUsd": 84900,
+        "p95ClaimsUsd": 54648,
+        "p99ClaimsUsd": 61222,
+        "p995ClaimsUsd": 63507,
+        "reserveBreachProbability": 0,
+        "additionalReserveNeededUsd": 0,
+        "launchGate": "healthy"
+      },
+      "cohortBands": [
+        {
+          "discountPct": 10,
+          "cohortPremiumUsd": 144
+        },
+        {
+          "discountPct": 20,
+          "cohortPremiumUsd": 128
+        },
+        {
+          "discountPct": 30,
+          "cohortPremiumUsd": 112
+        }
+      ],
+      "currentReserveUsd": 54900,
+      "additionalReserveNeededAtRecommendedUsd": 0,
+      "lpApyBandPct": {
+        "conservative": 37.73,
+        "modeled": 62.89,
+        "aggressive": 78.61
+      },
+      "event7CurrentPremiumUsd": 39,
+      "travel30CurrentPremiumUsd": 99
+    }
+  ],
+  "countryScoring": {
+    "available": [
+      {
+        "country": "Australia",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "France",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "Germany",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "Italy",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "Japan",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "Netherlands",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "Portugal",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "Spain",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "United Arab Emirates",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "United Kingdom",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      },
+      {
+        "country": "United States",
+        "operationalReadinessScore": 90,
+        "posture": "available"
+      }
+    ],
+    "sponsor_only": [
+      {
+        "country": "Brazil",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "India",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "Indonesia",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "Mexico",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "South Africa",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "Thailand",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "Turkey",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      },
+      {
+        "country": "Vietnam",
+        "operationalReadinessScore": 68,
+        "posture": "sponsor_only"
+      }
+    ],
+    "waitlist": [
+      {
+        "country": "Egypt",
+        "operationalReadinessScore": 45,
+        "posture": "waitlist"
+      },
+      {
+        "country": "Greece",
+        "operationalReadinessScore": 45,
+        "posture": "waitlist"
+      }
+    ],
+    "unavailable": [
+      {
+        "country": "sanctions-excluded jurisdictions",
+        "operationalReadinessScore": 10,
+        "posture": "unavailable"
+      },
+      {
+        "country": "jurisdictions without reviewable payment and provider documentation",
+        "operationalReadinessScore": 10,
+        "posture": "unavailable"
+      },
+      {
+        "country": "jurisdictions blocked by counsel, payment rails, or operator staffing",
+        "operationalReadinessScore": 10,
+        "posture": "unavailable"
+      }
+    ]
+  },
   "recommendedLaunchGates": {
     "publicOpenCeiling": {
       "event7Members": 1000,
       "travel30Members": 500,
-      "rationale": "Baseline p99 remains inside the current combined reserve, while adverse sensitivity already requires caution."
+      "rationale": "Baseline p99.5 remains inside the current combined reserve, while adverse sensitivity already requires caution or repricing."
     },
     "event7SameVenueHardCapMembers": 50,
     "travel30SponsorReviewThresholdMembers": 100,
     "reserveStateThresholds": {
-      "healthy": "p99 claims remain at least 15% below claims-paying reserve and breach probability is zero in the deterministic run",
-      "caution": "p99 reserve margin is below 15%, any modeled breach occurs below 1%, or correlated scenario exceeds an operational cap",
-      "pause": "p99 claims exceed claims-paying reserve or modeled breach probability is at least 1%"
+      "healthy": "p99.5 claims remain at least 15% below claims-paying reserve and breach probability is zero in the deterministic run",
+      "caution": "p99.5 reserve margin is below 15%, any modeled breach occurs below 1%, or correlated scenario exceeds an operational cap",
+      "pause": "p99.5 claims exceed claims-paying reserve or modeled breach probability is at least 1%"
     },
     "countryPosture": {
       "available": [
@@ -353,9 +709,27 @@
       ]
     }
   },
+  "canonicalUpdatePlan": {
+    "status": "approval_required",
+    "changes": [
+      "Event 7: review max payout cap 1500 -> 1000 USD.",
+      "Travel 30: review retail premium 99 -> 159 USD.",
+      "Travel 30: review max payout cap 5000 -> 3000 USD."
+    ],
+    "requiredSurfaces": [
+      "frontend public Genesis metadata",
+      "Genesis Protect Acute canonical Notion plan",
+      "Decision log",
+      "Docs and messaging audit",
+      "Dev Tracker pricing/reserve threshold task",
+      "public docs and FAQ after doctrine approval"
+    ],
+    "rule": "Do not apply these canonical changes automatically from the actuarial workbook."
+  },
   "limitations": [
-    "This is an internal launch-gate model, not an external actuarial opinion.",
+    "This is an internal launch-gate and pricing-redesign workbook, not an external actuarial opinion.",
     "Claim frequency and loss ratio assumptions come from the April 2026 internal actuarial reserve analysis.",
+    "Severity distributions are modeled from current caps and claim examples; they are not fitted from paid-claim triangles.",
     "Claim simulation cases are used as scenario coverage evidence, not as country-level pricing credibility.",
     "Country posture is an operational gating taxonomy, not a regulatory legal opinion."
   ],

@@ -1,16 +1,18 @@
 {
-  "schemaVersion": 1,
-  "reviewId": "genesis-protect-acute-launch-gate-2026-04",
-  "purpose": "Repo-first launch-gate actuarial review for the first Genesis Protect Acute policies.",
+  "schemaVersion": 2,
+  "reviewId": "genesis-protect-acute-end-to-end-actuarial-workbook-2026-04",
+  "purpose": "Repo-first end-to-end actuarial pricing and launch-control workbook for the first Genesis Protect Acute policies.",
+  "targetSolvencyQuantile": 0.995,
   "methodLimitations": [
-    "This is an internal launch-gate model, not an external actuarial opinion.",
+    "This is an internal launch-gate and pricing-redesign workbook, not an external actuarial opinion.",
     "Claim frequency and loss ratio assumptions come from the April 2026 internal actuarial reserve analysis.",
+    "Severity distributions are modeled from current caps and claim examples; they are not fitted from paid-claim triangles.",
     "Claim simulation cases are used as scenario coverage evidence, not as country-level pricing credibility.",
     "Country posture is an operational gating taxonomy, not a regulatory legal opinion."
   ],
   "monteCarlo": {
     "seed": 1592594996,
-    "trials": 100000,
+    "trials": 60000,
     "quantiles": [0.95, 0.99, 0.995]
   },
   "reserveModel": {
@@ -20,6 +22,12 @@
     "sharedVaultAllowed": true,
     "skuSpecificAccountingRequired": true,
     "predictionMarketsCountAsReserve": false
+  },
+  "claimsOps": {
+    "reviewers": 2,
+    "casesPerReviewerPerWeek": 18,
+    "targetReviewHours": 48,
+    "incompleteEvidenceHoldRate": 0.22
   },
   "skus": {
     "event7": {
@@ -40,6 +48,24 @@
       "waitingPeriods": {
         "illnessDays": 7,
         "accidentHours": 24
+      },
+      "severityModel": {
+        "minUsd": 150,
+        "modeUsd": 350,
+        "p95Usd": 1200,
+        "maxUsd": 1500
+      },
+      "pricingDesign": {
+        "candidateRetailPremiumsUsd": [29, 35, 39, 45, 49, 55, 65, 79],
+        "candidateCapsUsd": [1000, 1500, 2000],
+        "targetCohortDiscountsPct": [0.1, 0.2, 0.3],
+        "optimizerScenarioId": "adverse-1000-e7-500-t30"
+      },
+      "capitalStack": {
+        "premiumReserveUsd": 4900,
+        "sponsorBackstopUsd": 12000,
+        "juniorFirstLossUsd": 9000,
+        "seniorLpReserveUsd": 7500
       },
       "fundingLanes": [
         "genesis-event7-premiums",
@@ -64,6 +90,24 @@
       "waitingPeriods": {
         "illnessDays": 7,
         "accidentHours": 24
+      },
+      "severityModel": {
+        "minUsd": 250,
+        "modeUsd": 1250,
+        "p95Usd": 4200,
+        "maxUsd": 5000
+      },
+      "pricingDesign": {
+        "candidateRetailPremiumsUsd": [69, 79, 89, 99, 119, 139, 159, 189, 229],
+        "candidateCapsUsd": [3000, 5000, 7500],
+        "targetCohortDiscountsPct": [0.1, 0.2, 0.3],
+        "optimizerScenarioId": "adverse-1000-e7-500-t30"
+      },
+      "capitalStack": {
+        "premiumReserveUsd": 9900,
+        "sponsorBackstopUsd": 0,
+        "juniorFirstLossUsd": 20000,
+        "seniorLpReserveUsd": 25000
       },
       "fundingLanes": [
         "genesis-travel30-premiums",
