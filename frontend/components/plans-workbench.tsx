@@ -52,6 +52,7 @@ import {
   describeSeriesStatus,
   SERIES_MODE_PROTECTION,
   shortenAddress,
+  hasConfiguredPoolTerms,
 } from "@/lib/protocol";
 import { cn } from "@/lib/cn";
 
@@ -462,7 +463,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
     () => buildGenesisProtectAcuteSetupModel({
       snapshot,
       readiness: {
-        poolTermsConfigured: Boolean(genesisPool),
+        poolTermsConfigured: hasConfiguredPoolTerms(genesisPool),
         poolOraclePolicyConfigured: Boolean(
           genesisPool && snapshot.poolOraclePolicies.some((policy) => policy.liquidityPool === genesisPool.address),
         ),

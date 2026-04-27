@@ -13,6 +13,7 @@ import {
   toBigIntAmount,
   type CapitalClassSnapshot,
   type ClaimCaseSnapshot,
+  type AllocationPositionSnapshot,
   type HealthPlanSnapshot,
   type LiquidityPoolSnapshot,
   type MemberPositionSnapshot,
@@ -35,6 +36,7 @@ export type OverviewStatsSource = Pick<
   | "reserveDomains"
 > & {
   oracleProfiles?: ProtocolConsoleSnapshot["oracleProfiles"];
+  allocationPositions?: AllocationPositionSnapshot[];
   wallets?: ReadonlyArray<{ role?: string | null }>;
 };
 

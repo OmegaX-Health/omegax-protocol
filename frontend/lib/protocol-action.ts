@@ -32,6 +32,10 @@ export type ProtocolTransactionReview = {
   explorerUrl: string | null;
 };
 
+export type ProtocolTransactionReviewConfirmation = (
+  review: ProtocolTransactionReview,
+) => Promise<boolean> | boolean;
+
 export type ProtocolActionSuccess = {
   ok: true;
   signature: string;
@@ -56,6 +60,7 @@ export async function executeProtocolTransaction(params: {
   signers?: Signer[];
   explorerCluster?: string | null;
   review?: ProtocolTransactionReviewMetadata;
+  confirmReview?: ProtocolTransactionReviewConfirmation;
 }): Promise<ProtocolActionResult> {
   let review: ProtocolTransactionReview | undefined;
   try {
@@ -74,6 +79,23 @@ export async function executeProtocolTransaction(params: {
         error: review.simulation.error ?? `${params.label} simulation failed.`,
         review,
       };
+    }
+    if (params.review) {
+      if (!params.confirmReview) {
+        return {
+          ok: false,
+          error: `${params.label} requires a pre-sign review before wallet signing.`,
+          review,
+        };
+      }
+      const approved = await params.confirmReview(review);
+      if (!approved) {
+        return {
+          ok: false,
+          error: `${params.label} was cancelled before wallet signing.`,
+          review,
+        };
+      }
     }
     const signature = await params.sendTransaction(
       params.tx,

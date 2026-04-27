@@ -84,12 +84,13 @@ type OverviewCardDetail = {
 
 function OverviewFieldLogCard(props: {
   items: ReturnType<typeof buildAuditTrail>;
+  mode: "live" | "demo";
 }) {
   return (
-    <section className="ov-log-card liquid-glass" aria-label="Field log live audit">
+    <section className="ov-log-card liquid-glass" aria-label={props.mode === "demo" ? "Field log demo audit" : "Field log live audit"}>
       <div className="ov-log-card-head">
         <span className="ov-panel-tag">FIELD_LOG</span>
-        <span className="ov-panel-subtag">LIVE_AUDIT</span>
+        <span className="ov-panel-subtag">{props.mode === "demo" ? "DEMO_AUDIT" : "LIVE_AUDIT"}</span>
       </div>
 
       <div className="ov-audit-list" role="list" aria-label="Field log events">
@@ -213,8 +214,14 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
     [governanceQueue.length, governanceQueueError, governanceQueueLoaded],
   );
   const auditTrail = useMemo(
-    () => buildAuditTrail({ section: "overview", persona: effectivePersona, queue: governanceQueue }),
-    [effectivePersona, governanceQueue],
+    () => buildAuditTrail({
+      section: "overview",
+      persona: effectivePersona,
+      queue: governanceQueue,
+      source: statsSource,
+      demo,
+    }),
+    [demo, effectivePersona, governanceQueue, statsSource],
   );
   const overviewCards = useMemo(() => {
     const topClasses = [...stats.classBreakdown]
@@ -445,7 +452,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
 
           <div className="ov-stream-group">
             <span className="ov-stream-label">FIELD_LOG</span>
-            <OverviewFieldLogCard items={auditTrail} />
+            <OverviewFieldLogCard items={auditTrail} mode={statsMode} />
           </div>
         </section>
       </div>

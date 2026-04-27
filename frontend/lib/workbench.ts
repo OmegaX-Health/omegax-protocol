@@ -3,6 +3,7 @@
 import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureRole } from "./devnet-fixtures";
 import { GENESIS_PROTECT_ACUTE_PLAN_ID } from "./genesis-protect-acute";
 import { GENESIS_PROTECT_ACUTE_PRIMARY_SKU } from "./genesis-protect-acute-operator";
+import { buildOverviewStats, type OverviewStatsSource } from "./overview-metrics";
 import {
   availableFundingLineBalance,
   CLAIM_INTAKE_APPROVED,
@@ -143,6 +144,8 @@ type BuildAuditTrailInput =
     section?: "overview";
     persona?: WorkbenchPersona;
     queue?: GovernanceQueueItem[];
+    source?: OverviewStatsSource;
+    demo?: boolean;
   }
   | {
     section: "capital";
@@ -589,34 +592,39 @@ function createAuditItem(params: {
 function buildOverviewAuditTrail(
   persona: WorkbenchPersona = "observer",
   queue: GovernanceQueueItem[] = [],
+  source?: OverviewStatsSource,
+  demo = false,
 ): WorkbenchAuditItem[] {
-  const metrics = computeWorkbenchMetrics();
+  const statsSource = source ?? DEVNET_PROTOCOL_FIXTURE_STATE;
+  const demoSource = demo || !source;
+  const sourceNoun = demoSource ? "explicit demo fixture set" : "live protocol snapshot";
+  const metrics = buildOverviewStats(statsSource);
   const leadProposal = queue[0] ?? null;
-  const largestPool = [...DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools].sort((left, right) =>
+  const largestPool = [...statsSource.liquidityPools].sort((left, right) =>
     compareAmountsDesc(left.totalValueLocked, right.totalValueLocked),
   )[0] ?? null;
-  const activePlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) =>
-    DEVNET_PROTOCOL_FIXTURE_STATE.claimCases.some(
+  const activePlan = statsSource.healthPlans.find((plan) =>
+    statsSource.claimCases.some(
       (claim) => claim.healthPlan === plan.address && isActiveClaimStatus(claim.intakeStatus),
     ),
-  ) ?? DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0] ?? null;
+  ) ?? statsSource.healthPlans[0] ?? null;
 
   if (persona === "capital") {
     const scopedAllocations = largestPool
-      ? DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter((allocation) => allocation.liquidityPool === largestPool.address)
+      ? (statsSource.allocationPositions ?? []).filter((allocation) => allocation.liquidityPool === largestPool.address)
       : [];
     const leadAllocation = [...scopedAllocations].sort((left, right) =>
       compareAmountsDesc(left.allocatedAmount, right.allocatedAmount),
     )[0] ?? null;
-    const leadSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find((series) => series.address === leadAllocation?.policySeries) ?? null;
+    const leadSeries = statsSource.policySeries.find((series) => series.address === leadAllocation?.policySeries) ?? null;
 
     return [
       createAuditItem({
         seed: `overview:${persona}:queue`,
         index: 0,
-        label: metrics.pendingRedemptions > 0 ? "Queue watch" : "Queue clear",
-        tone: metrics.pendingRedemptions > 0 ? "pending" : "verified",
-        detail: `${metrics.pendingRedemptions} LP queue records still need action across ${metrics.queueOnlyPools} queue-only pool lane${metrics.queueOnlyPools === 1 ? "" : "s"}.`,
+        label: metrics.pendingRedemptionCount > 0 ? "Queue watch" : "Queue clear",
+        tone: metrics.pendingRedemptionCount > 0 ? "pending" : "verified",
+        detail: `${metrics.pendingRedemptionCount} LP queue records still need action across ${metrics.queueOnlyPoolCount} queue-only pool lane${metrics.queueOnlyPoolCount === 1 ? "" : "s"}.`,
       }),
       createAuditItem({
         seed: `overview:${persona}:routing`,
@@ -653,16 +661,16 @@ function buildOverviewAuditTrail(
       createAuditItem({
         seed: `overview:${persona}:claims`,
         index: 1,
-        label: metrics.activeClaims > 0 ? "Claims watch" : "Claims clear",
-        tone: metrics.activeClaims > 0 ? "pending" : "verified",
-        detail: `${metrics.activeClaims} claim lane${metrics.activeClaims === 1 ? "" : "s"} ${countRemain(metrics.activeClaims)} open across sponsor and oracle surfaces.`,
+        label: metrics.activeClaimCount > 0 ? "Claims watch" : "Claims clear",
+        tone: metrics.activeClaimCount > 0 ? "pending" : "verified",
+        detail: `${metrics.activeClaimCount} claim lane${metrics.activeClaimCount === 1 ? "" : "s"} ${countRemain(metrics.activeClaimCount)} open across sponsor and oracle surfaces.`,
       }),
       createAuditItem({
         seed: `overview:${persona}:obligations`,
         index: 2,
-        label: metrics.reservedObligations > 0 ? "Reserve watch" : "Reserve clear",
-        tone: metrics.reservedObligations > 0 ? "signal" : "verified",
-        detail: `${metrics.reservedObligations} obligation lane${metrics.reservedObligations === 1 ? "" : "s"} ${countBe(metrics.reservedObligations)} still claimable, payable, or reserved.`,
+        label: metrics.reservedObligationCount > 0 ? "Reserve watch" : "Reserve clear",
+        tone: metrics.reservedObligationCount > 0 ? "signal" : "verified",
+        detail: `${metrics.reservedObligationCount} obligation lane${metrics.reservedObligationCount === 1 ? "" : "s"} ${countBe(metrics.reservedObligationCount)} still claimable, payable, or reserved.`,
       }),
     ];
   }
@@ -671,9 +679,9 @@ function buildOverviewAuditTrail(
     createAuditItem({
       seed: `overview:${persona}:claims`,
       index: 0,
-      label: metrics.approvedClaims > 0 ? "Claims approved" : "Claims quiet",
-      tone: metrics.approvedClaims > 0 ? "signal" : "verified",
-      detail: `${metrics.approvedClaims} claim lane${metrics.approvedClaims === 1 ? "" : "s"} ${countBe(metrics.approvedClaims)} approved and waiting for reserve or settlement execution.`,
+      label: metrics.approvedClaimCount > 0 ? "Claims approved" : "Claims quiet",
+      tone: metrics.approvedClaimCount > 0 ? "signal" : "verified",
+      detail: `${metrics.approvedClaimCount} claim lane${metrics.approvedClaimCount === 1 ? "" : "s"} ${countBe(metrics.approvedClaimCount)} approved and waiting for reserve or settlement execution.`,
     }),
     createAuditItem({
       seed: `overview:${persona}:plan`,
@@ -681,15 +689,15 @@ function buildOverviewAuditTrail(
       label: activePlan ? "Plan focus" : "Plans idle",
       tone: activePlan ? "verified" : "signal",
       detail: activePlan
-        ? `${activePlan.displayName} is the sponsor lane with the most live claim activity in the current fixture set.`
+        ? `${activePlan.displayName} is the sponsor lane with the most live claim activity in the ${sourceNoun}.`
         : "No plan lanes are currently active in the visible sponsor surface.",
     }),
     createAuditItem({
       seed: `overview:${persona}:capital`,
       index: 2,
-      label: metrics.pendingRedemptions > 0 ? "Capital queue" : "Capital clear",
-      tone: metrics.pendingRedemptions > 0 ? "pending" : "verified",
-      detail: `${metrics.pendingRedemptions} LP queue record${metrics.pendingRedemptions === 1 ? "" : "s"} ${metrics.pendingRedemptions === 1 ? "still needs" : "still need"} processing across active capital classes.`,
+      label: metrics.pendingRedemptionCount > 0 ? "Capital queue" : "Capital clear",
+      tone: metrics.pendingRedemptionCount > 0 ? "pending" : "verified",
+      detail: `${metrics.pendingRedemptionCount} LP queue record${metrics.pendingRedemptionCount === 1 ? "" : "s"} ${metrics.pendingRedemptionCount === 1 ? "still needs" : "still need"} processing across active capital classes.`,
     }),
   ];
 }
@@ -941,6 +949,6 @@ export function buildAuditTrail(input?: BuildAuditTrailInput): WorkbenchAuditIte
       return buildGovernanceAuditTrail(input.queue, input.proposal);
     case "overview":
     default:
-      return buildOverviewAuditTrail(input?.persona, input?.queue);
+      return buildOverviewAuditTrail(input?.persona, input?.queue, input?.source, input?.demo);
   }
 }

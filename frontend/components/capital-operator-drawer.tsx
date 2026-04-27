@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { Transaction } from "@solana/web3.js";
 
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { WizardDetailSheet } from "@/components/wizard-detail-sheet";
 import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
@@ -99,6 +100,7 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const canAct = Boolean(publicKey);
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
   const [section, setSection] = useState<CapitalOperatorSection>(props.initialSection ?? "provision");
   const [status, setStatus] = useState<Status>(null);
@@ -182,6 +184,7 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
         sendTransaction,
         tx,
         label,
+        confirmReview,
         review: {
           authority: publicKey.toBase58(),
           feePayer: publicKey.toBase58(),
@@ -222,7 +225,9 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
   }, [props.selectedClass, props.selectedPool]);
 
   return (
-    <WizardDetailSheet
+    <>
+      {reviewPrompt}
+      <WizardDetailSheet
       open={props.open}
       onOpenChange={props.onOpenChange}
       title="Operator actions"
@@ -773,7 +778,8 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
           ) : null}
         </div>
       </div>
-    </WizardDetailSheet>
+      </WizardDetailSheet>
+    </>
   );
 }
 

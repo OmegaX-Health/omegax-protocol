@@ -333,6 +333,9 @@ export type LiquidityPoolSnapshot = {
   displayName: string;
   depositAssetMint: string;
   strategyThesis: string;
+  strategyHashHex?: string;
+  allowedExposureHashHex?: string;
+  externalYieldAdapterHashHex?: string;
   redemptionPolicy: number;
   pauseFlags?: number;
   totalValueLocked: BigNumberish;
@@ -1935,6 +1938,10 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
         });
         break;
       case "LiquidityPool":
+        {
+          const strategyHashHex = bytesToHex(decodedField(decoded, "strategyHash"));
+          const allowedExposureHashHex = bytesToHex(decodedField(decoded, "allowedExposureHash"));
+          const externalYieldAdapterHashHex = bytesToHex(decodedField(decoded, "externalYieldAdapterHash"));
         snapshot.liquidityPools.push({
           address,
           reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
@@ -1944,9 +1951,12 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           poolId: stringFromAnchorValue(decodedField(decoded, "poolId")),
           displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
           depositAssetMint: asAddress(decodedField(decoded, "depositAssetMint")),
-          strategyThesis: bytesToHex(decodedField(decoded, "strategyHash")).slice(0, 16)
-            ? `strategy:${bytesToHex(decodedField(decoded, "strategyHash")).slice(0, 16)}`
+          strategyThesis: isNonZeroHashHex(strategyHashHex)
+            ? `strategy:${strategyHashHex.slice(0, 16)}`
             : "canonical_pool",
+          strategyHashHex,
+          allowedExposureHashHex,
+          externalYieldAdapterHashHex,
           redemptionPolicy: Number(decodedField(decoded, "redemptionPolicy") ?? 0),
           pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
           totalValueLocked: bigintFromAnchorValue(decodedField(decoded, "totalValueLocked")),
@@ -1956,6 +1966,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           totalPendingRedemptions: bigintFromAnchorValue(decodedField(decoded, "totalPendingRedemptions")),
           active: Boolean(decodedField(decoded, "active")),
         });
+        }
         break;
       case "CapitalClass":
         snapshot.capitalClasses.push({
@@ -2436,6 +2447,22 @@ function schemaVersionForSeries(
   return Number.isFinite(parsedVersion) ? parsedVersion : 0;
 }
 
+function isNonZeroHashHex(value?: string | null): boolean {
+  const normalized = value?.trim().toLowerCase().replace(/^0x/, "") ?? "";
+  return /^[0-9a-f]{64}$/.test(normalized) && normalized !== ZERO_HASH_HEX;
+}
+
+export function hasConfiguredPoolTerms(
+  pool?: Pick<LiquidityPoolSnapshot, "strategyHashHex" | "allowedExposureHashHex" | "externalYieldAdapterHashHex"> | null,
+): boolean {
+  return Boolean(
+    pool
+    && isNonZeroHashHex(pool.strategyHashHex)
+    && isNonZeroHashHex(pool.allowedExposureHashHex)
+    && isNonZeroHashHex(pool.externalYieldAdapterHashHex),
+  );
+}
+
 function protocolConfigFromSnapshot(snapshot: ProtocolConsoleSnapshot): ProtocolConfigSummary | null {
   if (!snapshot.protocolGovernance) return null;
   const governanceRealm = configuredPublicKeyFromEnv(process.env.NEXT_PUBLIC_GOVERNANCE_REALM);
@@ -2814,6 +2841,7 @@ export async function fetchProtocolReadiness(params: {
       line.address === matchingFundingLine && line.lineType === FUNDING_LINE_TYPE_PREMIUM_INCOME,
     )
     : false;
+  const poolTermsConfigured = hasConfiguredPoolTerms(pool);
 
   return {
     protocolConfigExists: Boolean(snapshot.protocolGovernance),
@@ -2828,7 +2856,7 @@ export async function fetchProtocolReadiness(params: {
     ruleRegistered: Boolean(matchingRuleSeries),
     memberEnrolled: Boolean(memberPosition),
     claimDelegateConfigured: false,
-    poolTermsConfigured: Boolean(pool),
+    poolTermsConfigured,
     poolAssetVaultConfigured: Boolean(domainAssetVault),
     coveragePolicyExists: poolHasCoverageFlow,
     coveragePolicyNftExists: false,
@@ -2836,7 +2864,7 @@ export async function fetchProtocolReadiness(params: {
     derived: {
       configAddress: snapshot.protocolGovernance?.address ?? null,
       poolAddress: pool?.address ?? poolAddress,
-      poolTermsAddress: pool?.address ?? null,
+      poolTermsAddress: poolTermsConfigured ? pool?.address ?? null : null,
       poolAssetVaultAddress: domainAssetVault?.address ?? null,
       oracleEntryAddress: oracleProfile?.address ?? null,
       oracleProfileAddress: oracleProfile?.address ?? null,
