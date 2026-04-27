@@ -46,6 +46,7 @@
     "schema:metadata-hash": "node --import tsx scripts/generate_schema_metadata_hash.ts",
     "schema:rule-hashes": "node --import tsx scripts/generate_outcome_rule_hashes.ts",
     "schema:generate-standard": "node --import tsx scripts/generate_standard_health_outcomes_schema.ts",
+    "genesis:actuarial:review": "node --import tsx scripts/genesis_actuarial_review.ts",
     "frontend:install": "npm --prefix frontend ci",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:dev:reset": "pkill -f \"[n]ext dev\" || true; rm -rf frontend/.next frontend/.next-dev-*; npm run frontend:dev",

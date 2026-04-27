@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "genesis-protect-acute-launch-gate-2026-04",
+  "purpose": "Repo-first launch-gate actuarial review for the first Genesis Protect Acute policies.",
+  "methodLimitations": [
+    "This is an internal launch-gate model, not an external actuarial opinion.",
+    "Claim frequency and loss ratio assumptions come from the April 2026 internal actuarial reserve analysis.",
+    "Claim simulation cases are used as scenario coverage evidence, not as country-level pricing credibility.",
+    "Country posture is an operational gating taxonomy, not a regulatory legal opinion."
+  ],
+  "monteCarlo": {
+    "seed": 1592594996,
+    "trials": 100000,
+    "quantiles": [0.95, 0.99, 0.995]
+  },
+  "reserveModel": {
+    "claimsPayingReserveDefinition": "posted premiums + posted sponsor/backstop funds + posted LP capital",
+    "encumberedReserveDefinition": "reserved obligations + approved unpaid claims + payout-in-flight",
+    "freeReserveDefinition": "claims-paying reserve - encumbered reserve",
+    "sharedVaultAllowed": true,
+    "skuSpecificAccountingRequired": true,
+    "predictionMarketsCountAsReserve": false
+  },
+  "skus": {
+    "event7": {
+      "metadataPath": "frontend/public/metadata/protection/genesis-protect-acute-event-7-v1.json",
+      "simulationProductId": "genesis-event-7-v1",
+      "displayName": "Genesis Protect Acute - Event 7",
+      "coverWindowDays": 7,
+      "benefitStyle": "fixed_benefit_only",
+      "retailPremiumUsd": 39,
+      "cohortPremiumUsdMin": 29,
+      "cohortPremiumUsdMax": 35,
+      "maxPayoutUsd": 1500,
+      "baselineClaimFrequency": 0.03,
+      "baselineLossRatio": 0.415,
+      "claimsPayingReserveUsd": 33400,
+      "safeConcurrentMembersVaR99": 1444,
+      "hardVenueCapMembers": 50,
+      "waitingPeriods": {
+        "illnessDays": 7,
+        "accidentHours": 24
+      },
+      "fundingLanes": [
+        "genesis-event7-premiums",
+        "genesis-event7-sponsor",
+        "genesis-event7-liquidity"
+      ]
+    },
+    "travel30": {
+      "metadataPath": "frontend/public/metadata/protection/genesis-protect-acute-travel-30-v1.json",
+      "simulationProductId": "genesis-travel-30-v1",
+      "displayName": "Genesis Protect Acute - Travel 30",
+      "coverWindowDays": 30,
+      "benefitStyle": "hybrid_fixed_plus_reimbursement",
+      "retailPremiumUsd": 99,
+      "cohortPremiumUsdMin": 69,
+      "cohortPremiumUsdMax": 89,
+      "maxPayoutUsd": 5000,
+      "baselineClaimFrequency": 0.04,
+      "baselineLossRatio": 0.662,
+      "claimsPayingReserveUsd": 54900,
+      "safeConcurrentMembersVaR99": 502,
+      "waitingPeriods": {
+        "illnessDays": 7,
+        "accidentHours": 24
+      },
+      "fundingLanes": [
+        "genesis-travel30-premiums",
+        "genesis-travel30-liquidity"
+      ]
+    }
+  },
+  "countryPosture": {
+    "available": [
+      "Australia",
+      "France",
+      "Germany",
+      "Italy",
+      "Japan",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United Arab Emirates",
+      "United Kingdom",
+      "United States"
+    ],
+    "sponsor_only": [
+      "Brazil",
+      "India",
+      "Indonesia",
+      "Mexico",
+      "South Africa",
+      "Thailand",
+      "Turkey",
+      "Vietnam"
+    ],
+    "waitlist": [
+      "Egypt",
+      "Greece"
+    ],
+    "unavailable": [
+      "sanctions-excluded jurisdictions",
+      "jurisdictions without reviewable payment and provider documentation",
+      "jurisdictions blocked by counsel, payment rails, or operator staffing"
+    ]
+  },
+  "sourceReferences": [
+    "Genesis Protect Acute v1 canonical Notion plan, last checked 2026-04-27",
+    "frontend/public/metadata/protection/genesis-protect-acute-event-7-v1.json",
+    "frontend/public/metadata/protection/genesis-protect-acute-travel-30-v1.json",
+    "examples/genesis-protect-acute-claims/genesis-acute-claim-simulations-v1.json",
+    "Genesis Protect Acute v1 - Actuarial Reserve Analysis, April 2026"
+  ]
+}

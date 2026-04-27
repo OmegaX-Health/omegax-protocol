@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "bootstrap-50-e7-20-t30",
+      "type": "independent_claims",
+      "label": "Bootstrap launch",
+      "event7Members": 50,
+      "travel30Members": 20,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "phase2-200-e7-60-t30",
+      "type": "independent_claims",
+      "label": "Phase 2 operating mix",
+      "event7Members": 200,
+      "travel30Members": 60,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "table-safe-500-e7-200-t30",
+      "type": "independent_claims",
+      "label": "PDF table safe zone",
+      "event7Members": 500,
+      "travel30Members": 200,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "public-open-1000-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Recommended public-open ceiling",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "near-threshold-1400-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Near current reserve threshold",
+      "event7Members": 1400,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "over-threshold-3000-e7-1000-t30",
+      "type": "independent_claims",
+      "label": "Over threshold without LP scaling",
+      "event7Members": 3000,
+      "travel30Members": 1000,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "adverse-1000-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Adverse public-open mix",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1.25,
+      "severityMultiplier": 1.25
+    },
+    {
+      "id": "severe-adverse-1000-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Severe adverse public-open mix",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1.5,
+      "severityMultiplier": 1.25
+    },
+    {
+      "id": "travel30-only-500",
+      "type": "independent_claims",
+      "label": "Travel 30-only current reserve ceiling",
+      "event7Members": 0,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1
+    },
+    {
+      "id": "travel30-only-adverse-500",
+      "type": "independent_claims",
+      "label": "Travel 30-only adverse reserve check",
+      "event7Members": 0,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1.25,
+      "severityMultiplier": 1.25
+    },
+    {
+      "id": "event7-same-venue-50",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue hard cap",
+      "sku": "event7",
+      "members": 50,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "event7-same-venue-75",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue caution threshold",
+      "sku": "event7",
+      "members": 75,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "event7-same-venue-100",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue breach",
+      "sku": "event7",
+      "members": 100,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "travel30-illness-cluster-100",
+      "type": "correlated_event",
+      "label": "Travel 30 dispersed illness cluster",
+      "sku": "travel30",
+      "members": 100,
+      "affectedRate": 0.15,
+      "customSeverityUsd": 3500
+    },
+    {
+      "id": "travel30-illness-cluster-200",
+      "type": "correlated_event",
+      "label": "Travel 30 dispersed illness cluster breach",
+      "sku": "travel30",
+      "members": 200,
+      "affectedRate": 0.15,
+      "customSeverityUsd": 3500
+    },
+    {
+      "id": "lp-exit-1000-e7",
+      "type": "reserve_reduction",
+      "label": "Event 7 LP exit stress",
+      "event7Members": 1000,
+      "travel30Members": 0,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "reserveReductionUsd": 20000
+    }
+  ]
+}
