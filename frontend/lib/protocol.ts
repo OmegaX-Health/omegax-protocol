@@ -34,6 +34,7 @@ export const MAX_ID_SEED_BYTES = 32;
 export const SEED_PROTOCOL_GOVERNANCE = "protocol_governance";
 export const SEED_RESERVE_DOMAIN = "reserve_domain";
 export const SEED_DOMAIN_ASSET_VAULT = "domain_asset_vault";
+export const SEED_DOMAIN_ASSET_VAULT_TOKEN = "domain_asset_vault_token";
 export const SEED_DOMAIN_ASSET_LEDGER = "domain_asset_ledger";
 export const SEED_HEALTH_PLAN = "health_plan";
 export const SEED_PLAN_RESERVE_LEDGER = "plan_reserve_ledger";
@@ -749,6 +750,25 @@ export function deriveDomainAssetVaultPda(params: {
   return derivePda(
     [
       TEXT_ENCODER.encode(SEED_DOMAIN_ASSET_VAULT),
+      toPublicKey(params.reserveDomain).toBytes(),
+      toPublicKey(params.assetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+// PDA-derived address for the SPL token account that holds vault assets. The
+// program initialises this account with `token::authority = domain_asset_vault`
+// (see CreateDomainAssetVault context) so outflow CPIs can sign as the vault
+// PDA. Operators no longer pre-create this token account.
+export function deriveDomainAssetVaultTokenAccountPda(params: {
+  reserveDomain: PublicKeyish;
+  assetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_DOMAIN_ASSET_VAULT_TOKEN),
       toPublicKey(params.reserveDomain).toBytes(),
       toPublicKey(params.assetMint).toBytes(),
     ],
@@ -2945,17 +2965,17 @@ export function buildCreateDomainAssetVaultTx(params: {
   reserveDomainAddress: PublicKeyish;
   assetMint: PublicKeyish;
   recentBlockhash: string;
-  vaultTokenAccountAddress: PublicKeyish;
+  tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const assetMint = toPublicKey(params.assetMint);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
     instructionName: "create_domain_asset_vault",
     args: {
       asset_mint: assetMint,
-      vault_token_account: toPublicKey(params.vaultTokenAccountAddress),
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -2975,6 +2995,15 @@ export function buildCreateDomainAssetVaultTx(params: {
         }),
         isWritable: true,
       },
+      { pubkey: assetMint },
+      {
+        pubkey: deriveDomainAssetVaultTokenAccountPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: tokenProgramId },
       { pubkey: SystemProgram.programId },
     ],
   });

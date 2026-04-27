@@ -299,14 +299,14 @@ pub mod omegax_protocol {
             &ctx.accounts.reserve_domain,
         )?;
         require!(
-            args.asset_mint != ZERO_PUBKEY && args.vault_token_account != ZERO_PUBKEY,
+            args.asset_mint != ZERO_PUBKEY,
             OmegaXProtocolError::VaultTokenAccountInvalid
         );
 
         let vault = &mut ctx.accounts.domain_asset_vault;
         vault.reserve_domain = ctx.accounts.reserve_domain.key();
         vault.asset_mint = args.asset_mint;
-        vault.vault_token_account = args.vault_token_account;
+        vault.vault_token_account = ctx.accounts.vault_token_account.key();
         vault.total_assets = 0;
         vault.bump = ctx.bumps.domain_asset_vault;
 
@@ -2426,6 +2426,25 @@ pub struct CreateDomainAssetVault<'info> {
         bump
     )]
     pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    // PT-2026-04-27-01/02 fix: vault token account is now PDA-owned and
+    // initialized inline. SPL transfers out of this account in
+    // settlement / redemption / fee-withdrawal handlers will be signed by the
+    // domain_asset_vault PDA via transfer_from_domain_vault (see lib.rs:5463
+    // region). Operators no longer pre-create the token account externally.
+    #[account(
+        constraint = asset_mint.key() == args.asset_mint @ OmegaXProtocolError::AssetMintMismatch
+    )]
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init,
+        payer = authority,
+        seeds = [SEED_DOMAIN_ASSET_VAULT_TOKEN, reserve_domain.key().as_ref(), args.asset_mint.as_ref()],
+        bump,
+        token::mint = asset_mint,
+        token::authority = domain_asset_vault,
+    )]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -2783,7 +2802,7 @@ pub struct OpenClaimCase<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
-    pub health_plan: Account<'info, HealthPlan>,
+    pub health_plan: Box<Account<'info, HealthPlan>>,
     #[account(
         seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()],
         bump = member_position.bump,
@@ -2792,7 +2811,7 @@ pub struct OpenClaimCase<'info> {
         constraint = member_position.active @ OmegaXProtocolError::Unauthorized,
         constraint = member_position.eligibility_status == ELIGIBILITY_ELIGIBLE @ OmegaXProtocolError::Unauthorized,
     )]
-    pub member_position: Account<'info, MemberPosition>,
+    pub member_position: Box<Account<'info, MemberPosition>>,
     #[account(
         seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()],
         bump = funding_line.bump,
@@ -2800,7 +2819,7 @@ pub struct OpenClaimCase<'info> {
         constraint = funding_line.policy_series == args.policy_series @ OmegaXProtocolError::PolicySeriesMismatch,
         constraint = funding_line.status == FUNDING_LINE_STATUS_OPEN @ OmegaXProtocolError::FundingLineMismatch,
     )]
-    pub funding_line: Account<'info, FundingLine>,
+    pub funding_line: Box<Account<'info, FundingLine>>,
     #[account(
         init,
         payer = authority,
@@ -2808,7 +2827,7 @@ pub struct OpenClaimCase<'info> {
         seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), args.claim_id.as_bytes()],
         bump
     )]
-    pub claim_case: Account<'info, ClaimCase>,
+    pub claim_case: Box<Account<'info, ClaimCase>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -3946,7 +3965,6 @@ pub struct UpdateReserveDomainControlsArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct CreateDomainAssetVaultArgs {
     pub asset_mint: Pubkey,
-    pub vault_token_account: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]

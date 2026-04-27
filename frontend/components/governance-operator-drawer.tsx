@@ -431,7 +431,6 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
                           reserveDomainAddress: selectedReserveDomainAddress,
                           assetMint: assetMint.trim(),
                           recentBlockhash: blockhash,
-                          vaultTokenAccountAddress: vaultTokenAccount.trim(),
                         });
                       })
                     }

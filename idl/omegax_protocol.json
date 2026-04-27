@@ -1643,6 +1643,57 @@
           }
         },
         {
+          "name": "asset_mint"
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "reserve_domain"
+              },
+              {
+                "kind": "arg",
+                "path": "args.asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -10428,10 +10479,6 @@
         "fields": [
           {
             "name": "asset_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "vault_token_account",
             "type": "pubkey"
           }
         ]
