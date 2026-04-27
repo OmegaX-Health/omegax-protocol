@@ -16,10 +16,10 @@ type GenesisProtectAcuteReserveConsolePanelProps = {
 };
 
 const RESERVE_FILTER_LABELS: Record<GenesisProtectAcuteReserveLaneFilter, string> = {
-  all: "ALL_LANES",
-  premium: "PREMIUM",
-  sponsor: "SPONSOR",
-  liquidity: "LIQUIDITY",
+  all: "All lanes",
+  premium: "Premium",
+  sponsor: "Sponsor",
+  liquidity: "Liquidity",
 };
 
 function postureClass(state: GenesisProtectAcuteReserveConsoleModel["setupModel"]["posture"]["state"]): string {
@@ -61,35 +61,35 @@ export function GenesisProtectAcuteReserveConsolePanel(props: GenesisProtectAcut
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">CLAIMS_PAYING_CAPITAL</p>
+            <p className="plans-card-eyebrow">Claims-paying capital</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {formatAmount(props.model.summary.claimsPayingCapital)}
             </strong>
             <p className="plans-wizard-support-note">Posted premium, sponsor, and liquidity capital visible across Genesis reserve lanes.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">RESERVED_AMOUNT</p>
+            <p className="plans-card-eyebrow">Reserved amount</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {formatAmount(props.model.summary.reservedAmount)}
             </strong>
             <p className="plans-wizard-support-note">Reserve already encumbered against currently visible Genesis liabilities.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">PENDING_PAYOUT</p>
+            <p className="plans-card-eyebrow">Payout/liability pending</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {formatAmount(props.model.summary.pendingPayoutAmount)}
             </strong>
             <p className="plans-wizard-support-note">Claimable and payable exposure still waiting for delivery or settlement.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">RESERVE_UTILIZATION</p>
+            <p className="plans-card-eyebrow">Reserve utilization</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {utilizationLabel(props.model.summary.reserveUtilizationBps)}
             </strong>
             <p className="plans-wizard-support-note">Current reserved plus pending payout as a share of visible claims-paying capital.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">VISIBILITY_FLAGS</p>
+            <p className="plans-card-eyebrow">Visibility flags</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {props.model.summary.visibilityGapCount}
             </strong>
@@ -130,7 +130,7 @@ export function GenesisProtectAcuteReserveConsolePanel(props: GenesisProtectAcut
         <article className="plans-card heavy-glass">
           <div className="plans-card-head">
             <div>
-              <p className="plans-card-eyebrow">LANE_REGISTER</p>
+              <p className="plans-card-eyebrow">Reserve lane register</p>
               <h2 className="plans-card-title plans-card-title-display">
                 Reserve <em>lanes</em>
               </h2>
@@ -193,7 +193,7 @@ export function GenesisProtectAcuteReserveConsolePanel(props: GenesisProtectAcut
         <article className="plans-card heavy-glass">
           <div className="plans-card-head">
             <div>
-              <p className="plans-card-eyebrow">SELECTED_LANE</p>
+              <p className="plans-card-eyebrow">Selected reserve lane</p>
               <h2 className="plans-card-title plans-card-title-display">
                 {selected ? selected.displayName : <>Awaiting <em>selection</em></>}
               </h2>
@@ -227,8 +227,8 @@ export function GenesisProtectAcuteReserveConsolePanel(props: GenesisProtectAcut
                 </div>
                 <div className="plans-settings-row">
                   <div>
-                    <span className="plans-settings-label">PENDING_PAYOUT</span>
-                    <span className="plans-settings-lane">Claimable or payable exposure</span>
+                    <span className="plans-settings-label">Payout/liability pending</span>
+                    <span className="plans-settings-lane">Claimable or payable Obligation exposure</span>
                   </div>
                   <span className="plans-settings-address">{formatAmount(selected.pendingPayoutAmount)}</span>
                 </div>
@@ -241,7 +241,7 @@ export function GenesisProtectAcuteReserveConsolePanel(props: GenesisProtectAcut
                 </div>
                 <div className="plans-settings-row">
                   <div>
-                    <span className="plans-settings-label">LINKED_CAPITAL</span>
+                    <span className="plans-settings-label">Linked capital</span>
                     <span className="plans-settings-lane">Pool and class path currently funding the lane</span>
                   </div>
                   <span className="plans-settings-address">

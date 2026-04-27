@@ -7,99 +7,16 @@ import Link from "next/link";
 import { useConnection } from "@solana/wallet-adapter-react";
 
 import { formatAmount } from "@/lib/canonical-ui";
-import { DEVNET_PROTOCOL_FIXTURE_STATE } from "@/lib/devnet-fixtures";
 import { loadGovernanceProposalQueue } from "@/lib/governance-readonly";
-import {
-  describeClaimStatus,
-  describeObligationStatus,
-  describeSeriesMode,
-  describeSeriesStatus,
-  toBigIntAmount,
-} from "@/lib/protocol";
+import { buildOverviewStats, overviewStatsModeFromDemoFlag, resolveOverviewStatsSource } from "@/lib/overview-metrics";
 import { formatRpcError } from "@/lib/rpc-errors";
 import {
   buildAuditTrail,
   buildGovernanceQueue,
-  computeWorkbenchMetrics,
   describeGovernanceQueueStatus,
 } from "@/lib/workbench";
+import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 import { useWorkspacePersona } from "@/components/workspace-persona";
-
-/* ── Derived protocol data ──────────────────────────── */
-
-function useProtocolStats() {
-  return useMemo(() => {
-    const pools = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools;
-    const classes = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses;
-    const plans = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans;
-    const series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries;
-    const obligations = DEVNET_PROTOCOL_FIXTURE_STATE.obligations;
-    const claims = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases;
-    const members = DEVNET_PROTOCOL_FIXTURE_STATE.memberPositions;
-
-    const tvl = pools.reduce((s, p) => s + toBigIntAmount(p.totalValueLocked), 0n);
-    const allocated = pools.reduce((s, p) => s + toBigIntAmount(p.totalAllocated), 0n);
-    const available = tvl - allocated;
-    const utilization = tvl > 0n ? Number((allocated * 100n) / tvl) : 0;
-    const pendingRedemptions = pools.reduce((s, p) => s + toBigIntAmount(p.totalPendingRedemptions), 0n);
-
-    const seriesModes: Record<string, number> = {};
-    const seriesStatuses: Record<string, number> = {};
-    for (const s of series) {
-      const mode = describeSeriesMode(s.mode);
-      seriesModes[mode] = (seriesModes[mode] || 0) + 1;
-      const status = describeSeriesStatus(s.status);
-      seriesStatuses[status] = (seriesStatuses[status] || 0) + 1;
-    }
-
-    const obligationStatuses: Record<string, number> = {};
-    let totalObligationPrincipal = 0n;
-    let totalReservedAmount = 0n;
-    for (const o of obligations) {
-      const status = describeObligationStatus(o.status);
-      obligationStatuses[status] = (obligationStatuses[status] || 0) + 1;
-      totalObligationPrincipal += toBigIntAmount(o.principalAmount);
-      totalReservedAmount += toBigIntAmount(o.reservedAmount);
-    }
-
-    const claimStatuses: Record<string, number> = {};
-    let totalApprovedAmount = 0n;
-    for (const c of claims) {
-      const status = describeClaimStatus(c.intakeStatus);
-      claimStatuses[status] = (claimStatuses[status] || 0) + 1;
-      totalApprovedAmount += toBigIntAmount(c.approvedAmount);
-    }
-
-    const classBreakdown = classes.map((c) => ({
-      name: c.displayName,
-      nav: toBigIntAmount(c.navAssets),
-      allocated: toBigIntAmount(c.allocatedAssets),
-      shares: toBigIntAmount(c.totalShares),
-      priority: c.priority,
-    }));
-
-    return {
-      tvl, allocated, available, utilization, pendingRedemptions,
-      poolCount: pools.length,
-      classCount: classes.length,
-      planCount: plans.length,
-      seriesCount: series.length,
-      domainCount: DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.length,
-      oracleCount: DEVNET_PROTOCOL_FIXTURE_STATE.wallets.filter((w) => w.role === "oracle_operator").length,
-      obligationCount: obligations.length,
-      memberCount: members.length,
-      seriesModes,
-      seriesStatuses,
-      obligationStatuses,
-      totalObligationPrincipal,
-      totalReservedAmount,
-      claimStatuses,
-      totalApprovedAmount,
-      classBreakdown,
-      plans: plans.map((p) => ({ name: p.displayName, sponsor: p.sponsorLabel })),
-    };
-  }, []);
-}
 
 function formatCompact(value: bigint): string {
   const num = Number(value);
@@ -270,11 +187,17 @@ function OverviewEntryCard(props: {
 
 /* ── Main component ─────────────────────────────────── */
 
-export function OverviewWorkbench() {
+type OverviewWorkbenchProps = {
+  demo?: boolean;
+};
+
+export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
   const { connection } = useConnection();
   const { effectivePersona } = useWorkspacePersona();
-  const metrics = useMemo(() => computeWorkbenchMetrics(), []);
-  const stats = useProtocolStats();
+  const { snapshot, loading, error } = useProtocolConsoleSnapshot();
+  const statsMode = overviewStatsModeFromDemoFlag(demo);
+  const statsSource = useMemo(() => resolveOverviewStatsSource({ demo, snapshot }), [demo, snapshot]);
+  const stats = useMemo(() => buildOverviewStats(statsSource), [statsSource]);
 
   const [governanceProposalRows, setGovernanceProposalRows] = useState<Parameters<typeof buildGovernanceQueue>[0]>([]);
   const [governanceQueueLoaded, setGovernanceQueueLoaded] = useState(false);
@@ -331,7 +254,7 @@ export function OverviewWorkbench() {
         title: "Plans",
         summary: "Coverage series, member exposure, and sponsor operations across the public OmegaX protocol surface.",
         highlightLabel: "Claim-active coverage lanes",
-        highlightValue: String(metrics.activeClaims),
+        highlightValue: String(stats.activeClaimCount),
         metrics: [
           { label: "Plans", value: String(stats.planCount) },
           { label: "Series", value: String(stats.seriesCount) },
@@ -369,7 +292,7 @@ export function OverviewWorkbench() {
         metrics: [
           { label: "Domains", value: String(stats.domainCount) },
           { label: "Loaded", value: governanceQueueLoaded ? "YES" : "WAIT" },
-          { label: "Reserve", value: String(metrics.reservedObligations) },
+          { label: "Reserve", value: String(stats.reservedObligationCount) },
         ],
         details: governanceDetails,
         note: governanceQueueError ? governanceQueueError : "Proposal execution and queue visibility",
@@ -399,8 +322,7 @@ export function OverviewWorkbench() {
     governanceQueueStatus.emptyMeta,
     governanceQueueStatus.emptyTitle,
     governanceQueueStatus.metricValue,
-    metrics.activeClaims,
-    metrics.reservedObligations,
+    stats.activeClaimCount,
     stats.classBreakdown,
     stats.classCount,
     stats.domainCount,
@@ -412,6 +334,7 @@ export function OverviewWorkbench() {
     stats.planCount,
     stats.plans,
     stats.poolCount,
+    stats.reservedObligationCount,
     stats.seriesCount,
     stats.totalApprovedAmount,
     stats.totalObligationPrincipal,
@@ -422,11 +345,11 @@ export function OverviewWorkbench() {
     { label: "Utilization", value: `${stats.utilization}%` },
     { label: "Capacity", value: formatCompact(stats.available) },
     { label: "Queue", value: governanceQueueStatus.metricValue },
-    { label: "Reserves", value: String(metrics.reservedObligations) },
+    { label: "Reserves", value: String(stats.reservedObligationCount) },
   ], [
     stats.available,
     governanceQueueStatus.metricValue,
-    metrics.reservedObligations,
+    stats.reservedObligationCount,
     stats.utilization,
   ]);
 
@@ -470,7 +393,15 @@ export function OverviewWorkbench() {
 
               <div className="ov-total-stack">
                 <span className="ov-total-value">${formatAmount(stats.tvl)}</span>
-                <span className="ov-total-label">Aggregate network value locked</span>
+                <span className="ov-total-label">
+                  {statsMode === "demo"
+                    ? "Demo fixture value locked"
+                    : loading
+                      ? "Syncing live network value locked"
+                      : error
+                        ? "Live RPC unavailable; no fixture fallback"
+                        : "Live network value locked"}
+                </span>
               </div>
 
               <div className="ov-signal-grid" role="list" aria-label="Overview system metrics">
@@ -488,6 +419,21 @@ export function OverviewWorkbench() {
         </aside>
 
         <section className="ov-stream" aria-label="Overview surfaces and field log">
+          {statsMode === "demo" || loading || error ? (
+            <div className="plans-notice liquid-glass" role="status">
+              <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">
+                {statsMode === "demo" ? "science" : error ? "warning" : "sync"}
+              </span>
+              <p>
+                {statsMode === "demo"
+                  ? "Demo mode is explicit. These overview metrics come from checked-in devnet fixtures because ?demo=1 is set."
+                  : error
+                    ? error
+                    : "Live protocol metrics are loading from the configured RPC endpoint."}
+              </p>
+            </div>
+          ) : null}
+
           <div className="ov-stream-group">
             <span className="ov-stream-label">ACCESS_SURFACES</span>
             <div className="ov-stream-stack">

@@ -26,12 +26,12 @@ type GenesisProtectAcuteClaimsConsolePanelProps = {
 };
 
 const CLAIM_FILTER_LABELS: Record<GenesisProtectAcuteClaimQueueFilter, string> = {
-  all: "ALL",
-  operator_review: "OPERATOR_REVIEW",
-  attestation_ready: "ATTESTATION_READY",
-  reserve_active: "RESERVE_ACTIVE",
-  payout_active: "PAYOUT_ACTIVE",
-  closed: "CLOSED",
+  all: "All",
+  operator_review: "Operator review",
+  attestation_ready: "Attestation ready",
+  reserve_active: "Reserve active",
+  payout_active: "Payout active",
+  closed: "Closed",
 };
 
 function statusPillClass(stage: GenesisProtectAcuteClaimQueueRow["stage"]): string {
@@ -65,11 +65,11 @@ function attestationHref(poolAddress: string | null | undefined, row: GenesisPro
 function operatorActionLabel(panel: GenesisProtectAcuteClaimActionPanel): string {
   switch (panel) {
     case "adjudication":
-      return "OPEN_ADJUDICATION";
+      return "Open adjudication";
     case "impairment":
-      return "OPEN_IMPAIRMENT";
+      return "Open impairment";
     default:
-      return "OPEN_RESERVE_ACTIONS";
+      return "Open reserve actions";
   }
 }
 
@@ -96,35 +96,35 @@ export function GenesisProtectAcuteClaimsConsolePanel(props: GenesisProtectAcute
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">SUBMITTED_OR_REVIEW</p>
+            <p className="plans-card-eyebrow">Submitted or review</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {props.model.summary.submittedClaims}
             </strong>
             <p className="plans-wizard-support-note">Open or under-review claims still waiting for a first operator decision.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">OPERATOR_REVIEW_LOAD</p>
+            <p className="plans-card-eyebrow">Operator review load</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {props.model.summary.operatorReviewLoad}
             </strong>
             <p className="plans-wizard-support-note">Claims with open review, review-requested attestations, or missing linked context.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">ATTESTATION_READY</p>
+            <p className="plans-card-eyebrow">Attestation ready</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {props.model.summary.attestationReadyClaims}
             </strong>
             <p className="plans-wizard-support-note">Approved claims that still need the oracle attestation feed to catch up.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">RESERVED_EXPOSURE</p>
+            <p className="plans-card-eyebrow">Reserved exposure</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {formatAmount(props.model.summary.reservedExposure)}
             </strong>
             <p className="plans-wizard-support-note">Capital already held against the currently visible Genesis claim queue.</p>
           </article>
           <article className="plans-wizard-support-card">
-            <p className="plans-card-eyebrow">PAYOUT_IN_FLIGHT</p>
+            <p className="plans-card-eyebrow">Payout in flight</p>
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {formatAmount(props.model.summary.payoutInFlightAmount)}
             </strong>
@@ -165,7 +165,7 @@ export function GenesisProtectAcuteClaimsConsolePanel(props: GenesisProtectAcute
         <article className="plans-card heavy-glass">
           <div className="plans-card-head">
             <div>
-              <p className="plans-card-eyebrow">QUEUE_REGISTER</p>
+              <p className="plans-card-eyebrow">Claim register</p>
               <h2 className="plans-card-title plans-card-title-display">
                 Claim <em>routing</em>
               </h2>
@@ -230,7 +230,7 @@ export function GenesisProtectAcuteClaimsConsolePanel(props: GenesisProtectAcute
         <article className="plans-card heavy-glass">
           <div className="plans-card-head">
             <div>
-              <p className="plans-card-eyebrow">SELECTED_CASE</p>
+              <p className="plans-card-eyebrow">Selected claim</p>
               <h2 className="plans-card-title plans-card-title-display">
                 {selected ? selected.claimId : <>Awaiting <em>selection</em></>}
               </h2>
@@ -260,8 +260,8 @@ export function GenesisProtectAcuteClaimsConsolePanel(props: GenesisProtectAcute
                 </div>
                 <div className="plans-settings-row">
                   <div>
-                    <span className="plans-settings-label">FUNDING_LANE</span>
-                    <span className="plans-settings-lane">{selected.fundingLineDisplayName}</span>
+                    <span className="plans-settings-label">Reserve lane</span>
+                    <span className="plans-settings-lane">{selected.fundingLineDisplayName} FundingLine</span>
                   </div>
                   <span className="plans-settings-address">{selected.fundingLaneType.toUpperCase()}</span>
                 </div>
@@ -274,8 +274,8 @@ export function GenesisProtectAcuteClaimsConsolePanel(props: GenesisProtectAcute
                 </div>
                 <div className="plans-settings-row">
                   <div>
-                    <span className="plans-settings-label">OBLIGATION</span>
-                    <span className="plans-settings-lane">Linked liability path</span>
+                    <span className="plans-settings-label">Payout/liability</span>
+                    <span className="plans-settings-lane">Linked Obligation path</span>
                   </div>
                   <span className="plans-settings-address">{selected.obligationStatusLabel}</span>
                 </div>
@@ -320,7 +320,7 @@ export function GenesisProtectAcuteClaimsConsolePanel(props: GenesisProtectAcute
                 </button>
                 <Link href={attestationHref(props.poolAddress, selected)} className="plans-secondary-cta">
                   <span className="material-symbols-outlined" aria-hidden="true">verified</span>
-                  OPEN_ORACLE_FEED
+                  Open oracle feed
                 </Link>
               </div>
               <p className="field-help">

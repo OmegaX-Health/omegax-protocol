@@ -177,7 +177,25 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
     setStatus(null);
     try {
       const tx = await factory();
-      const result = await executeProtocolTransaction({ connection, sendTransaction, tx, label });
+      const result = await executeProtocolTransaction({
+        connection,
+        sendTransaction,
+        tx,
+        label,
+        review: {
+          authority: publicKey.toBase58(),
+          feePayer: publicKey.toBase58(),
+          affectedObject: props.selectedClass
+            ? `${props.selectedClass.displayName} (${props.selectedClass.address})`
+            : props.selectedPool
+              ? `${props.selectedPool.displayName} (${props.selectedPool.address})`
+              : "Capital operator action",
+          economicEffect: "Submits a capital action that may affect pool or class state, allocation caps, deployed capital, or redemption queues.",
+          warnings: props.selectedPool?.poolId === "genesis-protect-acute-pool"
+            ? ["Genesis reserve movement should stay paired with readiness and operator sign-off review."]
+            : [],
+        },
+      });
       if (!result.ok) {
         setStatus({ tone: "error", message: result.error });
         return;

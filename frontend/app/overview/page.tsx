@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OverviewWorkbench } from "@/components/overview-workbench";
+import { firstSearchParamValue, type RouteSearchParams } from "@/lib/search-params";
 
-export default function OverviewPage() {
-  return <OverviewWorkbench />;
+type OverviewPageProps = {
+  searchParams?: RouteSearchParams;
+};
+
+export default function OverviewPage({ searchParams = {} }: OverviewPageProps) {
+  const demo = firstSearchParamValue(searchParams.demo) === "1";
+  return <OverviewWorkbench demo={demo} />;
 }
-

@@ -101,6 +101,19 @@ export type GenesisProtectAcuteWizardDefaults = {
 };
 
 export type GenesisProtectAcutePostureState = "healthy" | "caution" | "paused";
+export type GenesisProtectAcuteReadinessPhase =
+  | "not_created"
+  | "shell_incomplete"
+  | "reserve_pending"
+  | "operator_pending"
+  | "issuance_ready"
+  | "paused";
+
+export type GenesisProtectAcuteReadinessPhaseCopy = {
+  label: string;
+  title: string;
+  detail: string;
+};
 
 export type GenesisProtectAcuteSkuPosture = {
   skuKey: GenesisProtectAcuteSkuKey;
@@ -149,6 +162,8 @@ export type GenesisProtectAcuteSetupModel = {
     state: GenesisProtectAcutePostureState;
     reasons: string[];
   };
+  readinessPhase: GenesisProtectAcuteReadinessPhase;
+  readinessPhaseCopy: GenesisProtectAcuteReadinessPhaseCopy;
   claimCount: number;
   reservedAmount: bigint;
   pendingPayoutAmount: bigint;
@@ -259,6 +274,86 @@ const GENESIS_BOOTSTRAP_ALLOCATIONS: readonly GenesisProtectAcuteBootstrapAlloca
     weightBps: 3_475,
   },
 ] as const;
+
+const GENESIS_SHELL_CHECKLIST_KEYS = [
+  "planShellReady",
+  "event7SeriesReady",
+  "travel30SeriesReady",
+  "fundingLinesReady",
+  "poolReady",
+  "capitalClassesReady",
+  "allocationsReady",
+] as const satisfies readonly (keyof GenesisProtectAcuteSetupChecklistState)[];
+
+const GENESIS_READINESS_PHASE_COPY: Record<GenesisProtectAcuteReadinessPhase, GenesisProtectAcuteReadinessPhaseCopy> = {
+  not_created: {
+    label: "Not created",
+    title: "Genesis shell is not created yet",
+    detail: "Create the canonical Genesis Protect Acute shell before calling any launch path live.",
+  },
+  shell_incomplete: {
+    label: "Shell incomplete",
+    title: "Canonical launch objects are still missing",
+    detail: "Coverage products, reserve lanes, capital sleeves, and allocation positions need to match the Genesis template.",
+  },
+  reserve_pending: {
+    label: "Reserve pending",
+    title: "Reserve posture needs operator review",
+    detail: "Claims-paying capital, queue-only sleeves, pending payout exposure, and impairment flags must be cleared before issuance.",
+  },
+  operator_pending: {
+    label: "Operator pending",
+    title: "Operator sign-off is still incomplete",
+    detail: "Sponsor, claims, oracle, pool terms, and oracle-policy controls must be configured before public issuance.",
+  },
+  issuance_ready: {
+    label: "Issuance ready",
+    title: "Genesis is ready for bounded issuance",
+    detail: "The canonical shell, reserve posture, and operator controls are aligned for the Genesis readiness story.",
+  },
+  paused: {
+    label: "Paused",
+    title: "Genesis launch controls are paused",
+    detail: "A plan or reserve-pool pause flag is active, so issuance should stay blocked until operators clear it.",
+  },
+};
+
+export function describeGenesisProtectAcuteReadinessPhase(
+  phase: GenesisProtectAcuteReadinessPhase,
+): GenesisProtectAcuteReadinessPhaseCopy {
+  return GENESIS_READINESS_PHASE_COPY[phase];
+}
+
+function deriveGenesisProtectAcuteReadinessPhase(params: {
+  plan: HealthPlanSnapshot | null;
+  checklist: GenesisProtectAcuteSetupChecklistState;
+  claimsPayingCapital: bigint;
+  pendingPayoutAmount: bigint;
+  queueOnlyRedemptionsActive: boolean;
+  impairmentActive: boolean;
+  pauseBlocked: boolean;
+}): GenesisProtectAcuteReadinessPhase {
+  if (!params.plan) return "not_created";
+  if (params.pauseBlocked) return "paused";
+  if (GENESIS_SHELL_CHECKLIST_KEYS.some((key) => !params.checklist[key])) return "shell_incomplete";
+  if (
+    params.claimsPayingCapital <= 0n
+    || params.pendingPayoutAmount > 0n
+    || params.queueOnlyRedemptionsActive
+    || params.impairmentActive
+  ) {
+    return "reserve_pending";
+  }
+  if (
+    !params.checklist.reserveTargetReviewReady
+    || !params.checklist.planAuthoritiesReady
+    || !params.checklist.poolTermsReady
+    || !params.checklist.poolOraclePolicyReady
+  ) {
+    return "operator_pending";
+  }
+  return "issuance_ready";
+}
 
 function describeReimbursementMode(definition: GenesisProtectAcuteSkuDefinition): string {
   return definition.benefitStyle === "hybrid_fixed_plus_reimbursement"
@@ -577,10 +672,19 @@ export function buildGenesisProtectAcuteSetupModel(
     || checklistCompleted < checklistTotal
     || pendingPayoutAmount > 0n
     || impairmentActive
-    || queueOnlyRedemptionsActive
+      || queueOnlyRedemptionsActive
   ) {
     postureState = "caution";
   }
+  const readinessPhase = deriveGenesisProtectAcuteReadinessPhase({
+    plan,
+    checklist,
+    claimsPayingCapital,
+    pendingPayoutAmount,
+    queueOnlyRedemptionsActive,
+    impairmentActive,
+    pauseBlocked,
+  });
 
   return {
     plan,
@@ -597,6 +701,8 @@ export function buildGenesisProtectAcuteSetupModel(
       state: postureState,
       reasons: postureReasons,
     },
+    readinessPhase,
+    readinessPhaseCopy: describeGenesisProtectAcuteReadinessPhase(readinessPhase),
     claimCount,
     reservedAmount,
     pendingPayoutAmount,

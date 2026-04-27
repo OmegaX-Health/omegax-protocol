@@ -1245,6 +1245,19 @@ export function PlanCreationWizard() {
       : null;
 
     const assetMintPk = payoutMintPk;
+    const launchReview = {
+      authority: publicKey.toBase58(),
+      feePayer: publicKey.toBase58(),
+      affectedObject: genesisTemplateMode
+        ? `Genesis Protect Acute template (${healthPlanPk.toBase58()})`
+        : `Coverage plan shell (${healthPlanPk.toBase58()})`,
+      economicEffect: genesisTemplateMode
+        ? "Creates or restores Genesis Protect Acute launch-readiness accounts; this does not by itself mean public issuance is live."
+        : "Creates canonical health plan launch accounts for the selected reserve domain.",
+      warnings: genesisTemplateMode
+        ? ["Launch copy must stay at readiness stage until reserve, oracle, and operator sign-off are complete."]
+        : [],
+    };
 
     const createTransaction = async (label: string, instruction: ReturnType<typeof buildCreateHealthPlanInstruction>) => {
       const tx = new Transaction({ feePayer: publicKey }).add(instruction);
@@ -1253,6 +1266,7 @@ export function PlanCreationWizard() {
         sendTransaction,
         tx,
         label,
+        review: launchReview,
       });
       if (!result.ok) {
         throw new Error(result.error);
@@ -1270,6 +1284,7 @@ export function PlanCreationWizard() {
         sendTransaction,
         tx,
         label,
+        review: launchReview,
       });
       if (!result.ok) {
         throw new Error(result.error);

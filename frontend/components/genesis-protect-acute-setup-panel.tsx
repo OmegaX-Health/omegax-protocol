@@ -39,6 +39,17 @@ function posturePillClass(state: GenesisProtectAcuteSetupModel["posture"]["state
   }
 }
 
+function readinessPillClass(phase: GenesisProtectAcuteSetupModel["readinessPhase"]): string {
+  switch (phase) {
+    case "issuance_ready":
+      return "status-ok";
+    case "paused":
+      return "status-error";
+    default:
+      return "status-off";
+  }
+}
+
 function utilizationLabel(bps: bigint | null): string {
   if (bps === null) return "N/A";
   return `${Number(bps) / 100}%`;
@@ -56,27 +67,27 @@ function checklistRows(props: GenesisProtectAcuteSetupPanelProps) {
     },
     {
       key: "event7SeriesReady",
-      title: "Event 7 series exists",
-      detail: "The fast demo SKU stays wired to the canonical metadata URI and protection mode.",
+      title: "Event 7 coverage product exists",
+      detail: "The fast demo SKU stays wired to the canonical PolicySeries metadata URI and protection mode.",
       ready: props.model.checklist.event7SeriesReady,
       href: props.bootstrapHref,
       action: "Restore launch SKU",
     },
     {
       key: "travel30SeriesReady",
-      title: "Travel 30 series exists",
-      detail: "The primary launch SKU stays wired to the canonical metadata URI and protection mode.",
+      title: "Travel 30 coverage product exists",
+      detail: "The primary launch SKU stays wired to the canonical PolicySeries metadata URI and protection mode.",
       ready: props.model.checklist.travel30SeriesReady,
       href: props.bootstrapHref,
       action: "Restore launch SKU",
     },
     {
       key: "fundingLinesReady",
-      title: "Canonical funding lines exist",
-      detail: "Event 7 keeps premium, sponsor, and liquidity lanes while Travel 30 keeps premium and liquidity.",
+      title: "Canonical reserve lanes exist",
+      detail: "Event 7 keeps premium, sponsor, and liquidity FundingLine lanes while Travel 30 keeps premium and liquidity.",
       ready: props.model.checklist.fundingLinesReady,
       href: props.bootstrapHref,
-      action: "Restore funding lanes",
+      action: "Restore reserve lanes",
     },
     {
       key: "poolReady",
@@ -153,6 +164,9 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
             </h2>
           </div>
           <div className="flex flex-wrap gap-2">
+            <span className={`status-pill ${readinessPillClass(props.model.readinessPhase)}`}>
+              {props.model.readinessPhaseCopy.label}
+            </span>
             <span className={`status-pill ${posturePillClass(props.model.posture.state)}`}>
               {props.model.posture.state.toUpperCase()}
             </span>
@@ -168,6 +182,14 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
           </div>
         </div>
 
+        <div className="plans-notice liquid-glass" role="status">
+          <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">flag</span>
+          <p>
+            <strong>{props.model.readinessPhaseCopy.title}.</strong>{" "}
+            {props.model.readinessPhaseCopy.detail}
+          </p>
+        </div>
+
         <p className="plans-card-body">
           The Genesis template creates the canonical two-SKU shell in place.
           Current public posture: bounded end-of-month mainnet target, not broadly live insurance today, with Phase 0 operator-backed claim review while reserve, oracle, and pool controls finish operator sign-off.
@@ -176,42 +198,42 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
         <div className="plans-settings-grid">
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">CLAIM_COUNT</span>
-              <span className="plans-settings-lane">Claim cases currently linked to the Genesis plan</span>
+              <span className="plans-settings-label">Claims</span>
+              <span className="plans-settings-lane">ClaimCase records currently linked to the Genesis plan</span>
             </div>
             <span className="plans-settings-address">{formatAmount(props.model.claimCount)}</span>
           </div>
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">RESERVED_AMOUNT</span>
-              <span className="plans-settings-lane">Current reserve already encumbered across Genesis funding lines</span>
+              <span className="plans-settings-label">Reserved amount</span>
+              <span className="plans-settings-lane">Current reserve already encumbered across Genesis FundingLine lanes</span>
             </div>
             <span className="plans-settings-address">{formatAmount(props.model.reservedAmount)}</span>
           </div>
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">PENDING_PAYOUT</span>
-              <span className="plans-settings-lane">Claimable or payable exposure visible on the live reserve lanes</span>
+              <span className="plans-settings-label">Payout/liability pending</span>
+              <span className="plans-settings-lane">Claimable or payable Obligation exposure visible on the live reserve lanes</span>
             </div>
             <span className="plans-settings-address">{formatAmount(props.model.pendingPayoutAmount)}</span>
           </div>
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">RESERVE_UTILIZATION</span>
+              <span className="plans-settings-label">Reserve utilization</span>
               <span className="plans-settings-lane">Reserved plus pending payout as a share of currently posted claims-paying capital</span>
             </div>
             <span className="plans-settings-address">{utilizationLabel(props.model.reserveUtilizationBps)}</span>
           </div>
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">CLAIMS_PAYING_CAPITAL</span>
+              <span className="plans-settings-label">Claims-paying capital</span>
               <span className="plans-settings-lane">Premium, sponsor, and LP-backed capital currently posted to Genesis reserve lanes</span>
             </div>
             <span className="plans-settings-address">{formatAmount(props.model.claimsPayingCapital)}</span>
           </div>
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">LIVE_STRESS_FLAGS</span>
+              <span className="plans-settings-label">Live stress flags</span>
               <span className="plans-settings-lane">Queue-only capital sleeves and impairment stay visible while the bounded launch window remains under operator review</span>
             </div>
             <span className="plans-settings-address">

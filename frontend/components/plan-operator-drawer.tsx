@@ -530,7 +530,23 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
     setStatus(null);
     try {
       const tx = await factory();
-      const result = await executeProtocolTransaction({ connection, sendTransaction, tx, label });
+      const result = await executeProtocolTransaction({
+        connection,
+        sendTransaction,
+        tx,
+        label,
+        review: {
+          authority: publicKey.toBase58(),
+          feePayer: publicKey.toBase58(),
+          affectedObject: props.series
+            ? `${props.series.displayName} (${props.series.address})`
+            : `${props.plan.displayName} (${props.plan.address})`,
+          economicEffect: "Submits a sponsor/operator action that may affect reserve lanes, claims, member eligibility, or plan controls.",
+          warnings: props.plan.planId === "genesis-protect-acute-v1"
+            ? ["Genesis launch copy must stay at readiness stage until reserve, oracle, and operator sign-off are complete."]
+            : [],
+        },
+      });
       if (!result.ok) {
         setStatus({ tone: "error", message: result.error });
         return;
