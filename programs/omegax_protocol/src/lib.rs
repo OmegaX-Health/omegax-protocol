@@ -1099,6 +1099,54 @@ pub mod omegax_protocol {
                     obligation,
                 )?;
                 obligation.status = OBLIGATION_STATUS_SETTLED;
+
+                // PT-2026-04-27-01/02 fix: SPL outflow CPI for linked-claim
+                // settlement. When a claim_case is linked AND all five outflow
+                // accounts are supplied, transfer the SPL out of the
+                // PDA-owned vault to the resolved recipient. When any are
+                // absent (e.g. direct sponsor recoveries that pre-date this
+                // surface), fall back to accounting-only — operators using
+                // those flows must adapt to a future direct-recipient path.
+                if let Some(claim_case_ref) = ctx.accounts.claim_case.as_deref() {
+                    if let (
+                        Some(member_pos),
+                        Some(mint),
+                        Some(vault_ta),
+                        Some(recipient_ta),
+                        Some(token_prog),
+                    ) = (
+                        ctx.accounts.member_position.as_ref(),
+                        ctx.accounts.asset_mint.as_ref(),
+                        ctx.accounts.vault_token_account.as_ref(),
+                        ctx.accounts.recipient_token_account.as_ref(),
+                        ctx.accounts.token_program.as_ref(),
+                    ) {
+                        require_keys_eq!(
+                            member_pos.key(),
+                            claim_case_ref.member_position,
+                            OmegaXProtocolError::Unauthorized
+                        );
+                        let resolved_recipient =
+                            if claim_case_ref.delegate_recipient != ZERO_PUBKEY {
+                                claim_case_ref.delegate_recipient
+                            } else {
+                                member_pos.wallet
+                            };
+                        require_keys_eq!(
+                            recipient_ta.owner,
+                            resolved_recipient,
+                            OmegaXProtocolError::Unauthorized
+                        );
+                        transfer_from_domain_vault(
+                            amount,
+                            &ctx.accounts.domain_asset_vault,
+                            vault_ta,
+                            recipient_ta,
+                            mint,
+                            token_prog,
+                        )?;
+                    }
+                }
             }
             OBLIGATION_STATUS_CANCELED => {
                 cancel_outstanding(
@@ -2827,6 +2875,21 @@ pub struct SettleObligation<'info> {
     pub obligation: Box<Account<'info, Obligation>>,
     #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
     pub claim_case: Option<Box<Account<'info, ClaimCase>>>,
+    // PT-2026-04-27-01/02 fix: optional outflow accounts. When all five are
+    // provided AND a linked claim_case is present AND next_status is SETTLED,
+    // the handler resolves recipient = claim_case.delegate_recipient if
+    // non-zero else member.wallet, asserts recipient_token_account.owner ==
+    // resolved, and transfers SPL via the domain_asset_vault PDA. When any
+    // are absent (e.g. direct sponsor recoveries with no linked claim), the
+    // handler falls back to accounting-only behavior to preserve existing
+    // operator flows.
+    pub member_position: Option<Box<Account<'info, MemberPosition>>>,
+    pub asset_mint: Option<InterfaceAccount<'info, Mint>>,
+    #[account(mut)]
+    pub vault_token_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut)]
+    pub recipient_token_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    pub token_program: Option<Interface<'info, TokenInterface>>,
 }
 
 #[derive(Accounts)]

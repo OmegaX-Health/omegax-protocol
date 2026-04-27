@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: b2027e206a515beb7d6fcc423a8b51bd1887fae893cb60bcd9aae9305eba3b08
+// contract_sha256: 768458fc073b448bff1d93767fbc1af813eb71643ebff40f57eb8e355b9c099e
 export const PROTOCOL_PROGRAM_ID = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B";
 export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
     "adjudicate_claim_case": Uint8Array.from([146, 99, 255, 26, 223, 88, 235, 114]),
@@ -559,6 +559,11 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
         { name: "allocation_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
         { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
         { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
+        { name: "member_position", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "asset_mint", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "vault_token_account", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "recipient_token_account", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "token_program", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
     ],
     "update_allocation_caps": [
         { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },

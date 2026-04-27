@@ -7695,6 +7695,28 @@
               }
             ]
           }
+        },
+        {
+          "name": "member_position",
+          "optional": true
+        },
+        {
+          "name": "asset_mint",
+          "optional": true
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "token_program",
+          "optional": true
         }
       ],
       "args": [

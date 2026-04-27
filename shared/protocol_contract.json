@@ -8326,6 +8326,36 @@
               }
             ]
           }
+        },
+        {
+          "name": "member_position",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "asset_mint",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "token_program",
+          "writable": false,
+          "signer": false,
+          "optional": true
         }
       ]
     },

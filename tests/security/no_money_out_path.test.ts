@@ -60,28 +60,26 @@ test("[PT-01] IDL exposes no withdraw / sweep / fee-collection instruction", () 
   );
 });
 
-test("[PT-02 defense partial] settle_claim_case + process_redemption_queue call transfer_from_domain_vault", () => {
-  // Wired in plan section 1.5 (first increment).
-  const wired = ["settle_claim_case", "process_redemption_queue"];
+test("[PT-02 defense] settle_claim_case + process_redemption_queue + settle_obligation call transfer_from_domain_vault", () => {
+  // All three money-out instruction handlers are wired. settle_obligation
+  // does the CPI conditionally (only when claim_case is linked AND outflow
+  // accounts are supplied) — the body still contains the helper call site,
+  // so the source-pattern test is satisfied either way.
+  //
+  // Note: release_reserve is NOT a money-out path despite its name. It is a
+  // pure accounting operation that returns reserved capital to the free pool
+  // (status becomes CANCELED if reserved hits zero). It is intentionally
+  // excluded from this defense test.
+  const wired = [
+    "settle_claim_case",
+    "process_redemption_queue",
+    "settle_obligation",
+  ];
   for (const handler of wired) {
     const body = extractInstructionBody(handler);
     assert.ok(
       /transfer_from_domain_vault\s*\(/.test(body),
       `[PT-02 regression] ${handler} must call transfer_from_domain_vault`,
-    );
-  }
-});
-
-test("[PT-02 partial gap] settle_obligation + release_reserve still pending outflow CPI wiring", () => {
-  // These have linked-vs-direct branching that needs optional outflow accounts;
-  // wiring deferred to a follow-up increment. When wired, this test should be
-  // flipped (or merged with the defense test above).
-  const pending = ["settle_obligation", "release_reserve"];
-  for (const handler of pending) {
-    const body = extractInstructionBody(handler);
-    assert.ok(
-      !/transfer_from_domain_vault\s*\(/.test(body),
-      `${handler} now calls transfer_from_domain_vault — flip this test to a defense regression`,
     );
   }
 });
