@@ -9,6 +9,7 @@ This directory contains the fast Node-based verification suite for the canonical
 - reserve-kernel arithmetic and read-model behavior
 - scenario coverage for sponsor budgets, mixed reward/protection plans, LP allocation attribution, restricted classes, separate reserve domains, impairment pressure, scoped pauses, and migration smoke
 - frontend bootstrap regressions for mounted wizard and workbench state resolution
+- pen-test PoCs in [`security/`](security/) backing [`docs/security/pre-mainnet-pen-test-2026-04-27.md`](../docs/security/pre-mainnet-pen-test-2026-04-27.md)
 
 ## Run the fast suite
 
