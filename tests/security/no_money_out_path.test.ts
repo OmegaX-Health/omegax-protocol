@@ -60,40 +60,30 @@ test("[PT-01] IDL exposes no withdraw / sweep / fee-collection instruction", () 
   );
 });
 
-test("[PT-02] No settlement / redemption / release instruction calls a token CPI", () => {
-  const handlers = [
-    "settle_claim_case",
-    "process_redemption_queue",
-    "settle_obligation",
-    "release_reserve",
-  ];
-  const tokenCpiPatterns = [
-    /token_interface::transfer/,
-    /token::transfer/,
-    /\btransfer_checked\b/,
-    /\binvoke_signed\b/,
-    /\binvoke\b\s*\(/,
-  ];
-
-  const findings: Array<{ handler: string; matched: string[] }> = [];
-  for (const handler of handlers) {
+test("[PT-02 defense partial] settle_claim_case + process_redemption_queue call transfer_from_domain_vault", () => {
+  // Wired in plan section 1.5 (first increment).
+  const wired = ["settle_claim_case", "process_redemption_queue"];
+  for (const handler of wired) {
     const body = extractInstructionBody(handler);
-    const hits = tokenCpiPatterns
-      .filter((rx) => rx.test(body))
-      .map((rx) => rx.source);
-    if (hits.length > 0) {
-      findings.push({ handler, matched: hits });
-    }
+    assert.ok(
+      /transfer_from_domain_vault\s*\(/.test(body),
+      `[PT-02 regression] ${handler} must call transfer_from_domain_vault`,
+    );
   }
+});
 
-  // PASSES when no money-out handler calls a CPI (vulnerability present).
-  // FAILS when an outflow path is added — flip to a defense test that
-  // additionally asserts the CPI's signer authority is correctly constrained.
-  assert.deepEqual(
-    findings,
-    [],
-    `Expected no token CPI in money-out handlers; finding PT-02 would be remediated if any handler does. Found: ${JSON.stringify(findings, null, 2)}`,
-  );
+test("[PT-02 partial gap] settle_obligation + release_reserve still pending outflow CPI wiring", () => {
+  // These have linked-vs-direct branching that needs optional outflow accounts;
+  // wiring deferred to a follow-up increment. When wired, this test should be
+  // flipped (or merged with the defense test above).
+  const pending = ["settle_obligation", "release_reserve"];
+  for (const handler of pending) {
+    const body = extractInstructionBody(handler);
+    assert.ok(
+      !/transfer_from_domain_vault\s*\(/.test(body),
+      `${handler} now calls transfer_from_domain_vault — flip this test to a defense regression`,
+    );
+  }
 });
 
 test("[PT-02] The only token CPI lives in transfer_to_domain_vault and is inflow-only", () => {

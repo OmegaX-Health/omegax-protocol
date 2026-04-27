@@ -1396,6 +1396,22 @@ pub mod omegax_protocol {
             ctx.accounts.funding_line.asset_mint,
         )?;
 
+        // PT-2026-04-27-01/02 fix: resolve the SPL recipient before mutating
+        // the claim_case (Pubkey is Copy so we capture by value). Routing is
+        // controlled exclusively by the member-set delegate_recipient field;
+        // the older `claimant` field is informational metadata only and is
+        // already constrained to equal member.wallet at intake.
+        let resolved_recipient = if ctx.accounts.claim_case.delegate_recipient != ZERO_PUBKEY {
+            ctx.accounts.claim_case.delegate_recipient
+        } else {
+            ctx.accounts.member_position.wallet
+        };
+        require_keys_eq!(
+            ctx.accounts.recipient_token_account.owner,
+            resolved_recipient,
+            OmegaXProtocolError::Unauthorized
+        );
+
         let amount = args.amount;
         let claim_case = &mut ctx.accounts.claim_case;
         claim_case.paid_amount = checked_add(claim_case.paid_amount, amount)?;
@@ -1425,10 +1441,24 @@ pub mod omegax_protocol {
             amount,
         )?;
 
+        // PT-01/02 fix: actually move the SPL tokens. The vault token account
+        // is owned by the domain_asset_vault PDA, which signs via seeds.
+        transfer_from_domain_vault(
+            amount,
+            &ctx.accounts.domain_asset_vault,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.recipient_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.token_program,
+        )?;
+
+        let claim_case_key = ctx.accounts.claim_case.key();
+        let intake_status = ctx.accounts.claim_case.intake_status;
+        let approved_amount = ctx.accounts.claim_case.approved_amount;
         emit!(ClaimCaseStateChangedEvent {
-            claim_case: claim_case.key(),
-            intake_status: claim_case.intake_status,
-            approved_amount: claim_case.approved_amount,
+            claim_case: claim_case_key,
+            intake_status,
+            approved_amount,
         });
 
         Ok(())
@@ -1778,6 +1808,23 @@ pub mod omegax_protocol {
         settle_pending_redemption_domain(
             &mut ctx.accounts.domain_asset_ledger.sheet,
             asset_amount,
+        )?;
+
+        // PT-2026-04-27-01/02 fix: redemption pays the LP position's owner.
+        // There is no delegate-recipient pattern for LP redemptions — the
+        // owner is the only authorised recipient.
+        require_keys_eq!(
+            ctx.accounts.recipient_token_account.owner,
+            ctx.accounts.lp_position.owner,
+            OmegaXProtocolError::Unauthorized
+        );
+        transfer_from_domain_vault(
+            asset_amount,
+            &ctx.accounts.domain_asset_vault,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.recipient_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.token_program,
         )?;
 
         Ok(())
@@ -2959,6 +3006,27 @@ pub struct SettleClaimCase<'info> {
     pub claim_case: Box<Account<'info, ClaimCase>>,
     #[account(mut)]
     pub obligation: Option<Box<Account<'info, Obligation>>>,
+    // PT-2026-04-27-01/02 fix: outflow CPI accounts. The handler resolves the
+    // settlement recipient as `claim_case.delegate_recipient` if non-zero,
+    // else `member_position.wallet`, and asserts
+    // `recipient_token_account.owner` equals that key before transferring SPL
+    // out of the PDA-owned vault token account.
+    #[account(
+        constraint = member_position.key() == claim_case.member_position @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub member_position: Box<Account<'info, MemberPosition>>,
+    #[account(
+        constraint = asset_mint.key() == claim_case.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        constraint = vault_token_account.key() == domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
+    )]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -3098,19 +3166,33 @@ pub struct RequestRedemption<'info> {
 pub struct ProcessRedemptionQueue<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_vault.bump)]
-    pub domain_asset_vault: Account<'info, DomainAssetVault>,
+    pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_LEDGER, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_ledger.bump)]
-    pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
-    pub liquidity_pool: Account<'info, LiquidityPool>,
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
     #[account(mut, seeds = [SEED_CAPITAL_CLASS, liquidity_pool.key().as_ref(), capital_class.class_id.as_bytes()], bump = capital_class.bump)]
-    pub capital_class: Account<'info, CapitalClass>,
+    pub capital_class: Box<Account<'info, CapitalClass>>,
     #[account(mut, seeds = [SEED_POOL_CLASS_LEDGER, capital_class.key().as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = pool_class_ledger.bump)]
-    pub pool_class_ledger: Account<'info, PoolClassLedger>,
+    pub pool_class_ledger: Box<Account<'info, PoolClassLedger>>,
     #[account(mut, seeds = [SEED_LP_POSITION, capital_class.key().as_ref(), lp_position.owner.as_ref()], bump = lp_position.bump)]
-    pub lp_position: Account<'info, LPPosition>,
+    pub lp_position: Box<Account<'info, LPPosition>>,
+    // PT-2026-04-27-01/02 fix: outflow CPI accounts. Recipient must be the LP
+    // position's owner — there is no delegate-recipient pattern for redemptions.
+    #[account(
+        constraint = asset_mint.key() == liquidity_pool.deposit_asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        constraint = vault_token_account.key() == domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
+    )]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
