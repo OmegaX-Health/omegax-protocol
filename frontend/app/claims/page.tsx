@@ -4,9 +4,9 @@ import { PlansWorkbench } from "@/components/plans-workbench";
 import { type RouteSearchParams } from "@/lib/search-params";
 
 type ClaimsPageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function ClaimsPage({ searchParams = {} }: ClaimsPageProps) {
-  return <PlansWorkbench searchParams={searchParams} />;
+export default async function ClaimsPage({ searchParams }: ClaimsPageProps) {
+  return <PlansWorkbench searchParams={(await searchParams) ?? {}} />;
 }

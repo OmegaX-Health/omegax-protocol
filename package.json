@@ -77,5 +77,8 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "npm@10.9.2"
+  "packageManager": "npm@10.9.2",
+  "overrides": {
+    "uuid": "14.0.0"
+  }
 }

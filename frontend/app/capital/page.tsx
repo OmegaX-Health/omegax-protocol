@@ -4,9 +4,9 @@ import { CapitalWorkbench } from "@/components/capital-workbench";
 import { type RouteSearchParams } from "@/lib/search-params";
 
 type CapitalPageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function CapitalPage({ searchParams = {} }: CapitalPageProps) {
-  return <CapitalWorkbench searchParams={searchParams} />;
+export default async function CapitalPage({ searchParams }: CapitalPageProps) {
+  return <CapitalWorkbench searchParams={(await searchParams) ?? {}} />;
 }

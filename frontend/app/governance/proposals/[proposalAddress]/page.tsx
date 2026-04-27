@@ -16,12 +16,14 @@ function isValidProposalAddress(value: string): boolean {
   }
 }
 
-export default function GovernanceProposalPage({
+export default async function GovernanceProposalPage({
   params,
 }: {
-  params: { proposalAddress: string };
+  params: Promise<{ proposalAddress: string }>;
 }) {
-  if (!isValidProposalAddress(params.proposalAddress)) {
+  const { proposalAddress } = await params;
+
+  if (!isValidProposalAddress(proposalAddress)) {
     notFound();
   }
 
@@ -34,7 +36,7 @@ export default function GovernanceProposalPage({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-4">
                 <h1 className="protocol-title text-[clamp(1.96rem,4.3vw,3.08rem)]">
-                  {shortenAddress(params.proposalAddress, 8)}
+                  {shortenAddress(proposalAddress, 8)}
                 </h1>
                 <p className="protocol-lead">
                   Review the live SPL Governance proposal record, vote state, and execution queue for this proposal account.
@@ -54,7 +56,7 @@ export default function GovernanceProposalPage({
       </section>
 
       <section className="protocol-section">
-        <GovernanceProposalReadonlyPanel proposalAddress={params.proposalAddress} />
+        <GovernanceProposalReadonlyPanel proposalAddress={proposalAddress} />
       </section>
     </div>
   );

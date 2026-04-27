@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 
 type LegacyCoverageMintPageProps = {
-  params: { poolAddress: string };
+  params: Promise<{ poolAddress: string }>;
 };
 
-export default function LegacyCoverageMintPage({ params }: LegacyCoverageMintPageProps) {
-  redirect(buildCanonicalPoolHref(params.poolAddress, { section: "claims" }));
+export default async function LegacyCoverageMintPage({ params }: LegacyCoverageMintPageProps) {
+  const { poolAddress } = await params;
+  redirect(buildCanonicalPoolHref(poolAddress, { section: "claims" }));
 }

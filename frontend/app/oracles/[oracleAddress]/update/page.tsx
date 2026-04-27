@@ -3,11 +3,12 @@
 import { OracleProfileWizard } from "@/components/oracle-profile-wizard";
 
 type OracleUpdatePageProps = {
-  params: {
+  params: Promise<{
     oracleAddress: string;
-  };
+  }>;
 };
 
-export default function OracleUpdatePage({ params }: OracleUpdatePageProps) {
-  return <OracleProfileWizard mode="update" oracleAddress={params.oracleAddress} />;
+export default async function OracleUpdatePage({ params }: OracleUpdatePageProps) {
+  const { oracleAddress } = await params;
+  return <OracleProfileWizard mode="update" oracleAddress={oracleAddress} />;
 }

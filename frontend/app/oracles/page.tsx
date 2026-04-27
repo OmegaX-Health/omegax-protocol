@@ -4,9 +4,9 @@ import { OraclesWorkbench } from "@/components/oracles-workbench";
 import { type RouteSearchParams } from "@/lib/search-params";
 
 type OraclesPageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function OraclesPage({ searchParams = {} }: OraclesPageProps) {
-  return <OraclesWorkbench searchParams={searchParams} />;
+export default async function OraclesPage({ searchParams }: OraclesPageProps) {
+  return <OraclesWorkbench searchParams={(await searchParams) ?? {}} />;
 }

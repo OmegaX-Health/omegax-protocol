@@ -4,10 +4,11 @@ import { OverviewWorkbench } from "@/components/overview-workbench";
 import { firstSearchParamValue, type RouteSearchParams } from "@/lib/search-params";
 
 type OverviewPageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function OverviewPage({ searchParams = {} }: OverviewPageProps) {
-  const demo = firstSearchParamValue(searchParams.demo) === "1";
+export default async function OverviewPage({ searchParams }: OverviewPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const demo = firstSearchParamValue(resolvedSearchParams.demo) === "1";
   return <OverviewWorkbench demo={demo} />;
 }

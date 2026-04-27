@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 import { type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 
 type MembersPageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function MembersPage({ searchParams = {} }: MembersPageProps) {
-  const params = toURLSearchParams(searchParams);
+export default async function MembersPage({ searchParams }: MembersPageProps) {
+  const params = toURLSearchParams((await searchParams) ?? {});
   params.set("tab", "members");
   redirect(`/plans?${params.toString()}`);
 }

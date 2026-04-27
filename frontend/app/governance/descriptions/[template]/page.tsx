@@ -13,12 +13,13 @@ function humanizeRole(role: string): string {
     .join(" ");
 }
 
-export default function GovernanceDescriptionTemplatePage({
+export default async function GovernanceDescriptionTemplatePage({
   params,
 }: {
-  params: { template: string };
+  params: Promise<{ template: string }>;
 }) {
-  const template = getGovernanceTemplateEntry(params.template);
+  const { template: templateId } = await params;
+  const template = getGovernanceTemplateEntry(templateId);
   const ownerWallet =
     DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === template.ownerRole) ??
     DEVNET_PROTOCOL_FIXTURE_STATE.wallets[0];

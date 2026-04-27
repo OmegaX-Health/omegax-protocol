@@ -3,17 +3,18 @@
 import { redirect } from "next/navigation";
 
 type LegacyStakingPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function firstValue(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-export default function LegacyStakingPage({ searchParams }: LegacyStakingPageProps) {
+export default async function LegacyStakingPage({ searchParams }: LegacyStakingPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
   const params = new URLSearchParams();
-  const pool = firstValue(searchParams?.pool);
-  const series = firstValue(searchParams?.series);
+  const pool = firstValue(resolvedSearchParams.pool);
+  const series = firstValue(resolvedSearchParams.series);
 
   params.set("tab", "staking");
   if (pool) params.set("pool", pool);

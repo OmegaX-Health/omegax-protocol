@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
     "paths": {
@@ -47,7 +47,8 @@
     ".next-dev-3847/types/**/*.ts",
     ".next-dev-49750/types/**/*.ts",
     ".next-dev-61124/types/**/*.ts",
-    ".next-dev-61304/types/**/*.ts"
+    ".next-dev-61304/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

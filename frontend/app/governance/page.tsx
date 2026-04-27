@@ -4,9 +4,9 @@ import { GovernanceWorkbench } from "@/components/governance-workbench";
 import { type RouteSearchParams } from "@/lib/search-params";
 
 type GovernancePageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function GovernancePage({ searchParams = {} }: GovernancePageProps) {
-  return <GovernanceWorkbench searchParams={searchParams} />;
+export default async function GovernancePage({ searchParams }: GovernancePageProps) {
+  return <GovernanceWorkbench searchParams={(await searchParams) ?? {}} />;
 }

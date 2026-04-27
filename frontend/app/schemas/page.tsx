@@ -4,9 +4,9 @@ import { SchemasWorkbench } from "@/components/schemas-workbench";
 import { type RouteSearchParams } from "@/lib/search-params";
 
 type SchemasPageProps = {
-  searchParams?: RouteSearchParams;
+  searchParams?: Promise<RouteSearchParams>;
 };
 
-export default function SchemasPage({ searchParams = {} }: SchemasPageProps) {
-  return <SchemasWorkbench searchParams={searchParams} />;
+export default async function SchemasPage({ searchParams }: SchemasPageProps) {
+  return <SchemasWorkbench searchParams={(await searchParams) ?? {}} />;
 }

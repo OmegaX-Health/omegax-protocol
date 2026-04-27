@@ -3,17 +3,18 @@
 import { redirect } from "next/navigation";
 
 type LegacyPoolsPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function firstValue(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-export default function LegacyPoolsPage({ searchParams }: LegacyPoolsPageProps) {
+export default async function LegacyPoolsPage({ searchParams }: LegacyPoolsPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
   const params = new URLSearchParams();
-  const pool = firstValue(searchParams?.pool);
-  const capitalClass = firstValue(searchParams?.class);
+  const pool = firstValue(resolvedSearchParams.pool);
+  const capitalClass = firstValue(resolvedSearchParams.class);
 
   params.set("tab", "overview");
   if (pool) params.set("pool", pool);
