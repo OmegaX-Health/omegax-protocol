@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { Transaction } from "@solana/web3.js";
 
+import { Term } from "@/components/term";
 import { WizardDetailSheet } from "@/components/wizard-detail-sheet";
 import { executeProtocolTransaction } from "@/lib/protocol-action";
 import {
@@ -417,7 +418,7 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                 <legend className="operator-drawer-legend">Class controls</legend>
                 {!props.selectedClass ? (
                   <p className="operator-drawer-hint">
-                    Select a capital class in the context bar to edit its controls.
+                    Select a <Term name="CapitalClass">capital class</Term> in the context bar to edit its controls.
                   </p>
                 ) : (
                   <>
