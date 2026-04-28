@@ -223,6 +223,19 @@ function parsePubkey(value: string, label: string): string {
   }
 }
 
+/**
+ * Returns true when the resolved RPC URL points at a Solana mainnet endpoint.
+ * Conservative: matches anything containing `mainnet`. Operators running an
+ * isolated rehearsal against a private mainnet-beta-like cluster can bypass
+ * via OMEGAX_LIVE_CLUSTER_OVERRIDE=devnet.
+ *
+ * See docs/security/mainnet-privileged-role-controls.md §4 for the policy
+ * this guard enforces.
+ */
+function isMainnetCluster(rpcUrl: string): boolean {
+  return rpcUrl.toLowerCase().includes("mainnet");
+}
+
 function optionalPubkey(
   env: GenesisLiveBootstrapEnv,
   name: string,
@@ -343,6 +356,63 @@ export function loadGenesisLiveBootstrapConfig(params: {
     null,
     "OMEGAX_LIVE_MEMBERSHIP_INVITE_AUTHORITY",
   );
+
+  // Mainnet privileged-role guard. See
+  // docs/security/mainnet-privileged-role-controls.md §4 for the full policy.
+  //
+  // PT-2026-04-27-05 closed the silent role-collapse case via the opt-in
+  // OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 flag. The guard below tightens
+  // that into a hard-fail: any bootstrap that resolves to a mainnet RPC URL
+  // (or sets OMEGAX_LIVE_CLUSTER_OVERRIDE=mainnet) must (a) set the distinct-
+  // keys flag explicitly, and (b) provide explicit env vars for every
+  // operational role so none default to the governance signer. The break-
+  // glass override OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1 exists for
+  // documented rehearsal or emergency recovery and emits a loud warning to
+  // stderr so it appears in the release-candidate evidence trail.
+  const rpcUrlForGuard =
+    optionalEnv(env, "SOLANA_RPC_URL")
+    ?? optionalEnv(env, "NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL")
+    ?? optionalEnv(env, "NEXT_PUBLIC_SOLANA_RPC_URL")
+    ?? "https://api.mainnet-beta.solana.com";
+  const clusterOverride = optionalEnv(env, "OMEGAX_LIVE_CLUSTER_OVERRIDE")?.toLowerCase() ?? null;
+  const targetingMainnet =
+    clusterOverride === "mainnet"
+    || (clusterOverride !== "devnet" && clusterOverride !== "localnet" && isMainnetCluster(rpcUrlForGuard));
+  const breakGlass = env.OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET === "1";
+
+  if (targetingMainnet && !breakGlass) {
+    if (env.OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS !== "1") {
+      throw new Error(
+        "Mainnet bootstrap blocked: OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 is required for live cluster bootstraps. "
+          + "Set it explicitly, or set OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1 as a documented break-glass override "
+          + "(record the override in the release-candidate evidence template). "
+          + "See docs/security/mainnet-privileged-role-controls.md §3-4.",
+      );
+    }
+    const requiredRoleEnvVars = [
+      "OMEGAX_LIVE_RESERVE_DOMAIN_ADMIN",
+      "OMEGAX_LIVE_SPONSOR_WALLET",
+      "OMEGAX_LIVE_SPONSOR_OPERATOR_WALLET",
+      "OMEGAX_LIVE_CLAIMS_OPERATOR_WALLET",
+      "OMEGAX_LIVE_POOL_CURATOR_WALLET",
+      "OMEGAX_LIVE_POOL_ALLOCATOR_WALLET",
+      "OMEGAX_LIVE_POOL_SENTINEL_WALLET",
+    ];
+    const missingRoleEnvVars = requiredRoleEnvVars.filter((name) => !optionalEnv(env, name));
+    if (missingRoleEnvVars.length > 0) {
+      throw new Error(
+        `Mainnet bootstrap blocked: ${missingRoleEnvVars.length} privileged role(s) would default to the governance signer: `
+          + `${missingRoleEnvVars.join(", ")}. Set each to an explicit, distinct wallet (multisig PDA strongly recommended for governance and high-value roles), `
+          + "or set OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1 as a documented break-glass override. "
+          + "See docs/security/mainnet-privileged-role-controls.md §1-4.",
+      );
+    }
+  } else if (targetingMainnet && breakGlass) {
+    process.stderr.write(
+      "[bootstrap] BREAK-GLASS: OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1 active. "
+        + "Privileged roles may default to the governance signer; record this override in the release-candidate evidence template.\n",
+    );
+  }
 
   // PT-2026-04-27-05 fix: opt-in validation that operator roles are distinct
   // pubkeys. Set OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 in the operator

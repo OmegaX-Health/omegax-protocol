@@ -4,6 +4,8 @@ Use this checklist before merging or publishing protocol-facing changes from the
 
 Current target release: `0.3.1`
 
+> **Two gates, not one.** `npm run verify:public` is the **repo baseline health** gate — it certifies that a working tree compiles, tests pass, and generated artifacts are in sync. It does **not** certify that a commit is fit for production promotion. Promotion to a public tag, mainnet seeding, or any live-cluster surface requires the **release-candidate evidence** described in [`./release-candidate-evidence-template.md`](./release-candidate-evidence-template.md), which captures CI run IDs, branch-protection state, localnet audit output, operator-drawer simulation, dependency scan, actuarial gate (where applicable), and external-audit / bug-bounty posture for that specific commit. Treat this distinction as load-bearing: a green `verify:public` is necessary but not sufficient for promotion.
+
 ## Baseline commands
 
 Run from the repository root:
@@ -97,11 +99,11 @@ If a rehearsal deployment is required for your launch window, run the same seque
 
 Before any broader production promotion outside devnet:
 
+- **Fill in [`./release-candidate-evidence-template.md`](./release-candidate-evidence-template.md) for the candidate commit.** Every section is required. Empty sections are blockers, not formalities. The template is what records the exact commit, generated artifact hashes, CI run IDs, branch-protection state, localnet/operator-drawer outputs, dependency scan, actuarial gate (where applicable), and the truthful external-audit / bug-bounty posture for the release.
 - confirm the release notes match the generated artifacts and public docs
 - confirm downstream SDK and public docs consumers have the regenerated protocol contract
 - explicitly review any remaining canonical-console action gaps so production claims/capital/governance workflows are not overstated
 - run the operator drawer simulate-only smoke before presenting membership, claim, reserve, or plan-control actions as usable from the public console
-- capture the exact commit, generated artifact hash, and devnet sign-off outputs that will back the production announcement
 - for Genesis Protect Acute live seeding, use [`./genesis-live-bootstrap.md`](./genesis-live-bootstrap.md) so the launch bootstrap takes explicit cluster, oracle, schema, and reserve-lane inputs instead of the shared devnet fixture matrix
 
 ## Protocol-surface changes
@@ -126,4 +128,4 @@ From the checked-in docs alone, a reviewer should be able to find:
 
 If that path is hard to follow, update docs or module comments as part of the same change.
 
-For this repository, public readiness ends at `npm run verify:public`.
+For this repository, **repo baseline health** ends at `npm run verify:public`. **Production promotion** ends at a fully-filled [release-candidate evidence document](./release-candidate-evidence-template.md) for the candidate commit.

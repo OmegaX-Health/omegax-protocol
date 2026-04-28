@@ -49,22 +49,39 @@ If the senior or junior LP seed deposits are enabled, also set
 from `OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT`; bootstrap funding now performs checked SPL
 token transfers before reserve ledgers increase.
 
-## Optional role overrides
+## Privileged-role wallets (mainnet: required)
 
-If Genesis launch operations use dedicated wallets instead of the governance wallet, set:
+For **mainnet** bootstraps the loader hard-fails unless every privileged role has its own explicit wallet. See [`../security/mainnet-privileged-role-controls.md`](../security/mainnet-privileged-role-controls.md) for the full role matrix and multisig recommendation.
 
 ```bash
+# required on mainnet — bootstrap blocked if any of these default to the governance signer
+export OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1
+export OMEGAX_LIVE_RESERVE_DOMAIN_ADMIN=<pubkey>
 export OMEGAX_LIVE_SPONSOR_WALLET=<pubkey>
 export OMEGAX_LIVE_SPONSOR_OPERATOR_WALLET=<pubkey>
 export OMEGAX_LIVE_CLAIMS_OPERATOR_WALLET=<pubkey>
 export OMEGAX_LIVE_POOL_CURATOR_WALLET=<pubkey>
 export OMEGAX_LIVE_POOL_ALLOCATOR_WALLET=<pubkey>
 export OMEGAX_LIVE_POOL_SENTINEL_WALLET=<pubkey>
-export OMEGAX_LIVE_MEMBERSHIP_INVITE_AUTHORITY=<pubkey>
+
+# optional
+export OMEGAX_LIVE_MEMBERSHIP_INVITE_AUTHORITY=<pubkey>   # omit for open-membership
 export GOVERNANCE_CONFIG=<governance_pda_pubkey>
 ```
 
-If `OMEGAX_LIVE_MEMBERSHIP_INVITE_AUTHORITY` is omitted, the plan is seeded in open-membership mode.
+For devnet or rehearsal runs against an isolated mainnet-beta-like cluster, opt out via:
+
+```bash
+export OMEGAX_LIVE_CLUSTER_OVERRIDE=devnet   # or 'localnet'
+```
+
+For genuine break-glass (incident recovery, where the multisig signer set is unreachable), use:
+
+```bash
+export OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1
+```
+
+A `[bootstrap] BREAK-GLASS …` warning will be emitted to stderr; record it in the [release-candidate evidence template](./release-candidate-evidence-template.md) §8.
 
 ## Optional launch funding
 
@@ -103,6 +120,8 @@ Unless overridden, the helper uses the same public Genesis shape already shipped
 
 This helper will stop early when:
 
+- the target RPC URL points at mainnet and `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` is unset (unless break-glass is active)
+- the target RPC URL points at mainnet and any privileged role would default to the governance signer (unless break-glass is active)
 - the canonical program id is not deployed on the target cluster
 - the governance signer has no lamports on the target cluster
 - the oracle public key does not match the provided oracle keypair file

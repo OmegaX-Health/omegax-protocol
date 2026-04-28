@@ -10,6 +10,7 @@ This page does not replace the individual runbooks — they remain the canonical
 |------|-------------|-------------|---------|
 | Reviewer / contributor | Local working tree | `make verify` (or `npm run verify:public`) | [public-release-gate.md](./public-release-gate.md) |
 | Reviewer / contributor | Local working tree, protocol-touching change | `npm run test:e2e:localnet` | [public-release-gate.md](./public-release-gate.md) |
+| Release manager | Public-tag / mainnet promotion | fill in evidence template before promoting | [release-candidate-evidence-template.md](./release-candidate-evidence-template.md) |
 | Devnet operator | Shared devnet beta | `npm run devnet:beta:deploy` → `npm run protocol:bootstrap:devnet-live` → `npm run devnet:frontend:bootstrap` | [devnet-beta-runbook.md](./devnet-beta-runbook.md) |
 | Devnet operator | Devnet observability sweep | `npm run devnet:beta:observe` | [devnet-beta-runbook.md](./devnet-beta-runbook.md) |
 | Devnet operator | Drawer simulation (no state mutation) | `npm run devnet:operator:drawer:sim` | [devnet-beta-runbook.md](./devnet-beta-runbook.md#operator-drawer-simulation) |
@@ -27,7 +28,10 @@ These environment-variable expectations are enforced by the underlying scripts, 
 - `OMEGAX_LIVE_ORACLE_WALLET`, `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH` — Genesis live oracle wallet pair (mainnet bootstrap).
 - `OMEGAX_LIVE_SETTLEMENT_MINT` — settlement asset mint for the live cluster (mainnet bootstrap).
 - `OMEGAX_DEVNET_*_VAULT_TOKEN_ACCOUNT` — devnet treasury custody token accounts (devnet bootstrap).
-- `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` — enforces role separation in Genesis live bootstrap; required for mainnet.
+- `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` — **required on mainnet**; refuses configs where any two privileged roles resolve to the same pubkey. Bootstrap hard-fails on mainnet without this flag.
+- `OMEGAX_LIVE_{RESERVE_DOMAIN_ADMIN,SPONSOR,SPONSOR_OPERATOR,CLAIMS_OPERATOR,POOL_CURATOR,POOL_ALLOCATOR,POOL_SENTINEL}_WALLET` — **required on mainnet**; without explicit values these default to the governance signer and the bootstrap refuses to load. See [`../security/mainnet-privileged-role-controls.md`](../security/mainnet-privileged-role-controls.md) §1 for the role matrix.
+- `OMEGAX_LIVE_CLUSTER_OVERRIDE=devnet|localnet` — opt out of the mainnet guard for isolated rehearsals against a private mainnet-beta-like cluster.
+- `OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1` — break-glass override for incident recovery; emits a loud stderr warning and **must** be recorded in the [release-candidate evidence template](./release-candidate-evidence-template.md) §8.
 - `NEXT_PUBLIC_GOVERNANCE_REALM`, `NEXT_PUBLIC_GOVERNANCE_CONFIG`, `NEXT_PUBLIC_GOVERNANCE_TOKEN_MINT` — frontend governance wiring; loaded from `frontend/.env.local`.
 
 The `scripts/CLAUDE.md` file is explicit that bootstrap, deploy, and devnet governance scripts may mutate on-chain state — never run them unless the operator/contributor explicitly intends to.
