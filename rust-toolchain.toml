@@ -1,0 +1,7 @@
+# Pin the Rust toolchain so local rustfmt/clippy match what CI installs.
+# Bumped intentionally — coordinate any change with .github/workflows/ci.yml
+# and .github/workflows/localnet-e2e.yml, which install the same version.
+[toolchain]
+channel = "1.88.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

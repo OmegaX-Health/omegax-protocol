@@ -5448,9 +5448,8 @@ fn require_claim_intake_submitter(
     // (set by the member via `authorize_claim_recipient`).
     let claimant_is_member = args.claimant == member_position.wallet;
     let member_self_submit = *authority == member_position.wallet && claimant_is_member;
-    let operator_submit = (*authority == plan.claims_operator
-        || *authority == plan.plan_admin)
-        && claimant_is_member;
+    let operator_submit =
+        (*authority == plan.claims_operator || *authority == plan.plan_admin) && claimant_is_member;
 
     if member_self_submit || operator_submit {
         Ok(())
