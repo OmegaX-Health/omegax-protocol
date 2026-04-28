@@ -343,6 +343,43 @@ export function loadGenesisLiveBootstrapConfig(params: {
     null,
     "OMEGAX_LIVE_MEMBERSHIP_INVITE_AUTHORITY",
   );
+
+  // PT-2026-04-27-05 fix: opt-in validation that operator roles are distinct
+  // pubkeys. Set OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 in the operator
+  // environment for mainnet bootstrap to refuse a config where governance,
+  // sponsor, claims_operator, oracle, pool curator/allocator/sentinel, etc.
+  // collapse onto a single keypair. Without this guard the defaults silently
+  // route every role through governanceAuthority — a single compromise drains
+  // the whole protocol.
+  if (env.OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS === "1") {
+    const toBase58 = (value: PublicKey | string): string =>
+      typeof value === "string" ? value : value.toBase58();
+    const roleKeys: Array<[string, PublicKey | string]> = [
+      ["governance", governanceAuthority],
+      ["reserveDomainAdmin", reserveDomainAdmin],
+      ["sponsor", sponsor],
+      ["sponsorOperator", sponsorOperator],
+      ["claimsOperator", claimsOperator],
+      ["oracle", oracleAuthority],
+      ["poolCurator", poolCurator],
+      ["poolAllocator", poolAllocator],
+      ["poolSentinel", poolSentinel],
+    ];
+    if (membershipInviteAuthority) {
+      roleKeys.push(["membershipInviteAuthority", membershipInviteAuthority]);
+    }
+    const seen = new Map<string, string>();
+    for (const [role, key] of roleKeys) {
+      const k = toBase58(key);
+      const prior = seen.get(k);
+      if (prior) {
+        throw new Error(
+          `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 but roles "${prior}" and "${role}" both resolve to ${k}`,
+        );
+      }
+      seen.set(k, role);
+    }
+  }
   const membershipMode = membershipInviteAuthority ? 2 : 0;
   const membershipGateKind = membershipInviteAuthority ? 1 : 0;
 

@@ -47,3 +47,55 @@ test("Genesis live bootstrap config requires LP keypair paths when deposit amoun
     /OMEGAX_LIVE_SENIOR_LP_KEYPAIR_PATH/,
   );
 });
+
+// PT-2026-04-27-05 defense: distinct-operator-keys validation is opt-in via
+// OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS. Off by default to preserve existing
+// devnet flows; required for mainnet bootstrap.
+
+test("Genesis live bootstrap config rejects role collapse when distinct keys are required", () => {
+  // The default config collapses sponsor + claimsOperator + reserveDomainAdmin
+  // + pool roles onto governanceAuthority. With the guard set, this must throw.
+  assert.throws(
+    () => loadGenesisLiveBootstrapConfig({
+      governanceAuthority: GOVERNANCE,
+      env: {
+        OMEGAX_LIVE_SETTLEMENT_MINT: "So11111111111111111111111111111111111111112",
+        OMEGAX_LIVE_ORACLE_WALLET: ORACLE,
+        OMEGAX_LIVE_ORACLE_KEYPAIR_PATH: "/tmp/genesis-oracle.json",
+        OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS: "1",
+      },
+    }),
+    /OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1.*both resolve to/,
+  );
+});
+
+test("Genesis live bootstrap config accepts distinct keys when guard is set", () => {
+  // Provide distinct keys for every role and verify the config loads cleanly.
+  const RESERVE_DOMAIN_ADMIN = "5VPPmSnQzG1ZUyL4f7e6dEsoeQAMFkBs9Pc4FLpEymny";
+  const SPONSOR = "EJqzv8aFvK5HxTcJsWejDU6t2Cvz3enNqKZ7VRWkLhvK";
+  const SPONSOR_OPERATOR = "5dMXTaepnvLctdXX9awkFfCUDqJobmm2KYi8r5VbyiKy";
+  const CLAIMS_OPERATOR = "GkJZRfV4u4qyqQrFt3npJpDrMfbS9KdsfAh9TfFb1zvR";
+  const POOL_CURATOR = "8ZWLRpyhLNLBcsRsiX25h5d8GxTW85cCQUsh5wDiSDD3";
+  const POOL_ALLOCATOR = "FxWXWk8a9KDTMqcCaWpFfaXNDWhNTRwnAtdb1Q9Eivkc";
+  const POOL_SENTINEL = "Bvx7XMRQVe7zP6XW9qBzBjLEr9YDpuAyR1ZKDrn5K2hk";
+
+  const config = loadGenesisLiveBootstrapConfig({
+    governanceAuthority: GOVERNANCE,
+    env: {
+      OMEGAX_LIVE_SETTLEMENT_MINT: "So11111111111111111111111111111111111111112",
+      OMEGAX_LIVE_ORACLE_WALLET: ORACLE,
+      OMEGAX_LIVE_ORACLE_KEYPAIR_PATH: "/tmp/genesis-oracle.json",
+      OMEGAX_LIVE_RESERVE_DOMAIN_ADMIN: RESERVE_DOMAIN_ADMIN,
+      OMEGAX_LIVE_SPONSOR_WALLET: SPONSOR,
+      OMEGAX_LIVE_SPONSOR_OPERATOR_WALLET: SPONSOR_OPERATOR,
+      OMEGAX_LIVE_CLAIMS_OPERATOR_WALLET: CLAIMS_OPERATOR,
+      OMEGAX_LIVE_POOL_CURATOR_WALLET: POOL_CURATOR,
+      OMEGAX_LIVE_POOL_ALLOCATOR_WALLET: POOL_ALLOCATOR,
+      OMEGAX_LIVE_POOL_SENTINEL_WALLET: POOL_SENTINEL,
+      OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS: "1",
+    },
+  });
+
+  assert.equal(config.roles.sponsor, SPONSOR);
+  assert.equal(config.roles.claimsOperator, CLAIMS_OPERATOR);
+});
