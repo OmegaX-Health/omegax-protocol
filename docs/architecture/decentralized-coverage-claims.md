@@ -1,6 +1,6 @@
 # Decentralized Coverage Claims
 
-This note describes the canonical protection-claim model after the health-capital-markets rearchitecture.
+This note describes the **abstract** canonical protection-claim model after the health-capital-markets rearchitecture. For a **deterministic, end-to-end Genesis Protect Acute walkthrough** with worked happy-path and messy-path traces (incomplete evidence, more-info-needed, partial approval, denial-over-cap, deferred settlement), see [`./genesis-protect-claim-trace.md`](./genesis-protect-claim-trace.md).
 
 ## Why this exists
 

@@ -20,7 +20,8 @@ If you are an external builder, start with the public docs site before diving in
 - [Repository Layout](./architecture/repository-layout.md)
 - [Solana Program Architecture](./architecture/solana-program-architecture.md)
 - [Solana Instruction Map](./architecture/solana-instruction-map.md)
-- [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md)
+- [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) — abstract claim model
+- [Genesis Protect Claim Trace](./architecture/genesis-protect-claim-trace.md) — deterministic end-to-end walkthrough + messy-path map
 - [Frontend Information Architecture](./architecture/frontend-information-architecture.md)
 - [Protocol Console Functional Specification](./architecture/protocol-console-functional-spec.md)
 
