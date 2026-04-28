@@ -1865,8 +1865,37 @@ pub mod omegax_protocol {
         )?;
 
         let amount = args.amount;
+
+        // Phase 1.6 — Pool-treasury entry fee. Validate the optional fee vault
+        // matches (liquidity_pool, deposit_asset_mint), then compute the fee
+        // against capital_class.fee_bps. The full `amount` remains physically
+        // locked in the DomainAssetVault; the fee carve-out is removed from
+        // the LP-side accounting only (subscription_basis, NAV, default shares).
+        // pool.total_value_locked still tracks the full physical balance.
+        let pool_key = ctx.accounts.liquidity_pool.key();
+        let pool_deposit_mint = ctx.accounts.liquidity_pool.deposit_asset_mint;
+        let class_fee_bps = ctx.accounts.capital_class.fee_bps;
+        let entry_fee = if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref() {
+            require_keys_eq!(
+                vault.liquidity_pool,
+                pool_key,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            require_keys_eq!(
+                vault.asset_mint,
+                pool_deposit_mint,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            fee_share_from_bps(amount, class_fee_bps)?
+        } else {
+            0
+        };
+        let net_amount = checked_sub(amount, entry_fee)?;
+
+        // Default shares track the LP's net contribution (post-fee). Caller-supplied
+        // shares are honored verbatim — caller is responsible for accounting.
         let shares = if args.shares == 0 {
-            amount
+            net_amount
         } else {
             args.shares
         };
@@ -1879,11 +1908,11 @@ pub mod omegax_protocol {
         let lp_position = &mut ctx.accounts.lp_position;
         ensure_lp_position_binding(lp_position, capital_class_key, owner, ctx.bumps.lp_position)?;
         require_class_access_mode(restriction_mode, lp_position.credentialed)?;
-        apply_lp_position_deposit(lp_position, amount, shares, min_lockup_seconds, now_ts)?;
+        apply_lp_position_deposit(lp_position, net_amount, shares, min_lockup_seconds, now_ts)?;
 
         let capital_class = &mut ctx.accounts.capital_class;
         capital_class.total_shares = checked_add(capital_class.total_shares, shares)?;
-        capital_class.nav_assets = checked_add(capital_class.nav_assets, amount)?;
+        capital_class.nav_assets = checked_add(capital_class.nav_assets, net_amount)?;
 
         let pool = &mut ctx.accounts.liquidity_pool;
         pool.total_value_locked = checked_add(pool.total_value_locked, amount)?;
@@ -1893,6 +1922,24 @@ pub mod omegax_protocol {
         book_inflow_sheet(&mut ctx.accounts.pool_class_ledger.sheet, amount)?;
         ctx.accounts.pool_class_ledger.total_shares =
             checked_add(ctx.accounts.pool_class_ledger.total_shares, shares)?;
+
+        // Accrue the entry fee to the pool-treasury vault. SPL tokens already
+        // sit in the DomainAssetVault from the transfer above; this only updates
+        // the rail's claim counter. Skipped silently when entry_fee == 0 (either
+        // pool_treasury_vault is None or capital_class.fee_bps == 0).
+        if entry_fee > 0 {
+            if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref_mut() {
+                let vault_key = vault.key();
+                let vault_mint = vault.asset_mint;
+                let accrued_total = accrue_fee(&mut vault.accrued_fees, entry_fee)?;
+                emit!(FeeAccruedEvent {
+                    vault: vault_key,
+                    asset_mint: vault_mint,
+                    amount: entry_fee,
+                    accrued_total,
+                });
+            }
+        }
 
         emit!(CapitalClassDepositEvent {
             capital_class: capital_class.key(),
@@ -3498,6 +3545,11 @@ pub struct DepositIntoCapitalClass<'info> {
         bump
     )]
     pub lp_position: Box<Account<'info, LPPosition>>,
+    /// Phase 1.6 — optional pool-treasury vault for entry-fee accrual.
+    /// When supplied, must match (liquidity_pool, deposit_asset_mint).
+    /// Validated at runtime; absent means entry-fee accrual is skipped (backward compat).
+    #[account(mut)]
+    pub pool_treasury_vault: Option<Box<Account<'info, PoolTreasuryVault>>>,
     #[account(mut)]
     pub source_token_account: InterfaceAccount<'info, TokenAccount>,
     pub asset_mint: InterfaceAccount<'info, Mint>,
