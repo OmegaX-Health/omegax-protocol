@@ -14,7 +14,7 @@ import { OperatorVisibilityPanel } from "@/components/operator-visibility-panel"
 import { PoolLifecyclePanel } from "@/components/pool-lifecycle-panel";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   AI_ROLE_ALL_MASK,
   AUTOMATION_MODE_ADVISORY,
@@ -345,11 +345,17 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = buildTx(blockhash);
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label,
+        onConfirmed: async () => {
+          await refreshReadiness();
+        },
+        onRetry: () => {
+          void runAction(label, buildTx);
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -359,7 +365,6 @@ export function PoolSettingsPanel({ poolAddress, sectionMode = "standalone" }: P
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refreshReadiness();
     } finally {
       setBusyAction(null);
     }

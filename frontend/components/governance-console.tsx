@@ -12,7 +12,7 @@ import { Amount } from "@/components/amount";
 import { GovernanceProposalDetailPanel } from "@/components/governance-proposal-detail-panel";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { RealmsActionsPanel } from "@/components/realms-actions-panel";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildDepositGoverningTokensTx,
   buildSchemaStateProposalPlan,
@@ -236,11 +236,14 @@ export function GovernanceConsole({
         connection,
         owner: publicKey,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Deposit governance tokens",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -250,7 +253,6 @@ export function GovernanceConsole({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Deposit failed.");
       setStatusTone("error");
@@ -269,11 +271,14 @@ export function GovernanceConsole({
         connection,
         owner: publicKey,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Withdraw governance tokens",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -283,7 +288,6 @@ export function GovernanceConsole({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Withdraw failed.");
       setStatusTone("error");
@@ -301,11 +305,14 @@ export function GovernanceConsole({
       const plan = await planBuilder();
       let lastExplorerUrl: string | null = null;
       for (const step of plan.steps) {
-        const result = await executeProtocolTransaction({
+        const result = await executeProtocolTransactionWithToast({
           connection,
           sendTransaction,
           tx: step.tx,
           label: step.label,
+          onRetry: () => {
+            void submitPlan(label, planBuilder);
+          },
         });
         if (!result.ok) {
           setStatus(result.error);
@@ -340,11 +347,14 @@ export function GovernanceConsole({
         recentBlockhash: blockhash,
         emergencyPaused,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: emergencyPaused ? "Enable protocol pause" : "Resume protocol",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -354,7 +364,6 @@ export function GovernanceConsole({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Protocol pause update failed.");
       setStatusTone("error");

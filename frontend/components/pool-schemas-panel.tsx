@@ -9,7 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { SearchableSelect } from "@/components/searchable-select";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildBackfillSchemaDependencyLedgerTx,
   buildCloseOutcomeSchemaTx,
@@ -160,11 +160,14 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         visibility: Number.parseInt(visibility, 10) || 0,
         metadataUri,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Register schema",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -174,7 +177,6 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusy(null);
     }
@@ -193,11 +195,14 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         schemaKeyHashHex: selectedSchema.schemaKeyHashHex,
         verified: verifyState,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: verifyState ? "Verify schema" : "Unverify schema",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -207,7 +212,6 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusy(null);
     }
@@ -231,11 +235,14 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         schemaKeyHashHex: selectedSchema.schemaKeyHashHex,
         poolRuleAddresses,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Backfill schema dependency ledger",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -245,7 +252,6 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Backfill inputs are invalid.");
       setStatusTone("error");
@@ -268,11 +274,14 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         recentBlockhash: blockhash,
         schemaKeyHashHex: selectedSchema.schemaKeyHashHex,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Close schema",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -282,7 +291,6 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Close recipient is invalid.");
       setStatusTone("error");

@@ -9,7 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildWithdrawPoolOracleFeeSolTx,
   buildWithdrawPoolOracleFeeSplTx,
@@ -181,11 +181,14 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
             amount,
             recentBlockhash: blockhash,
           });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Withdraw pool treasury",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -195,7 +198,6 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Pool treasury withdrawal inputs are invalid.");
       setStatusTone("error");
@@ -226,11 +228,14 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
             amount,
             recentBlockhash: blockhash,
           });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Withdraw protocol fees",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -240,7 +245,6 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Protocol fee withdrawal inputs are invalid.");
       setStatusTone("error");
@@ -273,11 +277,14 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
             amount,
             recentBlockhash: blockhash,
           });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Withdraw pool oracle fees",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -287,7 +294,6 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Oracle fee withdrawal inputs are invalid.");
       setStatusTone("error");

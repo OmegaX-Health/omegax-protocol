@@ -38,7 +38,7 @@ function scanCallsites(): Callsite[] {
     if (!src.includes("executeProtocolTransaction")) continue;
     const lines = src.split("\n");
     for (let i = 0; i < lines.length; i += 1) {
-      if (!/executeProtocolTransaction\s*\(/.test(lines[i] ?? "")) continue;
+      if (!/executeProtocolTransaction(?:WithToast)?\s*\(/.test(lines[i] ?? "")) continue;
       // Walk forward, tracking paren depth, to find the matching close paren.
       let depth = 0;
       let started = false;

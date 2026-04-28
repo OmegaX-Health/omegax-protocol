@@ -62,7 +62,7 @@ import {
   fetchProtectionMetadataDocument,
   validateProtectionMetadataAgainstPosture,
 } from "@/lib/protection-metadata";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildCreateAllocationPositionTx,
   buildCreateCapitalClassTx,
@@ -1263,7 +1263,7 @@ export function PlanCreationWizard() {
 
     const createTransaction = async (label: string, instruction: ReturnType<typeof buildCreateHealthPlanInstruction>) => {
       const tx = new Transaction({ feePayer: publicKey }).add(instruction);
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
@@ -1282,7 +1282,7 @@ export function PlanCreationWizard() {
       });
     };
     const createBuiltTransaction = async (label: string, tx: Transaction) => {
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,

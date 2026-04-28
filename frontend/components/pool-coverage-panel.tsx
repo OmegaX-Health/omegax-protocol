@@ -13,7 +13,7 @@ import { AdvancedOverride } from "@/components/advanced-override";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
 import { parseCycleQuotePayload, quoteUsesSolRail } from "@/lib/cycle-quote";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   PLAN_MODE_PROTECTION,
   POLICY_SERIES_STATUS_ACTIVE,
@@ -556,11 +556,17 @@ export function PoolCoveragePanel({ poolAddress }: PoolCoveragePanelProps) {
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = await factory(blockhash);
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label,
+        onConfirmed: async () => {
+          await refresh();
+        },
+        onRetry: () => {
+          void runProtocolAction(label, factory);
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -570,7 +576,6 @@ export function PoolCoveragePanel({ poolAddress }: PoolCoveragePanelProps) {
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusyAction(null);
     }

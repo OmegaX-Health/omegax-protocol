@@ -11,7 +11,7 @@ import { CheckCircle2, FileText, RefreshCw } from "lucide-react";
 import { MemberClaimsPanel } from "@/components/member-claims-panel";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import { deriveCoverageClaimActionDraft } from "@/lib/protocol-workspace-mappers";
 import {
   AI_ROLE_CLAIM_PROCESSOR,
@@ -419,11 +419,17 @@ export function PoolClaimsPanel({ poolAddress }: PoolClaimsPanelProps) {
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = buildTx(blockhash);
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label,
+        onConfirmed: async () => {
+          await refresh();
+        },
+        onRetry: () => {
+          void runAction(label, buildTx);
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -433,7 +439,6 @@ export function PoolClaimsPanel({ poolAddress }: PoolClaimsPanelProps) {
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusyAction(null);
     }

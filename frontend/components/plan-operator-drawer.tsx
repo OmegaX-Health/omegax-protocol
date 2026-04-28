@@ -8,7 +8,7 @@ import type { Transaction } from "@solana/web3.js";
 
 import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { WizardDetailSheet } from "@/components/wizard-detail-sheet";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildAdjudicateClaimCaseTx,
   buildAttachClaimEvidenceRefTx,
@@ -532,7 +532,7 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
     setStatus(null);
     try {
       const tx = await factory();
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
@@ -549,13 +549,18 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
             ? ["Genesis launch copy must stay at readiness stage until reserve, oracle, and operator sign-off are complete."]
             : [],
         },
+        onConfirmed: async () => {
+          await props.onRefresh?.();
+        },
+        onRetry: () => {
+          void run(label, factory);
+        },
       });
       if (!result.ok) {
         setStatus({ tone: "error", message: result.error });
         return;
       }
       setStatus({ tone: "ok", message: result.message, explorerUrl: result.explorerUrl });
-      await props.onRefresh?.();
     } catch (err) {
       setStatus({
         tone: "error",

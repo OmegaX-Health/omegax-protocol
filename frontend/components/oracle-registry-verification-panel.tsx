@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   ORACLE_TYPE_OTHER,
   buildClaimOracleTx,
@@ -416,18 +416,20 @@ export function OracleRegistryVerificationPanel() {
         oracle: publicKey,
         recentBlockhash: blockhash,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Claim oracle activation",
+        onConfirmed: async () => {
+          await refreshData();
+        },
       });
       if (!result.ok) {
         setClaimError(result.error);
         return;
       }
       setClaimSuccess(result.message);
-      await refreshData();
     } finally {
       setClaimBusy(false);
     }
