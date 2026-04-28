@@ -9,19 +9,16 @@
 // withdraw instruction (see no_money_out_path.test.ts), so even if the builders
 // existed they would have no on-chain instruction to call.
 //
-// PR1.7 status (2026-04-28): the on-chain side has shipped — the IDL now
-// exposes 6 `withdraw_*_fee_*` instructions. The frontend builders and the
-// tsconfig exclusion are still missing/active, so the dead-import vulnerability
-// remains until PR3 (frontend builders) + PR4 (panel re-enable + tsconfig fix)
-// land. The IDL-side check below was flipped from VULN_CONFIRMED to a defense
-// regression: it now PASSES when the 6 instructions exist on-chain, FAILS if
-// any get removed.
+// PR3 status (2026-04-29): both the on-chain IDL and the frontend builders
+// have shipped. The 6 `buildWithdraw*Tx` exports in `frontend/lib/protocol.ts`
+// resolve every panel import. The remaining VULN piece is the tsconfig
+// exclusion of `components/**/*` from typecheck (PT-13) — that closes in
+// PR4 alongside the panel re-mount.
 //
-// This file removes itself when:
-//   - PR3 ships the 6 buildWithdraw*Tx builders → test 2 below should be
-//     flipped or removed.
-//   - PR4 removes `components/**/*` from tsconfig.exclude → test 4 below
-//     should be flipped or removed.
+// Two of this file's three "vulnerability-confirming" tests have been
+// flipped to defense regressions (IDL ix presence in PR2; builder exports
+// in PR3). The remaining VULN_CONFIRMED test (test 4 below) flips when
+// PR4 removes `components/**/*` from tsconfig.exclude.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -54,11 +51,13 @@ test("[PT-03] pool-treasury-panel imports the documented dead builder names", ()
   }
 });
 
-test("[PT-03] None of the dead builder names is exported by frontend/lib/protocol.ts", () => {
+test("[PT-03 defense regression] All six builder names are exported by frontend/lib/protocol.ts", () => {
+  // Phase 1.7 PR3 shipped the six builders; the panel imports now resolve.
+  // This assertion was flipped from VULN_CONFIRMED to a defense regression:
+  // if any builder export is removed or renamed, the panel reverts to the
+  // dead-import state and PT-03 partially regresses.
   const unresolved: string[] = [];
   for (const name of expectedDeadImports) {
-    // Look for any export form: `export function NAME`, `export const NAME`,
-    // `export async function NAME`, `export { NAME }`, or `export { ..., NAME, ... }`.
     const exportPatterns = [
       new RegExp(String.raw`^export\s+(?:async\s+)?function\s+${name}\b`, "m"),
       new RegExp(String.raw`^export\s+const\s+${name}\b`, "m"),
@@ -68,11 +67,10 @@ test("[PT-03] None of the dead builder names is exported by frontend/lib/protoco
     if (!isExported) unresolved.push(name);
   }
 
-  // PASSES when all six imports are unresolved (vulnerability present).
   assert.deepEqual(
     unresolved,
-    expectedDeadImports,
-    `Expected all six dead imports to remain unresolved; finding PT-03 would be remediated if any resolves. Currently unresolved: ${JSON.stringify(unresolved, null, 2)}`,
+    [],
+    `[PT-03 defense] All six panel-imported builders must remain exported. Currently missing: ${JSON.stringify(unresolved, null, 2)}`,
   );
 });
 
