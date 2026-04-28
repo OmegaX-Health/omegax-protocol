@@ -25,7 +25,19 @@ jobs:
           else
             before="${{ github.event.before }}"
             if [[ -z "${before}" || "${before}" == "0000000000000000000000000000000000000000" ]]; then
-              range="${{ github.sha }}"
+              # First push to a new branch. Scoping the DCO range to commits
+              # unique to this branch (vs the default branch) avoids
+              # rescanning the entire repository history — old commits that
+              # predate the DCO requirement are already accepted on the
+              # default branch and should not block a fresh feature branch.
+              # Falls back to just HEAD if origin/${default_branch} is not
+              # available for any reason.
+              default_branch="${{ github.event.repository.default_branch }}"
+              if git rev-parse --verify "origin/${default_branch}" >/dev/null 2>&1; then
+                range="origin/${default_branch}..${{ github.sha }}"
+              else
+                range="${{ github.sha }}"
+              fi
             else
               range="${before}..${{ github.sha }}"
             fi
