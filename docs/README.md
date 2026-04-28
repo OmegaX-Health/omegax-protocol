@@ -45,7 +45,8 @@ If you are an external builder, start with the public docs site before diving in
 - [Operator Runbooks — Index](./operations/runbooks.md) — start here for role × environment routing
 - [Devnet Beta Runbook](./operations/devnet-beta-runbook.md)
 - [Genesis Live Bootstrap](./operations/genesis-live-bootstrap.md)
-- [Public Release Gate](./operations/public-release-gate.md)
+- [Public Release Gate](./operations/public-release-gate.md) — `verify:public` is repo baseline; production promotion needs the evidence template
+- [Release-Candidate Evidence Template](./operations/release-candidate-evidence-template.md) — fill in before public-tag or mainnet promotion
 - [Firebase App Hosting Cutover](./operations/firebase-app-hosting-cutover.md)
 - [Dependency Advisory Risk Acceptance](./operations/dependency-advisory-risk-acceptance.md)
 - [Release v0.3.0](./operations/release-v0.3.0.md)

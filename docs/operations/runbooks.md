@@ -10,6 +10,7 @@ This page does not replace the individual runbooks — they remain the canonical
 |------|-------------|-------------|---------|
 | Reviewer / contributor | Local working tree | `make verify` (or `npm run verify:public`) | [public-release-gate.md](./public-release-gate.md) |
 | Reviewer / contributor | Local working tree, protocol-touching change | `npm run test:e2e:localnet` | [public-release-gate.md](./public-release-gate.md) |
+| Release manager | Public-tag / mainnet promotion | fill in evidence template before promoting | [release-candidate-evidence-template.md](./release-candidate-evidence-template.md) |
 | Devnet operator | Shared devnet beta | `npm run devnet:beta:deploy` → `npm run protocol:bootstrap:devnet-live` → `npm run devnet:frontend:bootstrap` | [devnet-beta-runbook.md](./devnet-beta-runbook.md) |
 | Devnet operator | Devnet observability sweep | `npm run devnet:beta:observe` | [devnet-beta-runbook.md](./devnet-beta-runbook.md) |
 | Devnet operator | Drawer simulation (no state mutation) | `npm run devnet:operator:drawer:sim` | [devnet-beta-runbook.md](./devnet-beta-runbook.md#operator-drawer-simulation) |
