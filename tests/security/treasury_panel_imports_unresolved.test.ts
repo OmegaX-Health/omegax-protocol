@@ -9,16 +9,19 @@
 // withdraw instruction (see no_money_out_path.test.ts), so even if the builders
 // existed they would have no on-chain instruction to call.
 //
-// PR3 status (2026-04-29): both the on-chain IDL and the frontend builders
-// have shipped. The 6 `buildWithdraw*Tx` exports in `frontend/lib/protocol.ts`
-// resolve every panel import. The remaining VULN piece is the tsconfig
-// exclusion of `components/**/*` from typecheck (PT-13) — that closes in
-// PR4 alongside the panel re-mount.
+// PR4 status (2026-04-29): full PT-03 closure. The on-chain IDL (PR2),
+// frontend builder exports (PR3), and panel typecheck enrollment (PR4)
+// have all shipped. All three originally-VULN-CONFIRMED checks in this
+// file are now defense regressions:
+//   - IDL ix presence (PR2-flipped)
+//   - Builder exports (PR3-flipped)
+//   - tsconfig include of pool-treasury-panel.tsx (this commit)
 //
-// Two of this file's three "vulnerability-confirming" tests have been
-// flipped to defense regressions (IDL ix presence in PR2; builder exports
-// in PR3). The remaining VULN_CONFIRMED test (test 4 below) flips when
-// PR4 removes `components/**/*` from tsconfig.exclude.
+// The broad `components/**/*` exclude that originally hid the dead
+// imports has been removed; pool-treasury-panel.tsx is now in the
+// explicit include list. Other dead components in the directory are
+// quarantined separately (tracked as a follow-up cleanup task) but the
+// panel-specific gap that PT-03 originally documented is closed.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -100,7 +103,13 @@ test("[PT-03 defense regression] IDL exposes the 6 withdraw instructions PR2 shi
   }
 });
 
-test("[PT-03] frontend/tsconfig.json excludes components/ from typecheck — explains why dead imports ship unflagged", () => {
+test("[PT-03 defense regression] frontend/tsconfig.json typechecks pool-treasury-panel.tsx", () => {
+  // Phase 1.7 PR4 removed the broad `components/**/*` exclusion that
+  // shielded dead imports from build-time detection, AND added
+  // `components/pool-treasury-panel.tsx` to the explicit include list.
+  // This regression test pins both halves of the closure: if the broad
+  // exclude returns or the panel's explicit include is dropped, the
+  // dead-import vulnerability re-emerges.
   const tsconfig = JSON.parse(
     readFileSync(new URL("../../frontend/tsconfig.json", import.meta.url), "utf8"),
   ) as {
@@ -110,22 +119,17 @@ test("[PT-03] frontend/tsconfig.json excludes components/ from typecheck — exp
 
   assert.ok(
     Array.isArray(tsconfig.exclude),
-    "tsconfig.json must have an exclude array for this finding to apply",
+    "tsconfig.json must have an exclude array",
   );
   assert.ok(
-    tsconfig.exclude!.includes("components/**/*"),
-    "[PT-03 root cause] tsconfig.json excludes components/**/* from typecheck — why the dead imports in pool-treasury-panel.tsx are not caught at build time",
+    !tsconfig.exclude!.includes("components/**/*"),
+    "[PT-03 defense] tsconfig.json must NOT re-add a broad components/**/* exclusion (would re-shield the panel from typecheck).",
   );
 
-  // Sanity: confirm components/ is also not pulled back in via include.
   const include = tsconfig.include ?? [];
-  const componentsInclude = include.filter((pattern) =>
-    /components/.test(pattern),
-  );
-  assert.deepEqual(
-    componentsInclude,
-    [],
-    "[PT-03 root cause] tsconfig include must not silently re-enable components/",
+  assert.ok(
+    include.includes("components/pool-treasury-panel.tsx"),
+    "[PT-03 defense] tsconfig.json must explicitly include components/pool-treasury-panel.tsx so its imports are typechecked. If it is removed, the dead-import vulnerability returns.",
   );
 
   // Higher-order finding: lib/ coverage is tiny — only 4 specific files.
