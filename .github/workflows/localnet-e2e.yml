@@ -61,6 +61,17 @@ jobs:
           toolchain: 1.88.0
           components: rustfmt, clippy
 
+      - name: Install system dependencies
+        # libudev-dev is required by hidapi, a transitive dep of anchor-cli
+        # (HW-wallet support); pkg-config + build-essential are usually
+        # present on ubuntu-latest but are listed for completeness.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libudev-dev \
+            pkg-config \
+            build-essential
+
       - name: Cache cargo registry, git, and target
         uses: actions/cache@v4
         with:
