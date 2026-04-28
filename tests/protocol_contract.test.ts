@@ -42,6 +42,11 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(instructionNames.includes("close_outcome_schema"));
   assert(instructionNames.includes("attest_claim_case"));
 
+  // Phase 1.6 — fee-vault init instructions
+  assert(instructionNames.includes("init_protocol_fee_vault"));
+  assert(instructionNames.includes("init_pool_treasury_vault"));
+  assert(instructionNames.includes("init_pool_oracle_fee_vault"));
+
   assert(accountNames.includes("ReserveDomain"));
   assert(accountNames.includes("HealthPlan"));
   assert(accountNames.includes("PolicySeries"));
@@ -58,6 +63,43 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(accountNames.includes("OutcomeSchema"));
   assert(accountNames.includes("SchemaDependencyLedger"));
   assert(accountNames.includes("ClaimAttestation"));
+
+  // Phase 1.6 — fee-vault account types (declared on-chain, exposed via IDL)
+  assert(accountNames.includes("ProtocolFeeVault"));
+  assert(accountNames.includes("PoolTreasuryVault"));
+  assert(accountNames.includes("PoolOracleFeeVault"));
+
+  // Phase 1.6 — optional fee accounts on the inflow handlers we wired accrual into
+  assert(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.record_premium_payment.some(
+      (account) => account.name === "protocol_fee_vault",
+    ),
+  );
+  assert(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.deposit_into_capital_class.some(
+      (account) => account.name === "pool_treasury_vault",
+    ),
+  );
+  assert(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.process_redemption_queue.some(
+      (account) => account.name === "pool_treasury_vault",
+    ),
+  );
+  assert(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.settle_claim_case.some(
+      (account) => account.name === "protocol_fee_vault",
+    ),
+  );
+  assert(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.settle_claim_case.some(
+      (account) => account.name === "pool_oracle_fee_vault",
+    ),
+  );
+  assert(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.settle_claim_case.some(
+      (account) => account.name === "pool_oracle_policy",
+    ),
+  );
 
   assert(!instructionNames.includes("create_pool"));
   assert(!instructionNames.includes("set_pool_status"));
