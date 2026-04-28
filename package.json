@@ -21,7 +21,8 @@
     "anchor:build": "anchor build",
     "anchor:build:checked": "node scripts/anchor_build_with_stack_gate.mjs",
     "anchor:test": "node scripts/anchor_test_with_stack_gate.mjs",
-    "anchor:idl": "npm run anchor:build:checked && mkdir -p idl && cp target/idl/omegax_protocol.json idl/omegax_protocol.json",
+    "anchor:idl": "npm run anchor:build:checked && mkdir -p idl && cp target/idl/omegax_protocol.json idl/omegax_protocol.json && node scripts/check_idl_freshness.mjs --write",
+    "idl:freshness:check": "node scripts/check_idl_freshness.mjs",
     "rust:fmt:check": "cargo fmt --all -- --check",
     "rust:test": "cargo test -p omegax_protocol --lib",
     "rust:lint": "cargo clippy -p omegax_protocol --all-targets -- -A unexpected_cfgs -A deprecated -A clippy::too_many_arguments -D warnings",
@@ -58,7 +59,7 @@
     "semantic:readiness:check": "node scripts/check_semantic_readiness.mjs",
     "public:hygiene:check": "node scripts/check_public_repo_hygiene.mjs",
     "license:audit": "node scripts/check_dependency_licenses.mjs",
-    "ci:public": "npm run rust:fmt:check && npm run rust:test && npm run rust:lint && npm run protocol:contract:check && npm run test:node && npm run frontend:build && npm run semantic:readiness:check && npm run public:hygiene:check",
+    "ci:public": "npm run rust:fmt:check && npm run rust:test && npm run rust:lint && npm run idl:freshness:check && npm run protocol:contract:check && npm run test:node && npm run frontend:build && npm run semantic:readiness:check && npm run public:hygiene:check",
     "verify:public": "npm run ci:public && npm run license:audit",
     "doctor": "node scripts/doctor.mjs",
     "verify": "npm run doctor && npm run ci:public"
@@ -67,8 +68,7 @@
     "@solana/spl-governance": "^0.3.28",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
-    "bs58": "^6.0.0",
-    "tweetnacl": "^1.0.3"
+    "bs58": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.37",

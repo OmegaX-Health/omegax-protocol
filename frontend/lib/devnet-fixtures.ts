@@ -561,7 +561,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       status: SERIES_STATUS_ACTIVE,
       assetMint: rewardMint,
       cycleSeconds: 30 * 86_400,
-      termsVersion: "v2026.1",
+      termsVersion: "2026.1",
       comparabilityKey: "activity-rewards-core",
     },
     {
@@ -574,7 +574,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       status: SERIES_STATUS_ACTIVE,
       assetMint: rewardMint,
       cycleSeconds: 30 * 86_400,
-      termsVersion: "v2026.1",
+      termsVersion: "2026.1",
       comparabilityKey: "preventive-adherence",
     },
     {
@@ -587,7 +587,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       status: SERIES_STATUS_ACTIVE,
       assetMint: settlementMint,
       cycleSeconds: 30 * 86_400,
-      termsVersion: "v2026.1",
+      termsVersion: "2026.1",
       comparabilityKey: "catastrophic-protection",
     },
     {

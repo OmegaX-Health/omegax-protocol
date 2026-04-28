@@ -121,7 +121,7 @@
       "status": 1,
       "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "cycleSeconds": 2592000,
-      "termsVersion": "v2026.1",
+      "termsVersion": "2026.1",
       "comparabilityKey": "activity-rewards-core"
     },
     {
@@ -134,7 +134,7 @@
       "status": 1,
       "assetMint": "CSEWZW5pAoGNXhhmHwTwrKeK9w21F8WeLj95gh7QbPWL",
       "cycleSeconds": 2592000,
-      "termsVersion": "v2026.1",
+      "termsVersion": "2026.1",
       "comparabilityKey": "preventive-adherence"
     },
     {
@@ -147,7 +147,7 @@
       "status": 1,
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "cycleSeconds": 2592000,
-      "termsVersion": "v2026.1",
+      "termsVersion": "2026.1",
       "comparabilityKey": "catastrophic-protection"
     },
     {

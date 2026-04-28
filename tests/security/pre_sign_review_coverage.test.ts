@@ -71,29 +71,7 @@ function scanCallsites(): Callsite[] {
   return results;
 }
 
-// Branch-divergence note: PT-06 was authored against `main`'s pre-sign-review
-// architecture (`confirmReview` callback gate in protocol-action.ts). Sibling
-// branch `frontend/post-sign-tx-toast` replaces that with a post-sign
-// `onLifecycle` callback — a different design where the coverage question
-// does not apply. The tests below detect which architecture is in use and
-// skip cleanly when the pre-sign gate is absent.
-function preSignReviewGateIsPresent(): boolean {
-  const actionSrc = readFileSync(
-    new URL("../../frontend/lib/protocol-action.ts", import.meta.url),
-    "utf8",
-  );
-  return /confirmReview/.test(actionSrc);
-}
-
-test("[PT-06] Pre-sign review coverage map across executeProtocolTransaction callsites", (t) => {
-  if (!preSignReviewGateIsPresent()) {
-    // eslint-disable-next-line no-console
-    console.log(
-      "[PT-06] pre-sign review gate absent on this branch; finding not applicable",
-    );
-    t.skip();
-    return;
-  }
+test("[PT-06] Pre-sign review coverage map across executeProtocolTransaction callsites", () => {
   const callsites = scanCallsites();
   assert.ok(callsites.length >= 25, `expected ≥25 callsites; got ${callsites.length}`);
 
@@ -126,15 +104,7 @@ test("[PT-06] Pre-sign review coverage map across executeProtocolTransaction cal
   );
 });
 
-test("[PT-06] Frontend gate logic is a pure conditional on `params.review`", (t) => {
-  if (!preSignReviewGateIsPresent()) {
-    // eslint-disable-next-line no-console
-    console.log(
-      "[PT-06] pre-sign review gate absent on this branch; finding not applicable",
-    );
-    t.skip();
-    return;
-  }
+test("[PT-06] Frontend gate logic is a pure conditional on `params.review`", () => {
   const actionSrc = readFileSync(
     new URL("../../frontend/lib/protocol-action.ts", import.meta.url),
     "utf8",
