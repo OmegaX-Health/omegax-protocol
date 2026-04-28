@@ -8370,4 +8370,75 @@ mod tests {
             [0; 32]
         ));
     }
+
+    // -------- Phase 1.6 fee-vault helper tests --------
+
+    #[test]
+    fn fee_share_from_bps_zero_bps_or_zero_amount_returns_zero() {
+        // bps == 0 short-circuits regardless of amount.
+        assert_eq!(fee_share_from_bps(1_000_000, 0).unwrap(), 0);
+        // amount == 0 short-circuits regardless of bps.
+        assert_eq!(fee_share_from_bps(0, 50).unwrap(), 0);
+        // both zero is OK too.
+        assert_eq!(fee_share_from_bps(0, 0).unwrap(), 0);
+    }
+
+    #[test]
+    fn fee_share_from_bps_typical_50_bps_yields_half_percent() {
+        // 1_000_000_000 lamports * 50 / 10_000 = 5_000_000.
+        assert_eq!(fee_share_from_bps(1_000_000_000, 50).unwrap(), 5_000_000);
+        // 1_000_000 USDC base units (6 decimals = $1) * 25 / 10_000 = 2_500
+        // (= 0.0025 USDC = 0.25%).
+        assert_eq!(fee_share_from_bps(1_000_000, 25).unwrap(), 2_500);
+    }
+
+    #[test]
+    fn fee_share_from_bps_floors_to_zero_below_one_unit() {
+        // 100 * 50 / 10_000 = 0.5 — Solana convention floors to zero.
+        assert_eq!(fee_share_from_bps(100, 50).unwrap(), 0);
+        // 199 * 1 / 10_000 = 0.0199 — also floors to zero.
+        assert_eq!(fee_share_from_bps(199, 1).unwrap(), 0);
+        // 10_000 * 1 / 10_000 = 1 — first non-zero share.
+        assert_eq!(fee_share_from_bps(10_000, 1).unwrap(), 1);
+    }
+
+    #[test]
+    fn fee_share_from_bps_rejects_bps_above_10000() {
+        // 100% (10_000 bps) is the maximum legal bps; anything higher is a
+        // configuration error and returns FeeVaultBpsMisconfigured.
+        assert_eq!(fee_share_from_bps(1_000_000, 10_000).unwrap(), 1_000_000);
+        assert!(fee_share_from_bps(1_000_000, 10_001).is_err());
+    }
+
+    #[test]
+    fn accrue_fee_increments_running_total() {
+        let mut accrued: u64 = 100;
+        let new_total = accrue_fee(&mut accrued, 50).unwrap();
+        assert_eq!(new_total, 150);
+        assert_eq!(accrued, 150);
+        // Subsequent accrual continues to add.
+        let next = accrue_fee(&mut accrued, 25).unwrap();
+        assert_eq!(next, 175);
+        assert_eq!(accrued, 175);
+    }
+
+    #[test]
+    fn accrue_fee_zero_amount_returns_existing_total_unchanged() {
+        let mut accrued: u64 = 12_345;
+        let total = accrue_fee(&mut accrued, 0).unwrap();
+        assert_eq!(total, 12_345);
+        assert_eq!(accrued, 12_345);
+    }
+
+    #[test]
+    fn accrue_fee_overflow_errors() {
+        let mut accrued: u64 = u64::MAX - 10;
+        // 11 onto MAX-10 overflows.
+        assert!(accrue_fee(&mut accrued, 11).is_err());
+        // The accrued value is unchanged on error (checked_add returns None).
+        assert_eq!(accrued, u64::MAX - 10);
+        // Accruing exactly to MAX is allowed.
+        let total = accrue_fee(&mut accrued, 10).unwrap();
+        assert_eq!(total, u64::MAX);
+    }
 }
