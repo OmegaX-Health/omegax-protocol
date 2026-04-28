@@ -24,7 +24,12 @@ const {
   deriveProtocolGovernancePda,
   deriveReserveDomainPda,
   deriveSchemaDependencyLedgerPda,
+  deriveProtocolFeeVaultPda,
+  derivePoolTreasuryVaultPda,
+  derivePoolOracleFeeVaultPda,
   MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
+  NATIVE_SOL_MINT,
+  NATIVE_SOL_MINT_KEY,
   ZERO_PUBKEY,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
@@ -115,6 +120,88 @@ test("claim attestation builders reject unsupported decisions before chain submi
       }),
     /claim attestation decision must be one of 0/,
   );
+});
+
+test("Phase 1.7 fee-vault PDA derivers are deterministic and rail-aware", () => {
+  const [openDomain] = DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains;
+  const pool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!;
+  const oracleAddress = DEFAULT_HEALTH_PLAN_ADDRESS;
+  const splMint = pool.depositAssetMint;
+
+  // Sanity: all 9 derivers (3 vaults × {SOL, SPL, distinct-seed-input}) return
+  // valid base58 PDA addresses.
+  const protocolFeeSpl = deriveProtocolFeeVaultPda({
+    reserveDomain: openDomain.address,
+    assetMint: splMint,
+  });
+  const protocolFeeSol = deriveProtocolFeeVaultPda({
+    reserveDomain: openDomain.address,
+    assetMint: NATIVE_SOL_MINT_KEY,
+  });
+  const poolTreasurySpl = derivePoolTreasuryVaultPda({
+    liquidityPool: pool.address,
+    assetMint: splMint,
+  });
+  const poolTreasurySol = derivePoolTreasuryVaultPda({
+    liquidityPool: pool.address,
+    assetMint: NATIVE_SOL_MINT_KEY,
+  });
+  const poolOracleSpl = derivePoolOracleFeeVaultPda({
+    liquidityPool: pool.address,
+    oracle: oracleAddress,
+    assetMint: splMint,
+  });
+  const poolOracleSol = derivePoolOracleFeeVaultPda({
+    liquidityPool: pool.address,
+    oracle: oracleAddress,
+    assetMint: NATIVE_SOL_MINT_KEY,
+  });
+
+  for (const pda of [
+    protocolFeeSpl,
+    protocolFeeSol,
+    poolTreasurySpl,
+    poolTreasurySol,
+    poolOracleSpl,
+    poolOracleSol,
+  ]) {
+    assert.match(pda.toBase58(), /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
+  }
+
+  // SOL and SPL rails of the same vault scope MUST produce different PDAs —
+  // otherwise the rail-mismatch guard wouldn't be necessary on-chain.
+  assert.notEqual(protocolFeeSpl.toBase58(), protocolFeeSol.toBase58());
+  assert.notEqual(poolTreasurySpl.toBase58(), poolTreasurySol.toBase58());
+  assert.notEqual(poolOracleSpl.toBase58(), poolOracleSol.toBase58());
+
+  // Different rails (protocol/treasury/oracle) MUST produce different PDAs
+  // for the same (scope, mint) — they use different seed prefixes.
+  assert.notEqual(protocolFeeSpl.toBase58(), poolTreasurySpl.toBase58());
+  assert.notEqual(poolTreasurySpl.toBase58(), poolOracleSpl.toBase58());
+
+  // Determinism: re-deriving with the same inputs returns the same PDA.
+  assert.equal(
+    deriveProtocolFeeVaultPda({
+      reserveDomain: openDomain.address,
+      assetMint: splMint,
+    }).toBase58(),
+    protocolFeeSpl.toBase58(),
+  );
+
+  // NATIVE_SOL_MINT string and NATIVE_SOL_MINT_KEY (PublicKey) produce the
+  // same PDA — both forms are accepted via toPublicKey coercion.
+  assert.equal(
+    deriveProtocolFeeVaultPda({
+      reserveDomain: openDomain.address,
+      assetMint: NATIVE_SOL_MINT,
+    }).toBase58(),
+    protocolFeeSol.toBase58(),
+  );
+
+  // ZERO_PUBKEY (the panel's UI sentinel) is NOT the same as NATIVE_SOL_MINT
+  // and would derive a different PDA — confirm the listers are responsible
+  // for translating UI sentinel to on-chain mint, not the derivers.
+  assert.notEqual(ZERO_PUBKEY, NATIVE_SOL_MINT);
 });
 
 test("member enrollment builder marks invite authority as a signer", () => {

@@ -136,6 +136,24 @@ test("canonical contract exposes the health-capital-markets surface", () => {
     "pool-oracle-fee withdraw must thread OracleProfile for oracle authority",
   );
 
+  // Phase 1.7 PR3 — withdraw ix args matrix. All 6 ix share WithdrawArgs { amount: u64 }.
+  for (const name of [
+    "withdraw_protocol_fee_sol",
+    "withdraw_protocol_fee_spl",
+    "withdraw_pool_treasury_sol",
+    "withdraw_pool_treasury_spl",
+    "withdraw_pool_oracle_fee_sol",
+    "withdraw_pool_oracle_fee_spl",
+  ] as const) {
+    const args = PROTOCOL_INSTRUCTION_ARGS[name];
+    assert(args, `expected args for ${name}`);
+    assert.equal(
+      args.length,
+      1,
+      `${name} should take exactly one args struct (WithdrawArgs)`,
+    );
+  }
+
   assert(!instructionNames.includes("create_pool"));
   assert(!instructionNames.includes("set_pool_status"));
   assert(!serializedAccounts.includes("pool_type"));
