@@ -29,6 +29,17 @@ const PROGRAM_ID = new PublicKey(PROTOCOL_PROGRAM_ID);
 
 export const ZERO_PUBKEY = "11111111111111111111111111111111";
 export const ZERO_PUBKEY_KEY = new PublicKey(ZERO_PUBKEY);
+
+// Phase 1.7 — wrapped-SOL mint sentinel mirrors the on-chain `NATIVE_SOL_MINT`
+// constant in `programs/omegax_protocol/src/lib.rs`. SOL-rail fee vaults use
+// this as their `asset_mint` so the on-chain seeds and rail-mismatch guards
+// can distinguish lamport accounting from SPL accounting. The pool-treasury
+// panel UI surfaces SOL rails as `paymentMint === ZERO_PUBKEY` (a UI-friendly
+// sentinel that doesn't depend on the WSOL mint magic string); listers map
+// `vault.asset_mint == NATIVE_SOL_MINT` to `paymentMint = ZERO_PUBKEY` in the
+// returned summaries.
+export const NATIVE_SOL_MINT = "So11111111111111111111111111111111111111112";
+export const NATIVE_SOL_MINT_KEY = new PublicKey(NATIVE_SOL_MINT);
 export const MAX_ID_SEED_BYTES = 32;
 
 export const SEED_PROTOCOL_GOVERNANCE = "protocol_governance";
@@ -36,6 +47,9 @@ export const SEED_RESERVE_DOMAIN = "reserve_domain";
 export const SEED_DOMAIN_ASSET_VAULT = "domain_asset_vault";
 export const SEED_DOMAIN_ASSET_VAULT_TOKEN = "domain_asset_vault_token";
 export const SEED_DOMAIN_ASSET_LEDGER = "domain_asset_ledger";
+export const SEED_PROTOCOL_FEE_VAULT = "protocol_fee_vault";
+export const SEED_POOL_TREASURY_VAULT = "pool_treasury_vault";
+export const SEED_POOL_ORACLE_FEE_VAULT = "pool_oracle_fee_vault";
 export const SEED_HEALTH_PLAN = "health_plan";
 export const SEED_PLAN_RESERVE_LEDGER = "plan_reserve_ledger";
 export const SEED_POLICY_SERIES = "policy_series";
@@ -213,6 +227,37 @@ export type DomainAssetVaultSnapshot = {
   assetMint: string;
   vaultTokenAccount: string;
   totalAssets: BigNumberish;
+  bump: number;
+};
+
+// Phase 1.6/1.7 — Fee-vault snapshot types. The panel surfaces SOL rails
+// as `paymentMint === ZERO_PUBKEY`; the listers below translate
+// `assetMint === NATIVE_SOL_MINT` to that UI sentinel.
+export type ProtocolFeeVaultSnapshot = {
+  address: string;
+  reserveDomain: string;
+  assetMint: string;
+  accruedFees: bigint;
+  withdrawnFees: bigint;
+  bump: number;
+};
+
+export type PoolTreasuryVaultSnapshot = {
+  address: string;
+  liquidityPool: string;
+  assetMint: string;
+  accruedFees: bigint;
+  withdrawnFees: bigint;
+  bump: number;
+};
+
+export type PoolOracleFeeVaultSnapshot = {
+  address: string;
+  liquidityPool: string;
+  oracle: string;
+  assetMint: string;
+  accruedFees: bigint;
+  withdrawnFees: bigint;
   bump: number;
 };
 
@@ -542,6 +587,9 @@ export type ProtocolConsoleSnapshot = {
   outcomeSchemas: OutcomeSchemaSnapshot[];
   schemaDependencyLedgers: SchemaDependencyLedgerSnapshot[];
   claimAttestations: ClaimAttestationSnapshot[];
+  protocolFeeVaults: ProtocolFeeVaultSnapshot[];
+  poolTreasuryVaults: PoolTreasuryVaultSnapshot[];
+  poolOracleFeeVaults: PoolOracleFeeVaultSnapshot[];
 };
 
 export type SponsorReadModel = {
@@ -636,6 +684,67 @@ export type PoolOracleApprovalSummary = PoolOracleApprovalSnapshot;
 export type PoolOraclePolicySummary = PoolOraclePolicySnapshot;
 
 export type PoolOraclePermissionSetSummary = PoolOraclePermissionSetSnapshot;
+
+// Phase 1.6/1.7 — Fee-vault summaries surfaced to the pool-treasury panel.
+//
+// `paymentMint` is the panel's UI sentinel: SOL rails expose
+// `paymentMint === ZERO_PUBKEY` (the all-zeros system program key, not the
+// real wrapped-SOL mint). Listers translate the on-chain
+// `assetMint === NATIVE_SOL_MINT` to that sentinel so the panel's
+// `paymentMint === ZERO_PUBKEY ? sol : spl` switching code can stay simple.
+//
+// `availableFees = accruedFees - withdrawnFees` is the safe withdrawable
+// headroom; computed via saturating subtraction so a misordered chain read
+// (e.g., withdrawn briefly leading accrued during indexing) doesn't surface
+// as a bigint underflow in the UI.
+
+export type ProtocolFeeVaultSummary = {
+  address: string;
+  reserveDomain: string;
+  /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
+  paymentMint: string;
+  accruedFees: bigint;
+  withdrawnFees: bigint;
+  availableFees: bigint;
+  bump: number;
+};
+
+export type PoolTreasuryReserveSummary = {
+  address: string;
+  /** Pool the treasury vault is scoped to. */
+  pool: string;
+  reserveDomain: string;
+  /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
+  paymentMint: string;
+  accruedFees: bigint;
+  withdrawnFees: bigint;
+  availableFees: bigint;
+  // Display-only ledger counters surfaced by the panel. The on-chain
+  // PoolTreasuryVault tracks only accrued/withdrawn fees — these aliases
+  // are populated by joining DomainAssetLedger / PolicySeries / Obligation
+  // sums in a follow-up. PR3 ships them as 0n placeholders so the panel
+  // renders zeros without crashing; they are NOT used for any withdrawal
+  // safety check (only `availableFees` gates the panel).
+  reservedRewardAmount: bigint;
+  reservedCoverageClaimAmount: bigint;
+  paidCoverageClaimAmount: bigint;
+  impairedAmount: bigint;
+  bump: number;
+};
+
+export type PoolOracleFeeVaultSummary = {
+  address: string;
+  /** Pool the oracle-fee vault is scoped to. */
+  pool: string;
+  /** Registered oracle wallet receiving the fee accruals. */
+  oracle: string;
+  /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
+  paymentMint: string;
+  accruedFees: bigint;
+  withdrawnFees: bigint;
+  availableFees: bigint;
+  bump: number;
+};
 
 export type SchemaSummary = OutcomeSchemaSnapshot;
 
@@ -788,6 +897,59 @@ export function deriveDomainAssetLedgerPda(params: {
     [
       TEXT_ENCODER.encode(SEED_DOMAIN_ASSET_LEDGER),
       toPublicKey(params.reserveDomain).toBytes(),
+      toPublicKey(params.assetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+// Phase 1.6/1.7 — Fee-vault PDA derivers. SPL rails pass `assetMint = the
+// SPL mint pubkey`; SOL rails pass `assetMint = NATIVE_SOL_MINT_KEY` (the
+// canonical wrapped-SOL mint). The on-chain seeds are identical for both
+// rails — the rail is selected at withdraw time by which asset_mint the
+// vault was initialized with.
+
+export function deriveProtocolFeeVaultPda(params: {
+  reserveDomain: PublicKeyish;
+  assetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_PROTOCOL_FEE_VAULT),
+      toPublicKey(params.reserveDomain).toBytes(),
+      toPublicKey(params.assetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function derivePoolTreasuryVaultPda(params: {
+  liquidityPool: PublicKeyish;
+  assetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_POOL_TREASURY_VAULT),
+      toPublicKey(params.liquidityPool).toBytes(),
+      toPublicKey(params.assetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function derivePoolOracleFeeVaultPda(params: {
+  liquidityPool: PublicKeyish;
+  oracle: PublicKeyish;
+  assetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_POOL_ORACLE_FEE_VAULT),
+      toPublicKey(params.liquidityPool).toBytes(),
+      toPublicKey(params.oracle).toBytes(),
       toPublicKey(params.assetMint).toBytes(),
     ],
     params.programId ?? PROGRAM_ID,
@@ -1778,6 +1940,9 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     outcomeSchemas: [],
     schemaDependencyLedgers: [],
     claimAttestations: [],
+    protocolFeeVaults: [],
+    poolTreasuryVaults: [],
+    poolOracleFeeVaults: [],
   };
 
   const planLedgersRaw: Array<{ address: string; healthPlan: string; assetMint: string; sheet: unknown }> = [];
@@ -1823,6 +1988,37 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           assetMint: asAddress(decodedField(decoded, "assetMint")),
           vaultTokenAccount: asAddress(decodedField(decoded, "vaultTokenAccount")),
           totalAssets: bigintFromAnchorValue(decodedField(decoded, "totalAssets")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "ProtocolFeeVault":
+        snapshot.protocolFeeVaults.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
+          assetMint: asAddress(decodedField(decoded, "assetMint")),
+          accruedFees: bigintFromAnchorValue(decodedField(decoded, "accruedFees")),
+          withdrawnFees: bigintFromAnchorValue(decodedField(decoded, "withdrawnFees")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "PoolTreasuryVault":
+        snapshot.poolTreasuryVaults.push({
+          address,
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          assetMint: asAddress(decodedField(decoded, "assetMint")),
+          accruedFees: bigintFromAnchorValue(decodedField(decoded, "accruedFees")),
+          withdrawnFees: bigintFromAnchorValue(decodedField(decoded, "withdrawnFees")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "PoolOracleFeeVault":
+        snapshot.poolOracleFeeVaults.push({
+          address,
+          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
+          oracle: asAddress(decodedField(decoded, "oracle")),
+          assetMint: asAddress(decodedField(decoded, "assetMint")),
+          accruedFees: bigintFromAnchorValue(decodedField(decoded, "accruedFees")),
+          withdrawnFees: bigintFromAnchorValue(decodedField(decoded, "withdrawnFees")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
         });
         break;
@@ -2618,6 +2814,95 @@ export async function listPoolOracleApprovals(params: {
   );
 }
 
+// Phase 1.6/1.7 — Fee-vault listers. All three follow the snapshot-derived
+// pattern (one chain read in `loadProtocolConsoleSnapshot`, then in-memory
+// filtering). `paymentMint` is mapped: NATIVE_SOL_MINT → ZERO_PUBKEY for the
+// panel's SOL detection; everything else passes through verbatim.
+
+function paymentMintForUi(assetMint: string): string {
+  return assetMint === NATIVE_SOL_MINT ? ZERO_PUBKEY : assetMint;
+}
+
+function feeVaultAvailable(accrued: bigint, withdrawn: bigint): bigint {
+  // Saturating sub: defends against a transient indexing race where the
+  // chain reads `withdrawn > accrued` momentarily.
+  return withdrawn >= accrued ? 0n : accrued - withdrawn;
+}
+
+export async function listProtocolFeeVaults(params: {
+  connection: Connection;
+  reserveDomainAddress?: string | null;
+  paymentMint?: string | null;
+}): Promise<ProtocolFeeVaultSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.protocolFeeVaults
+    .filter((vault) => !params.reserveDomainAddress || vault.reserveDomain === params.reserveDomainAddress)
+    .filter((vault) => !params.paymentMint || paymentMintForUi(vault.assetMint) === params.paymentMint)
+    .map((vault) => ({
+      address: vault.address,
+      reserveDomain: vault.reserveDomain,
+      paymentMint: paymentMintForUi(vault.assetMint),
+      accruedFees: vault.accruedFees,
+      withdrawnFees: vault.withdrawnFees,
+      availableFees: feeVaultAvailable(vault.accruedFees, vault.withdrawnFees),
+      bump: vault.bump,
+    }));
+}
+
+export async function listPoolTreasuryReserves(params: {
+  connection: Connection;
+  poolAddress: string;
+  paymentMint?: string | null;
+}): Promise<PoolTreasuryReserveSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  // Resolve reserve domain for each pool by joining with the pool snapshot.
+  const poolByAddress = new Map(snapshot.liquidityPools.map((pool) => [pool.address, pool]));
+  return snapshot.poolTreasuryVaults
+    .filter((vault) => vault.liquidityPool === params.poolAddress)
+    .filter((vault) => !params.paymentMint || paymentMintForUi(vault.assetMint) === params.paymentMint)
+    .map((vault) => ({
+      address: vault.address,
+      pool: vault.liquidityPool,
+      reserveDomain: poolByAddress.get(vault.liquidityPool)?.reserveDomain ?? ZERO_PUBKEY,
+      paymentMint: paymentMintForUi(vault.assetMint),
+      accruedFees: vault.accruedFees,
+      withdrawnFees: vault.withdrawnFees,
+      availableFees: feeVaultAvailable(vault.accruedFees, vault.withdrawnFees),
+      // TODO (PR3 follow-up): populate by joining DomainAssetLedger sheets
+      // for the matching (reserve_domain, asset_mint) so the panel's display
+      // counters match the on-chain ledger. The panel renders these read-only
+      // and PR3 ships them as 0n so the UI doesn't crash.
+      reservedRewardAmount: 0n,
+      reservedCoverageClaimAmount: 0n,
+      paidCoverageClaimAmount: 0n,
+      impairedAmount: 0n,
+      bump: vault.bump,
+    }));
+}
+
+export async function listPoolOracleFeeVaults(params: {
+  connection: Connection;
+  poolAddress: string;
+  oracleAddress?: string | null;
+  paymentMint?: string | null;
+}): Promise<PoolOracleFeeVaultSummary[]> {
+  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  return snapshot.poolOracleFeeVaults
+    .filter((vault) => vault.liquidityPool === params.poolAddress)
+    .filter((vault) => !params.oracleAddress || vault.oracle === params.oracleAddress)
+    .filter((vault) => !params.paymentMint || paymentMintForUi(vault.assetMint) === params.paymentMint)
+    .map((vault) => ({
+      address: vault.address,
+      pool: vault.liquidityPool,
+      oracle: vault.oracle,
+      paymentMint: paymentMintForUi(vault.assetMint),
+      accruedFees: vault.accruedFees,
+      withdrawnFees: vault.withdrawnFees,
+      availableFees: feeVaultAvailable(vault.accruedFees, vault.withdrawnFees),
+      bump: vault.bump,
+    }));
+}
+
 export async function listPoolOraclePolicies(params: {
   connection: Connection;
   poolAddress?: string | null;
@@ -3055,6 +3340,281 @@ export function buildSetProtocolEmergencyPauseTx(params: {
     accounts: [
       { pubkey: authority, isSigner: true },
       { pubkey: deriveProtocolGovernancePda(), isWritable: true },
+    ],
+  });
+}
+
+// Phase 1.6/1.7 — Fee-vault withdrawal builders.
+//
+// Six builders mirror the on-chain instruction matrix (SOL + SPL × 3 rails).
+// Each takes the per-rail authority as the signer + fee payer, plus the
+// rail-scope identifier (reserve_domain / liquidity_pool / oracle), the
+// payment mint, the recipient, and the amount.
+//
+// Per-rail authority (enforced on-chain by PR2):
+//   - withdraw_protocol_fee_*       → governance authority
+//   - withdraw_pool_treasury_*      → pool curator OR governance
+//   - withdraw_pool_oracle_fee_*    → oracle wallet OR oracle admin OR governance
+//
+// The pool-treasury panel calls these builders with `oracle: publicKey`
+// (the connected wallet) for treasury+oracle-fee flows. That naming is a
+// vestige of the panel's first draft; semantically the param is the rail's
+// authority signer. Tests should use the builders with whichever wallet
+// matches the on-chain authority requirement above.
+//
+// SPL builders need `reserveDomainAddress` to derive the matching
+// `DomainAssetVault` (where SPL fee tokens physically reside). SOL builders
+// don't reference DomainAssetVault — lamports come straight off the
+// fee-vault PDA via `transfer_lamports_from_fee_vault`.
+
+export function buildWithdrawProtocolFeeSplTx(params: {
+  governanceAuthority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  paymentMint: PublicKeyish;
+  recipientTokenAccount: PublicKeyish;
+  amount: bigint;
+  tokenProgramId?: PublicKeyish | null;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.governanceAuthority);
+  const reserveDomain = toPublicKey(params.reserveDomainAddress);
+  const assetMint = toPublicKey(params.paymentMint);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "withdraw_protocol_fee_spl",
+    args: {
+      amount: params.amount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: reserveDomain },
+      {
+        pubkey: deriveProtocolFeeVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: assetMint },
+      {
+        pubkey: deriveDomainAssetVaultTokenAccountPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: params.recipientTokenAccount, isWritable: true },
+      { pubkey: tokenProgramId },
+    ],
+  });
+}
+
+export function buildWithdrawProtocolFeeSolTx(params: {
+  governanceAuthority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  recipientSystemAccount: PublicKeyish;
+  amount: bigint;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.governanceAuthority);
+  const reserveDomain = toPublicKey(params.reserveDomainAddress);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "withdraw_protocol_fee_sol",
+    args: {
+      amount: params.amount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: reserveDomain },
+      {
+        pubkey: deriveProtocolFeeVaultPda({
+          reserveDomain,
+          assetMint: NATIVE_SOL_MINT_KEY,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.recipientSystemAccount, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildWithdrawPoolTreasurySplTx(params: {
+  /** Pool authority signer (curator or governance). Named `oracle` historically
+   *  to match the dead pool-treasury-panel first draft; semantically this is
+   *  the rail authority, not the registered oracle wallet. */
+  oracle: PublicKeyish;
+  poolAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  paymentMint: PublicKeyish;
+  recipientTokenAccount: PublicKeyish;
+  amount: bigint;
+  tokenProgramId?: PublicKeyish | null;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.oracle);
+  const pool = toPublicKey(params.poolAddress);
+  const reserveDomain = toPublicKey(params.reserveDomainAddress);
+  const assetMint = toPublicKey(params.paymentMint);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "withdraw_pool_treasury_spl",
+    args: {
+      amount: params.amount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      {
+        pubkey: derivePoolTreasuryVaultPda({ liquidityPool: pool, assetMint }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: assetMint },
+      {
+        pubkey: deriveDomainAssetVaultTokenAccountPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: params.recipientTokenAccount, isWritable: true },
+      { pubkey: tokenProgramId },
+    ],
+  });
+}
+
+export function buildWithdrawPoolTreasurySolTx(params: {
+  /** Pool authority signer; see naming note on the SPL variant. */
+  oracle: PublicKeyish;
+  poolAddress: PublicKeyish;
+  recipientSystemAccount: PublicKeyish;
+  amount: bigint;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.oracle);
+  const pool = toPublicKey(params.poolAddress);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "withdraw_pool_treasury_sol",
+    args: {
+      amount: params.amount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      {
+        pubkey: derivePoolTreasuryVaultPda({
+          liquidityPool: pool,
+          assetMint: NATIVE_SOL_MINT_KEY,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.recipientSystemAccount, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildWithdrawPoolOracleFeeSplTx(params: {
+  /** Oracle authority signer (oracle wallet, oracle admin, or governance).
+   *  By default this also identifies the registered oracle whose vault is
+   *  being drained — pass `oracleAddress` separately if the signer is an
+   *  admin/governance rather than the oracle wallet itself. */
+  oracle: PublicKeyish;
+  oracleAddress?: PublicKeyish;
+  poolAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  paymentMint: PublicKeyish;
+  recipientTokenAccount: PublicKeyish;
+  amount: bigint;
+  tokenProgramId?: PublicKeyish | null;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.oracle);
+  const oracleKey = toPublicKey(params.oracleAddress ?? params.oracle);
+  const pool = toPublicKey(params.poolAddress);
+  const reserveDomain = toPublicKey(params.reserveDomainAddress);
+  const assetMint = toPublicKey(params.paymentMint);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "withdraw_pool_oracle_fee_spl",
+    args: {
+      amount: params.amount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      { pubkey: deriveOracleProfilePda({ oracle: oracleKey }) },
+      {
+        pubkey: derivePoolOracleFeeVaultPda({
+          liquidityPool: pool,
+          oracle: oracleKey,
+          assetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: assetMint },
+      {
+        pubkey: deriveDomainAssetVaultTokenAccountPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: params.recipientTokenAccount, isWritable: true },
+      { pubkey: tokenProgramId },
+    ],
+  });
+}
+
+export function buildWithdrawPoolOracleFeeSolTx(params: {
+  /** Oracle authority signer; see naming note on the SPL variant. */
+  oracle: PublicKeyish;
+  oracleAddress?: PublicKeyish;
+  poolAddress: PublicKeyish;
+  recipientSystemAccount: PublicKeyish;
+  amount: bigint;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.oracle);
+  const oracleKey = toPublicKey(params.oracleAddress ?? params.oracle);
+  const pool = toPublicKey(params.poolAddress);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "withdraw_pool_oracle_fee_sol",
+    args: {
+      amount: params.amount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: pool },
+      { pubkey: deriveOracleProfilePda({ oracle: oracleKey }) },
+      {
+        pubkey: derivePoolOracleFeeVaultPda({
+          liquidityPool: pool,
+          oracle: oracleKey,
+          assetMint: NATIVE_SOL_MINT_KEY,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.recipientSystemAccount, isWritable: true },
+      { pubkey: SystemProgram.programId },
     ],
   });
 }
