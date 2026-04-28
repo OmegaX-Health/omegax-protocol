@@ -463,6 +463,48 @@ No remediation required.
 
 ---
 
+## Remediation status (post-Phase 1, 2026-04-28)
+
+Phase 1 of the remediation plan landed across 6 commits. On-chain
+remediation is substantially complete; PT-03/PT-06/PT-13 (frontend) and
+PT-05 (operator config) remain for Phase 2/3.
+
+| ID | Severity | Status | Notes |
+|---|---|---|---|
+| PT-01 | CRITICAL | **REMEDIATED** | All 3 real money-out handlers (`settle_claim_case`, `process_redemption_queue`, `settle_obligation`) now call `transfer_from_domain_vault` with PDA-signed CPI. Verified by [`tests/security/no_money_out_path.test.ts`](../../tests/security/no_money_out_path.test.ts) defense regression. |
+| PT-02 | CRITICAL | **REMEDIATED** | Vault custody refactored: `create_domain_asset_vault` now `init`s the SPL token account at a new PDA seed with `token::authority = domain_asset_vault`, so the program signs outflows as the vault PDA. Bootstrap scripts updated to derive the new PDA via `deriveDomainAssetVaultTokenAccountPda`; `OMEGAX_*_VAULT_TOKEN_ACCOUNT` env vars no longer required. |
+| PT-03 | HIGH | OPEN | Frontend dead-imports persist on `main`. Phase 2 work (other agent on the UI). |
+| PT-04 | HIGH | **REMEDIATED** | `require_claim_intake_submitter` operator branch now constrains `args.claimant == member_position.wallet`; recipient routing moved to the new `ClaimCase.delegate_recipient` field set via `authorize_claim_recipient` (member-only signer). Verified by [`tests/security/program_authorization_gaps.test.ts::[PT-04 defense]`](../../tests/security/program_authorization_gaps.test.ts) and Rust unit tests `claim_intake_submitter_rejects_operator_with_attacker_claimant`, `claim_settlement_routes_to_*`. |
+| PT-05 | HIGH (config) | OPEN | Distinct-keypair validation deferred to Phase 3 operator-config work. |
+| PT-13 | HIGH | OPEN | tsconfig restoration deferred to Phase 2 (other agent on the UI). |
+| PT-06 | MEDIUM | OPEN (branch-aware) | Branch divergence: this branch uses post-sign toast lifecycle; pre-sign review gate that the original report critiqued doesn't exist on this branch by design. PoC tests skip with a clear message. |
+| PT-07 | MEDIUM | **REMEDIATED** | `register_oracle` requires `args.oracle == ctx.accounts.admin.key()` via `require_keys_eq!`. Closes the squat-then-recover pattern. Verified by [`tests/security/program_authorization_gaps.test.ts::[PT-07 defense]`](../../tests/security/program_authorization_gaps.test.ts). |
+| PT-08 | MEDIUM | **INVALID** | Source verification on 2026-04-28 shows `mark_impairment` does NOT mutate `capital_class.nav_assets` or `liquidity_pool.total_value_locked` — those fields are only changed by `deposit_into_capital_class` (line 1709) and `process_redemption_queue` (line 1838). The original report claimed impairment lowers NAV; that claim was wrong. There is no first-mover advantage from impairment timing. Finding withdrawn. |
+| PT-09 | LOW | OPEN | Not addressed; remains low-priority. |
+| PT-10 | LOW (probe) | OPEN | Not probed; remains low-priority. |
+| PT-11 | LOW (regression) | **DEFENSE_HOLDS** | CSO-01 fix unchanged. |
+| PT-12 | INFO | **DEFENSE_HOLDS** | Cosmetic finding unchanged. |
+
+### Net result
+
+**Critical/High on-chain findings: all REMEDIATED.** The protocol can now release SPL tokens via PDA-signed CPI in claim settlement, redemption, and obligation settlement flows. The settlement recipient is controlled by the member (via `delegate_recipient`), preventing operator-routed diversion. Oracle profile squatting is closed at registration time.
+
+**Remaining for full mainnet readiness:**
+- Frontend (PT-03, PT-13) — other agent's domain
+- Operator config (PT-05) — distinct-keypair validation, multisig recommendation
+- Fee accumulation + withdrawal infrastructure (plan sections 1.6/1.7) — substantial Phase 1 follow-up
+- Update pen-test report's executive summary verdict from NOT-READY to READY-WITH-FIXES once PT-03/PT-05/PT-13 are addressed
+
+**Phase 1 commit history:**
+- `ae50021` — Initial pen-test fixes (PT-04, PT-07) and outflow foundations
+- `ebc8a70` — Vault custody refactor (PT-01/02 prerequisite)
+- `383b924` — ClaimCase delegate_recipient + authorize_claim_recipient instruction
+- `1093f29` — Outflow CPI in settle_claim_case + process_redemption_queue
+- `f8ad166` — Outflow CPI in settle_obligation
+- (this commit) — Recipient resolver helper + unit tests + report update
+
+---
+
 ## Verification
 
 How to reproduce the findings:

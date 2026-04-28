@@ -1127,11 +1127,7 @@ pub mod omegax_protocol {
                             OmegaXProtocolError::Unauthorized
                         );
                         let resolved_recipient =
-                            if claim_case_ref.delegate_recipient != ZERO_PUBKEY {
-                                claim_case_ref.delegate_recipient
-                            } else {
-                                member_pos.wallet
-                            };
+                            resolve_claim_settlement_recipient(claim_case_ref, member_pos);
                         require_keys_eq!(
                             recipient_ta.owner,
                             resolved_recipient,
@@ -1445,15 +1441,11 @@ pub mod omegax_protocol {
         )?;
 
         // PT-2026-04-27-01/02 fix: resolve the SPL recipient before mutating
-        // the claim_case (Pubkey is Copy so we capture by value). Routing is
-        // controlled exclusively by the member-set delegate_recipient field;
-        // the older `claimant` field is informational metadata only and is
-        // already constrained to equal member.wallet at intake.
-        let resolved_recipient = if ctx.accounts.claim_case.delegate_recipient != ZERO_PUBKEY {
-            ctx.accounts.claim_case.delegate_recipient
-        } else {
-            ctx.accounts.member_position.wallet
-        };
+        // the claim_case (Pubkey is Copy so we capture by value).
+        let resolved_recipient = resolve_claim_settlement_recipient(
+            &ctx.accounts.claim_case,
+            &ctx.accounts.member_position,
+        );
         require_keys_eq!(
             ctx.accounts.recipient_token_account.owner,
             resolved_recipient,
@@ -5428,6 +5420,22 @@ fn activate_membership_anchor_seat(
     Ok(())
 }
 
+// Resolve the SPL recipient for a claim settlement. Routing is exclusively
+// controlled by the member-set delegate_recipient field on ClaimCase: if it
+// is the ZERO_PUBKEY, payouts go to member_position.wallet. The `claimant`
+// field on ClaimCase is informational metadata only — it is constrained at
+// intake to equal member_position.wallet (PT-2026-04-27-04 fix).
+fn resolve_claim_settlement_recipient(
+    claim_case: &ClaimCase,
+    member_position: &MemberPosition,
+) -> Pubkey {
+    if claim_case.delegate_recipient != ZERO_PUBKEY {
+        claim_case.delegate_recipient
+    } else {
+        member_position.wallet
+    }
+}
+
 fn require_claim_intake_submitter(
     authority: &Pubkey,
     plan: &HealthPlan,
@@ -7298,6 +7306,48 @@ mod tests {
             require_claim_intake_submitter(&plan_admin, &plan, &member_position, &args)
                 .unwrap_err();
         assert!(plan_admin_err.to_string().contains("Unauthorized"));
+    }
+
+    #[test]
+    fn claim_settlement_routes_to_member_wallet_when_no_delegate() {
+        // PT-2026-04-27-04 routing: when delegate_recipient is the ZERO_PUBKEY
+        // (the default after open_claim_case) settle_claim_case must pay
+        // member_position.wallet's ATA.
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let mut claim_case = sample_claim_case(
+            Pubkey::new_unique(),
+            policy_series,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        claim_case.delegate_recipient = ZERO_PUBKEY;
+        let member_position = sample_member_position(member_wallet, policy_series);
+
+        let resolved = resolve_claim_settlement_recipient(&claim_case, &member_position);
+        assert_eq!(resolved, member_wallet);
+    }
+
+    #[test]
+    fn claim_settlement_routes_to_delegate_when_authorized() {
+        // PT-2026-04-27-04 routing: when the member has called
+        // authorize_claim_recipient with a non-zero delegate,
+        // settle_claim_case pays that delegate's ATA instead.
+        let member_wallet = Pubkey::new_unique();
+        let delegate = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let mut claim_case = sample_claim_case(
+            Pubkey::new_unique(),
+            policy_series,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        claim_case.delegate_recipient = delegate;
+        let member_position = sample_member_position(member_wallet, policy_series);
+
+        let resolved = resolve_claim_settlement_recipient(&claim_case, &member_position);
+        assert_eq!(resolved, delegate);
+        assert_ne!(resolved, member_wallet);
     }
 
     #[test]
