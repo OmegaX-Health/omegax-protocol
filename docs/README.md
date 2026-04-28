@@ -52,6 +52,11 @@ If you are an external builder, start with the public docs site before diving in
 - [Release v0.3.0](./operations/release-v0.3.0.md)
 - [Release v0.3.1](./operations/release-v0.3.1.md)
 
+### Security
+
+- [Mainnet Privileged-Role Controls](./security/mainnet-privileged-role-controls.md) — role matrix, multisig requirement, break-glass exception, rotation, incident recovery
+- [Pre-Mainnet Pen-Test (2026-04-27)](./security/pre-mainnet-pen-test-2026-04-27.md)
+
 ### Public Site
 
 - [OmegaX Docs](https://docs.omegax.health/docs)
