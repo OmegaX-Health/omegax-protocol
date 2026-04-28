@@ -8940,4 +8940,44 @@ mod tests {
         let total = accrue_fee(&mut accrued, 10).unwrap();
         assert_eq!(total, u64::MAX);
     }
+
+    // -------- Phase 1.7 withdraw-helper tests --------
+
+    #[test]
+    fn fee_vault_balance_accepts_within_headroom() {
+        // accrued = 100, withdrawn = 30, requesting 50 → new_withdrawn = 80 ≤ 100.
+        let new_withdrawn = require_fee_vault_balance(100, 30, 50).unwrap();
+        assert_eq!(new_withdrawn, 80);
+    }
+
+    #[test]
+    fn fee_vault_balance_accepts_exact_remaining() {
+        // Drain to zero remaining headroom in a single call.
+        let new_withdrawn = require_fee_vault_balance(1_000, 250, 750).unwrap();
+        assert_eq!(new_withdrawn, 1_000);
+    }
+
+    #[test]
+    fn fee_vault_balance_rejects_overdraw() {
+        // accrued = 100, withdrawn = 80, requesting 21 → new_withdrawn = 101 > 100.
+        let err = require_fee_vault_balance(100, 80, 21).unwrap_err();
+        let msg = format!("{err:?}");
+        assert!(
+            msg.contains("FeeVaultInsufficientBalance"),
+            "expected FeeVaultInsufficientBalance, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn fee_vault_balance_rejects_zero_amount() {
+        // Zero-amount withdrawals are rejected by require_positive_amount —
+        // matches the existing convention used for premium/deposit/redemption.
+        assert!(require_fee_vault_balance(100, 0, 0).is_err());
+    }
+
+    #[test]
+    fn fee_vault_balance_rejects_overflow_on_withdrawn_sum() {
+        // withdrawn near MAX, requesting any positive amount overflows.
+        assert!(require_fee_vault_balance(u64::MAX, u64::MAX - 5, 10).is_err());
+    }
 }
