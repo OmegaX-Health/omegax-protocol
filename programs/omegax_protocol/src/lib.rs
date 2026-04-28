@@ -1638,6 +1638,65 @@ pub mod omegax_protocol {
         );
 
         let amount = args.amount;
+
+        // Phase 1.6 — Compute protocol fee + adjudicator-oracle fee carve-outs.
+        // The full `amount` is what the claim is settling against (claim_case.paid_amount
+        // increments by amount, funding_line.spent_amount increments by amount, sheets
+        // record the full obligation delivery). But only `net_to_recipient = amount -
+        // total_fee` physically leaves the vault — fee tokens stay as treasury claims.
+        let reserve_domain = ctx.accounts.health_plan.reserve_domain;
+        let asset_mint_key = ctx.accounts.funding_line.asset_mint;
+        let protocol_fee_bps = ctx.accounts.protocol_governance.protocol_fee_bps;
+
+        let protocol_fee = if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref() {
+            require_keys_eq!(
+                vault.reserve_domain,
+                reserve_domain,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            require_keys_eq!(
+                vault.asset_mint,
+                asset_mint_key,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            fee_share_from_bps(amount, protocol_fee_bps)?
+        } else {
+            0
+        };
+
+        // Adjudicator oracle fee: requires BOTH pool_oracle_fee_vault and
+        // pool_oracle_policy to be supplied. The vault fixes the recipient
+        // oracle's revshare destination; the policy supplies oracle_fee_bps.
+        // PR1 single-attester model: caller credits the adjudicator only;
+        // multi-attester revshare is a follow-up.
+        let oracle_fee = match (
+            ctx.accounts.pool_oracle_fee_vault.as_deref(),
+            ctx.accounts.pool_oracle_policy.as_deref(),
+        ) {
+            (Some(vault), Some(policy)) => {
+                require_keys_eq!(
+                    vault.asset_mint,
+                    asset_mint_key,
+                    OmegaXProtocolError::FeeVaultMismatch
+                );
+                require_keys_eq!(
+                    vault.liquidity_pool,
+                    policy.liquidity_pool,
+                    OmegaXProtocolError::LiquidityPoolMismatch
+                );
+                fee_share_from_bps(amount, policy.oracle_fee_bps)?
+            }
+            (None, _) => 0,
+            (Some(_), None) => {
+                // Vault provided without policy is a configuration error;
+                // refuse to silently zero the bps.
+                return Err(OmegaXProtocolError::FeeVaultBpsMisconfigured.into());
+            }
+        };
+
+        let total_fee = checked_add(protocol_fee, oracle_fee)?;
+        let net_to_recipient = checked_sub(amount, total_fee)?;
+
         let claim_case = &mut ctx.accounts.claim_case;
         claim_case.paid_amount = checked_add(claim_case.paid_amount, amount)?;
         claim_case.reserved_amount = claim_case.reserved_amount.saturating_sub(amount);
@@ -1653,6 +1712,12 @@ pub mod omegax_protocol {
         };
         claim_case.updated_at = Clock::get()?.unix_timestamp;
 
+        // Book the full obligation settlement. This decrements
+        // domain_asset_vault.total_assets by `amount`, but only
+        // `net_to_recipient` physically leaves the vault. The fee tokens
+        // remain in the SPL token account as treasury claims; we add them
+        // back to total_assets immediately below to keep the counter in
+        // sync with the physical balance.
         book_settlement_from_delivery(
             &mut ctx.accounts.domain_asset_vault.total_assets,
             &mut ctx.accounts.domain_asset_ledger.sheet,
@@ -1665,17 +1730,54 @@ pub mod omegax_protocol {
             &mut ctx.accounts.funding_line,
             amount,
         )?;
+        if total_fee > 0 {
+            ctx.accounts.domain_asset_vault.total_assets = checked_add(
+                ctx.accounts.domain_asset_vault.total_assets,
+                total_fee,
+            )?;
+        }
 
         // PT-01/02 fix: actually move the SPL tokens. The vault token account
         // is owned by the domain_asset_vault PDA, which signs via seeds.
+        // Phase 1.6: outflow is net_to_recipient; fee tokens stay in vault.
         transfer_from_domain_vault(
-            amount,
+            net_to_recipient,
             &ctx.accounts.domain_asset_vault,
             &ctx.accounts.vault_token_account,
             &ctx.accounts.recipient_token_account,
             &ctx.accounts.asset_mint,
             &ctx.accounts.token_program,
         )?;
+
+        // Accrue the protocol fee carve-out.
+        if protocol_fee > 0 {
+            if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref_mut() {
+                let key = vault.key();
+                let mint = vault.asset_mint;
+                let total = accrue_fee(&mut vault.accrued_fees, protocol_fee)?;
+                emit!(FeeAccruedEvent {
+                    vault: key,
+                    asset_mint: mint,
+                    amount: protocol_fee,
+                    accrued_total: total,
+                });
+            }
+        }
+
+        // Accrue the adjudicator-oracle fee carve-out.
+        if oracle_fee > 0 {
+            if let Some(vault) = ctx.accounts.pool_oracle_fee_vault.as_deref_mut() {
+                let key = vault.key();
+                let mint = vault.asset_mint;
+                let total = accrue_fee(&mut vault.accrued_fees, oracle_fee)?;
+                emit!(FeeAccruedEvent {
+                    vault: key,
+                    asset_mint: mint,
+                    amount: oracle_fee,
+                    accrued_total: total,
+                });
+            }
+        }
 
         let claim_case_key = ctx.accounts.claim_case.key();
         let intake_status = ctx.accounts.claim_case.intake_status;
@@ -3469,6 +3571,24 @@ pub struct SettleClaimCase<'info> {
     pub claim_case: Box<Account<'info, ClaimCase>>,
     #[account(mut)]
     pub obligation: Option<Box<Account<'info, Obligation>>>,
+    /// Phase 1.6 — optional protocol fee vault for claim-settlement accrual.
+    /// When supplied, must match (health_plan.reserve_domain, funding_line.asset_mint).
+    /// Validated at runtime; absent means protocol-fee accrual is skipped (backward compat).
+    #[account(mut)]
+    pub protocol_fee_vault: Option<Box<Account<'info, ProtocolFeeVault>>>,
+    /// Phase 1.6 — optional pool-oracle fee vault for adjudicator revshare.
+    /// When supplied alongside `pool_oracle_policy`, the bps from policy is
+    /// applied to the gross amount and credited to the supplied oracle vault.
+    /// Asset mint must match funding_line.asset_mint; pool ref must match
+    /// pool_oracle_policy.liquidity_pool. Single-attester scope: callers
+    /// credit the adjudicator (not all M attesters) — multi-attester revshare
+    /// is a follow-up beyond PR1 (documented in plan).
+    #[account(mut)]
+    pub pool_oracle_fee_vault: Option<Box<Account<'info, PoolOracleFeeVault>>>,
+    /// Phase 1.6 — pairs with pool_oracle_fee_vault. The handler reads
+    /// `oracle_fee_bps` from policy. Required when pool_oracle_fee_vault is Some;
+    /// ignored otherwise. Validated at runtime.
+    pub pool_oracle_policy: Option<Box<Account<'info, PoolOraclePolicy>>>,
     // PT-2026-04-27-01/02 fix: outflow CPI accounts. The handler resolves the
     // settlement recipient as `claim_case.delegate_recipient` if non-zero,
     // else `member_position.wallet`, and asserts
