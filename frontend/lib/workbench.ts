@@ -62,6 +62,7 @@ export const CAPITAL_TABS = [
   { id: "allocations", label: "Allocations" },
   { id: "queue", label: "Queue" },
   { id: "linked-plans", label: "Linked plans" },
+  { id: "treasury", label: "Treasury" },
 ] as const satisfies readonly WorkbenchTab[];
 
 export const GOVERNANCE_TABS = [

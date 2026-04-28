@@ -176,6 +176,7 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
         : buildWithdrawPoolTreasurySplTx({
             oracle: publicKey,
             poolAddress: new PublicKey(poolAddress),
+            reserveDomainAddress: new PublicKey(selectedReserve.reserveDomain),
             paymentMint: new PublicKey(selectedReserve.paymentMint),
             recipientTokenAccount: new PublicKey(treasuryRecipientTokenAccount.trim()),
             amount,
@@ -217,12 +218,14 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
       const tx = selectedProtocolFeeVault.paymentMint === ZERO_PUBKEY
         ? buildWithdrawProtocolFeeSolTx({
             governanceAuthority: publicKey,
+            reserveDomainAddress: new PublicKey(selectedProtocolFeeVault.reserveDomain),
             recipientSystemAccount: new PublicKey(protocolFeeRecipient.trim()),
             amount,
             recentBlockhash: blockhash,
           })
         : buildWithdrawProtocolFeeSplTx({
             governanceAuthority: publicKey,
+            reserveDomainAddress: new PublicKey(selectedProtocolFeeVault.reserveDomain),
             paymentMint: new PublicKey(selectedProtocolFeeVault.paymentMint),
             recipientTokenAccount: new PublicKey(protocolFeeRecipientTokenAccount.trim()),
             amount,
@@ -264,6 +267,7 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
       const tx = selectedOracleFeeVault.paymentMint === ZERO_PUBKEY
         ? buildWithdrawPoolOracleFeeSolTx({
             oracle: publicKey,
+            oracleAddress: new PublicKey(selectedOracleFeeVault.oracle),
             poolAddress: new PublicKey(poolAddress),
             recipientSystemAccount: new PublicKey(oracleFeeRecipient.trim()),
             amount,
@@ -271,7 +275,9 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
           })
         : buildWithdrawPoolOracleFeeSplTx({
             oracle: publicKey,
+            oracleAddress: new PublicKey(selectedOracleFeeVault.oracle),
             poolAddress: new PublicKey(poolAddress),
+            reserveDomainAddress: new PublicKey(selectedOracleFeeVault.reserveDomain),
             paymentMint: new PublicKey(selectedOracleFeeVault.paymentMint),
             recipientTokenAccount: new PublicKey(oracleFeeRecipientTokenAccount.trim()),
             amount,

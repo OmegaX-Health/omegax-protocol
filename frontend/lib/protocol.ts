@@ -736,6 +736,9 @@ export type PoolOracleFeeVaultSummary = {
   address: string;
   /** Pool the oracle-fee vault is scoped to. */
   pool: string;
+  /** Reserve domain (joined via the pool's `liquidityPool.reserveDomain`).
+   *  Required by SPL withdraw builders to derive the matching DomainAssetVault. */
+  reserveDomain: string;
   /** Registered oracle wallet receiving the fee accruals. */
   oracle: string;
   /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
@@ -783,6 +786,51 @@ export type RuleSummary = {
   enabled: boolean;
   policySeries: string;
   healthPlan: string;
+};
+
+// Phase 1.7 PR4 — Stub summary types referenced by lib/ui-capabilities.ts.
+// These were imported there before the file was added to the typecheck graph;
+// adding minimal shapes here lets ui-capabilities compile without a separate
+// migration. They preserve the structural contract of the field accesses
+// already in ui-capabilities (`walletClaimDelegate?.active`, etc.) — wider
+// definitions land in a follow-up that wires the actual data sources.
+
+export type ClaimDelegateAuthorizationSummary = {
+  active: boolean;
+  delegate: string;
+};
+
+export type CoverageClaimSummary = {
+  address: string;
+};
+
+export type MembershipSummary = {
+  address: string;
+  member: string;
+  status?: string;
+};
+
+export type OutcomeAggregateSummary = {
+  address: string;
+  passed?: boolean;
+  claimed?: boolean;
+};
+
+export type PoolControlAuthoritySummary = {
+  operatorAuthority?: string;
+  riskManagerAuthority?: string;
+  complianceAuthority?: string;
+  guardianAuthority?: string;
+};
+
+export type PoolRedemptionRequestSummary = {
+  address: string;
+};
+
+export type WalletPoolPositionSummary = {
+  capitalPositionActive: boolean;
+  pendingRedemptionRequestCount: number;
+  pendingCoverageClaimCount: number;
 };
 
 export function getProgramId(): PublicKey {
@@ -2727,6 +2775,8 @@ function mapPoolSummary(
 
 export type ProtocolReadiness = {
   protocolConfigExists: boolean;
+  /** Alias of protocolConfigExists for legacy ui-capabilities call sites. */
+  configInitialized?: boolean;
   poolExists: boolean;
   oracleRegistered: boolean;
   oracleProfileExists: boolean;
@@ -2887,6 +2937,7 @@ export async function listPoolOracleFeeVaults(params: {
   paymentMint?: string | null;
 }): Promise<PoolOracleFeeVaultSummary[]> {
   const snapshot = await loadProtocolConsoleSnapshot(params.connection);
+  const poolByAddress = new Map(snapshot.liquidityPools.map((pool) => [pool.address, pool]));
   return snapshot.poolOracleFeeVaults
     .filter((vault) => vault.liquidityPool === params.poolAddress)
     .filter((vault) => !params.oracleAddress || vault.oracle === params.oracleAddress)
@@ -2894,6 +2945,7 @@ export async function listPoolOracleFeeVaults(params: {
     .map((vault) => ({
       address: vault.address,
       pool: vault.liquidityPool,
+      reserveDomain: poolByAddress.get(vault.liquidityPool)?.reserveDomain ?? ZERO_PUBKEY,
       oracle: vault.oracle,
       paymentMint: paymentMintForUi(vault.assetMint),
       accruedFees: vault.accruedFees,
