@@ -100,6 +100,7 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
     instructions: [
       "record_premium_payment",
       "open_claim_case",
+      "authorize_claim_recipient",
       "attach_claim_evidence_ref",
       "attest_claim_case",
       "adjudicate_claim_case",
