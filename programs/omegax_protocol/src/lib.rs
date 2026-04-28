@@ -1731,10 +1731,8 @@ pub mod omegax_protocol {
             amount,
         )?;
         if total_fee > 0 {
-            ctx.accounts.domain_asset_vault.total_assets = checked_add(
-                ctx.accounts.domain_asset_vault.total_assets,
-                total_fee,
-            )?;
+            ctx.accounts.domain_asset_vault.total_assets =
+                checked_add(ctx.accounts.domain_asset_vault.total_assets, total_fee)?;
         }
 
         // PT-01/02 fix: actually move the SPL tokens. The vault token account
@@ -2174,10 +2172,8 @@ pub mod omegax_protocol {
         ctx.accounts.lp_position.shares =
             checked_sub(ctx.accounts.lp_position.shares, args.shares)?;
         // realized_distributions tracks what the LP actually received (post-fee).
-        ctx.accounts.lp_position.realized_distributions = checked_add(
-            ctx.accounts.lp_position.realized_distributions,
-            net_to_lp,
-        )?;
+        ctx.accounts.lp_position.realized_distributions =
+            checked_add(ctx.accounts.lp_position.realized_distributions, net_to_lp)?;
         ctx.accounts.lp_position.queue_status =
             if ctx.accounts.lp_position.pending_redemption_shares == 0 {
                 LP_QUEUE_STATUS_PROCESSED
