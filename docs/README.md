@@ -42,8 +42,13 @@ If you are an external builder, start with the public docs site before diving in
 
 ### Operations
 
+- [Operator Runbooks — Index](./operations/runbooks.md) — start here for role × environment routing
 - [Devnet Beta Runbook](./operations/devnet-beta-runbook.md)
+- [Genesis Live Bootstrap](./operations/genesis-live-bootstrap.md)
 - [Public Release Gate](./operations/public-release-gate.md)
+- [Firebase App Hosting Cutover](./operations/firebase-app-hosting-cutover.md)
+- [Dependency Advisory Risk Acceptance](./operations/dependency-advisory-risk-acceptance.md)
+- [Release v0.3.0](./operations/release-v0.3.0.md)
 - [Release v0.3.1](./operations/release-v0.3.1.md)
 
 ### Public Site
@@ -73,7 +78,9 @@ If you are an external builder, start with the public docs site before diving in
 - Use [Solana Public Readiness Review](./reviews/solana-public-readiness-review.md) for the scored audit, blockers, and cleanup backlog.
 - Use [Liquidity Pool Metadata Schema](./reference/liquidity-pool-metadata-schema.md) when integrating LP-facing off-chain APY metadata for a `LiquidityPool`.
 - Use [Protocol Surface Audit](./testing/protocol-surface-audit.md) when you need the heavier localnet proof for canonical instruction ownership, scenario coverage, and release-candidate sign-off.
+- Start with [Operator Runbooks — Index](./operations/runbooks.md) when you need to find the right runbook for a role × environment without reading every operations doc.
 - Use [Devnet Beta Runbook](./operations/devnet-beta-runbook.md) for structured devnet beta operations.
+- Use [Genesis Live Bootstrap](./operations/genesis-live-bootstrap.md) when seeding the live Genesis Protect Acute launch surface on a real cluster.
 - Use [Public Release Gate](./operations/public-release-gate.md) for the repo-only verification baseline and release-candidate sign-off workflow.
 
 For directory-specific guidance, also see:
