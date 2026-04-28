@@ -1,18 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Pre-mainnet pen-test PoC — finding PT-2026-04-27-03.
+// Pre-mainnet pen-test PoC — finding PT-2026-04-27-03 (partially remediated).
 // Severity: HIGH (build integrity).
 //
-// Hypothesis: `frontend/components/pool-treasury-panel.tsx:14-19` imports six
-// `buildWithdraw*Tx` builders from `@/lib/protocol`, but none of those names
-// is exported by `frontend/lib/protocol.ts`. The IDL also has no withdraw
-// instruction (see no_money_out_path.test.ts), so even if the builders existed
-// they would have no on-chain instruction to call.
+// Original hypothesis: `frontend/components/pool-treasury-panel.tsx:14-19`
+// imports six `buildWithdraw*Tx` builders from `@/lib/protocol`, but none of
+// those names is exported by `frontend/lib/protocol.ts`. The IDL also had no
+// withdraw instruction (see no_money_out_path.test.ts), so even if the builders
+// existed they would have no on-chain instruction to call.
 //
-// This test PASSES when the imports are unresolved (vulnerability present).
-// When the team either (a) deletes the dead UI or (b) ships the corresponding
-// program instructions and frontend builders, this test should fail and be
-// removed or flipped.
+// PR1.7 status (2026-04-28): the on-chain side has shipped — the IDL now
+// exposes 6 `withdraw_*_fee_*` instructions. The frontend builders and the
+// tsconfig exclusion are still missing/active, so the dead-import vulnerability
+// remains until PR3 (frontend builders) + PR4 (panel re-enable + tsconfig fix)
+// land. The IDL-side check below was flipped from VULN_CONFIRMED to a defense
+// regression: it now PASSES when the 6 instructions exist on-chain, FAILS if
+// any get removed.
+//
+// This file removes itself when:
+//   - PR3 ships the 6 buildWithdraw*Tx builders → test 2 below should be
+//     flipped or removed.
+//   - PR4 removes `components/**/*` from tsconfig.exclude → test 4 below
+//     should be flipped or removed.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -67,25 +76,28 @@ test("[PT-03] None of the dead builder names is exported by frontend/lib/protoco
   );
 });
 
-test("[PT-03] No corresponding withdrawal instruction exists in the IDL either", () => {
+test("[PT-03 defense regression] IDL exposes the 6 withdraw instructions PR2 shipped", () => {
+  // Phase 1.7 (PR2) landed the on-chain withdraw instructions, closing
+  // half of PT-03. This test flipped from VULN_CONFIRMED to a defense
+  // regression: if any of the six are removed, the dead-builder problem
+  // would re-emerge as soon as the frontend builders ship in PR3.
   const idl = JSON.parse(
     readFileSync(new URL("../../idl/omegax_protocol.json", import.meta.url), "utf8"),
   ) as { instructions: Array<{ name: string }> };
   const names = idl.instructions.map((i) => i.name.toLowerCase());
 
-  // The frontend would need at least these on-chain handlers for the dead
-  // imports to actually do something useful. Confirm they are all absent.
-  const expectedMissingInstructions = [
-    /withdraw.*pool.*oracle.*fee/,
-    /withdraw.*pool.*treasury/,
-    /withdraw.*protocol.*fee/,
+  const expectedInstructions = [
+    "withdraw_protocol_fee_sol",
+    "withdraw_protocol_fee_spl",
+    "withdraw_pool_treasury_sol",
+    "withdraw_pool_treasury_spl",
+    "withdraw_pool_oracle_fee_sol",
+    "withdraw_pool_oracle_fee_spl",
   ];
-  for (const rx of expectedMissingInstructions) {
-    const matches = names.filter((n) => rx.test(n));
-    assert.deepEqual(
-      matches,
-      [],
-      `Expected no IDL instruction matching ${rx.source}; finding PT-02/PT-03 would change. Found: ${JSON.stringify(matches)}`,
+  for (const expected of expectedInstructions) {
+    assert.ok(
+      names.includes(expected),
+      `[PT-03 defense] IDL must expose ${expected}; if removed the dead-builder vulnerability re-emerges once PR3 lands.`,
     );
   }
 });
