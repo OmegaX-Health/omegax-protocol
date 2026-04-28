@@ -52,6 +52,13 @@ export type ProtocolActionFailure = {
 
 export type ProtocolActionResult = ProtocolActionSuccess | ProtocolActionFailure;
 
+export type ProtocolTransactionLifecycleEvent = {
+  phase: "submitted";
+  signature: string;
+  explorerUrl: string;
+  label: string;
+};
+
 export async function executeProtocolTransaction(params: {
   connection: Connection;
   sendTransaction: WalletContextState["sendTransaction"];
@@ -61,6 +68,7 @@ export async function executeProtocolTransaction(params: {
   explorerCluster?: string | null;
   review?: ProtocolTransactionReviewMetadata;
   confirmReview?: ProtocolTransactionReviewConfirmation;
+  onLifecycle?: (event: ProtocolTransactionLifecycleEvent) => void;
 }): Promise<ProtocolActionResult> {
   let review: ProtocolTransactionReview | undefined;
   try {
@@ -102,6 +110,14 @@ export async function executeProtocolTransaction(params: {
       params.connection,
       params.signers?.length ? { signers: params.signers } : undefined,
     );
+    const explorerUrl = toExplorerLink(signature, params.explorerCluster ?? undefined);
+    if (params.onLifecycle) {
+      try {
+        params.onLifecycle({ phase: "submitted", signature, explorerUrl, label: params.label });
+      } catch {
+        // Lifecycle callbacks must never break the send/confirm path.
+      }
+    }
     const confirmation = await params.connection.confirmTransaction(
       {
         signature,
@@ -116,11 +132,11 @@ export async function executeProtocolTransaction(params: {
     return {
       ok: true,
       signature,
-      explorerUrl: toExplorerLink(signature, params.explorerCluster ?? undefined),
+      explorerUrl,
       message: `${params.label} confirmed.`,
       review: {
         ...review,
-        explorerUrl: toExplorerLink(signature, params.explorerCluster ?? undefined),
+        explorerUrl,
       },
     };
   } catch (cause) {

@@ -4,7 +4,7 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev"],
+      "runtimeArgs": ["next", "dev", "--webpack"],
       "port": 3847,
       "autoPort": true,
       "cwd": "frontend"

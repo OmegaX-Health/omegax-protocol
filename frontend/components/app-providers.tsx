@@ -4,6 +4,7 @@
 
 import type { ReactNode } from "react";
 
+import { BrandedToaster } from "@/components/branded-toaster";
 import { WalletProviders } from "@/components/wallet-providers";
 import { NetworkProvider } from "@/components/network-context";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -14,7 +15,10 @@ export default function AppProviders({ children }: { children: ReactNode }) {
     <ThemeProvider>
       <NetworkProvider>
         <WalletProviders>
-          <WorkspacePersonaProvider>{children}</WorkspacePersonaProvider>
+          <WorkspacePersonaProvider>
+            {children}
+            <BrandedToaster />
+          </WorkspacePersonaProvider>
         </WalletProviders>
       </NetworkProvider>
     </ThemeProvider>
