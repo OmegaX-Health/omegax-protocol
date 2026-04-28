@@ -18,9 +18,10 @@
 
 import { Buffer } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+
+import { keypairFromFile } from "./support/script_helpers.ts";
 
 import {
   Connection,
@@ -108,10 +109,6 @@ function proofModeForPlan(protocol: ProtocolModule, plan: { membershipModeValue?
   if (mode === protocol.MEMBERSHIP_MODE_INVITE_ONLY) return protocol.MEMBERSHIP_PROOF_MODE_INVITE_PERMIT;
   if (mode === protocol.MEMBERSHIP_MODE_TOKEN_GATE) return protocol.MEMBERSHIP_PROOF_MODE_TOKEN_GATE;
   return protocol.MEMBERSHIP_PROOF_MODE_OPEN;
-}
-
-function keypairFromFile(path: string): Keypair {
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
 }
 
 function classifyError(
@@ -369,14 +366,13 @@ async function main(): Promise<void> {
       process.env.NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT ||
       process.env.NEXT_PUBLIC_DEFAULT_INSURANCE_PAYOUT_MINT ||
       "";
-    const vaultTokenAccount =
-      process.env.OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT ||
-      "";
     if (!assetMint) {
       results.push(skip("Create domain asset vault", "governance", "no settlement mint configured"));
-    } else if (!vaultTokenAccount) {
-      results.push(skip("Create domain asset vault", "governance", "no vault token account configured"));
     } else {
+      // PT-2026-04-27-01/02 fix: vault token account is now PDA-owned and
+      // initialized by the program inline, so the OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT
+      // env var is no longer required. The token account address is derivable
+      // via deriveDomainAssetVaultTokenAccountPda for downstream inflow calls.
       results.push(
         await simulate(
           connection,
@@ -387,7 +383,6 @@ async function main(): Promise<void> {
             reserveDomainAddress: reserveDomain.address,
             assetMint,
             recentBlockhash: blockhash,
-            vaultTokenAccountAddress: vaultTokenAccount,
           }),
           "Create domain asset vault",
           "governance",

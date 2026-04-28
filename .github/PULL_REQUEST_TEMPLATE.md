@@ -20,6 +20,14 @@
 - [ ] no public docs or templates were left inconsistent with the code
 - [ ] Solana architecture/instruction docs updated if protocol routing, state, or reviewer read paths changed
 
+## Protocol surface changes
+
+If this PR touches `programs/omegax_protocol/`, `idl/`, `shared/protocol_contract.json`, `frontend/lib/protocol.ts`, or shared protocol builders, complete this section. Otherwise mark `n/a`.
+
+- [ ] `npm run anchor:idl` ran and `idl/omegax_protocol.json` reflects current sources
+- [ ] `npm run protocol:contract` ran and `shared/protocol_contract.json`, `frontend/lib/generated/`, `android-native/protocol/` reflect current IDL
+- [ ] `npm run test:e2e:localnet` passed locally — see [public release gate](../docs/operations/public-release-gate.md)
+
 ## Review Checklist
 
 - [ ] commits are signed off with DCO (`git commit -s`)

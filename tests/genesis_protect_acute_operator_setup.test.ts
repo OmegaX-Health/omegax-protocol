@@ -4,6 +4,7 @@ import test from "node:test";
 import fixturesModule from "../frontend/lib/devnet-fixtures.ts";
 import genesisCatalogModule from "../frontend/lib/genesis-protect-acute.ts";
 import genesisOperatorModule from "../frontend/lib/genesis-protect-acute-operator.ts";
+import protocolModule from "../frontend/lib/protocol.ts";
 
 const { DEVNET_PROTOCOL_FIXTURE_STATE } =
   fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
@@ -24,6 +25,7 @@ const {
   genesisProtectAcuteBootstrapCapitalClasses,
   genesisProtectAcuteBootstrapFundingLines,
 } = genesisOperatorModule as typeof import("../frontend/lib/genesis-protect-acute-operator.ts");
+const { hasConfiguredPoolTerms } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 function cloneFixtureSnapshot() {
   return structuredClone(DEVNET_PROTOCOL_FIXTURE_STATE);
@@ -154,6 +156,37 @@ test("Genesis readiness phase is operator_pending after reserve pressure clears 
 
   assert.equal(model.queueOnlyRedemptionsActive, false);
   assert.equal(model.checklist.poolOraclePolicyReady, false);
+  assert.equal(model.readinessPhase, "operator_pending");
+});
+
+test("Genesis pool terms readiness requires live pool configuration hashes", () => {
+  const snapshot = cloneFixtureSnapshot();
+  const pool = snapshot.liquidityPools.find((entry) => entry.poolId === GENESIS_PROTECT_ACUTE_POOL_ID)!;
+
+  assert.equal(hasConfiguredPoolTerms(pool), false);
+  assert.equal(hasConfiguredPoolTerms({
+    ...pool,
+    strategyHashHex: "11".repeat(32),
+    allowedExposureHashHex: "22".repeat(32),
+    externalYieldAdapterHashHex: "33".repeat(32),
+  }), true);
+});
+
+test("Genesis setup does not treat a pool shell as configured pool terms", () => {
+  const snapshot = cloneFixtureSnapshot();
+  configureGenesisOperators(snapshot);
+  clearGenesisQueueOnlyPressure(snapshot);
+
+  const model = buildGenesisProtectAcuteSetupModel({
+    snapshot,
+    readiness: {
+      poolTermsConfigured: false,
+      poolOraclePolicyConfigured: true,
+    },
+  });
+
+  assert.equal(model.checklist.poolReady, true);
+  assert.equal(model.checklist.poolTermsReady, false);
   assert.equal(model.readinessPhase, "operator_pending");
 });
 

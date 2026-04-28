@@ -19,7 +19,11 @@ pub const MAX_SCHEMA_DEPENDENCY_RULES: usize = 32;
 pub const SEED_PROTOCOL_GOVERNANCE: &[u8] = b"protocol_governance";
 pub const SEED_RESERVE_DOMAIN: &[u8] = b"reserve_domain";
 pub const SEED_DOMAIN_ASSET_VAULT: &[u8] = b"domain_asset_vault";
+pub const SEED_DOMAIN_ASSET_VAULT_TOKEN: &[u8] = b"domain_asset_vault_token";
 pub const SEED_DOMAIN_ASSET_LEDGER: &[u8] = b"domain_asset_ledger";
+pub const SEED_PROTOCOL_FEE_VAULT: &[u8] = b"protocol_fee_vault";
+pub const SEED_POOL_TREASURY_VAULT: &[u8] = b"pool_treasury_vault";
+pub const SEED_POOL_ORACLE_FEE_VAULT: &[u8] = b"pool_oracle_fee_vault";
 pub const SEED_HEALTH_PLAN: &[u8] = b"health_plan";
 pub const SEED_PLAN_RESERVE_LEDGER: &[u8] = b"plan_reserve_ledger";
 pub const SEED_POLICY_SERIES: &[u8] = b"policy_series";
@@ -295,14 +299,14 @@ pub mod omegax_protocol {
             &ctx.accounts.reserve_domain,
         )?;
         require!(
-            args.asset_mint != ZERO_PUBKEY && args.vault_token_account != ZERO_PUBKEY,
+            args.asset_mint != ZERO_PUBKEY,
             OmegaXProtocolError::VaultTokenAccountInvalid
         );
 
         let vault = &mut ctx.accounts.domain_asset_vault;
         vault.reserve_domain = ctx.accounts.reserve_domain.key();
         vault.asset_mint = args.asset_mint;
-        vault.vault_token_account = args.vault_token_account;
+        vault.vault_token_account = ctx.accounts.vault_token_account.key();
         vault.total_assets = 0;
         vault.bump = ctx.bumps.domain_asset_vault;
 
@@ -1095,6 +1099,50 @@ pub mod omegax_protocol {
                     obligation,
                 )?;
                 obligation.status = OBLIGATION_STATUS_SETTLED;
+
+                // PT-2026-04-27-01/02 fix: SPL outflow CPI for linked-claim
+                // settlement. When a claim_case is linked AND all five outflow
+                // accounts are supplied, transfer the SPL out of the
+                // PDA-owned vault to the resolved recipient. When any are
+                // absent (e.g. direct sponsor recoveries that pre-date this
+                // surface), fall back to accounting-only — operators using
+                // those flows must adapt to a future direct-recipient path.
+                if let Some(claim_case_ref) = ctx.accounts.claim_case.as_deref() {
+                    if let (
+                        Some(member_pos),
+                        Some(mint),
+                        Some(vault_ta),
+                        Some(recipient_ta),
+                        Some(token_prog),
+                    ) = (
+                        ctx.accounts.member_position.as_ref(),
+                        ctx.accounts.asset_mint.as_ref(),
+                        ctx.accounts.vault_token_account.as_ref(),
+                        ctx.accounts.recipient_token_account.as_ref(),
+                        ctx.accounts.token_program.as_ref(),
+                    ) {
+                        require_keys_eq!(
+                            member_pos.key(),
+                            claim_case_ref.member_position,
+                            OmegaXProtocolError::Unauthorized
+                        );
+                        let resolved_recipient =
+                            resolve_claim_settlement_recipient(claim_case_ref, member_pos);
+                        require_keys_eq!(
+                            recipient_ta.owner,
+                            resolved_recipient,
+                            OmegaXProtocolError::Unauthorized
+                        );
+                        transfer_from_domain_vault(
+                            amount,
+                            &ctx.accounts.domain_asset_vault,
+                            vault_ta,
+                            recipient_ta,
+                            mint,
+                            token_prog,
+                        )?;
+                    }
+                }
             }
             OBLIGATION_STATUS_CANCELED => {
                 cancel_outstanding(
@@ -1250,6 +1298,7 @@ pub mod omegax_protocol {
         claim_case.claim_id = args.claim_id;
         claim_case.claimant = args.claimant;
         claim_case.adjudicator = ZERO_PUBKEY;
+        claim_case.delegate_recipient = ZERO_PUBKEY;
         claim_case.evidence_ref_hash = args.evidence_ref_hash;
         claim_case.decision_support_hash = [0u8; 32];
         claim_case.intake_status = CLAIM_INTAKE_OPEN;
@@ -1272,6 +1321,20 @@ pub mod omegax_protocol {
             approved_amount: claim_case.approved_amount,
         });
 
+        Ok(())
+    }
+
+    pub fn authorize_claim_recipient(
+        ctx: Context<AuthorizeClaimRecipient>,
+        args: AuthorizeClaimRecipientArgs,
+    ) -> Result<()> {
+        require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+        // The Anchor context binds member_position.wallet == authority.key()
+        // and claim_case.member_position == member_position.key(), so reaching
+        // this body means the member of record signed.
+        let claim_case = &mut ctx.accounts.claim_case;
+        claim_case.delegate_recipient = args.delegate_recipient;
+        claim_case.updated_at = Clock::get()?.unix_timestamp;
         Ok(())
     }
 
@@ -1377,6 +1440,18 @@ pub mod omegax_protocol {
             ctx.accounts.funding_line.asset_mint,
         )?;
 
+        // PT-2026-04-27-01/02 fix: resolve the SPL recipient before mutating
+        // the claim_case (Pubkey is Copy so we capture by value).
+        let resolved_recipient = resolve_claim_settlement_recipient(
+            &ctx.accounts.claim_case,
+            &ctx.accounts.member_position,
+        );
+        require_keys_eq!(
+            ctx.accounts.recipient_token_account.owner,
+            resolved_recipient,
+            OmegaXProtocolError::Unauthorized
+        );
+
         let amount = args.amount;
         let claim_case = &mut ctx.accounts.claim_case;
         claim_case.paid_amount = checked_add(claim_case.paid_amount, amount)?;
@@ -1406,10 +1481,24 @@ pub mod omegax_protocol {
             amount,
         )?;
 
+        // PT-01/02 fix: actually move the SPL tokens. The vault token account
+        // is owned by the domain_asset_vault PDA, which signs via seeds.
+        transfer_from_domain_vault(
+            amount,
+            &ctx.accounts.domain_asset_vault,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.recipient_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.token_program,
+        )?;
+
+        let claim_case_key = ctx.accounts.claim_case.key();
+        let intake_status = ctx.accounts.claim_case.intake_status;
+        let approved_amount = ctx.accounts.claim_case.approved_amount;
         emit!(ClaimCaseStateChangedEvent {
-            claim_case: claim_case.key(),
-            intake_status: claim_case.intake_status,
-            approved_amount: claim_case.approved_amount,
+            claim_case: claim_case_key,
+            intake_status,
+            approved_amount,
         });
 
         Ok(())
@@ -1761,6 +1850,23 @@ pub mod omegax_protocol {
             asset_amount,
         )?;
 
+        // PT-2026-04-27-01/02 fix: redemption pays the LP position's owner.
+        // There is no delegate-recipient pattern for LP redemptions — the
+        // owner is the only authorised recipient.
+        require_keys_eq!(
+            ctx.accounts.recipient_token_account.owner,
+            ctx.accounts.lp_position.owner,
+            OmegaXProtocolError::Unauthorized
+        );
+        transfer_from_domain_vault(
+            asset_amount,
+            &ctx.accounts.domain_asset_vault,
+            &ctx.accounts.vault_token_account,
+            &ctx.accounts.recipient_token_account,
+            &ctx.accounts.asset_mint,
+            &ctx.accounts.token_program,
+        )?;
+
         Ok(())
     }
 
@@ -1987,6 +2093,15 @@ pub mod omegax_protocol {
     }
 
     pub fn register_oracle(ctx: Context<RegisterOracle>, args: RegisterOracleArgs) -> Result<()> {
+        // PT-2026-04-27-07 fix: the signer registering the profile must be the
+        // oracle key itself. Closes the squat-then-recover gap where any wallet
+        // could pre-register an oracle profile under a target oracle's pubkey
+        // and control the metadata until the rightful oracle ran claim_oracle.
+        require_keys_eq!(
+            ctx.accounts.admin.key(),
+            args.oracle,
+            OmegaXProtocolError::Unauthorized
+        );
         validate_oracle_profile_fields(&args)?;
 
         let now_ts = Clock::get()?.unix_timestamp;
@@ -2413,6 +2528,25 @@ pub struct CreateDomainAssetVault<'info> {
         bump
     )]
     pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    // PT-2026-04-27-01/02 fix: vault token account is now PDA-owned and
+    // initialized inline. SPL transfers out of this account in
+    // settlement / redemption / fee-withdrawal handlers will be signed by the
+    // domain_asset_vault PDA via transfer_from_domain_vault (see lib.rs:5463
+    // region). Operators no longer pre-create the token account externally.
+    #[account(
+        constraint = asset_mint.key() == args.asset_mint @ OmegaXProtocolError::AssetMintMismatch
+    )]
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init,
+        payer = authority,
+        seeds = [SEED_DOMAIN_ASSET_VAULT_TOKEN, reserve_domain.key().as_ref(), args.asset_mint.as_ref()],
+        bump,
+        token::mint = asset_mint,
+        token::authority = domain_asset_vault,
+    )]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -2733,6 +2867,21 @@ pub struct SettleObligation<'info> {
     pub obligation: Box<Account<'info, Obligation>>,
     #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
     pub claim_case: Option<Box<Account<'info, ClaimCase>>>,
+    // PT-2026-04-27-01/02 fix: optional outflow accounts. When all five are
+    // provided AND a linked claim_case is present AND next_status is SETTLED,
+    // the handler resolves recipient = claim_case.delegate_recipient if
+    // non-zero else member.wallet, asserts recipient_token_account.owner ==
+    // resolved, and transfers SPL via the domain_asset_vault PDA. When any
+    // are absent (e.g. direct sponsor recoveries with no linked claim), the
+    // handler falls back to accounting-only behavior to preserve existing
+    // operator flows.
+    pub member_position: Option<Box<Account<'info, MemberPosition>>>,
+    pub asset_mint: Option<InterfaceAccount<'info, Mint>>,
+    #[account(mut)]
+    pub vault_token_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut)]
+    pub recipient_token_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    pub token_program: Option<Interface<'info, TokenInterface>>,
 }
 
 #[derive(Accounts)]
@@ -2770,7 +2919,7 @@ pub struct OpenClaimCase<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
-    pub health_plan: Account<'info, HealthPlan>,
+    pub health_plan: Box<Account<'info, HealthPlan>>,
     #[account(
         seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()],
         bump = member_position.bump,
@@ -2779,7 +2928,7 @@ pub struct OpenClaimCase<'info> {
         constraint = member_position.active @ OmegaXProtocolError::Unauthorized,
         constraint = member_position.eligibility_status == ELIGIBILITY_ELIGIBLE @ OmegaXProtocolError::Unauthorized,
     )]
-    pub member_position: Account<'info, MemberPosition>,
+    pub member_position: Box<Account<'info, MemberPosition>>,
     #[account(
         seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()],
         bump = funding_line.bump,
@@ -2787,7 +2936,7 @@ pub struct OpenClaimCase<'info> {
         constraint = funding_line.policy_series == args.policy_series @ OmegaXProtocolError::PolicySeriesMismatch,
         constraint = funding_line.status == FUNDING_LINE_STATUS_OPEN @ OmegaXProtocolError::FundingLineMismatch,
     )]
-    pub funding_line: Account<'info, FundingLine>,
+    pub funding_line: Box<Account<'info, FundingLine>>,
     #[account(
         init,
         payer = authority,
@@ -2795,8 +2944,34 @@ pub struct OpenClaimCase<'info> {
         seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), args.claim_id.as_bytes()],
         bump
     )]
-    pub claim_case: Account<'info, ClaimCase>,
+    pub claim_case: Box<Account<'info, ClaimCase>>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AuthorizeClaimRecipient<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[account(
+        seeds = [
+            SEED_MEMBER_POSITION,
+            member_position.health_plan.as_ref(),
+            member_position.wallet.as_ref(),
+            member_position.policy_series.as_ref(),
+        ],
+        bump = member_position.bump,
+        constraint = member_position.wallet == authority.key() @ OmegaXProtocolError::Unauthorized,
+        constraint = member_position.active @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub member_position: Box<Account<'info, MemberPosition>>,
+    #[account(
+        mut,
+        seeds = [SEED_CLAIM_CASE, claim_case.health_plan.as_ref(), claim_case.claim_id.as_bytes()],
+        bump = claim_case.bump,
+        constraint = claim_case.member_position == member_position.key() @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub claim_case: Box<Account<'info, ClaimCase>>,
 }
 
 #[derive(Accounts)]
@@ -2886,6 +3061,27 @@ pub struct SettleClaimCase<'info> {
     pub claim_case: Box<Account<'info, ClaimCase>>,
     #[account(mut)]
     pub obligation: Option<Box<Account<'info, Obligation>>>,
+    // PT-2026-04-27-01/02 fix: outflow CPI accounts. The handler resolves the
+    // settlement recipient as `claim_case.delegate_recipient` if non-zero,
+    // else `member_position.wallet`, and asserts
+    // `recipient_token_account.owner` equals that key before transferring SPL
+    // out of the PDA-owned vault token account.
+    #[account(
+        constraint = member_position.key() == claim_case.member_position @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub member_position: Box<Account<'info, MemberPosition>>,
+    #[account(
+        constraint = asset_mint.key() == claim_case.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        constraint = vault_token_account.key() == domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
+    )]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -3025,19 +3221,33 @@ pub struct RequestRedemption<'info> {
 pub struct ProcessRedemptionQueue<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_vault.bump)]
-    pub domain_asset_vault: Account<'info, DomainAssetVault>,
+    pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_LEDGER, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_ledger.bump)]
-    pub domain_asset_ledger: Account<'info, DomainAssetLedger>,
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
-    pub liquidity_pool: Account<'info, LiquidityPool>,
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
     #[account(mut, seeds = [SEED_CAPITAL_CLASS, liquidity_pool.key().as_ref(), capital_class.class_id.as_bytes()], bump = capital_class.bump)]
-    pub capital_class: Account<'info, CapitalClass>,
+    pub capital_class: Box<Account<'info, CapitalClass>>,
     #[account(mut, seeds = [SEED_POOL_CLASS_LEDGER, capital_class.key().as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = pool_class_ledger.bump)]
-    pub pool_class_ledger: Account<'info, PoolClassLedger>,
+    pub pool_class_ledger: Box<Account<'info, PoolClassLedger>>,
     #[account(mut, seeds = [SEED_LP_POSITION, capital_class.key().as_ref(), lp_position.owner.as_ref()], bump = lp_position.bump)]
-    pub lp_position: Account<'info, LPPosition>,
+    pub lp_position: Box<Account<'info, LPPosition>>,
+    // PT-2026-04-27-01/02 fix: outflow CPI accounts. Recipient must be the LP
+    // position's owner — there is no delegate-recipient pattern for redemptions.
+    #[account(
+        constraint = asset_mint.key() == liquidity_pool.deposit_asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        constraint = vault_token_account.key() == domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
+    )]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -3392,6 +3602,42 @@ pub struct DomainAssetVault {
     pub bump: u8,
 }
 
+// Fee accounting account types. SPL tokens for fees physically reside in the
+// matching DomainAssetVault.vault_token_account; these accounts track each
+// rail's claim against that pool. Withdrawals decrement `withdrawn_fees` and
+// transfer SPL out of DomainAssetVault via PDA-signed CPI.
+
+#[account]
+#[derive(InitSpace)]
+pub struct ProtocolFeeVault {
+    pub reserve_domain: Pubkey,
+    pub asset_mint: Pubkey,
+    pub accrued_fees: u64,
+    pub withdrawn_fees: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PoolTreasuryVault {
+    pub liquidity_pool: Pubkey,
+    pub asset_mint: Pubkey,
+    pub accrued_fees: u64,
+    pub withdrawn_fees: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PoolOracleFeeVault {
+    pub liquidity_pool: Pubkey,
+    pub oracle: Pubkey,
+    pub asset_mint: Pubkey,
+    pub accrued_fees: u64,
+    pub withdrawn_fees: u64,
+    pub bump: u8,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct HealthPlan {
@@ -3525,6 +3771,13 @@ pub struct ClaimCase {
     pub claim_id: String,
     pub claimant: Pubkey,
     pub adjudicator: Pubkey,
+    // PT-2026-04-27-04 design: when settlement transfers SPL out, the recipient
+    // is `delegate_recipient` if non-zero, else `member_position.wallet`. The
+    // `claimant` field above is informational metadata constrained to equal
+    // `member_position.wallet` at intake (see require_claim_intake_submitter);
+    // routing is exclusively controlled here, set by the member via
+    // `authorize_claim_recipient`. ZERO_PUBKEY means "pay member.wallet".
+    pub delegate_recipient: Pubkey,
     pub evidence_ref_hash: [u8; 32],
     pub decision_support_hash: [u8; 32],
     pub intake_status: u8,
@@ -3897,7 +4150,6 @@ pub struct UpdateReserveDomainControlsArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct CreateDomainAssetVaultArgs {
     pub asset_mint: Pubkey,
-    pub vault_token_account: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -4064,6 +4316,11 @@ pub struct SettleObligationArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct ReleaseReserveArgs {
     pub amount: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct AuthorizeClaimRecipientArgs {
+    pub delegate_recipient: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -5163,15 +5420,36 @@ fn activate_membership_anchor_seat(
     Ok(())
 }
 
+// Resolve the SPL recipient for a claim settlement. Routing is exclusively
+// controlled by the member-set delegate_recipient field on ClaimCase: if it
+// is the ZERO_PUBKEY, payouts go to member_position.wallet. The `claimant`
+// field on ClaimCase is informational metadata only — it is constrained at
+// intake to equal member_position.wallet (PT-2026-04-27-04 fix).
+fn resolve_claim_settlement_recipient(
+    claim_case: &ClaimCase,
+    member_position: &MemberPosition,
+) -> Pubkey {
+    if claim_case.delegate_recipient != ZERO_PUBKEY {
+        claim_case.delegate_recipient
+    } else {
+        member_position.wallet
+    }
+}
+
 fn require_claim_intake_submitter(
     authority: &Pubkey,
     plan: &HealthPlan,
     member_position: &MemberPosition,
     args: &OpenClaimCaseArgs,
 ) -> Result<()> {
-    let member_self_submit =
-        *authority == member_position.wallet && args.claimant == member_position.wallet;
-    let operator_submit = *authority == plan.claims_operator || *authority == plan.plan_admin;
+    // Both branches require args.claimant == member_position.wallet so the
+    // claimant field cannot be used to divert funds when settlement transfers
+    // ship. Recipient routing is handled separately via ClaimCase.delegate_recipient
+    // (set by the member via `authorize_claim_recipient`).
+    let claimant_is_member = args.claimant == member_position.wallet;
+    let member_self_submit = *authority == member_position.wallet && claimant_is_member;
+    let operator_submit =
+        (*authority == plan.claims_operator || *authority == plan.plan_admin) && claimant_is_member;
 
     if member_self_submit || operator_submit {
         Ok(())
@@ -5453,6 +5731,75 @@ fn transfer_to_domain_vault<'info>(
     };
     token_interface::transfer_checked(
         CpiContext::new(token_program.to_account_info(), accounts),
+        amount,
+        asset_mint.decimals,
+    )
+}
+
+// PDA-signed outflow helper. Unblocks PT-2026-04-27-01 and PT-2026-04-27-02:
+// settlement, redemption, release, and fee-withdrawal handlers will call this
+// to actually move SPL tokens out of the program-PDA-owned vault token account.
+// Authority on the CPI is the `domain_asset_vault` PDA (post vault-custody
+// refactor in section 1.2 of the remediation plan).
+//
+// Caller note: this helper assumes `vault_token_account.owner` is the
+// `domain_asset_vault` PDA. That invariant is established once
+// `create_domain_asset_vault` is refactored to init the token account with
+// `token::authority = domain_asset_vault`. Without that refactor in place the
+// CPI will fail at runtime with TokenOwnerMismatch — by design.
+#[allow(dead_code)]
+fn transfer_from_domain_vault<'info>(
+    amount: u64,
+    domain_asset_vault: &Account<'info, DomainAssetVault>,
+    vault_token_account: &InterfaceAccount<'info, TokenAccount>,
+    recipient_token_account: &InterfaceAccount<'info, TokenAccount>,
+    asset_mint: &InterfaceAccount<'info, Mint>,
+    token_program: &Interface<'info, TokenInterface>,
+) -> Result<()> {
+    require_keys_eq!(
+        vault_token_account.key(),
+        domain_asset_vault.vault_token_account,
+        OmegaXProtocolError::VaultTokenAccountMismatch
+    );
+    require_keys_eq!(
+        asset_mint.key(),
+        domain_asset_vault.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require_keys_eq!(
+        vault_token_account.mint,
+        domain_asset_vault.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require_keys_eq!(
+        recipient_token_account.mint,
+        domain_asset_vault.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require_keys_neq!(
+        vault_token_account.key(),
+        recipient_token_account.key(),
+        OmegaXProtocolError::TokenAccountSelfTransferInvalid
+    );
+
+    let reserve_domain = domain_asset_vault.reserve_domain;
+    let asset_mint_key = domain_asset_vault.asset_mint;
+    let bump = domain_asset_vault.bump;
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        SEED_DOMAIN_ASSET_VAULT,
+        reserve_domain.as_ref(),
+        asset_mint_key.as_ref(),
+        &[bump],
+    ]];
+
+    let accounts = TransferChecked {
+        from: vault_token_account.to_account_info(),
+        mint: asset_mint.to_account_info(),
+        to: recipient_token_account.to_account_info(),
+        authority: domain_asset_vault.to_account_info(),
+    };
+    token_interface::transfer_checked(
+        CpiContext::new_with_signer(token_program.to_account_info(), accounts, signer_seeds),
         amount,
         asset_mint.decimals,
     )
@@ -6448,6 +6795,7 @@ mod tests {
             claim_id: "claim-protect-001".to_string(),
             claimant: Pubkey::new_unique(),
             adjudicator: ZERO_PUBKEY,
+            delegate_recipient: ZERO_PUBKEY,
             evidence_ref_hash: [0u8; 32],
             decision_support_hash: [0u8; 32],
             intake_status: CLAIM_INTAKE_APPROVED,
@@ -6915,8 +7263,10 @@ mod tests {
             Pubkey::new_unique(),
         );
         let member_position = sample_member_position(member_wallet, policy_series);
-        let delegated_claimant = Pubkey::new_unique();
-        let args = sample_open_claim_case_args(delegated_claimant, policy_series);
+        // PT-2026-04-27-04 fix: operator submissions require args.claimant to
+        // equal member_position.wallet. Custom recipient routing is handled by
+        // ClaimCase.delegate_recipient instead.
+        let args = sample_open_claim_case_args(member_wallet, policy_series);
 
         assert!(
             require_claim_intake_submitter(&claims_operator, &plan, &member_position, &args)
@@ -6925,6 +7275,78 @@ mod tests {
         assert!(
             require_claim_intake_submitter(&plan_admin, &plan, &member_position, &args).is_ok()
         );
+    }
+
+    #[test]
+    fn claim_intake_submitter_rejects_operator_with_attacker_claimant() {
+        // PT-2026-04-27-04 regression test. An operator (claims_operator or
+        // plan_admin) cannot mint a claim with an arbitrary attacker pubkey in
+        // args.claimant; the gate now requires args.claimant == member.wallet.
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let plan_admin = Pubkey::new_unique();
+        let claims_operator = Pubkey::new_unique();
+        let plan = sample_health_plan_roles(
+            plan_admin,
+            Pubkey::new_unique(),
+            claims_operator,
+            Pubkey::new_unique(),
+        );
+        let member_position = sample_member_position(member_wallet, policy_series);
+        let attacker = Pubkey::new_unique();
+        let args = sample_open_claim_case_args(attacker, policy_series);
+
+        let claims_op_err =
+            require_claim_intake_submitter(&claims_operator, &plan, &member_position, &args)
+                .unwrap_err();
+        assert!(claims_op_err.to_string().contains("Unauthorized"));
+
+        let plan_admin_err =
+            require_claim_intake_submitter(&plan_admin, &plan, &member_position, &args)
+                .unwrap_err();
+        assert!(plan_admin_err.to_string().contains("Unauthorized"));
+    }
+
+    #[test]
+    fn claim_settlement_routes_to_member_wallet_when_no_delegate() {
+        // PT-2026-04-27-04 routing: when delegate_recipient is the ZERO_PUBKEY
+        // (the default after open_claim_case) settle_claim_case must pay
+        // member_position.wallet's ATA.
+        let member_wallet = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let mut claim_case = sample_claim_case(
+            Pubkey::new_unique(),
+            policy_series,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        claim_case.delegate_recipient = ZERO_PUBKEY;
+        let member_position = sample_member_position(member_wallet, policy_series);
+
+        let resolved = resolve_claim_settlement_recipient(&claim_case, &member_position);
+        assert_eq!(resolved, member_wallet);
+    }
+
+    #[test]
+    fn claim_settlement_routes_to_delegate_when_authorized() {
+        // PT-2026-04-27-04 routing: when the member has called
+        // authorize_claim_recipient with a non-zero delegate,
+        // settle_claim_case pays that delegate's ATA instead.
+        let member_wallet = Pubkey::new_unique();
+        let delegate = Pubkey::new_unique();
+        let policy_series = Pubkey::new_unique();
+        let mut claim_case = sample_claim_case(
+            Pubkey::new_unique(),
+            policy_series,
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        claim_case.delegate_recipient = delegate;
+        let member_position = sample_member_position(member_wallet, policy_series);
+
+        let resolved = resolve_claim_settlement_recipient(&claim_case, &member_position);
+        assert_eq!(resolved, delegate);
+        assert_ne!(resolved, member_wallet);
     }
 
     #[test]

@@ -59,6 +59,20 @@ Rules:
 - mounted canonical workbenches should prefer the live snapshot adapter; fixtures should remain a bootstrap/test/docs input rather than the primary operator data source
 - prefer the canonical `NEXT_PUBLIC_DEVNET_*_WALLET` and payment-rail mint names from `frontend/.env.example`; `lib/devnet-fixtures.ts` still accepts the older pool-first wallet and rail aliases for local compatibility until `.env.local` is refreshed
 
+## Operations
+
+### Health endpoint
+
+`GET /api/health` returns `{ ok: true, version, commit, network, timestamp }` for uptime monitors and post-deploy canary checks. No secrets, no auth. `commit` resolves from `NEXT_PUBLIC_GIT_COMMIT_SHA`, `VERCEL_GIT_COMMIT_SHA`, or `GIT_COMMIT_SHA` (whichever the deployment platform sets); `network` resolves from `NEXT_PUBLIC_SOLANA_NETWORK` / `NEXT_PUBLIC_REALMS_CLUSTER`.
+
+### Error reporting
+
+`lib/error-tracking.ts` exposes a single `reportError(error, context)` seam used by `app/error.tsx` and `app/global-error.tsx`. Today it logs to console only — no provider is wired in yet. Pre-mainnet, the launch-ops team should pick a provider (Sentry, Highlight, Datadog RUM, or equivalent) and forward from the `TODO(launch-ops)` block. Touching that one file flips every error boundary at once; no boundary call sites need to change.
+
+### SLO posture
+
+Pre-mainnet target: define an availability and time-to-first-snapshot SLO before launch. Track from the `/api/health` endpoint plus error-tracking provider telemetry once that decision lands.
+
 ## Deployment boundary
 
 This repo contains the public frontend source and checked-in App Hosting deployment wiring, but not local Firebase project aliases or deployment-only overrides.

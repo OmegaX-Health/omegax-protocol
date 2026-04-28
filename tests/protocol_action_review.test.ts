@@ -90,6 +90,7 @@ test("executeProtocolTransaction returns the confirmed review explorer link", as
     }),
   );
   let sent = false;
+  let reviewShown = false;
   const result = await executeProtocolTransaction({
     connection: {
       rpcEndpoint: "https://rpc.test",
@@ -107,6 +108,11 @@ test("executeProtocolTransaction returns the confirmed review explorer link", as
     },
     tx,
     label: "Confirm transfer",
+    confirmReview: async (review) => {
+      reviewShown = true;
+      assert.equal(review.label, "Confirm transfer");
+      return true;
+    },
     review: {
       authority: tx.feePayer?.toBase58(),
       feePayer: tx.feePayer?.toBase58(),
@@ -116,6 +122,74 @@ test("executeProtocolTransaction returns the confirmed review explorer link", as
   });
 
   assert.equal(sent, true);
+  assert.equal(reviewShown, true);
   assert.equal(result.ok, true);
   assert.match(result.ok ? result.review?.explorerUrl ?? "" : "", /explorer\.solana\.com\/tx/);
+});
+
+test("executeProtocolTransaction refuses reviewed transactions without a pre-sign confirmation", async () => {
+  const tx = createTransferTx();
+  let sent = false;
+  const result = await executeProtocolTransaction({
+    connection: {
+      rpcEndpoint: "https://rpc.test",
+      getLatestBlockhash: async () => ({
+        blockhash: Keypair.generate().publicKey.toBase58(),
+        lastValidBlockHeight: 123,
+      }),
+      getFeeForMessage: async () => ({ context: { slot: 1 }, value: 5000 }),
+      simulateTransaction: async () => ({ value: { err: null, logs: ["ok"] } }),
+      confirmTransaction: async () => ({ context: { slot: 2 }, value: { err: null } }),
+    } as never,
+    sendTransaction: async () => {
+      sent = true;
+      return "5EYqLmmG6rFZQ7kQK4s1Qk6S7NQjnNnsf7vYd1nEJtDN2ZJJv6i31mucPZQ9hkTgN7K1VwvHZQqjQkR3mR4z9m2v";
+    },
+    tx,
+    label: "Unsigned reviewed transfer",
+    review: {
+      authority: tx.feePayer?.toBase58(),
+      feePayer: tx.feePayer?.toBase58(),
+      affectedObject: "Reviewed test transfer",
+      economicEffect: "Must be shown before wallet signing.",
+    },
+  });
+
+  assert.equal(sent, false);
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? "" : result.error, /pre-sign review/i);
+});
+
+test("executeProtocolTransaction cancels before wallet signing when review is rejected", async () => {
+  const tx = createTransferTx();
+  let sent = false;
+  const result = await executeProtocolTransaction({
+    connection: {
+      rpcEndpoint: "https://rpc.test",
+      getLatestBlockhash: async () => ({
+        blockhash: Keypair.generate().publicKey.toBase58(),
+        lastValidBlockHeight: 123,
+      }),
+      getFeeForMessage: async () => ({ context: { slot: 1 }, value: 5000 }),
+      simulateTransaction: async () => ({ value: { err: null, logs: ["ok"] } }),
+      confirmTransaction: async () => ({ context: { slot: 2 }, value: { err: null } }),
+    } as never,
+    sendTransaction: async () => {
+      sent = true;
+      return "5EYqLmmG6rFZQ7kQK4s1Qk6S7NQjnNnsf7vYd1nEJtDN2ZJJv6i31mucPZQ9hkTgN7K1VwvHZQqjQkR3mR4z9m2v";
+    },
+    tx,
+    label: "Cancelled transfer",
+    confirmReview: async () => false,
+    review: {
+      authority: tx.feePayer?.toBase58(),
+      feePayer: tx.feePayer?.toBase58(),
+      affectedObject: "Cancelled test transfer",
+      economicEffect: "Should not reach wallet signing.",
+    },
+  });
+
+  assert.equal(sent, false);
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? "" : result.error, /cancelled before wallet signing/i);
 });

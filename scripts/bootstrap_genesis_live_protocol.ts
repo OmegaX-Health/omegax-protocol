@@ -22,6 +22,7 @@ import {
   stableStringify,
 } from "./support/genesis_live_bootstrap_config.ts";
 import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
+import { keypairFromFile, requiredPublicKeyEnv, sha256Bytes } from "./support/script_helpers.ts";
 
 type ProtocolModule = typeof import("../frontend/lib/protocol.ts");
 
@@ -45,29 +46,10 @@ type CurrentValue = {
 const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 const DEFAULT_GOVERNANCE_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 
-function sha256Bytes(label: string): number[] {
-  return [...createHash("sha256").update(label).digest()];
-}
-
 function schemaMetadataHashHex(path: string): string {
   const raw = readFileSync(path, "utf8");
   const parsed = JSON.parse(raw);
   return createHash("sha256").update(stableStringify(parsed)).digest("hex");
-}
-
-function keypairFromFile(path: string): Keypair {
-  if (!existsSync(path)) {
-    throw new Error(`Missing keypair file: ${path}`);
-  }
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
-}
-
-function requiredPublicKeyEnv(name: string): PublicKey {
-  const value = (process.env[name] ?? "").trim();
-  if (!value) {
-    throw new Error(`${name} must be set to a real SPL token account for live treasury custody.`);
-  }
-  return new PublicKey(value);
 }
 
 function parseArgs(argv: string[]): { planOnly: boolean } {
@@ -285,6 +267,15 @@ async function main() {
     reserveDomain: config.reserveDomain.address,
     assetMint: config.settlementMint,
   }).toBase58();
+  // PT-2026-04-27-01/02 fix: vault token account is now PDA-owned and the
+  // program initializes it inline. Operators no longer pre-create the token
+  // account or pass `OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT`.
+  const vaultTokenAccountAddress = protocol
+    .deriveDomainAssetVaultTokenAccountPda({
+      reserveDomain: config.reserveDomain.address,
+      assetMint: config.settlementMint,
+    })
+    .toBase58();
   const vaultExists = await protocol.accountExists(connection, domainAssetVault);
   const ledgerExists = await protocol.accountExists(connection, domainAssetLedger);
   if (!vaultExists || !ledgerExists) {
@@ -299,7 +290,6 @@ async function main() {
       instructionName: "create_domain_asset_vault",
       args: {
         asset_mint: new PublicKey(config.settlementMint),
-        vault_token_account: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"),
       },
       accounts: [
         { pubkey: governance.publicKey, isSigner: true, isWritable: true },
@@ -307,6 +297,9 @@ async function main() {
         { pubkey: config.reserveDomain.address, isWritable: true },
         { pubkey: domainAssetVault, isWritable: true },
         { pubkey: domainAssetLedger, isWritable: true },
+        { pubkey: new PublicKey(config.settlementMint) },
+        { pubkey: vaultTokenAccountAddress, isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -817,7 +810,7 @@ async function main() {
           { pubkey: seriesReserveLedgerFor(config.policySeries.event7.address), isWritable: true },
           { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
           { pubkey: config.settlementMint },
-          { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+          { pubkey: vaultTokenAccountAddress, isWritable: true },
           { pubkey: TOKEN_PROGRAM_ID },
         ],
       });
@@ -862,7 +855,7 @@ async function main() {
         { pubkey: seriesReserveLedgerFor(premium.policySeries), isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: config.settlementMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: vaultTokenAccountAddress, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
@@ -919,7 +912,7 @@ async function main() {
           isWritable: true,
         },
         { pubkey: config.settlementMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: vaultTokenAccountAddress, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],

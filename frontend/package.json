@@ -27,8 +27,8 @@
     "ogl": "^1.0.11",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "tailwind-merge": "^3.5.0",
-    "tweetnacl": "^1.0.3"
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.37",

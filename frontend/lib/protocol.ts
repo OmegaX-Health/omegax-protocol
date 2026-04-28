@@ -34,6 +34,7 @@ export const MAX_ID_SEED_BYTES = 32;
 export const SEED_PROTOCOL_GOVERNANCE = "protocol_governance";
 export const SEED_RESERVE_DOMAIN = "reserve_domain";
 export const SEED_DOMAIN_ASSET_VAULT = "domain_asset_vault";
+export const SEED_DOMAIN_ASSET_VAULT_TOKEN = "domain_asset_vault_token";
 export const SEED_DOMAIN_ASSET_LEDGER = "domain_asset_ledger";
 export const SEED_HEALTH_PLAN = "health_plan";
 export const SEED_PLAN_RESERVE_LEDGER = "plan_reserve_ledger";
@@ -333,6 +334,9 @@ export type LiquidityPoolSnapshot = {
   displayName: string;
   depositAssetMint: string;
   strategyThesis: string;
+  strategyHashHex?: string;
+  allowedExposureHashHex?: string;
+  externalYieldAdapterHashHex?: string;
   redemptionPolicy: number;
   pauseFlags?: number;
   totalValueLocked: BigNumberish;
@@ -749,6 +753,25 @@ export function deriveDomainAssetVaultPda(params: {
   return derivePda(
     [
       TEXT_ENCODER.encode(SEED_DOMAIN_ASSET_VAULT),
+      toPublicKey(params.reserveDomain).toBytes(),
+      toPublicKey(params.assetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+// PDA-derived address for the SPL token account that holds vault assets. The
+// program initialises this account with `token::authority = domain_asset_vault`
+// (see CreateDomainAssetVault context) so outflow CPIs can sign as the vault
+// PDA. Operators no longer pre-create this token account.
+export function deriveDomainAssetVaultTokenAccountPda(params: {
+  reserveDomain: PublicKeyish;
+  assetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_DOMAIN_ASSET_VAULT_TOKEN),
       toPublicKey(params.reserveDomain).toBytes(),
       toPublicKey(params.assetMint).toBytes(),
     ],
@@ -1935,6 +1958,10 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
         });
         break;
       case "LiquidityPool":
+        {
+          const strategyHashHex = bytesToHex(decodedField(decoded, "strategyHash"));
+          const allowedExposureHashHex = bytesToHex(decodedField(decoded, "allowedExposureHash"));
+          const externalYieldAdapterHashHex = bytesToHex(decodedField(decoded, "externalYieldAdapterHash"));
         snapshot.liquidityPools.push({
           address,
           reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
@@ -1944,9 +1971,12 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           poolId: stringFromAnchorValue(decodedField(decoded, "poolId")),
           displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
           depositAssetMint: asAddress(decodedField(decoded, "depositAssetMint")),
-          strategyThesis: bytesToHex(decodedField(decoded, "strategyHash")).slice(0, 16)
-            ? `strategy:${bytesToHex(decodedField(decoded, "strategyHash")).slice(0, 16)}`
+          strategyThesis: isNonZeroHashHex(strategyHashHex)
+            ? `strategy:${strategyHashHex.slice(0, 16)}`
             : "canonical_pool",
+          strategyHashHex,
+          allowedExposureHashHex,
+          externalYieldAdapterHashHex,
           redemptionPolicy: Number(decodedField(decoded, "redemptionPolicy") ?? 0),
           pauseFlags: Number(decodedField(decoded, "pauseFlags") ?? 0),
           totalValueLocked: bigintFromAnchorValue(decodedField(decoded, "totalValueLocked")),
@@ -1956,6 +1986,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           totalPendingRedemptions: bigintFromAnchorValue(decodedField(decoded, "totalPendingRedemptions")),
           active: Boolean(decodedField(decoded, "active")),
         });
+        }
         break;
       case "CapitalClass":
         snapshot.capitalClasses.push({
@@ -2436,6 +2467,22 @@ function schemaVersionForSeries(
   return Number.isFinite(parsedVersion) ? parsedVersion : 0;
 }
 
+function isNonZeroHashHex(value?: string | null): boolean {
+  const normalized = value?.trim().toLowerCase().replace(/^0x/, "") ?? "";
+  return /^[0-9a-f]{64}$/.test(normalized) && normalized !== ZERO_HASH_HEX;
+}
+
+export function hasConfiguredPoolTerms(
+  pool?: Pick<LiquidityPoolSnapshot, "strategyHashHex" | "allowedExposureHashHex" | "externalYieldAdapterHashHex"> | null,
+): boolean {
+  return Boolean(
+    pool
+    && isNonZeroHashHex(pool.strategyHashHex)
+    && isNonZeroHashHex(pool.allowedExposureHashHex)
+    && isNonZeroHashHex(pool.externalYieldAdapterHashHex),
+  );
+}
+
 function protocolConfigFromSnapshot(snapshot: ProtocolConsoleSnapshot): ProtocolConfigSummary | null {
   if (!snapshot.protocolGovernance) return null;
   const governanceRealm = configuredPublicKeyFromEnv(process.env.NEXT_PUBLIC_GOVERNANCE_REALM);
@@ -2814,6 +2861,7 @@ export async function fetchProtocolReadiness(params: {
       line.address === matchingFundingLine && line.lineType === FUNDING_LINE_TYPE_PREMIUM_INCOME,
     )
     : false;
+  const poolTermsConfigured = hasConfiguredPoolTerms(pool);
 
   return {
     protocolConfigExists: Boolean(snapshot.protocolGovernance),
@@ -2828,7 +2876,7 @@ export async function fetchProtocolReadiness(params: {
     ruleRegistered: Boolean(matchingRuleSeries),
     memberEnrolled: Boolean(memberPosition),
     claimDelegateConfigured: false,
-    poolTermsConfigured: Boolean(pool),
+    poolTermsConfigured,
     poolAssetVaultConfigured: Boolean(domainAssetVault),
     coveragePolicyExists: poolHasCoverageFlow,
     coveragePolicyNftExists: false,
@@ -2836,7 +2884,7 @@ export async function fetchProtocolReadiness(params: {
     derived: {
       configAddress: snapshot.protocolGovernance?.address ?? null,
       poolAddress: pool?.address ?? poolAddress,
-      poolTermsAddress: pool?.address ?? null,
+      poolTermsAddress: poolTermsConfigured ? pool?.address ?? null : null,
       poolAssetVaultAddress: domainAssetVault?.address ?? null,
       oracleEntryAddress: oracleProfile?.address ?? null,
       oracleProfileAddress: oracleProfile?.address ?? null,
@@ -2945,17 +2993,17 @@ export function buildCreateDomainAssetVaultTx(params: {
   reserveDomainAddress: PublicKeyish;
   assetMint: PublicKeyish;
   recentBlockhash: string;
-  vaultTokenAccountAddress: PublicKeyish;
+  tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const assetMint = toPublicKey(params.assetMint);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
     instructionName: "create_domain_asset_vault",
     args: {
       asset_mint: assetMint,
-      vault_token_account: toPublicKey(params.vaultTokenAccountAddress),
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -2975,6 +3023,15 @@ export function buildCreateDomainAssetVaultTx(params: {
         }),
         isWritable: true,
       },
+      { pubkey: assetMint },
+      {
+        pubkey: deriveDomainAssetVaultTokenAccountPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: tokenProgramId },
       { pubkey: SystemProgram.programId },
     ],
   });

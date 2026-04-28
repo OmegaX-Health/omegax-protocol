@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 2,
+  "scenarios": [
+    {
+      "id": "bootstrap-50-e7-20-t30",
+      "type": "independent_claims",
+      "label": "Bootstrap launch",
+      "event7Members": 50,
+      "travel30Members": 20,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "countryTier": "available"
+    },
+    {
+      "id": "phase2-200-e7-60-t30",
+      "type": "independent_claims",
+      "label": "Phase 2 operating mix",
+      "event7Members": 200,
+      "travel30Members": 60,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "countryTier": "available"
+    },
+    {
+      "id": "table-safe-500-e7-200-t30",
+      "type": "independent_claims",
+      "label": "PDF table safe zone",
+      "event7Members": 500,
+      "travel30Members": 200,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "countryTier": "available"
+    },
+    {
+      "id": "public-open-1000-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Recommended public-open ceiling",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "countryTier": "available"
+    },
+    {
+      "id": "adverse-1000-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Adverse public-open mix",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1.25,
+      "severityMultiplier": 1.25,
+      "countryTier": "available"
+    },
+    {
+      "id": "severe-adverse-1000-e7-500-t30",
+      "type": "independent_claims",
+      "label": "Severe adverse public-open mix",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1.5,
+      "severityMultiplier": 1.25,
+      "countryTier": "available"
+    },
+    {
+      "id": "sponsor-cohort-100-e7-250-t30",
+      "type": "independent_claims",
+      "label": "Sponsor-backed cohort",
+      "event7Members": 100,
+      "travel30Members": 250,
+      "frequencyMultiplier": 1.1,
+      "severityMultiplier": 1.1,
+      "countryTier": "sponsor_only",
+      "sponsorBackstopUsd": 25000
+    },
+    {
+      "id": "founders-pass-12x-100-t30",
+      "type": "independent_claims",
+      "label": "Founders Pass sequential Travel 30 windows",
+      "event7Members": 0,
+      "travel30Members": 1200,
+      "memberMonths": 1200,
+      "frequencyMultiplier": 1.15,
+      "severityMultiplier": 1.1,
+      "countryTier": "available"
+    },
+    {
+      "id": "country-tier-sponsor-only-300-t30",
+      "type": "independent_claims",
+      "label": "Sponsor-only country tier Travel 30 cohort",
+      "event7Members": 0,
+      "travel30Members": 300,
+      "frequencyMultiplier": 1.25,
+      "severityMultiplier": 1.15,
+      "countryTier": "sponsor_only",
+      "sponsorBackstopUsd": 25000
+    },
+    {
+      "id": "country-tier-waitlist-100-t30",
+      "type": "independent_claims",
+      "label": "Waitlist country tier exploratory cohort",
+      "event7Members": 0,
+      "travel30Members": 100,
+      "frequencyMultiplier": 1.5,
+      "severityMultiplier": 1.25,
+      "countryTier": "waitlist"
+    },
+    {
+      "id": "travel30-only-500",
+      "type": "independent_claims",
+      "label": "Travel 30-only current reserve ceiling",
+      "event7Members": 0,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "countryTier": "available"
+    },
+    {
+      "id": "travel30-only-adverse-500",
+      "type": "independent_claims",
+      "label": "Travel 30-only adverse reserve check",
+      "event7Members": 0,
+      "travel30Members": 500,
+      "frequencyMultiplier": 1.25,
+      "severityMultiplier": 1.25,
+      "countryTier": "available"
+    },
+    {
+      "id": "event7-same-venue-50",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue hard cap",
+      "sku": "event7",
+      "members": 50,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "event7-same-venue-75",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue caution threshold",
+      "sku": "event7",
+      "members": 75,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "event7-same-venue-100",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue breach",
+      "sku": "event7",
+      "members": 100,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "travel30-regional-illness-cluster-100",
+      "type": "correlated_event",
+      "label": "Travel 30 regional illness cluster",
+      "sku": "travel30",
+      "members": 100,
+      "affectedRate": 0.15,
+      "customSeverityUsd": 3500
+    },
+    {
+      "id": "travel30-regional-illness-cluster-200",
+      "type": "correlated_event",
+      "label": "Travel 30 regional illness cluster breach",
+      "sku": "travel30",
+      "members": 200,
+      "affectedRate": 0.15,
+      "customSeverityUsd": 3500
+    },
+    {
+      "id": "lp-exit-1000-e7",
+      "type": "reserve_reduction",
+      "label": "Event 7 LP exit stress",
+      "event7Members": 1000,
+      "travel30Members": 0,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "reserveReductionUsd": 20000
+    },
+    {
+      "id": "claims-ops-public-open",
+      "type": "claims_ops",
+      "label": "Claims operations public-open capacity",
+      "event7Members": 1000,
+      "travel30Members": 500,
+      "weeks": 4,
+      "frequencyMultiplier": 1.25
+    },
+    {
+      "id": "claims-ops-scale",
+      "type": "claims_ops",
+      "label": "Claims operations scale pressure",
+      "event7Members": 3000,
+      "travel30Members": 1000,
+      "weeks": 4,
+      "frequencyMultiplier": 1.25
+    }
+  ]
+}

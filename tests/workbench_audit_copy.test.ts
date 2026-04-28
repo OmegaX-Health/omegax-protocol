@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import overviewMetricsModule from "../frontend/lib/overview-metrics.ts";
 import workbenchModule from "../frontend/lib/workbench.ts";
 
+const { EMPTY_OVERVIEW_STATS_SOURCE } =
+  overviewMetricsModule as typeof import("../frontend/lib/overview-metrics.ts");
 const { buildAuditTrail } = workbenchModule as typeof import("../frontend/lib/workbench.ts");
 
 test("governance audit trail enumerates every visible queue state", () => {
@@ -31,4 +34,19 @@ test("overview audit trail keeps singular grammar for one approved claim", () =>
     auditTrail[0]?.detail,
     "1 claim lane is approved and waiting for reserve or settlement execution.",
   );
+});
+
+test("overview audit trail uses live source when supplied instead of fixture fallback", () => {
+  const auditTrail = buildAuditTrail({
+    section: "overview",
+    persona: "sponsor",
+    source: EMPTY_OVERVIEW_STATS_SOURCE,
+    demo: false,
+  });
+
+  assert.equal(
+    auditTrail[0]?.detail,
+    "0 claim lanes are approved and waiting for reserve or settlement execution.",
+  );
+  assert.equal(auditTrail.some((item) => item.detail.includes("fixture set")), false);
 });

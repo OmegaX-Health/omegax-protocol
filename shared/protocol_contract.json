@@ -762,6 +762,151 @@
       ]
     },
     {
+      "name": "authorize_claim_recipient",
+      "discriminator": [
+        112,
+        97,
+        129,
+        42,
+        125,
+        165,
+        226,
+        163
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "AuthorizeClaimRecipientArgs"
+            }
+          }
+        }
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": false,
+          "signer": true,
+          "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "member_position",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "member_position.health_plan",
+                "account": "MemberPosition"
+              },
+              {
+                "kind": "account",
+                "path": "member_position.wallet",
+                "account": "MemberPosition"
+              },
+              {
+                "kind": "account",
+                "path": "member_position.policy_series",
+                "account": "MemberPosition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_case",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  95,
+                  99,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.health_plan",
+                "account": "ClaimCase"
+              },
+              {
+                "kind": "account",
+                "path": "claim_case.claim_id",
+                "account": "ClaimCase"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "backfill_schema_dependency_ledger",
       "discriminator": [
         109,
@@ -1775,6 +1920,65 @@
               }
             ]
           }
+        },
+        {
+          "name": "asset_mint",
+          "writable": false,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "reserve_domain"
+              },
+              {
+                "kind": "arg",
+                "path": "args.asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "writable": false,
+          "signer": false,
+          "optional": false
         },
         {
           "name": "system_program",
@@ -5083,6 +5287,30 @@
               }
             ]
           }
+        },
+        {
+          "name": "asset_mint",
+          "writable": false,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "token_program",
+          "writable": false,
+          "signer": false,
+          "optional": false
         }
       ]
     },
@@ -7666,6 +7894,36 @@
           "writable": true,
           "signer": false,
           "optional": true
+        },
+        {
+          "name": "member_position",
+          "writable": false,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "asset_mint",
+          "writable": false,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": false
+        },
+        {
+          "name": "token_program",
+          "writable": false,
+          "signer": false,
+          "optional": false
         }
       ]
     },
@@ -8068,6 +8326,36 @@
               }
             ]
           }
+        },
+        {
+          "name": "member_position",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "asset_mint",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "token_program",
+          "writable": false,
+          "signer": false,
+          "optional": true
         }
       ]
     },

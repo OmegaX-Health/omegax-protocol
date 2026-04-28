@@ -10,6 +10,7 @@ import { PublicKey, Transaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { MultiOraclePicker, type MultiOracleOption } from "@/components/multi-oracle-picker";
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { WizardDetailSheet, WizardDetailTriggerRow, type WizardDetailMetaItem } from "@/components/wizard-detail-sheet";
 import { cn } from "@/lib/cn";
 import {
@@ -377,6 +378,7 @@ export function PlanCreationWizard() {
   const { connected, publicKey, sendTransaction } = useWallet();
   const { snapshot } = useProtocolConsoleSnapshot();
   const genesisTemplateMode = isGenesisProtectAcuteTemplate(searchParams.get("template"));
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
   const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("hybrid");
   const [stepIndex, setStepIndex] = useState(0);
@@ -1266,6 +1268,7 @@ export function PlanCreationWizard() {
         sendTransaction,
         tx,
         label,
+        confirmReview,
         review: launchReview,
       });
       if (!result.ok) {
@@ -1284,6 +1287,7 @@ export function PlanCreationWizard() {
         sendTransaction,
         tx,
         label,
+        confirmReview,
         review: launchReview,
       });
       if (!result.ok) {
@@ -1652,6 +1656,17 @@ export function PlanCreationWizard() {
               strategyHashHex: await stableSha256Hex({
                 template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
                 strategyThesis: GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS,
+              }),
+              allowedExposureHashHex: await stableSha256Hex({
+                template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+                policy: "event7-travel30-only",
+                seriesIds: genesisSeriesDefinitions.map((definition) => definition.seriesId),
+                allocationKeys: genesisAllocationDefinitions.map((definition) => definition.key),
+              }),
+              externalYieldAdapterHashHex: await stableSha256Hex({
+                template: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
+                adapter: "none",
+                launchTruth: "no-external-yield-adapter",
               }),
               feeBps: 0,
               redemptionPolicy: REDEMPTION_POLICY_QUEUE_ONLY,
@@ -2074,6 +2089,7 @@ export function PlanCreationWizard() {
     addActionLog,
     addressPreview.healthPlanAddress,
     allowDelegatedClaims,
+    confirmReview,
     connection,
     coveragePathway,
     defiSettlementMode,
@@ -2167,6 +2183,7 @@ export function PlanCreationWizard() {
 
   return (
     <div className="plans-shell">
+      {reviewPrompt}
       <div className="plans-wizard-scroll">
         <header className="plans-wizard-header">
           <div className="plans-wizard-header-ident">
