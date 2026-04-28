@@ -8680,6 +8680,43 @@
       backdrop-filter: blur(28px) saturate(170%);
     }
 
+    /*
+     * Tap-target audit: every interactive control in the topbar bumps to
+     * 44x44px on mobile so the hamburger, network/persona/theme dropdowns,
+     * and wallet trigger meet the iOS HIG minimum. The labels stay compact
+     * (font-size + letter-spacing already tuned in the parent block) but the
+     * hit area grows to satisfy a fingertip. Primary action buttons inside
+     * the workbench do not need this override since they are already block
+     * level with generous vertical padding.
+     */
+    .protocol-topbar-menu-button {
+      min-height: 2.75rem;
+      width: 2.75rem;
+    }
+
+    .protocol-toolbar-button {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+    }
+  }
+
+  /*
+   * Very narrow screens (<400px). The topbar wordmark, DEVNET pill, and
+   * three toolbar icons compete for ~280px of usable horizontal space after
+   * accounting for the hamburger and gutter padding. Without this shrink the
+   * wordmark visibly overlaps the network pill on iPhone SE-class viewports.
+   * Drop the wordmark image footprint so the network/persona/theme controls
+   * always have unambiguous separation.
+   */
+  @media (max-width: 399px) {
+    .protocol-topbar-wordmark-image {
+      width: 6rem;
+      max-width: min(22vw, 6rem);
+    }
+  }
+
+  @media (max-width: 899px) {
+
     .protocol-mobile-nav-link {
       display: flex;
       align-items: center;
