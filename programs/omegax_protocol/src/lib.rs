@@ -2035,6 +2035,32 @@ pub mod omegax_protocol {
             ctx.accounts.lp_position.pending_redemption_shares,
             ctx.accounts.lp_position.pending_redemption_assets,
         )?;
+
+        // Phase 1.6 — Pool-treasury exit fee. Validate the optional fee vault
+        // matches (liquidity_pool, deposit_asset_mint), then compute the carve-out.
+        // The full pending request is resolved (LP gives up claim on asset_amount),
+        // but only `net_to_lp` physically leaves the vault — the fee carve-out
+        // stays in the SPL token account as a treasury claim accrued below.
+        let pool_key = ctx.accounts.liquidity_pool.key();
+        let pool_deposit_mint = ctx.accounts.liquidity_pool.deposit_asset_mint;
+        let class_fee_bps = ctx.accounts.capital_class.fee_bps;
+        let exit_fee = if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref() {
+            require_keys_eq!(
+                vault.liquidity_pool,
+                pool_key,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            require_keys_eq!(
+                vault.asset_mint,
+                pool_deposit_mint,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            fee_share_from_bps(asset_amount, class_fee_bps)?
+        } else {
+            0
+        };
+        let net_to_lp = checked_sub(asset_amount, exit_fee)?;
+
         ctx.accounts.lp_position.pending_redemption_shares = checked_sub(
             ctx.accounts.lp_position.pending_redemption_shares,
             args.shares,
@@ -2045,9 +2071,10 @@ pub mod omegax_protocol {
         )?;
         ctx.accounts.lp_position.shares =
             checked_sub(ctx.accounts.lp_position.shares, args.shares)?;
+        // realized_distributions tracks what the LP actually received (post-fee).
         ctx.accounts.lp_position.realized_distributions = checked_add(
             ctx.accounts.lp_position.realized_distributions,
-            asset_amount,
+            net_to_lp,
         )?;
         ctx.accounts.lp_position.queue_status =
             if ctx.accounts.lp_position.pending_redemption_shares == 0 {
@@ -2056,22 +2083,32 @@ pub mod omegax_protocol {
                 LP_QUEUE_STATUS_PENDING
             };
 
+        // capital_class: LP claim reduced by the full asset_amount (the LP
+        // gives up claim on the entire pending payout; the fee portion is
+        // reclassified to treasury, not retained by LPs).
         ctx.accounts.capital_class.total_shares =
             checked_sub(ctx.accounts.capital_class.total_shares, args.shares)?;
         ctx.accounts.capital_class.nav_assets =
             checked_sub(ctx.accounts.capital_class.nav_assets, asset_amount)?;
         ctx.accounts.capital_class.pending_redemptions =
             checked_sub(ctx.accounts.capital_class.pending_redemptions, asset_amount)?;
+        // pool: total_value_locked tracks physical lock, decreases only by
+        // net_to_lp (fee tokens stay locked as treasury claim).
         ctx.accounts.liquidity_pool.total_value_locked =
-            checked_sub(ctx.accounts.liquidity_pool.total_value_locked, asset_amount)?;
+            checked_sub(ctx.accounts.liquidity_pool.total_value_locked, net_to_lp)?;
         ctx.accounts.liquidity_pool.total_pending_redemptions = checked_sub(
             ctx.accounts.liquidity_pool.total_pending_redemptions,
             asset_amount,
         )?;
 
+        // Physical vault counter — only net_to_lp leaves the SPL token account.
         ctx.accounts.domain_asset_vault.total_assets =
-            checked_sub(ctx.accounts.domain_asset_vault.total_assets, asset_amount)?;
+            checked_sub(ctx.accounts.domain_asset_vault.total_assets, net_to_lp)?;
 
+        // Ledger sheets: track the full pending → settled transition. When fee
+        // is taken, the sheet temporarily over-states LP outflow vs physical
+        // outflow; treasury accrual reconciles via the accrued_fees counter.
+        // TODO: fee-aware ledger semantics in a follow-up.
         settle_pending_redemption(
             &mut ctx.accounts.pool_class_ledger,
             asset_amount,
@@ -2091,13 +2128,30 @@ pub mod omegax_protocol {
             OmegaXProtocolError::Unauthorized
         );
         transfer_from_domain_vault(
-            asset_amount,
+            net_to_lp,
             &ctx.accounts.domain_asset_vault,
             &ctx.accounts.vault_token_account,
             &ctx.accounts.recipient_token_account,
             &ctx.accounts.asset_mint,
             &ctx.accounts.token_program,
         )?;
+
+        // Accrue the exit fee to the pool-treasury vault. SPL tokens are still
+        // physically in the vault_token_account; only the rail's claim counter
+        // changes. Skipped silently when exit_fee == 0.
+        if exit_fee > 0 {
+            if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref_mut() {
+                let vault_key = vault.key();
+                let vault_mint = vault.asset_mint;
+                let accrued_total = accrue_fee(&mut vault.accrued_fees, exit_fee)?;
+                emit!(FeeAccruedEvent {
+                    vault: vault_key,
+                    asset_mint: vault_mint,
+                    amount: exit_fee,
+                    accrued_total,
+                });
+            }
+        }
 
         Ok(())
     }
@@ -3593,6 +3647,11 @@ pub struct ProcessRedemptionQueue<'info> {
     pub pool_class_ledger: Box<Account<'info, PoolClassLedger>>,
     #[account(mut, seeds = [SEED_LP_POSITION, capital_class.key().as_ref(), lp_position.owner.as_ref()], bump = lp_position.bump)]
     pub lp_position: Box<Account<'info, LPPosition>>,
+    /// Phase 1.6 — optional pool-treasury vault for exit-fee accrual.
+    /// When supplied, must match (liquidity_pool, deposit_asset_mint).
+    /// Validated at runtime; absent means exit-fee accrual is skipped (backward compat).
+    #[account(mut)]
+    pub pool_treasury_vault: Option<Box<Account<'info, PoolTreasuryVault>>>,
     // PT-2026-04-27-01/02 fix: outflow CPI accounts. Recipient must be the LP
     // position's owner — there is no delegate-recipient pattern for redemptions.
     #[account(
