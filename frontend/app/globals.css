@@ -8680,6 +8680,43 @@
       backdrop-filter: blur(28px) saturate(170%);
     }
 
+    /*
+     * Tap-target audit: every interactive control in the topbar bumps to
+     * 44x44px on mobile so the hamburger, network/persona/theme dropdowns,
+     * and wallet trigger meet the iOS HIG minimum. The labels stay compact
+     * (font-size + letter-spacing already tuned in the parent block) but the
+     * hit area grows to satisfy a fingertip. Primary action buttons inside
+     * the workbench do not need this override since they are already block
+     * level with generous vertical padding.
+     */
+    .protocol-topbar-menu-button {
+      min-height: 2.75rem;
+      width: 2.75rem;
+    }
+
+    .protocol-toolbar-button {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+    }
+  }
+
+  /*
+   * Very narrow screens (<400px). The topbar wordmark, DEVNET pill, and
+   * three toolbar icons compete for ~280px of usable horizontal space after
+   * accounting for the hamburger and gutter padding. Without this shrink the
+   * wordmark visibly overlaps the network pill on iPhone SE-class viewports.
+   * Drop the wordmark image footprint so the network/persona/theme controls
+   * always have unambiguous separation.
+   */
+  @media (max-width: 399px) {
+    .protocol-topbar-wordmark-image {
+      width: 6rem;
+      max-width: min(22vw, 6rem);
+    }
+  }
+
+  @media (max-width: 899px) {
+
     .protocol-mobile-nav-link {
       display: flex;
       align-items: center;
@@ -9211,6 +9248,97 @@
 
     .operator-drawer-rights {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    /*
+     * Table card-stack pattern.
+     * Tables across the workbench (capital allocations, plan claims, oracle
+     * watch, governance proposals, schemas) all use .plans-table with
+     * data-label attributes on every <td>. At narrow viewports they used to
+     * be horizontally-scrollable wallpaper; here they collapse into a
+     * card-per-row layout that surfaces the data-label as the field name and
+     * the cell content as the value, so a sponsor can actually read every
+     * row on a phone instead of scroll-hunting columns.
+     */
+    .plans-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .plans-table tbody tr {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      padding: 0.625rem 0.75rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+      border-radius: 0.5rem;
+      background: color-mix(in oklab, var(--surface-soft) 92%, transparent);
+    }
+
+    .plans-table tbody tr:hover {
+      background: color-mix(in oklab, var(--surface-strong) 92%, transparent);
+    }
+
+    .plans-table tbody tr:last-child td,
+    .plans-table tbody tr td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.32rem 0;
+      text-align: right;
+      border-bottom: 1px solid color-mix(in oklab, var(--border) 22%, transparent);
+    }
+
+    .plans-table tbody tr td:last-child {
+      border-bottom: 0;
+      padding-right: 0;
+    }
+
+    .plans-table tbody tr td::before {
+      content: attr(data-label);
+      flex-shrink: 0;
+      align-self: center;
+      font-family: var(--font-mono), "Fira Code", monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted-foreground);
+      text-align: left;
+    }
+
+    /* Mobile sheet panel: full-width edge-to-edge, drop the left border, and
+       respect the iOS bottom safe-area so action buttons clear the home bar. */
+    .wizard-detail-sheet-panel,
+    .wizard-detail-sheet-panel-wide {
+      width: 100vw;
+      max-width: 100vw;
+      border-left: 0;
+    }
+
+    .wizard-detail-sheet-body {
+      padding-bottom: calc(1.35rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    /*
+     * Hide the sticky resource footer on mobile.
+     * On a 375px viewport the footer was eating ~80px of screen real estate
+     * for SOURCE / SDK / DOCS / STATUS / AUDITS links no operator needs
+     * mid-task. The sidebar nav already carries everything needed for in-task
+     * navigation on mobile; the footer links are desktop reference material.
+     * Footer stays in the DOM for screen readers and crawlers but is hidden
+     * from the visual viewport.
+     */
+    .protocol-footer {
+      display: none;
     }
   }
 
