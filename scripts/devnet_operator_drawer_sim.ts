@@ -369,14 +369,13 @@ async function main(): Promise<void> {
       process.env.NEXT_PUBLIC_DEVNET_SETTLEMENT_MINT ||
       process.env.NEXT_PUBLIC_DEFAULT_INSURANCE_PAYOUT_MINT ||
       "";
-    const vaultTokenAccount =
-      process.env.OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT ||
-      "";
     if (!assetMint) {
       results.push(skip("Create domain asset vault", "governance", "no settlement mint configured"));
-    } else if (!vaultTokenAccount) {
-      results.push(skip("Create domain asset vault", "governance", "no vault token account configured"));
     } else {
+      // PT-2026-04-27-01/02 fix: vault token account is now PDA-owned and
+      // initialized by the program inline, so the OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT
+      // env var is no longer required. The token account address is derivable
+      // via deriveDomainAssetVaultTokenAccountPda for downstream inflow calls.
       results.push(
         await simulate(
           connection,
@@ -387,7 +386,6 @@ async function main(): Promise<void> {
             reserveDomainAddress: reserveDomain.address,
             assetMint,
             recentBlockhash: blockhash,
-            vaultTokenAccountAddress: vaultTokenAccount,
           }),
           "Create domain asset vault",
           "governance",

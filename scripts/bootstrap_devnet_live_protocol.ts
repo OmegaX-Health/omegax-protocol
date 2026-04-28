@@ -423,6 +423,28 @@ async function main() {
     reserveDomain: openReserveDomain.address,
     assetMint: fixtureState.rewardMint,
   }).toBase58();
+  // PT-2026-04-27-01/02 fix: vault token accounts are now PDA-owned. Operators
+  // no longer pre-create them or pass `OMEGAX_DEVNET_*_VAULT_TOKEN_ACCOUNT`
+  // env vars; downstream inflow / settlement instructions reference these
+  // derived addresses directly.
+  const openSettlementVaultTokenAccount = protocol
+    .deriveDomainAssetVaultTokenAccountPda({
+      reserveDomain: openReserveDomain.address,
+      assetMint: fixtureState.settlementMint,
+    })
+    .toBase58();
+  const openRewardVaultTokenAccount = protocol
+    .deriveDomainAssetVaultTokenAccountPda({
+      reserveDomain: openReserveDomain.address,
+      assetMint: fixtureState.rewardMint,
+    })
+    .toBase58();
+  const wrapperSettlementVaultTokenAccount = protocol
+    .deriveDomainAssetVaultTokenAccountPda({
+      reserveDomain: wrapperReserveDomain.address,
+      assetMint: fixtureState.wrapperSettlementMint,
+    })
+    .toBase58();
   const openClassLedger = protocol.derivePoolClassLedgerPda({
     capitalClass: openClass.address,
     assetMint: fixtureState.settlementMint,
@@ -599,6 +621,15 @@ async function main() {
     if (vaultExists !== ledgerExists) {
       throw new Error(`Partial domain asset bootstrap exists for ${assetVault.label}.`);
     }
+    // PT-2026-04-27-01/02 fix: vault token account is now PDA-owned and the
+    // program initializes it inline. Operators no longer pre-create token
+    // accounts or pass vault_token_account env vars at vault creation time.
+    const vaultTokenAccountAddress = protocol
+      .deriveDomainAssetVaultTokenAccountPda({
+        reserveDomain: assetVault.reserveDomain,
+        assetMint: assetVault.assetMint,
+      })
+      .toBase58();
     await sendProtocolInstruction({
       protocol,
       connection,
@@ -607,7 +638,6 @@ async function main() {
       instructionName: "create_domain_asset_vault",
       args: {
         asset_mint: new PublicKey(assetVault.assetMint),
-        vault_token_account: requiredPublicKeyEnv(assetVault.vaultTokenAccountEnv),
       },
       accounts: [
         { pubkey: governance.publicKey, isSigner: true, isWritable: true },
@@ -615,6 +645,9 @@ async function main() {
         { pubkey: assetVault.reserveDomain, isWritable: true },
         { pubkey: assetVault.vault, isWritable: true },
         { pubkey: assetVault.ledger, isWritable: true },
+        { pubkey: new PublicKey(assetVault.assetMint) },
+        { pubkey: vaultTokenAccountAddress, isWritable: true },
+        { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -1130,7 +1163,7 @@ async function main() {
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.rewardMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: openRewardVaultTokenAccount, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
@@ -1158,7 +1191,7 @@ async function main() {
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.rewardMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_REWARD_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: openRewardVaultTokenAccount, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
@@ -1186,7 +1219,7 @@ async function main() {
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: openSettlementVaultTokenAccount, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
       ],
     });
@@ -1259,7 +1292,7 @@ async function main() {
         { pubkey: openLpPosition, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_LP_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: openSettlementVaultTokenAccount, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],
@@ -1288,7 +1321,7 @@ async function main() {
         { pubkey: wrapperLpPosition, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_WRAPPER_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
-        { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_OPEN_SETTLEMENT_VAULT_TOKEN_ACCOUNT"), isWritable: true },
+        { pubkey: openSettlementVaultTokenAccount, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID },
         { pubkey: SystemProgram.programId },
       ],

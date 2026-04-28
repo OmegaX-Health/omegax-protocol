@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Landmark, LoaderCircle, RefreshCcw, Users, Vote as VoteIcon, WalletCards } from "lucide-react";
 
+import { Amount } from "@/components/amount";
 import { GovernanceProposalDetailPanel } from "@/components/governance-proposal-detail-panel";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { RealmsActionsPanel } from "@/components/realms-actions-panel";
@@ -464,7 +465,9 @@ export function GovernanceConsole({
 
           <article className="operator-summary-card">
             <p className="metric-label">Native treasury</p>
-            <p className="text-sm font-semibold text-[var(--foreground)]">{Number(dashboard.nativeTreasuryLamports) / 1e9} SOL</p>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              <Amount value={dashboard.nativeTreasuryLamports} showUsd />
+            </p>
             <p className="text-xs text-[var(--muted-foreground)] break-all">{dashboard.nativeTreasuryAddress}</p>
           </article>
 
