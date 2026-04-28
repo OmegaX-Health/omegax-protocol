@@ -13,7 +13,7 @@ import { PoolOraclesPanel as PoolOraclePolicyPanel } from "@/components/pool-ora
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import { deriveOracleSettlementActionDraft } from "@/lib/protocol-workspace-mappers";
 import {
   AI_ROLE_ORACLE,
@@ -432,12 +432,18 @@ export function PoolOraclesConsole({ poolAddress }: PoolOraclesConsoleProps) {
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = buildTx(blockhash);
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         signers,
         label,
+        onConfirmed: async () => {
+          await refresh();
+        },
+        onRetry: () => {
+          void runAction(label, buildTx, signers);
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -447,7 +453,6 @@ export function PoolOraclesConsole({ poolAddress }: PoolOraclesConsoleProps) {
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusyAction(null);
     }

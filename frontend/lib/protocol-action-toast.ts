@@ -8,6 +8,7 @@ import {
   executeProtocolTransaction,
   type ProtocolActionResult,
   type ProtocolActionSuccess,
+  type ProtocolTransactionReviewConfirmation,
   type ProtocolTransactionReviewMetadata,
 } from "@/lib/protocol-action";
 import { humanizeProtocolError } from "@/lib/protocol-error-map";
@@ -38,6 +39,15 @@ export type ProtocolActionToastParams = {
   signers?: Signer[];
   explorerCluster?: string | null;
   review?: ProtocolTransactionReviewMetadata;
+  /**
+   * Pre-sign review confirmation. Required whenever `review` is supplied —
+   * `executeProtocolTransaction` rejects the call (`requires a pre-sign
+   * review before wallet signing`) when review metadata is provided without
+   * a confirmation handler. The toast wrapper forwards this verbatim; it is
+   * the operator drawer's responsibility to provide the prompt
+   * (`useProtocolTransactionReviewPrompt`).
+   */
+  confirmReview?: ProtocolTransactionReviewConfirmation;
   onConfirmed?: (result: ProtocolActionSuccess) => void | Promise<void>;
   onRetry?: () => void | Promise<void>;
 };
@@ -59,6 +69,7 @@ export async function executeProtocolTransactionWithToast(
       signers: params.signers,
       explorerCluster: params.explorerCluster ?? null,
       review: params.review,
+      confirmReview: params.confirmReview,
       onLifecycle: (event) => {
         if (event.phase !== "submitted") return;
         toast.loading(`${params.label} submitted`, {

@@ -9,7 +9,7 @@ import type { Transaction } from "@solana/web3.js";
 import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { Term } from "@/components/term";
 import { WizardDetailSheet } from "@/components/wizard-detail-sheet";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildAllocateCapitalTx,
   buildCreateAllocationPositionTx,
@@ -180,7 +180,7 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
     setStatus(null);
     try {
       const tx = await factory();
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
@@ -199,13 +199,18 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
             ? ["Genesis reserve movement should stay paired with readiness and operator sign-off review."]
             : [],
         },
+        onConfirmed: async () => {
+          await props.onRefresh?.();
+        },
+        onRetry: () => {
+          void run(label, factory);
+        },
       });
       if (!result.ok) {
         setStatus({ tone: "error", message: result.error });
         return;
       }
       setStatus({ tone: "ok", message: result.message, explorerUrl: result.explorerUrl });
-      await props.onRefresh?.();
     } catch (err) {
       setStatus({
         tone: "error",

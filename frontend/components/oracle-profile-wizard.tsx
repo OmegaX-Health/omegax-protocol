@@ -13,7 +13,7 @@ import {
   resolveOracleWizardBootstrapState,
   type OracleWizardBlockingError,
 } from "@/lib/oracle-profile-wizard-bootstrap";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   ORACLE_TYPE_HEALTH_APP,
   ORACLE_TYPE_HOSPITAL_CLINIC,
@@ -568,11 +568,14 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
           supportedSchemaKeyHashesHex: selectedSchemaHashes,
         });
 
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: mode === "register" ? "Register oracle profile" : "Update oracle profile",
+        onConfirmed: async () => {
+          await loadWizardData();
+        },
       });
 
       if (!result.ok) {
@@ -585,7 +588,6 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
       setStatusMessage(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await loadWizardData();
     } finally {
       setBusyAction(null);
     }
@@ -629,11 +631,14 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
         oracle: publicKey,
         recentBlockhash: blockhash,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Claim oracle activation",
+        onConfirmed: async () => {
+          await loadWizardData();
+        },
       });
       if (!result.ok) {
         setClaimError(result.error);
@@ -641,7 +646,6 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
       }
       setClaimSuccess(result.message);
       setTxUrl(result.explorerUrl);
-      await loadWizardData();
     } finally {
       setClaimBusy(false);
     }

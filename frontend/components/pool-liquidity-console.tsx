@@ -12,7 +12,7 @@ import { PoolLiquidityPanel as PoolLiquidityDirectPanel } from "@/components/poo
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
 import { SearchableSelect } from "@/components/searchable-select";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import { deriveRedemptionQueueActionDraft } from "@/lib/protocol-workspace-mappers";
 import {
   CAPITAL_CLASS_MODE_HYBRID,
@@ -294,11 +294,17 @@ export function PoolLiquidityConsole({
     try {
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       const tx = buildTx(blockhash);
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label,
+        onConfirmed: async () => {
+          await refresh();
+        },
+        onRetry: () => {
+          void runAction(label, buildTx);
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -308,7 +314,6 @@ export function PoolLiquidityConsole({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusyAction(null);
     }

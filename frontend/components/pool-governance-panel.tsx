@@ -9,7 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 import { GovernanceConsole } from "@/components/governance-console";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { usePoolWorkspaceContext } from "@/components/pool-workspace-context";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildInitializeProtocolTx,
   buildRotateGovernanceAuthorityTx,
@@ -129,11 +129,14 @@ export function PoolGovernancePanel({ protocolConfig, onRefresh }: PoolGovernanc
         defaultStakeMint,
         minOracleStake: BigInt(minOracleStake || "0"),
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Initialize protocol",
+        onConfirmed: async () => {
+          await refreshConfig();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -143,7 +146,6 @@ export function PoolGovernancePanel({ protocolConfig, onRefresh }: PoolGovernanc
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refreshConfig();
     } finally {
       setBusy(null);
     }
@@ -165,11 +167,14 @@ export function PoolGovernancePanel({ protocolConfig, onRefresh }: PoolGovernanc
         minOracleStake: BigInt(minOracleStake || "0"),
         emergencyPaused,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Update protocol params",
+        onConfirmed: async () => {
+          await refreshConfig();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -179,7 +184,6 @@ export function PoolGovernancePanel({ protocolConfig, onRefresh }: PoolGovernanc
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refreshConfig();
     } finally {
       setBusy(null);
     }
@@ -198,11 +202,14 @@ export function PoolGovernancePanel({ protocolConfig, onRefresh }: PoolGovernanc
         newAuthority: nextAuthority,
         recentBlockhash: blockhash,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Rotate governance authority",
+        onConfirmed: async () => {
+          await refreshConfig();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -212,7 +219,6 @@ export function PoolGovernancePanel({ protocolConfig, onRefresh }: PoolGovernanc
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refreshConfig();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "New governance authority is invalid.");
       setStatusTone("error");

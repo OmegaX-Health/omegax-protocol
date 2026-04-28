@@ -9,7 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 import { ExternalLink, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { SearchableSelect } from "@/components/searchable-select";
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildSetPoolOraclePermissionsTx,
   buildSetPoolOraclePolicyTx,
@@ -269,11 +269,14 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         recentBlockhash: blockhash,
         active: approvalActive,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: approvalActive ? "Approve oracle" : "Disable oracle approval",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -283,7 +286,6 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusy(null);
     }
@@ -303,11 +305,14 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         permissions: Number.parseInt(permissionMask, 10) || 0,
         recentBlockhash: blockhash,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Set oracle permissions",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -317,7 +322,6 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusy(null);
     }
@@ -341,11 +345,14 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         allowDelegateClaim,
         challengeWindowSecs: Number.parseInt(challengeWindowSecs, 10) || 0,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Set oracle policy",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -355,7 +362,6 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } finally {
       setBusy(null);
     }

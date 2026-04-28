@@ -8,7 +8,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { CheckCircle2, ExternalLink, LoaderCircle, Vote as VoteIcon } from "lucide-react";
 
-import { executeProtocolTransaction } from "@/lib/protocol-action";
+import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildCastGovernanceVoteTx,
   buildExecuteGovernanceTransactionTx,
@@ -96,11 +96,14 @@ export function GovernanceProposalDetailPanel({
         owner: publicKey,
         proposalAddress: new PublicKey(proposalAddress),
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: approve ? "Cast yes vote" : "Cast no vote",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -110,7 +113,6 @@ export function GovernanceProposalDetailPanel({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Vote submission failed.");
       setStatusTone("error");
@@ -130,11 +132,14 @@ export function GovernanceProposalDetailPanel({
         owner: publicKey,
         proposalAddress: new PublicKey(proposalAddress),
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: "Relinquish vote",
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -144,7 +149,6 @@ export function GovernanceProposalDetailPanel({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Relinquish vote failed.");
       setStatusTone("error");
@@ -168,11 +172,14 @@ export function GovernanceProposalDetailPanel({
         rawInstructions: proposalTransaction.rawInstructions,
         walletAddress: publicKey,
       });
-      const result = await executeProtocolTransaction({
+      const result = await executeProtocolTransactionWithToast({
         connection,
         sendTransaction,
         tx,
         label: `Execute instruction ${proposalTransaction.instructionIndex + 1}`,
+        onConfirmed: async () => {
+          await refresh();
+        },
       });
       if (!result.ok) {
         setStatus(result.error);
@@ -182,7 +189,6 @@ export function GovernanceProposalDetailPanel({
       setStatus(result.message);
       setStatusTone("ok");
       setTxUrl(result.explorerUrl);
-      await refresh();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Execution failed.");
       setStatusTone("error");
