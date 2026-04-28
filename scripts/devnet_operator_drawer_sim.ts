@@ -18,9 +18,10 @@
 
 import { Buffer } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+
+import { keypairFromFile } from "./support/script_helpers.ts";
 
 import {
   Connection,
@@ -108,10 +109,6 @@ function proofModeForPlan(protocol: ProtocolModule, plan: { membershipModeValue?
   if (mode === protocol.MEMBERSHIP_MODE_INVITE_ONLY) return protocol.MEMBERSHIP_PROOF_MODE_INVITE_PERMIT;
   if (mode === protocol.MEMBERSHIP_MODE_TOKEN_GATE) return protocol.MEMBERSHIP_PROOF_MODE_TOKEN_GATE;
   return protocol.MEMBERSHIP_PROOF_MODE_OPEN;
-}
-
-function keypairFromFile(path: string): Keypair {
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
 }
 
 function classifyError(

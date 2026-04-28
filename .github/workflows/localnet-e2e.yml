@@ -1,0 +1,112 @@
+name: Localnet E2E
+
+# Runs the heavier `npm run test:e2e:localnet` suite when a PR touches the
+# on-chain program, the IDL, the shared protocol contract, the frontend
+# protocol/SDK surface, the e2e harness itself, or this workflow file.
+#
+# Keep CI fast on docs-only / unrelated frontend PRs by relying on the path
+# filter below — the public CI workflow (`ci.yml`) is the per-PR gate; this
+# workflow is the protocol-surface evidence lane.
+#
+# Expected first-run time: ~15-30 min (Solana CLI install + Anchor cargo
+# install + anchor build + localnet boot + suite). Subsequent runs reuse the
+# cached toolchains and target dir, dropping to ~8-12 min.
+
+on:
+  pull_request:
+    paths:
+      - 'programs/**'
+      - 'idl/**'
+      - 'shared/**'
+      - 'frontend/lib/protocol.ts'
+      - 'frontend/lib/protocol-action.ts'
+      - 'e2e/**'
+      - 'scripts/run_localnet_e2e.mjs'
+      - 'Anchor.toml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/localnet-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: localnet-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  localnet-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANCHOR_VERSION: 0.32.1
+      OMEGAX_E2E_KEEP_ARTIFACTS: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry, git, and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-localnet-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'programs/**/Cargo.toml') }}
+          restore-keys: |
+            cargo-localnet-${{ runner.os }}-
+
+      - name: Cache Solana CLI install
+        id: solana-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/solana
+          key: solana-stable-${{ runner.os }}-v1
+
+      - name: Install Solana CLI
+        if: steps.solana-cache.outputs.cache-hit != 'true'
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+
+      - name: Add Solana CLI to PATH
+        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Anchor CLI binary
+        id: anchor-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/anchor
+          key: anchor-cli-${{ env.ANCHOR_VERSION }}-${{ runner.os }}
+
+      - name: Install Anchor CLI
+        if: steps.anchor-cache.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/coral-xyz/anchor anchor-cli --tag v${{ env.ANCHOR_VERSION }} --locked
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Run localnet E2E
+        run: npm run test:e2e:localnet
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localnet-e2e-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7

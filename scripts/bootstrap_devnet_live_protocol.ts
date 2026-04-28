@@ -2,7 +2,6 @@
 
 import { spawnSync } from "node:child_process";
 import { Buffer } from "node:buffer";
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -21,6 +20,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX } from "./devnet_governance_smoke_helpers.ts";
 import { loadEnvFile } from "./support/load_env_file.ts";
 import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
+import { keypairFromFile, requiredPublicKeyEnv, sha256Bytes } from "./support/script_helpers.ts";
 
 type ProtocolModule = typeof import("../frontend/lib/protocol.ts");
 type FixturesModule = typeof import("../frontend/lib/devnet-fixtures.ts");
@@ -59,22 +59,6 @@ const RIGHT_VIEW_PAYOUT_HISTORY = 1 << 1;
 const RIGHT_OPEN_CLAIM_CASE = 1 << 2;
 const RIGHT_APPOINT_DELEGATE = 1 << 3;
 const STANDARD_SCHEMA_KEY_HASH_BYTES = [...Buffer.from(STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX, "hex")];
-
-function sha256Bytes(label: string): number[] {
-  return [...createHash("sha256").update(label).digest()];
-}
-
-function keypairFromFile(path: string): Keypair {
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
-}
-
-function requiredPublicKeyEnv(name: string): PublicKey {
-  const value = (process.env[name] ?? "").trim();
-  if (!value) {
-    throw new Error(`${name} must be set to a real SPL token account for live treasury custody.`);
-  }
-  return new PublicKey(value);
-}
 
 function ensureRoleKeypair(name: string): Keypair {
   const path = resolve(LOCAL_ROLE_DIR, `${name}.json`);

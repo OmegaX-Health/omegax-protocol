@@ -4,6 +4,8 @@
 
 import { useEffect } from "react";
 
+import { reportError } from "@/lib/error-tracking";
+
 type GlobalErrorProps = {
   error: Error & { digest?: string };
   reset: () => void;
@@ -11,12 +13,7 @@ type GlobalErrorProps = {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    if (typeof console !== "undefined") {
-      console.error("[omegax-protocol] root error", {
-        message: error.message,
-        digest: error.digest,
-      });
-    }
+    reportError(error, { scope: "root", digest: error.digest ?? null });
   }, [error]);
 
   return (

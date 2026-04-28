@@ -22,6 +22,7 @@ import {
   stableStringify,
 } from "./support/genesis_live_bootstrap_config.ts";
 import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
+import { keypairFromFile, requiredPublicKeyEnv, sha256Bytes } from "./support/script_helpers.ts";
 
 type ProtocolModule = typeof import("../frontend/lib/protocol.ts");
 
@@ -45,29 +46,10 @@ type CurrentValue = {
 const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 const DEFAULT_GOVERNANCE_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 
-function sha256Bytes(label: string): number[] {
-  return [...createHash("sha256").update(label).digest()];
-}
-
 function schemaMetadataHashHex(path: string): string {
   const raw = readFileSync(path, "utf8");
   const parsed = JSON.parse(raw);
   return createHash("sha256").update(stableStringify(parsed)).digest("hex");
-}
-
-function keypairFromFile(path: string): Keypair {
-  if (!existsSync(path)) {
-    throw new Error(`Missing keypair file: ${path}`);
-  }
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, "utf8"))));
-}
-
-function requiredPublicKeyEnv(name: string): PublicKey {
-  const value = (process.env[name] ?? "").trim();
-  if (!value) {
-    throw new Error(`${name} must be set to a real SPL token account for live treasury custody.`);
-  }
-  return new PublicKey(value);
 }
 
 function parseArgs(argv: string[]): { planOnly: boolean } {

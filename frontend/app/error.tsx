@@ -4,6 +4,8 @@
 
 import { useEffect } from "react";
 
+import { reportError } from "@/lib/error-tracking";
+
 type ErrorBoundaryProps = {
   error: Error & { digest?: string };
   reset: () => void;
@@ -11,12 +13,7 @@ type ErrorBoundaryProps = {
 
 export default function RouteError({ error, reset }: ErrorBoundaryProps) {
   useEffect(() => {
-    if (typeof console !== "undefined") {
-      console.error("[omegax-protocol] route error", {
-        message: error.message,
-        digest: error.digest,
-      });
-    }
+    reportError(error, { scope: "route", digest: error.digest ?? null });
   }, [error]);
 
   return (
