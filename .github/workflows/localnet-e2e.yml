@@ -111,8 +111,17 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Build Solana program
+        # The e2e harness pre-checks for target/deploy/omegax_protocol.so
+        # before its own build step (a guard-rail for operators who run
+        # `anchor:idl` first). In CI we have no prior step, so we build
+        # explicitly here and skip the harness's internal build.
+        run: npm run anchor:build:checked
+
       - name: Run localnet E2E
         run: npm run test:e2e:localnet
+        env:
+          OMEGAX_E2E_SKIP_BUILD: '1'
 
       - name: Upload artifacts on failure
         if: failure()
