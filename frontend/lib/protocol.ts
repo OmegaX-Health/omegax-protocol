@@ -334,6 +334,7 @@ export type ClaimCaseSnapshot = {
   fundingLine: string;
   memberPosition: string;
   claimant: string;
+  adjudicator?: string | null;
   claimId: string;
   intakeStatus: number;
   approvedAmount: BigNumberish;
@@ -2165,6 +2166,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           fundingLine: asAddress(decodedField(decoded, "fundingLine")),
           memberPosition: asAddress(decodedField(decoded, "memberPosition")),
           claimant: asAddress(decodedField(decoded, "claimant")),
+          adjudicator: asOptionalAddress(decodedField(decoded, "adjudicator")),
           claimId: stringFromAnchorValue(decodedField(decoded, "claimId")),
           intakeStatus: Number(decodedField(decoded, "intakeStatus") ?? 0),
           approvedAmount: bigintFromAnchorValue(decodedField(decoded, "approvedAmount")),
@@ -4409,10 +4411,37 @@ function buildObligationFlowTx(params: {
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
   poolAssetMint?: PublicKeyish | null;
+  memberPositionAddress?: PublicKeyish | null;
+  vaultTokenAccountAddress?: PublicKeyish | null;
+  recipientTokenAccountAddress?: PublicKeyish | null;
+  tokenProgramId?: PublicKeyish | null;
   args: Record<string, unknown>;
   includeVault?: boolean;
 }): Transaction {
   const authority = toPublicKey(params.authority);
+  const includeSettlementOutflow = Boolean(
+    params.memberPositionAddress
+      && params.vaultTokenAccountAddress
+      && params.recipientTokenAccountAddress,
+  );
+  const settlementOutflowAccounts: ProtocolInstructionAccountInput[] =
+    params.instructionName === "settle_obligation"
+      ? includeSettlementOutflow
+        ? [
+          { pubkey: params.memberPositionAddress },
+          { pubkey: params.assetMint },
+          { pubkey: params.vaultTokenAccountAddress, isWritable: true },
+          { pubkey: params.recipientTokenAccountAddress, isWritable: true },
+          { pubkey: toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID) },
+        ]
+        : [
+          optionalProtocolAccount(undefined),
+          optionalProtocolAccount(undefined),
+          optionalProtocolAccount(undefined),
+          optionalProtocolAccount(undefined),
+          optionalProtocolAccount(undefined),
+        ]
+      : [];
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -4457,6 +4486,7 @@ function buildObligationFlowTx(params: {
       optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
       { pubkey: params.obligationAddress, isWritable: true },
       optionalProtocolAccount(params.claimCaseAddress, true),
+      ...settlementOutflowAccounts,
     ],
   });
 }
@@ -4521,6 +4551,10 @@ export function buildSettleObligationTx(params: {
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
   poolAssetMint?: PublicKeyish | null;
+  memberPositionAddress?: PublicKeyish | null;
+  vaultTokenAccountAddress?: PublicKeyish | null;
+  recipientTokenAccountAddress?: PublicKeyish | null;
+  tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   return buildObligationFlowTx({
     ...params,
@@ -4548,8 +4582,16 @@ export function buildSettleClaimCaseTx(params: {
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
   poolAssetMint?: PublicKeyish | null;
+  protocolFeeVaultAddress?: PublicKeyish | null;
+  poolOracleFeeVaultAddress?: PublicKeyish | null;
+  poolOraclePolicyAddress?: PublicKeyish | null;
+  memberPositionAddress?: PublicKeyish | null;
+  vaultTokenAccountAddress?: PublicKeyish | null;
+  recipientTokenAccountAddress?: PublicKeyish | null;
+  tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -4594,6 +4636,14 @@ export function buildSettleClaimCaseTx(params: {
       optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
       { pubkey: params.claimCaseAddress, isWritable: true },
       optionalProtocolAccount(params.obligationAddress, true),
+      optionalProtocolAccount(params.protocolFeeVaultAddress, true),
+      optionalProtocolAccount(params.poolOracleFeeVaultAddress, true),
+      optionalProtocolAccount(params.poolOraclePolicyAddress),
+      optionalProtocolAccount(params.memberPositionAddress),
+      { pubkey: params.assetMint },
+      optionalProtocolAccount(params.vaultTokenAccountAddress, true),
+      optionalProtocolAccount(params.recipientTokenAccountAddress, true),
+      { pubkey: params.memberPositionAddress && params.vaultTokenAccountAddress && params.recipientTokenAccountAddress ? tokenProgramId : getProgramId() },
     ],
   });
 }
