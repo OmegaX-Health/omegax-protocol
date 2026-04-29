@@ -10,6 +10,16 @@
 
 ---
 
+## Remediation Update — 2026-04-29
+
+The pre-mainnet hardening patch following this report remediated the three confirmed fund-flow blockers:
+
+- **FINDING-9:** `deposit_into_capital_class` no longer honors caller-supplied shares. The existing `shares` wire field is now interpreted as `min_shares_out`; actual issued shares are derived from current `total_shares / nav_assets`, with 1:1 bootstrap only for an empty class.
+- **FINDING-6:** v1 custody rails now require the classic SPL Token program and reject Token-2022 mint/program ownership at vault creation and transfer helper boundaries.
+- **Fee-withdraw recipient risk:** protocol, pool-treasury, and pool-oracle fee vaults now store `fee_recipient`; SOL withdrawals must pay that address directly, and SPL withdrawals must pay a token account owned by that address.
+
+Validation for the remediation: `npm run anchor:idl`, `npm run protocol:contract`, `npm run rust:test`, `npm run test:node`, `npm run verify:public`, and `npm run test:e2e:localnet`.
+
 ## Verdict
 
 **Codex verdict:** `MUST-FIX-BEFORE-MAINNET`
