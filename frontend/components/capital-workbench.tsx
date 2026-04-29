@@ -1145,6 +1145,8 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
           allocations={poolAllocations}
           plans={snapshot.healthPlans}
           fundingLines={snapshot.fundingLines}
+          domainAssetVaults={snapshot.domainAssetVaults}
+          poolTreasuryVaults={snapshot.poolTreasuryVaults}
         />
       ) : null}
     </div>

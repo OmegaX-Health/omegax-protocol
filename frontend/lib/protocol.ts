@@ -399,6 +399,7 @@ export type CapitalClassSnapshot = {
   displayName: string;
   priority: number;
   restrictionMode: number;
+  feeBps?: number;
   totalShares: BigNumberish;
   navAssets: BigNumberish;
   allocatedAssets?: BigNumberish;
@@ -2240,6 +2241,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           displayName: stringFromAnchorValue(decodedField(decoded, "displayName")),
           priority: Number(decodedField(decoded, "priority") ?? 0),
           restrictionMode: Number(decodedField(decoded, "restrictionMode") ?? 0),
+          feeBps: Number(decodedField(decoded, "feeBps") ?? decodedField(decoded, "fee_bps") ?? 0),
           totalShares: bigintFromAnchorValue(decodedField(decoded, "totalShares")),
           navAssets: bigintFromAnchorValue(decodedField(decoded, "navAssets")),
           allocatedAssets: bigintFromAnchorValue(decodedField(decoded, "allocatedAssets")),
@@ -4125,6 +4127,7 @@ export function buildRecordPremiumPaymentTx(params: {
   policySeriesAddress?: PublicKeyish | null;
   capitalClassAddress?: PublicKeyish | null;
   poolAssetMint?: PublicKeyish | null;
+  protocolFeeVaultAddress?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
@@ -4167,6 +4170,7 @@ export function buildRecordPremiumPaymentTx(params: {
         isWritable: true,
       },
       optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
+      optionalProtocolAccount(params.protocolFeeVaultAddress, true),
       { pubkey: params.sourceTokenAccountAddress, isWritable: true },
       { pubkey: params.assetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
@@ -4752,6 +4756,7 @@ export function buildDepositIntoCapitalClassTx(params: {
   recentBlockhash: string;
   amount: bigint;
   shares: bigint;
+  poolTreasuryVaultAddress?: PublicKeyish | null;
 }): Transaction {
   const owner = toPublicKey(params.owner);
   const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
@@ -4794,6 +4799,7 @@ export function buildDepositIntoCapitalClassTx(params: {
         isWritable: true,
       },
       { pubkey: lpPosition, isWritable: true },
+      optionalProtocolAccount(params.poolTreasuryVaultAddress, true),
       { pubkey: params.sourceTokenAccountAddress, isWritable: true },
       { pubkey: params.poolDepositAssetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
@@ -4895,8 +4901,13 @@ export function buildProcessRedemptionQueueTx(params: {
   recentBlockhash: string;
   shares: bigint;
   assetAmount?: bigint;
+  poolTreasuryVaultAddress?: PublicKeyish | null;
+  vaultTokenAccountAddress: PublicKeyish;
+  recipientTokenAccountAddress: PublicKeyish;
+  tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
+  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
   const lpPosition = deriveLpPositionPda({
     capitalClass: params.capitalClassAddress,
     owner: params.lpOwnerAddress,
@@ -4935,6 +4946,11 @@ export function buildProcessRedemptionQueueTx(params: {
         isWritable: true,
       },
       { pubkey: lpPosition, isWritable: true },
+      optionalProtocolAccount(params.poolTreasuryVaultAddress, true),
+      { pubkey: params.poolDepositAssetMint },
+      { pubkey: params.vaultTokenAccountAddress, isWritable: true },
+      { pubkey: params.recipientTokenAccountAddress, isWritable: true },
+      { pubkey: tokenProgramId },
     ],
   });
 }
