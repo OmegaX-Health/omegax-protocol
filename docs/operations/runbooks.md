@@ -42,7 +42,7 @@ When the on-chain program surface changes, regenerate the checked-in artifacts s
 
 ```bash
 npm run anchor:idl              # rebuilds + copies idl/omegax_protocol.json + writes idl/omegax_protocol.source-hash
-npm run protocol:contract       # regenerates shared/protocol_contract.json, frontend/lib/generated/, android-native/protocol/
+npm run protocol:contract       # regenerates shared/protocol_contract.json and frontend/lib/generated/
 npm run idl:freshness:check     # CI-mirrored guard: fails if program source drifted from the checked-in IDL
 npm run protocol:contract:check # CI-mirrored guard: fails if generated downstreams drifted from the IDL
 ```
@@ -53,7 +53,7 @@ CI runs `idl:freshness:check` and `protocol:contract:check` automatically (see `
 
 - Never commit secrets, private keys, deployment-only env files, or local validator artifacts to this repo. The `npm run public:hygiene:check` gate looks for the most common patterns.
 - The Genesis vanity wallet `oxhocTdPyENqy9RS13iaq2upoNAovMJHu9PMaBxrK8h` is public-safe; the corresponding private keypair is **not**. See `CLAUDE.md` Genesis Protect Launch Keys for the env-var contract.
-- `idl/`, `shared/protocol_contract.json`, `frontend/lib/generated/`, and `android-native/protocol/` are generated artifacts — do not hand-edit unless a documented maintenance workflow explicitly requires it.
+- `idl/`, `shared/protocol_contract.json`, and `frontend/lib/generated/` are generated artifacts — do not hand-edit unless a documented maintenance workflow explicitly requires it.
 
 ## Related references
 

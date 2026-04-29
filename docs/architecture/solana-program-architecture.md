@@ -104,6 +104,6 @@ Generated public artifacts live in:
 
 - [`idl/`](../../idl/)
 - [`shared/`](../../shared/)
-- [`android-native/protocol/`](../../android-native/protocol/)
+- [`frontend/lib/generated/`](../../frontend/lib/generated/)
 
 Treat `src/lib.rs` as implementation truth, then confirm that the generated artifacts stay aligned.

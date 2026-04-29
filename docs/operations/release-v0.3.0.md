@@ -36,7 +36,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 - the canonical public program now includes `attest_claim_case`, which anchors schema-bound oracle attestations directly against live `ClaimCase` state
 - linked protection claims now settle through the obligation path, with reserve, release, and settlement lifecycle mirrored back onto the linked `ClaimCase`
 - claim-to-obligation linkage is now stricter: linked claims cannot silently relink or bypass the obligation path through direct `settle_claim_case`
-- checked-in generated artifacts in `idl/`, `shared/`, `frontend/lib/generated/`, and `android-native/protocol/` are aligned with the current public program surface
+- checked-in generated artifacts in `idl/`, `shared/`, and `frontend/lib/generated/` are aligned with the current public program surface
 
 ## Console release notes
 

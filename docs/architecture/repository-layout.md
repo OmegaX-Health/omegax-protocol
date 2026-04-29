@@ -10,7 +10,6 @@ This repository keeps protocol code, public operator tooling, and public-facing 
 - `tests/` contains Node-based protocol, artifact, and frontend API tests
 - `idl/` contains the checked-in Anchor IDL snapshot
 - `shared/` contains generated protocol contract artifacts consumed by client implementations
-- `android-native/` contains generated Android parity artifacts
 - `docs/` contains public architecture, review, reference, and operations documentation
 
 ## Design principles
@@ -25,7 +24,7 @@ This repository keeps protocol code, public operator tooling, and public-facing 
 Treat these directories as generated outputs unless a local README says otherwise:
 - `idl/`
 - `shared/`
-- `android-native/protocol/`
+- `frontend/lib/generated/`
 
 Hand-edited source primarily lives in:
 - `programs/omegax_protocol/src/`

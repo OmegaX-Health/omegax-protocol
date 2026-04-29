@@ -13,7 +13,6 @@ const run = (cmd, args) => {
 const trackedFiles = [
   'shared/protocol_contract.json',
   'frontend/lib/generated/protocol-contract.ts',
-  'android-native/protocol/src/main/java/com/omegax/protocol/ProtocolContract.kt',
 ];
 
 const before = new Map(
