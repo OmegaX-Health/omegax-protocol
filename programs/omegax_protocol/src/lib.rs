@@ -311,6 +311,7 @@ pub mod omegax_protocol {
             args.asset_mint != ZERO_PUBKEY,
             OmegaXProtocolError::VaultTokenAccountInvalid
         );
+        require_classic_spl_token(&ctx.accounts.asset_mint, &ctx.accounts.token_program)?;
 
         let vault = &mut ctx.accounts.domain_asset_vault;
         vault.reserve_domain = ctx.accounts.reserve_domain.key();
@@ -361,6 +362,7 @@ pub mod omegax_protocol {
         let vault = &mut ctx.accounts.protocol_fee_vault;
         vault.reserve_domain = ctx.accounts.reserve_domain.key();
         vault.asset_mint = args.asset_mint;
+        vault.fee_recipient = require_configured_fee_recipient(args.fee_recipient)?;
         vault.accrued_fees = 0;
         vault.withdrawn_fees = 0;
         vault.bump = ctx.bumps.protocol_fee_vault;
@@ -369,6 +371,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             scope: vault.reserve_domain,
             asset_mint: vault.asset_mint,
+            fee_recipient: vault.fee_recipient,
             rail: 0,
         });
 
@@ -405,6 +408,7 @@ pub mod omegax_protocol {
         let vault = &mut ctx.accounts.pool_treasury_vault;
         vault.liquidity_pool = ctx.accounts.liquidity_pool.key();
         vault.asset_mint = args.asset_mint;
+        vault.fee_recipient = require_configured_fee_recipient(args.fee_recipient)?;
         vault.accrued_fees = 0;
         vault.withdrawn_fees = 0;
         vault.bump = ctx.bumps.pool_treasury_vault;
@@ -413,6 +417,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             scope: vault.liquidity_pool,
             asset_mint: vault.asset_mint,
+            fee_recipient: vault.fee_recipient,
             rail: 1,
         });
 
@@ -463,6 +468,7 @@ pub mod omegax_protocol {
         vault.liquidity_pool = ctx.accounts.liquidity_pool.key();
         vault.oracle = args.oracle;
         vault.asset_mint = args.asset_mint;
+        vault.fee_recipient = require_configured_fee_recipient(args.fee_recipient)?;
         vault.accrued_fees = 0;
         vault.withdrawn_fees = 0;
         vault.bump = ctx.bumps.pool_oracle_fee_vault;
@@ -471,6 +477,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             scope: vault.liquidity_pool,
             asset_mint: vault.asset_mint,
+            fee_recipient: vault.fee_recipient,
             rail: 2,
         });
 
@@ -2027,13 +2034,12 @@ pub mod omegax_protocol {
         };
         let net_amount = checked_sub(amount, entry_fee)?;
 
-        // Default shares track the LP's net contribution (post-fee). Caller-supplied
-        // shares are honored verbatim — caller is responsible for accounting.
-        let shares = if args.shares == 0 {
-            net_amount
-        } else {
-            args.shares
-        };
+        let shares = deposit_shares_for_nav(
+            net_amount,
+            ctx.accounts.capital_class.total_shares,
+            ctx.accounts.capital_class.nav_assets,
+            args.shares,
+        )?;
         let owner = ctx.accounts.owner.key();
         let capital_class_key = ctx.accounts.capital_class.key();
         let restriction_mode = ctx.accounts.capital_class.restriction_mode;
@@ -2312,6 +2318,10 @@ pub mod omegax_protocol {
             ctx.accounts.protocol_fee_vault.withdrawn_fees,
             args.amount,
         )?;
+        require_fee_recipient_token_owner(
+            &ctx.accounts.recipient_token_account,
+            ctx.accounts.protocol_fee_vault.fee_recipient,
+        )?;
 
         transfer_from_domain_vault(
             args.amount,
@@ -2328,6 +2338,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             asset_mint: vault.asset_mint,
             amount: args.amount,
+            configured_recipient: vault.fee_recipient,
             recipient: ctx.accounts.recipient_token_account.key(),
             withdrawn_total: new_withdrawn,
         });
@@ -2350,6 +2361,10 @@ pub mod omegax_protocol {
             ctx.accounts.protocol_fee_vault.withdrawn_fees,
             args.amount,
         )?;
+        require_fee_recipient_owner(
+            ctx.accounts.recipient.key(),
+            ctx.accounts.protocol_fee_vault.fee_recipient,
+        )?;
 
         let rent = Rent::get()?;
         let vault_ai = ctx.accounts.protocol_fee_vault.to_account_info();
@@ -2369,6 +2384,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             asset_mint: vault.asset_mint,
             amount: args.amount,
+            configured_recipient: vault.fee_recipient,
             recipient: ctx.accounts.recipient.key(),
             withdrawn_total: new_withdrawn,
         });
@@ -2391,6 +2407,10 @@ pub mod omegax_protocol {
             ctx.accounts.pool_treasury_vault.withdrawn_fees,
             args.amount,
         )?;
+        require_fee_recipient_token_owner(
+            &ctx.accounts.recipient_token_account,
+            ctx.accounts.pool_treasury_vault.fee_recipient,
+        )?;
 
         transfer_from_domain_vault(
             args.amount,
@@ -2407,6 +2427,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             asset_mint: vault.asset_mint,
             amount: args.amount,
+            configured_recipient: vault.fee_recipient,
             recipient: ctx.accounts.recipient_token_account.key(),
             withdrawn_total: new_withdrawn,
         });
@@ -2429,6 +2450,10 @@ pub mod omegax_protocol {
             ctx.accounts.pool_treasury_vault.withdrawn_fees,
             args.amount,
         )?;
+        require_fee_recipient_owner(
+            ctx.accounts.recipient.key(),
+            ctx.accounts.pool_treasury_vault.fee_recipient,
+        )?;
 
         let rent = Rent::get()?;
         let vault_ai = ctx.accounts.pool_treasury_vault.to_account_info();
@@ -2448,6 +2473,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             asset_mint: vault.asset_mint,
             amount: args.amount,
+            configured_recipient: vault.fee_recipient,
             recipient: ctx.accounts.recipient.key(),
             withdrawn_total: new_withdrawn,
         });
@@ -2470,6 +2496,10 @@ pub mod omegax_protocol {
             ctx.accounts.pool_oracle_fee_vault.withdrawn_fees,
             args.amount,
         )?;
+        require_fee_recipient_token_owner(
+            &ctx.accounts.recipient_token_account,
+            ctx.accounts.pool_oracle_fee_vault.fee_recipient,
+        )?;
 
         transfer_from_domain_vault(
             args.amount,
@@ -2486,6 +2516,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             asset_mint: vault.asset_mint,
             amount: args.amount,
+            configured_recipient: vault.fee_recipient,
             recipient: ctx.accounts.recipient_token_account.key(),
             withdrawn_total: new_withdrawn,
         });
@@ -2508,6 +2539,10 @@ pub mod omegax_protocol {
             ctx.accounts.pool_oracle_fee_vault.withdrawn_fees,
             args.amount,
         )?;
+        require_fee_recipient_owner(
+            ctx.accounts.recipient.key(),
+            ctx.accounts.pool_oracle_fee_vault.fee_recipient,
+        )?;
 
         let rent = Rent::get()?;
         let vault_ai = ctx.accounts.pool_oracle_fee_vault.to_account_info();
@@ -2527,6 +2562,7 @@ pub mod omegax_protocol {
             vault: vault.key(),
             asset_mint: vault.asset_mint,
             amount: args.amount,
+            configured_recipient: vault.fee_recipient,
             recipient: ctx.accounts.recipient.key(),
             withdrawn_total: new_withdrawn,
         });
@@ -3197,7 +3233,8 @@ pub struct CreateDomainAssetVault<'info> {
     // domain_asset_vault PDA via transfer_from_domain_vault (see lib.rs:5463
     // region). Operators no longer pre-create the token account externally.
     #[account(
-        constraint = asset_mint.key() == args.asset_mint @ OmegaXProtocolError::AssetMintMismatch
+        constraint = asset_mint.key() == args.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+        constraint = asset_mint.to_account_info().owner == &anchor_spl::token::ID @ OmegaXProtocolError::Token2022NotSupported,
     )]
     pub asset_mint: InterfaceAccount<'info, Mint>,
     #[account(
@@ -3209,6 +3246,9 @@ pub struct CreateDomainAssetVault<'info> {
         token::authority = domain_asset_vault,
     )]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        constraint = token_program.key() == anchor_spl::token::ID @ OmegaXProtocolError::Token2022NotSupported,
+    )]
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
@@ -4625,6 +4665,7 @@ pub struct DomainAssetVault {
 pub struct ProtocolFeeVault {
     pub reserve_domain: Pubkey,
     pub asset_mint: Pubkey,
+    pub fee_recipient: Pubkey,
     pub accrued_fees: u64,
     pub withdrawn_fees: u64,
     pub bump: u8,
@@ -4635,6 +4676,7 @@ pub struct ProtocolFeeVault {
 pub struct PoolTreasuryVault {
     pub liquidity_pool: Pubkey,
     pub asset_mint: Pubkey,
+    pub fee_recipient: Pubkey,
     pub accrued_fees: u64,
     pub withdrawn_fees: u64,
     pub bump: u8,
@@ -4646,6 +4688,7 @@ pub struct PoolOracleFeeVault {
     pub liquidity_pool: Pubkey,
     pub oracle: Pubkey,
     pub asset_mint: Pubkey,
+    pub fee_recipient: Pubkey,
     pub accrued_fees: u64,
     pub withdrawn_fees: u64,
     pub bump: u8,
@@ -5169,6 +5212,9 @@ pub struct CreateDomainAssetVaultArgs {
 pub struct InitProtocolFeeVaultArgs {
     /// SPL mint for the fee rail. Pass `NATIVE_SOL_MINT` to bind a SOL-rail vault.
     pub asset_mint: Pubkey,
+    /// Configured recipient owner for this rail. SOL withdraws must pay this
+    /// address directly; SPL withdraws must pay a token account owned by it.
+    pub fee_recipient: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -5176,6 +5222,8 @@ pub struct InitPoolTreasuryVaultArgs {
     /// Asset mint must equal `liquidity_pool.deposit_asset_mint` for SPL pools, or
     /// `NATIVE_SOL_MINT` for the SOL rail.
     pub asset_mint: Pubkey,
+    /// Configured recipient owner for this rail.
+    pub fee_recipient: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -5185,6 +5233,8 @@ pub struct InitPoolOracleFeeVaultArgs {
     pub oracle: Pubkey,
     /// Asset mint of the rail (use `NATIVE_SOL_MINT` for SOL).
     pub asset_mint: Pubkey,
+    /// Configured recipient owner for this oracle-fee rail.
+    pub fee_recipient: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
@@ -5458,6 +5508,8 @@ pub struct UpdateLpPositionCredentialingArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct DepositIntoCapitalClassArgs {
     pub amount: u64,
+    /// Backward-compatible wire field. Interpreted as min_shares_out; zero
+    /// means accept the program-derived NAV share price with no minimum.
     pub shares: u64,
 }
 
@@ -5745,6 +5797,7 @@ pub struct FeeVaultInitializedEvent {
     pub vault: Pubkey,
     pub scope: Pubkey,
     pub asset_mint: Pubkey,
+    pub fee_recipient: Pubkey,
     /// 0 = ProtocolFeeVault, 1 = PoolTreasuryVault, 2 = PoolOracleFeeVault.
     pub rail: u8,
 }
@@ -5762,6 +5815,7 @@ pub struct FeeWithdrawnEvent {
     pub vault: Pubkey,
     pub asset_mint: Pubkey,
     pub amount: u64,
+    pub configured_recipient: Pubkey,
     pub recipient: Pubkey,
     pub withdrawn_total: u64,
 }
@@ -5904,6 +5958,12 @@ pub enum OmegaXProtocolError {
     TokenAccountSelfTransferInvalid,
     #[msg("Vault token account does not match the domain asset vault")]
     VaultTokenAccountMismatch,
+    #[msg("Token-2022 custody rails are not supported by this protocol version")]
+    Token2022NotSupported,
+    #[msg("Configured fee recipient is missing or invalid")]
+    FeeRecipientInvalid,
+    #[msg("Fee withdrawal recipient does not match the configured fee recipient")]
+    FeeRecipientMismatch,
     #[msg("Funding line mismatch")]
     FundingLineMismatch,
     #[msg("Funding line type mismatch")]
@@ -5928,6 +5988,12 @@ pub enum OmegaXProtocolError {
     AmountExceedsPendingRedemption,
     #[msg("Redemption amount cannot be derived from the queued share state")]
     InvalidRedemptionAmount,
+    #[msg("Deposit shares cannot be derived from the capital class NAV state")]
+    InvalidCapitalShareState,
+    #[msg("Deposit would mint zero shares")]
+    InvalidDepositShares,
+    #[msg("Computed deposit shares are below the requested minimum")]
+    MinimumSharesOutNotMet,
     #[msg("Restricted capital class access failed")]
     RestrictedCapitalClass,
     #[msg("Capital class ledger mismatch")]
@@ -6738,6 +6804,38 @@ fn checked_u128_to_u64(value: u128) -> Result<u64> {
     u64::try_from(value).map_err(|_| OmegaXProtocolError::ArithmeticError.into())
 }
 
+fn deposit_shares_for_nav(
+    net_amount: u64,
+    total_shares: u64,
+    nav_assets: u64,
+    min_shares_out: u64,
+) -> Result<u64> {
+    require_positive_amount(net_amount)?;
+    let shares = if total_shares == 0 && nav_assets == 0 {
+        net_amount
+    } else {
+        require!(
+            total_shares > 0 && nav_assets > 0,
+            OmegaXProtocolError::InvalidCapitalShareState
+        );
+        let computed = (net_amount as u128)
+            .checked_mul(total_shares as u128)
+            .ok_or(OmegaXProtocolError::ArithmeticError)?
+            .checked_div(nav_assets as u128)
+            .ok_or(OmegaXProtocolError::ArithmeticError)?;
+        checked_u128_to_u64(computed)?
+    };
+
+    require!(shares > 0, OmegaXProtocolError::InvalidDepositShares);
+    if min_shares_out > 0 {
+        require!(
+            shares >= min_shares_out,
+            OmegaXProtocolError::MinimumSharesOutNotMet
+        );
+    }
+    Ok(shares)
+}
+
 fn prorata_amount(numerator: u64, denominator: u64, amount: u64) -> Result<u64> {
     require!(
         numerator > 0 && denominator > 0 && numerator <= denominator,
@@ -6773,6 +6871,27 @@ fn redemption_assets_to_process(
     }
 }
 
+fn require_classic_token_program_keys(mint_owner: Pubkey, token_program: Pubkey) -> Result<()> {
+    require_keys_eq!(
+        mint_owner,
+        anchor_spl::token::ID,
+        OmegaXProtocolError::Token2022NotSupported
+    );
+    require_keys_eq!(
+        token_program,
+        anchor_spl::token::ID,
+        OmegaXProtocolError::Token2022NotSupported
+    );
+    Ok(())
+}
+
+fn require_classic_spl_token<'info>(
+    asset_mint: &InterfaceAccount<'info, Mint>,
+    token_program: &Interface<'info, TokenInterface>,
+) -> Result<()> {
+    require_classic_token_program_keys(*asset_mint.to_account_info().owner, token_program.key())
+}
+
 fn transfer_to_domain_vault<'info>(
     amount: u64,
     authority: &Signer<'info>,
@@ -6782,6 +6901,7 @@ fn transfer_to_domain_vault<'info>(
     token_program: &Interface<'info, TokenInterface>,
     domain_asset_vault: &DomainAssetVault,
 ) -> Result<()> {
+    require_classic_spl_token(asset_mint, token_program)?;
     require_keys_eq!(
         source_token_account.owner,
         authority.key(),
@@ -6878,6 +6998,31 @@ fn require_fee_vault_balance(accrued: u64, withdrawn: u64, requested: u64) -> Re
     Ok(new_withdrawn)
 }
 
+fn require_configured_fee_recipient(fee_recipient: Pubkey) -> Result<Pubkey> {
+    require!(
+        fee_recipient != ZERO_PUBKEY,
+        OmegaXProtocolError::FeeRecipientInvalid
+    );
+    Ok(fee_recipient)
+}
+
+fn require_fee_recipient_owner(actual_owner: Pubkey, configured_recipient: Pubkey) -> Result<()> {
+    require_configured_fee_recipient(configured_recipient)?;
+    require_keys_eq!(
+        actual_owner,
+        configured_recipient,
+        OmegaXProtocolError::FeeRecipientMismatch
+    );
+    Ok(())
+}
+
+fn require_fee_recipient_token_owner<'info>(
+    recipient_token_account: &InterfaceAccount<'info, TokenAccount>,
+    configured_recipient: Pubkey,
+) -> Result<()> {
+    require_fee_recipient_owner(recipient_token_account.owner, configured_recipient)
+}
+
 // Phase 1.7 — SOL-rail withdrawal. Mutates the fee-vault PDA's lamports
 // directly (SystemProgram::transfer cannot move lamports out of program-owned
 // accounts). Rejects withdrawals that would breach the PDA's rent-exempt
@@ -6934,6 +7079,7 @@ fn transfer_from_domain_vault<'info>(
     asset_mint: &InterfaceAccount<'info, Mint>,
     token_program: &Interface<'info, TokenInterface>,
 ) -> Result<()> {
+    require_classic_spl_token(asset_mint, token_program)?;
     require_keys_eq!(
         vault_token_account.key(),
         domain_asset_vault.vault_token_account,
@@ -7813,6 +7959,29 @@ mod tests {
         assert_eq!(redeemable_assets_for_shares(3, 7, 700).unwrap(), 300);
         assert!(redeemable_assets_for_shares(1, 0, 100).is_err());
         assert!(redeemable_assets_for_shares(1, 100, 0).is_err());
+    }
+
+    #[test]
+    fn deposit_shares_bootstrap_one_to_one_only_from_empty_nav() {
+        assert_eq!(deposit_shares_for_nav(250, 0, 0, 0).unwrap(), 250);
+        assert!(deposit_shares_for_nav(250, 0, 1, 0).is_err());
+        assert!(deposit_shares_for_nav(250, 1, 0, 0).is_err());
+    }
+
+    #[test]
+    fn deposit_shares_are_priced_from_current_nav() {
+        assert_eq!(deposit_shares_for_nav(50, 1_000, 500, 0).unwrap(), 100);
+        assert_eq!(
+            deposit_shares_for_nav(1, 1_000_000, 1_000_000, 0).unwrap(),
+            1
+        );
+    }
+
+    #[test]
+    fn deposit_shares_reject_zero_out_and_minimum_miss() {
+        assert!(deposit_shares_for_nav(1, 1, 1_000_000, 0).is_err());
+        assert!(deposit_shares_for_nav(100, 1_000, 1_000, 101).is_err());
+        assert_eq!(deposit_shares_for_nav(100, 1_000, 1_000, 100).unwrap(), 100);
     }
 
     #[test]
@@ -9017,5 +9186,35 @@ mod tests {
     fn fee_vault_balance_rejects_overflow_on_withdrawn_sum() {
         // withdrawn near MAX, requesting any positive amount overflows.
         assert!(require_fee_vault_balance(u64::MAX, u64::MAX - 5, 10).is_err());
+    }
+
+    #[test]
+    fn configured_fee_recipient_must_be_nonzero_and_match() {
+        let recipient = Pubkey::new_unique();
+        let attacker = Pubkey::new_unique();
+
+        assert_eq!(
+            require_configured_fee_recipient(recipient).unwrap(),
+            recipient
+        );
+        assert!(require_configured_fee_recipient(ZERO_PUBKEY).is_err());
+        assert!(require_fee_recipient_owner(recipient, recipient).is_ok());
+        assert!(require_fee_recipient_owner(attacker, recipient).is_err());
+    }
+
+    #[test]
+    fn token_program_guard_rejects_non_classic_spl_token() {
+        assert!(
+            require_classic_token_program_keys(anchor_spl::token::ID, anchor_spl::token::ID)
+                .is_ok()
+        );
+        assert!(
+            require_classic_token_program_keys(Pubkey::new_unique(), anchor_spl::token::ID)
+                .is_err()
+        );
+        assert!(
+            require_classic_token_program_keys(anchor_spl::token::ID, Pubkey::new_unique())
+                .is_err()
+        );
     }
 }
