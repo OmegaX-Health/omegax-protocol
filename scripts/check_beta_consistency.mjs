@@ -14,8 +14,6 @@ const SEARCH_TARGETS = [
 
 const SHARED_GLOBS = [
   '--glob',
-  '!android-native/**',
-  '--glob',
   '!**/node_modules/**',
   '--glob',
   '!**/target/**',

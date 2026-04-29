@@ -33,8 +33,7 @@ shasum -a 256 \
   idl/omegax_protocol.source-hash \
   shared/protocol_contract.json \
   frontend/lib/generated/protocol-contract.ts \
-  frontend/lib/generated/protocol-contract.js \
-  android-native/protocol/src/main/java/com/omegax/protocol/ProtocolContract.kt
+  frontend/lib/generated/protocol-contract.js
 ```
 
 | Artifact | SHA-256 |
@@ -44,7 +43,6 @@ shasum -a 256 \
 | `shared/protocol_contract.json` | `<sha256>` |
 | `frontend/lib/generated/protocol-contract.ts` | `<sha256>` |
 | `frontend/lib/generated/protocol-contract.js` | `<sha256>` |
-| `android-native/protocol/src/main/java/com/omegax/protocol/ProtocolContract.kt` | `<sha256>` |
 
 | Drift gate | Result |
 |------------|--------|
@@ -174,8 +172,7 @@ shasum -a 256 \
   idl/omegax_protocol.source-hash \
   shared/protocol_contract.json \
   frontend/lib/generated/protocol-contract.ts \
-  frontend/lib/generated/protocol-contract.js \
-  android-native/protocol/src/main/java/com/omegax/protocol/ProtocolContract.kt
+  frontend/lib/generated/protocol-contract.js
 head -1 idl/omegax_protocol.source-hash
 npm run idl:freshness:check
 npm run protocol:contract:check

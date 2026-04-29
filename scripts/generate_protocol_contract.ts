@@ -74,10 +74,6 @@ const CHECKED_IN_IDL_PATH = resolve(REPO_ROOT, 'idl/omegax_protocol.json');
 const CONTRACT_JSON_PATH = resolve(REPO_ROOT, 'shared/protocol_contract.json');
 const FRONTEND_GENERATED_PATH = resolve(REPO_ROOT, 'frontend/lib/generated/protocol-contract.ts');
 const FRONTEND_GENERATED_JS_PATH = resolve(REPO_ROOT, 'frontend/lib/generated/protocol-contract.js');
-const KOTLIN_GENERATED_PATH = resolve(
-  REPO_ROOT,
-  'android-native/protocol/src/main/java/com/omegax/protocol/ProtocolContract.kt',
-);
 
 const PDA_SEEDS: Record<string, string[]> = {
   protocol_governance: ['protocol_governance'],
@@ -326,60 +322,6 @@ ${pdaSeedsEntries}
 `;
 }
 
-function renderKotlin(contract: ProtocolContract, sha256: string): string {
-  const discriminatorEntries = contract.instructions
-    .map(
-      (ix) =>
-        `        ${kotlinString(ix.name)} to byteArrayOf(${ix.discriminator
-          .map((it) => `${it.toString()}u.toByte()`)
-          .join(', ')}),`,
-    )
-    .join('\n');
-
-  const pdaSeedsEntries = Object.entries(contract.pdaSeeds)
-    .map(
-      ([seedName, seeds]) =>
-        `        ${kotlinString(seedName)} to listOf(${seeds.map((seed) => kotlinString(seed)).join(', ')}),`,
-    )
-    .join('\n');
-
-  const accountDiscriminatorEntries = Object.entries(contract.accountDiscriminators)
-    .map(
-      ([name, discriminator]) =>
-        `        ${kotlinString(name)} to byteArrayOf(${discriminator
-          .map((it) => `${it.toString()}u.toByte()`)
-          .join(', ')}),`,
-    )
-    .join('\n');
-
-  return `// AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
-// source: shared/protocol_contract.json
-// contract_sha256: ${sha256}
-
-package com.omegax.protocol
-
-object ProtocolContract {
-    const val PROGRAM_ID: String = ${kotlinString(contract.programId)}
-
-    val instructionDiscriminators: Map<String, ByteArray> = mapOf(
-${discriminatorEntries}
-    )
-
-    val pdaSeeds: Map<String, List<String>> = mapOf(
-${pdaSeedsEntries}
-    )
-
-    val accountDiscriminators: Map<String, ByteArray> = mapOf(
-${accountDiscriminatorEntries}
-    )
-}
-`;
-}
-
-function kotlinString(value: string): string {
-  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-}
-
 function ensureParent(path: string) {
   mkdirSync(dirname(path), { recursive: true });
 }
@@ -451,15 +393,11 @@ function main() {
   ensureParent(FRONTEND_GENERATED_JS_PATH);
   writeFileSync(FRONTEND_GENERATED_JS_PATH, renderJs(contract, contractSha), 'utf8');
 
-  ensureParent(KOTLIN_GENERATED_PATH);
-  writeFileSync(KOTLIN_GENERATED_PATH, renderKotlin(contract, contractSha), 'utf8');
-
   process.stdout.write(
     [
       `[protocol:contract] wrote ${resolve(CONTRACT_JSON_PATH)}`,
       `[protocol:contract] wrote ${resolve(FRONTEND_GENERATED_PATH)}`,
       `[protocol:contract] wrote ${resolve(FRONTEND_GENERATED_JS_PATH)}`,
-      `[protocol:contract] wrote ${resolve(KOTLIN_GENERATED_PATH)}`,
       `[protocol:contract] contract_sha256=${contractSha}`,
     ].join('\n') + '\n',
   );
