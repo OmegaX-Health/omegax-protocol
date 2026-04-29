@@ -42,6 +42,14 @@ export const NATIVE_SOL_MINT = "So11111111111111111111111111111111111111112";
 export const NATIVE_SOL_MINT_KEY = new PublicKey(NATIVE_SOL_MINT);
 export const MAX_ID_SEED_BYTES = 32;
 
+export function classicTokenProgramId(tokenProgramId?: PublicKeyish | null): PublicKey {
+  const candidate = toPublicKey(tokenProgramId ?? TOKEN_PROGRAM_ID);
+  if (!candidate.equals(TOKEN_PROGRAM_ID)) {
+    throw new Error("OmegaX Protocol v1 supports only the classic SPL Token program.");
+  }
+  return candidate;
+}
+
 export const SEED_PROTOCOL_GOVERNANCE = "protocol_governance";
 export const SEED_RESERVE_DOMAIN = "reserve_domain";
 export const SEED_DOMAIN_ASSET_VAULT = "domain_asset_vault";
@@ -237,6 +245,7 @@ export type ProtocolFeeVaultSnapshot = {
   address: string;
   reserveDomain: string;
   assetMint: string;
+  feeRecipient: string;
   accruedFees: bigint;
   withdrawnFees: bigint;
   bump: number;
@@ -246,6 +255,7 @@ export type PoolTreasuryVaultSnapshot = {
   address: string;
   liquidityPool: string;
   assetMint: string;
+  feeRecipient: string;
   accruedFees: bigint;
   withdrawnFees: bigint;
   bump: number;
@@ -256,6 +266,7 @@ export type PoolOracleFeeVaultSnapshot = {
   liquidityPool: string;
   oracle: string;
   assetMint: string;
+  feeRecipient: string;
   accruedFees: bigint;
   withdrawnFees: bigint;
   bump: number;
@@ -705,6 +716,7 @@ export type ProtocolFeeVaultSummary = {
   reserveDomain: string;
   /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
   paymentMint: string;
+  feeRecipient: string;
   accruedFees: bigint;
   withdrawnFees: bigint;
   availableFees: bigint;
@@ -718,6 +730,7 @@ export type PoolTreasuryReserveSummary = {
   reserveDomain: string;
   /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
   paymentMint: string;
+  feeRecipient: string;
   accruedFees: bigint;
   withdrawnFees: bigint;
   availableFees: bigint;
@@ -745,6 +758,7 @@ export type PoolOracleFeeVaultSummary = {
   oracle: string;
   /** ZERO_PUBKEY for SOL rails, the real SPL mint otherwise. */
   paymentMint: string;
+  feeRecipient: string;
   accruedFees: bigint;
   withdrawnFees: bigint;
   availableFees: bigint;
@@ -2046,6 +2060,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           address,
           reserveDomain: asAddress(decodedField(decoded, "reserveDomain")),
           assetMint: asAddress(decodedField(decoded, "assetMint")),
+          feeRecipient: asAddress(decodedField(decoded, "feeRecipient")),
           accruedFees: bigintFromAnchorValue(decodedField(decoded, "accruedFees")),
           withdrawnFees: bigintFromAnchorValue(decodedField(decoded, "withdrawnFees")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
@@ -2056,6 +2071,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           address,
           liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
           assetMint: asAddress(decodedField(decoded, "assetMint")),
+          feeRecipient: asAddress(decodedField(decoded, "feeRecipient")),
           accruedFees: bigintFromAnchorValue(decodedField(decoded, "accruedFees")),
           withdrawnFees: bigintFromAnchorValue(decodedField(decoded, "withdrawnFees")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
@@ -2067,6 +2083,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
           oracle: asAddress(decodedField(decoded, "oracle")),
           assetMint: asAddress(decodedField(decoded, "assetMint")),
+          feeRecipient: asAddress(decodedField(decoded, "feeRecipient")),
           accruedFees: bigintFromAnchorValue(decodedField(decoded, "accruedFees")),
           withdrawnFees: bigintFromAnchorValue(decodedField(decoded, "withdrawnFees")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
@@ -2896,6 +2913,7 @@ export async function listProtocolFeeVaults(params: {
       address: vault.address,
       reserveDomain: vault.reserveDomain,
       paymentMint: paymentMintForUi(vault.assetMint),
+      feeRecipient: vault.feeRecipient,
       accruedFees: vault.accruedFees,
       withdrawnFees: vault.withdrawnFees,
       availableFees: feeVaultAvailable(vault.accruedFees, vault.withdrawnFees),
@@ -2919,6 +2937,7 @@ export async function listPoolTreasuryReserves(params: {
       pool: vault.liquidityPool,
       reserveDomain: poolByAddress.get(vault.liquidityPool)?.reserveDomain ?? ZERO_PUBKEY,
       paymentMint: paymentMintForUi(vault.assetMint),
+      feeRecipient: vault.feeRecipient,
       accruedFees: vault.accruedFees,
       withdrawnFees: vault.withdrawnFees,
       availableFees: feeVaultAvailable(vault.accruedFees, vault.withdrawnFees),
@@ -2952,6 +2971,7 @@ export async function listPoolOracleFeeVaults(params: {
       reserveDomain: poolByAddress.get(vault.liquidityPool)?.reserveDomain ?? ZERO_PUBKEY,
       oracle: vault.oracle,
       paymentMint: paymentMintForUi(vault.assetMint),
+      feeRecipient: vault.feeRecipient,
       accruedFees: vault.accruedFees,
       withdrawnFees: vault.withdrawnFees,
       availableFees: feeVaultAvailable(vault.accruedFees, vault.withdrawnFees),
@@ -3338,7 +3358,7 @@ export function buildCreateDomainAssetVaultTx(params: {
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const assetMint = toPublicKey(params.assetMint);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -3435,7 +3455,7 @@ export function buildWithdrawProtocolFeeSplTx(params: {
   const authority = toPublicKey(params.governanceAuthority);
   const reserveDomain = toPublicKey(params.reserveDomainAddress);
   const assetMint = toPublicKey(params.paymentMint);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -3516,7 +3536,7 @@ export function buildWithdrawPoolTreasurySplTx(params: {
   const pool = toPublicKey(params.poolAddress);
   const reserveDomain = toPublicKey(params.reserveDomainAddress);
   const assetMint = toPublicKey(params.paymentMint);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -3601,7 +3621,7 @@ export function buildWithdrawPoolOracleFeeSplTx(params: {
   const pool = toPublicKey(params.poolAddress);
   const reserveDomain = toPublicKey(params.reserveDomainAddress);
   const assetMint = toPublicKey(params.paymentMint);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -4067,7 +4087,7 @@ export function buildFundSponsorBudgetTx(params: {
   policySeriesAddress?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -4132,7 +4152,7 @@ export function buildRecordPremiumPaymentTx(params: {
   protocolFeeVaultAddress?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -4436,7 +4456,7 @@ function buildObligationFlowTx(params: {
           { pubkey: params.assetMint },
           { pubkey: params.vaultTokenAccountAddress, isWritable: true },
           { pubkey: params.recipientTokenAccountAddress, isWritable: true },
-          { pubkey: toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID) },
+          { pubkey: classicTokenProgramId(params.tokenProgramId) },
         ]
         : [
           optionalProtocolAccount(undefined),
@@ -4595,7 +4615,7 @@ export function buildSettleClaimCaseTx(params: {
   tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -4805,11 +4825,12 @@ export function buildDepositIntoCapitalClassTx(params: {
   tokenProgramId?: PublicKeyish | null;
   recentBlockhash: string;
   amount: bigint;
+  /** Backward-compatible wire field. On-chain this is min_shares_out; 0n means no minimum. */
   shares: bigint;
   poolTreasuryVaultAddress?: PublicKeyish | null;
 }): Transaction {
   const owner = toPublicKey(params.owner);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   const lpPosition = deriveLpPositionPda({
     capitalClass: params.capitalClassAddress,
     owner,
@@ -4957,7 +4978,7 @@ export function buildProcessRedemptionQueueTx(params: {
   tokenProgramId?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
-  const tokenProgramId = toPublicKey(params.tokenProgramId ?? TOKEN_PROGRAM_ID);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
   const lpPosition = deriveLpPositionPda({
     capitalClass: params.capitalClassAddress,
     owner: params.lpOwnerAddress,
