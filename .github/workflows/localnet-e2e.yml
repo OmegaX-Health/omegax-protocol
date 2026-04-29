@@ -73,7 +73,7 @@ jobs:
             build-essential
 
       - name: Cache cargo registry, git, and target
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         with:
           path: |
             ~/.cargo/registry
@@ -85,21 +85,24 @@ jobs:
 
       - name: Cache Solana CLI install
         id: solana-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         with:
           path: ~/.local/share/solana
           key: solana-stable-${{ runner.os }}-v1
 
       - name: Install Solana CLI
         if: steps.solana-cache.outputs.cache-hit != 'true'
-        run: sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+        run: |
+          curl -sSfL https://release.anza.xyz/stable/install -o /tmp/solana-install.sh
+          echo '4c69258d317fdd3cf65193053ea2c2f8c29f24a08161afb787b192262c72d070  /tmp/solana-install.sh' | sha256sum -c -
+          sh /tmp/solana-install.sh
 
       - name: Add Solana CLI to PATH
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
       - name: Cache Anchor CLI binary
         id: anchor-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         with:
           path: ~/.cargo/bin/anchor
           key: anchor-cli-${{ env.ANCHOR_VERSION }}-${{ runner.os }}
@@ -130,7 +133,7 @@ jobs:
 
       - name: Upload artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: localnet-e2e-${{ github.run_id }}
           path: artifacts/

@@ -135,6 +135,19 @@ test("Mainnet bootstrap blocked when OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS is un
   );
 });
 
+test("Mainnet guard still blocks custom-domain RPC URLs when distinct-keys flag is unset", () => {
+  assert.throws(
+    () => loadGenesisLiveBootstrapConfig({
+      governanceAuthority: GOVERNANCE,
+      env: {
+        ...baseMainnetEnv(),
+        SOLANA_RPC_URL: "https://rpc.omegax.health/solana",
+      },
+    }),
+    /Mainnet bootstrap blocked.*OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 is required/,
+  );
+});
+
 test("Mainnet bootstrap blocked when role wallets default to governance signer", () => {
   // Distinct-keys flag is set but no per-role wallets; every operational role
   // would silently default to governanceAuthority.
