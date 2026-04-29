@@ -11842,6 +11842,11 @@
       "code": 6068,
       "name": "FeeVaultBpsMisconfigured",
       "msg": "Fee vault basis-points configuration is out of range"
+    },
+    {
+      "code": 6069,
+      "name": "SettlementOutflowAccountsRequired",
+      "msg": "Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts"
     }
   ],
   "types": [

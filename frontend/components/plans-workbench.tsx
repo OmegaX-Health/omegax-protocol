@@ -1331,6 +1331,9 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
           classes={snapshot.capitalClasses}
           pools={snapshot.liquidityPools}
           domainAssetVaults={snapshot.domainAssetVaults}
+          protocolFeeVaults={snapshot.protocolFeeVaults}
+          poolOracleFeeVaults={snapshot.poolOracleFeeVaults}
+          poolOraclePolicies={snapshot.poolOraclePolicies}
         />
       ) : null}
     </div>

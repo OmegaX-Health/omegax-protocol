@@ -74,6 +74,9 @@ import {
   type LiquidityPoolSnapshot,
   type MemberPositionSnapshot,
   type ObligationSnapshot,
+  type PoolOracleFeeVaultSnapshot,
+  type PoolOraclePolicySnapshot,
+  type ProtocolFeeVaultSnapshot,
   type PolicySeriesSnapshot,
   type ReserveDomainSnapshot,
 } from "@/lib/protocol";
@@ -104,6 +107,9 @@ type PlanOperatorDrawerProps = {
   classes: CapitalClassSnapshot[];
   pools: LiquidityPoolSnapshot[];
   domainAssetVaults: DomainAssetVaultSnapshot[];
+  protocolFeeVaults: ProtocolFeeVaultSnapshot[];
+  poolOracleFeeVaults: PoolOracleFeeVaultSnapshot[];
+  poolOraclePolicies: PoolOraclePolicySnapshot[];
 };
 
 const SECTIONS: Array<{ id: PlanOperatorSection; label: string; blurb: string }> = [
@@ -265,6 +271,7 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
   const [settleClaimAmount, setSettleClaimAmount] = useState("0");
   const [settleObligationAmount, setSettleObligationAmount] = useState("0");
   const [settleObligationStatus, setSettleObligationStatus] = useState(String(OBLIGATION_STATUS_CLAIMABLE_PAYABLE));
+  const [recipientTokenAccount, setRecipientTokenAccount] = useState("");
   const [impairmentAmount, setImpairmentAmount] = useState("0");
   const [impairmentReason, setImpairmentReason] = useState("");
 
@@ -408,6 +415,10 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
     () => props.obligations.find((obligation) => obligation.address === selectedObligationAddress) ?? null,
     [props.obligations, selectedObligationAddress],
   );
+  const selectedObligationClaim = useMemo(
+    () => props.claimCases.find((claim) => claim.address === selectedObligation?.claimCase) ?? null,
+    [props.claimCases, selectedObligation?.claimCase],
+  );
   const selectedMemberForClaim = useMemo(
     () => props.members.find((member) => member.address === selectedMemberAddress) ?? null,
     [props.members, selectedMemberAddress],
@@ -459,6 +470,25 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
   const obligationFlowFundingLine = selectedObligationFundingLine;
   const settleClaimFundingLine = selectedClaimFundingLine;
   const impairmentFundingLine = selectedObligationFundingLine ?? selectedFundingLineForClaimResolved;
+  const settlementAssetMint = settleClaimFundingLine?.assetMint ?? selectedObligation?.assetMint ?? null;
+  const selectedSettlementVault = useMemo(
+    () =>
+      props.domainAssetVaults.find(
+        (vault) =>
+          vault.reserveDomain === props.plan?.reserveDomain &&
+          vault.assetMint === settlementAssetMint,
+      ) ?? null,
+    [props.domainAssetVaults, props.plan?.reserveDomain, settlementAssetMint],
+  );
+  const selectedSettlementProtocolFeeVault = useMemo(
+    () =>
+      props.protocolFeeVaults.find(
+        (vault) =>
+          vault.reserveDomain === props.plan?.reserveDomain &&
+          vault.assetMint === settlementAssetMint,
+      ) ?? null,
+    [props.protocolFeeVaults, props.plan?.reserveDomain, settlementAssetMint],
+  );
   const allocationFundingLineAddress =
     section === "funding"
       ? selectedFundingLine?.address
@@ -476,6 +506,20 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
   const selectedPool = useMemo(
     () => props.pools.find((pool) => pool.address === selectedAllocation?.liquidityPool) ?? null,
     [props.pools, selectedAllocation?.liquidityPool],
+  );
+  const selectedPoolOraclePolicy = useMemo(
+    () => props.poolOraclePolicies.find((policy) => policy.liquidityPool === selectedPool?.address) ?? null,
+    [props.poolOraclePolicies, selectedPool?.address],
+  );
+  const selectedPoolOracleFeeVault = useMemo(
+    () =>
+      props.poolOracleFeeVaults.find(
+        (vault) =>
+          vault.liquidityPool === selectedPool?.address &&
+          vault.oracle === selectedClaim?.adjudicator &&
+          vault.assetMint === settlementAssetMint,
+      ) ?? null,
+    [props.poolOracleFeeVaults, selectedPool?.address, selectedClaim?.adjudicator, settlementAssetMint],
   );
   const selectedFundingVault = useMemo(
     () =>
@@ -1023,6 +1067,12 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                         <option value={String(OBLIGATION_STATUS_CANCELED)}>Canceled</option>
                       </SelectField>
                     </div>
+                    <TextField
+                      label="Recipient token account"
+                      value={recipientTokenAccount}
+                      onChange={setRecipientTokenAccount}
+                      placeholder="Member or delegate ATA"
+                    />
                     <div className="operator-drawer-actions">
                       <button
                         type="button"
@@ -1091,10 +1141,13 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                       <button
                         type="button"
                         className="plans-secondary-cta"
-                        disabled={
+	                        disabled={
                           !canAct ||
                           !selectedClaim ||
                           !settleClaimFundingLine ||
+                          !selectedClaim.memberPosition ||
+                          !selectedSettlementVault?.vaultTokenAccount ||
+                          !recipientTokenAccount.trim() ||
                           busyOn("Settle claim")
                         }
                         onClick={() =>
@@ -1114,6 +1167,12 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               capitalClassAddress: selectedObligation?.capitalClass ?? null,
                               allocationPositionAddress: selectedObligation?.allocationPosition ?? null,
                               poolAssetMint: selectedPool?.depositAssetMint ?? null,
+                              protocolFeeVaultAddress: selectedSettlementProtocolFeeVault?.address ?? null,
+                              poolOracleFeeVaultAddress: selectedPoolOracleFeeVault?.address ?? null,
+                              poolOraclePolicyAddress: selectedPoolOraclePolicy?.address ?? null,
+                              memberPositionAddress: selectedClaim!.memberPosition,
+                              vaultTokenAccountAddress: selectedSettlementVault!.vaultTokenAccount,
+                              recipientTokenAccountAddress: recipientTokenAccount.trim(),
                             });
                           })
                         }
@@ -1123,10 +1182,19 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                       <button
                         type="button"
                         className="plans-primary-cta"
-                        disabled={
+	                        disabled={
                           !canAct ||
                           !selectedObligation ||
                           !obligationFlowFundingLine ||
+                          (
+                            selectedObligation.claimCase &&
+                            (Number.parseInt(settleObligationStatus, 10) || OBLIGATION_STATUS_CLAIMABLE_PAYABLE) === OBLIGATION_STATUS_SETTLED &&
+                            (
+                              !selectedObligationClaim?.memberPosition ||
+                              !selectedSettlementVault?.vaultTokenAccount ||
+                              !recipientTokenAccount.trim()
+                            )
+                          ) ||
                           busyOn("Settle obligation")
                         }
                         onClick={() =>
@@ -1151,6 +1219,9 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               capitalClassAddress: selectedObligation!.capitalClass ?? null,
                               allocationPositionAddress: selectedObligation!.allocationPosition ?? null,
                               poolAssetMint: selectedPool?.depositAssetMint ?? null,
+                              memberPositionAddress: selectedObligationClaim?.memberPosition ?? null,
+                              vaultTokenAccountAddress: selectedSettlementVault?.vaultTokenAccount ?? null,
+                              recipientTokenAccountAddress: recipientTokenAccount.trim() || null,
                             });
                           })
                         }

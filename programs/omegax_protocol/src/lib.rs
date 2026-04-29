@@ -1226,6 +1226,14 @@ pub mod omegax_protocol {
                     amount <= remaining_claim_amount(claim_case),
                     OmegaXProtocolError::AmountExceedsApprovedClaim
                 );
+                require!(
+                    ctx.accounts.member_position.is_some()
+                        && ctx.accounts.asset_mint.is_some()
+                        && ctx.accounts.vault_token_account.is_some()
+                        && ctx.accounts.recipient_token_account.is_some()
+                        && ctx.accounts.token_program.is_some(),
+                    OmegaXProtocolError::SettlementOutflowAccountsRequired
+                );
             }
         }
 
@@ -1285,15 +1293,11 @@ pub mod omegax_protocol {
                 )?;
                 obligation.status = OBLIGATION_STATUS_SETTLED;
 
-                // PT-2026-04-27-01/02 fix: SPL outflow CPI for linked-claim
-                // settlement. When a claim_case is linked AND all five outflow
-                // accounts are supplied, transfer the SPL out of the
-                // PDA-owned vault to the resolved recipient. When any are
-                // absent (e.g. direct sponsor recoveries that pre-date this
-                // surface), fall back to accounting-only — operators using
-                // those flows must adapt to a future direct-recipient path.
+                // Linked-claim settlement must include the SPL outflow accounts.
+                // Without them, the obligation would be marked settled while
+                // the vault balance never leaves custody.
                 if let Some(claim_case_ref) = ctx.accounts.claim_case.as_deref() {
-                    if let (
+                    let (
                         Some(member_pos),
                         Some(mint),
                         Some(vault_ta),
@@ -1305,28 +1309,30 @@ pub mod omegax_protocol {
                         ctx.accounts.vault_token_account.as_ref(),
                         ctx.accounts.recipient_token_account.as_ref(),
                         ctx.accounts.token_program.as_ref(),
-                    ) {
-                        require_keys_eq!(
-                            member_pos.key(),
-                            claim_case_ref.member_position,
-                            OmegaXProtocolError::Unauthorized
-                        );
-                        let resolved_recipient =
-                            resolve_claim_settlement_recipient(claim_case_ref, member_pos);
-                        require_keys_eq!(
-                            recipient_ta.owner,
-                            resolved_recipient,
-                            OmegaXProtocolError::Unauthorized
-                        );
-                        transfer_from_domain_vault(
-                            amount,
-                            &ctx.accounts.domain_asset_vault,
-                            vault_ta,
-                            recipient_ta,
-                            mint,
-                            token_prog,
-                        )?;
-                    }
+                    )
+                    else {
+                        return Err(OmegaXProtocolError::SettlementOutflowAccountsRequired.into());
+                    };
+                    require_keys_eq!(
+                        member_pos.key(),
+                        claim_case_ref.member_position,
+                        OmegaXProtocolError::Unauthorized
+                    );
+                    let resolved_recipient =
+                        resolve_claim_settlement_recipient(claim_case_ref, member_pos);
+                    require_keys_eq!(
+                        recipient_ta.owner,
+                        resolved_recipient,
+                        OmegaXProtocolError::Unauthorized
+                    );
+                    transfer_from_domain_vault(
+                        amount,
+                        &ctx.accounts.domain_asset_vault,
+                        vault_ta,
+                        recipient_ta,
+                        mint,
+                        token_prog,
+                    )?;
                 }
             }
             OBLIGATION_STATUS_CANCELED => {
@@ -1661,6 +1667,10 @@ pub mod omegax_protocol {
             );
             fee_share_from_bps(amount, protocol_fee_bps)?
         } else {
+            require!(
+                protocol_fee_bps == 0,
+                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
+            );
             0
         };
 
@@ -1691,10 +1701,12 @@ pub mod omegax_protocol {
                 );
                 fee_share_from_bps(amount, policy.oracle_fee_bps)?
             }
-            (None, Some(_)) => {
-                // Policy provided without vault is a configuration error;
-                // refuse to silently bypass oracle fees.
-                return Err(OmegaXProtocolError::FeeVaultBpsMisconfigured.into());
+            (None, Some(policy)) => {
+                require!(
+                    policy.oracle_fee_bps == 0,
+                    OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
+                );
+                0
             }
             (None, None) => 0,
             (Some(_), None) => {
@@ -3627,14 +3639,9 @@ pub struct SettleObligation<'info> {
     pub obligation: Box<Account<'info, Obligation>>,
     #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
     pub claim_case: Option<Box<Account<'info, ClaimCase>>>,
-    // PT-2026-04-27-01/02 fix: optional outflow accounts. When all five are
-    // provided AND a linked claim_case is present AND next_status is SETTLED,
-    // the handler resolves recipient = claim_case.delegate_recipient if
-    // non-zero else member.wallet, asserts recipient_token_account.owner ==
-    // resolved, and transfers SPL via the domain_asset_vault PDA. When any
-    // are absent (e.g. direct sponsor recoveries with no linked claim), the
-    // handler falls back to accounting-only behavior to preserve existing
-    // operator flows.
+    // Optional for non-claim obligation transitions, but required when a
+    // linked claim is being marked SETTLED so accounting cannot move without
+    // the matching SPL outflow.
     pub member_position: Option<Box<Account<'info, MemberPosition>>>,
     pub asset_mint: Option<InterfaceAccount<'info, Mint>>,
     #[account(mut)]
@@ -5986,6 +5993,8 @@ pub enum OmegaXProtocolError {
     FeeVaultRequiredForConfiguredFee,
     #[msg("Fee vault basis-points configuration is out of range")]
     FeeVaultBpsMisconfigured,
+    #[msg("Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts")]
+    SettlementOutflowAccountsRequired,
 }
 
 fn require_id(value: &str) -> Result<()> {
