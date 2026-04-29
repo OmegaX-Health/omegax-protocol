@@ -20,6 +20,9 @@ test("canonical contract exposes the health-capital-markets surface", () => {
     types: Array<{ name: string; type: { kind: string; fields?: Array<{ name: string }> } }>;
   };
   const depositArgs = idl.types.find((entry) => entry.name === "DepositIntoCapitalClassArgs");
+  const initProtocolFeeVaultArgs = idl.types.find((entry) => entry.name === "InitProtocolFeeVaultArgs");
+  const initPoolTreasuryVaultArgs = idl.types.find((entry) => entry.name === "InitPoolTreasuryVaultArgs");
+  const initPoolOracleFeeVaultArgs = idl.types.find((entry) => entry.name === "InitPoolOracleFeeVaultArgs");
   const requestRedemptionArgs = idl.types.find((entry) => entry.name === "RequestRedemptionArgs");
   const processRedemptionArgs = idl.types.find((entry) => entry.name === "ProcessRedemptionQueueArgs");
 
@@ -175,6 +178,18 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert.deepEqual(
     depositArgs?.type.fields?.map((field) => field.name),
     ["amount", "shares"],
+  );
+  assert.deepEqual(
+    initProtocolFeeVaultArgs?.type.fields?.map((field) => field.name),
+    ["asset_mint", "fee_recipient"],
+  );
+  assert.deepEqual(
+    initPoolTreasuryVaultArgs?.type.fields?.map((field) => field.name),
+    ["asset_mint", "fee_recipient"],
+  );
+  assert.deepEqual(
+    initPoolOracleFeeVaultArgs?.type.fields?.map((field) => field.name),
+    ["oracle", "asset_mint", "fee_recipient"],
   );
   assert.deepEqual(
     requestRedemptionArgs?.type.fields?.map((field) => field.name),
