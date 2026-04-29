@@ -446,6 +446,12 @@ pub mod omegax_protocol {
             ctx.accounts.oracle_profile.claimed,
             OmegaXProtocolError::OracleProfileUnclaimed
         );
+        // Either SOL rail or matching the pool's SPL deposit mint.
+        require!(
+            args.asset_mint == NATIVE_SOL_MINT
+                || args.asset_mint == ctx.accounts.liquidity_pool.deposit_asset_mint,
+            OmegaXProtocolError::AssetMintMismatch
+        );
         if args.asset_mint != NATIVE_SOL_MINT {
             require!(
                 ctx.accounts.domain_asset_vault.is_some(),
