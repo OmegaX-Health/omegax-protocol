@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // CSO-2026-04-29 regressions for fee accrual:
-// configured premium and LP exit fees must fail closed when callers omit the
-// matching fee-vault account, and builders must preserve optional-account slots.
+// configured premium and LP entry/exit flows must always carry the canonical
+// fee-vault PDA instead of preserving legacy omission paths.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -23,7 +23,8 @@ const {
   buildDepositIntoCapitalClassTx,
   buildProcessRedemptionQueueTx,
   buildRecordPremiumPaymentTx,
-  getProgramId,
+  derivePoolTreasuryVaultPda,
+  deriveProtocolFeeVaultPda,
   listProtocolInstructionAccounts,
 } = protocolModule as typeof import("../../frontend/lib/protocol.ts");
 
@@ -52,18 +53,20 @@ function assertAccountCount(name: Parameters<typeof listProtocolInstructionAccou
   );
 }
 
-test("[CSO-2026-04-29] configured premium and LP exit fees require fee vault accounts", () => {
+test("[CSO-2026-04-29] fee-accrual handlers removed missing-vault compatibility branches", () => {
   const premiumBody = extractInstructionBody("record_premium_payment");
+  const depositBody = extractInstructionBody("deposit_into_capital_class");
   const redemptionBody = extractInstructionBody("process_redemption_queue");
 
-  assert.match(premiumBody, /protocol_fee_bps\s*==\s*0/);
-  assert.match(premiumBody, /FeeVaultRequiredForConfiguredFee/);
-  assert.match(redemptionBody, /class_fee_bps\s*==\s*0/);
-  assert.match(redemptionBody, /FeeVaultRequiredForConfiguredFee/);
+  assert.doesNotMatch(premiumBody, /protocol_fee_vault\.as_deref/);
+  assert.doesNotMatch(premiumBody, /protocol_fee_bps\s*==\s*0/);
+  assert.doesNotMatch(depositBody, /pool_treasury_vault\.as_deref/);
+  assert.doesNotMatch(depositBody, /class_fee_bps\s*==\s*0/);
+  assert.doesNotMatch(redemptionBody, /pool_treasury_vault\.as_deref/);
+  assert.doesNotMatch(redemptionBody, /class_fee_bps\s*==\s*0/);
 });
 
-test("[CSO-2026-04-29] fee-accrual builders preserve optional fee-vault slots", () => {
-  const programId = getProgramId().toBase58();
+test("[CSO-2026-04-29] fee-accrual builders derive canonical fee-vault PDAs", () => {
   const recentBlockhash = "11111111111111111111111111111111";
   const authority = DEVNET_PROTOCOL_FIXTURE_STATE.wallets[0]!.address;
   const recipient = DEVNET_PROTOCOL_FIXTURE_STATE.wallets[1]!.address;
@@ -89,22 +92,13 @@ test("[CSO-2026-04-29] fee-accrual builders preserve optional fee-vault slots", 
     policySeriesAddress: fundingLine.policySeries ?? null,
   });
   assertAccountCount("record_premium_payment", recordPremium.instructions[0]!.keys.length);
-  assert.equal(recordPremium.instructions[0]!.keys[9]!.pubkey.toBase58(), programId);
-
-  const recordPremiumWithVault = buildRecordPremiumPaymentTx({
-    authority,
-    healthPlanAddress: plan.address,
-    reserveDomainAddress: plan.reserveDomain,
-    fundingLineAddress: fundingLine.address,
-    assetMint: fundingLine.assetMint,
-    sourceTokenAccountAddress: authority,
-    vaultTokenAccountAddress: recipient,
-    recentBlockhash,
-    amount: 1n,
-    policySeriesAddress: fundingLine.policySeries ?? null,
-    protocolFeeVaultAddress: recipient,
-  });
-  assert.equal(recordPremiumWithVault.instructions[0]!.keys[9]!.pubkey.toBase58(), recipient);
+  assert.equal(
+    recordPremium.instructions[0]!.keys[9]!.pubkey.toBase58(),
+    deriveProtocolFeeVaultPda({
+      reserveDomain: plan.reserveDomain,
+      assetMint: fundingLine.assetMint,
+    }).toBase58(),
+  );
 
   const deposit = buildDepositIntoCapitalClassTx({
     owner: authority,
@@ -119,7 +113,13 @@ test("[CSO-2026-04-29] fee-accrual builders preserve optional fee-vault slots", 
     shares: 1n,
   });
   assertAccountCount("deposit_into_capital_class", deposit.instructions[0]!.keys.length);
-  assert.equal(deposit.instructions[0]!.keys[8]!.pubkey.toBase58(), programId);
+  assert.equal(
+    deposit.instructions[0]!.keys[8]!.pubkey.toBase58(),
+    derivePoolTreasuryVaultPda({
+      liquidityPool: pool.address,
+      assetMint: pool.depositAssetMint,
+    }).toBase58(),
+  );
 
   const redemption = buildProcessRedemptionQueueTx({
     authority,
@@ -134,7 +134,13 @@ test("[CSO-2026-04-29] fee-accrual builders preserve optional fee-vault slots", 
     recipientTokenAccountAddress: recipient,
   });
   assertAccountCount("process_redemption_queue", redemption.instructions[0]!.keys.length);
-  assert.equal(redemption.instructions[0]!.keys[8]!.pubkey.toBase58(), programId);
+  assert.equal(
+    redemption.instructions[0]!.keys[8]!.pubkey.toBase58(),
+    derivePoolTreasuryVaultPda({
+      liquidityPool: pool.address,
+      assetMint: pool.depositAssetMint,
+    }).toBase58(),
+  );
   assert.equal(redemption.instructions[0]!.keys[10]!.pubkey.toBase58(), pool.address);
   assert.equal(redemption.instructions[0]!.keys[11]!.pubkey.toBase58(), recipient);
 });

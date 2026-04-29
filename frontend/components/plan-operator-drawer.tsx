@@ -490,15 +490,6 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
       ) ?? null,
     [props.domainAssetVaults, props.plan?.reserveDomain, settleObligationAssetMint],
   );
-  const selectedSettlementProtocolFeeVault = useMemo(
-    () =>
-      props.protocolFeeVaults.find(
-        (vault) =>
-          vault.reserveDomain === props.plan?.reserveDomain &&
-          vault.assetMint === settleClaimAssetMint,
-      ) ?? null,
-    [props.protocolFeeVaults, props.plan?.reserveDomain, settleClaimAssetMint],
-  );
   const allocationFundingLineAddress =
     section === "funding"
       ? selectedFundingLine?.address
@@ -1177,7 +1168,6 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               capitalClassAddress: selectedObligation?.capitalClass ?? null,
                               allocationPositionAddress: selectedObligation?.allocationPosition ?? null,
                               poolAssetMint: selectedPool?.depositAssetMint ?? null,
-                              protocolFeeVaultAddress: selectedSettlementProtocolFeeVault?.address ?? null,
                               poolOracleFeeVaultAddress: selectedPoolOracleFeeVault?.address ?? null,
                               poolOraclePolicyAddress: selectedPoolOraclePolicy?.address ?? null,
                               memberPositionAddress: selectedClaim!.memberPosition,

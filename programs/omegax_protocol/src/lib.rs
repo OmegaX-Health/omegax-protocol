@@ -984,34 +984,28 @@ pub mod omegax_protocol {
         // internal claim that decrements `accrued_fees - withdrawn_fees`
         // headroom. No user-facing payout reduction here (premiums are not
         // refundable).
-        if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref_mut() {
-            require_keys_eq!(
-                vault.reserve_domain,
-                health_plan_reserve_domain,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            require_keys_eq!(
-                vault.asset_mint,
-                funding_line_asset_mint,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            let fee = fee_share_from_bps(amount, protocol_fee_bps)?;
-            if fee > 0 {
-                let vault_key = vault.key();
-                let vault_mint = vault.asset_mint;
-                let accrued_total = accrue_fee(&mut vault.accrued_fees, fee)?;
-                emit!(FeeAccruedEvent {
-                    vault: vault_key,
-                    asset_mint: vault_mint,
-                    amount: fee,
-                    accrued_total,
-                });
-            }
-        } else {
-            require!(
-                protocol_fee_bps == 0,
-                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
-            );
+        let vault = &mut ctx.accounts.protocol_fee_vault;
+        require_keys_eq!(
+            vault.reserve_domain,
+            health_plan_reserve_domain,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        require_keys_eq!(
+            vault.asset_mint,
+            funding_line_asset_mint,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        let fee = fee_share_from_bps(amount, protocol_fee_bps)?;
+        if fee > 0 {
+            let vault_key = vault.key();
+            let vault_mint = vault.asset_mint;
+            let accrued_total = accrue_fee(&mut vault.accrued_fees, fee)?;
+            emit!(FeeAccruedEvent {
+                vault: vault_key,
+                asset_mint: vault_mint,
+                amount: fee,
+                accrued_total,
+            });
         }
 
         emit!(FundingFlowRecordedEvent {
@@ -1670,25 +1664,18 @@ pub mod omegax_protocol {
         let asset_mint_key = ctx.accounts.funding_line.asset_mint;
         let protocol_fee_bps = ctx.accounts.protocol_governance.protocol_fee_bps;
 
-        let protocol_fee = if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref() {
-            require_keys_eq!(
-                vault.reserve_domain,
-                reserve_domain,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            require_keys_eq!(
-                vault.asset_mint,
-                asset_mint_key,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            fee_share_from_bps(amount, protocol_fee_bps)?
-        } else {
-            require!(
-                protocol_fee_bps == 0,
-                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
-            );
-            0
-        };
+        let protocol_fee_vault = &ctx.accounts.protocol_fee_vault;
+        require_keys_eq!(
+            protocol_fee_vault.reserve_domain,
+            reserve_domain,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        require_keys_eq!(
+            protocol_fee_vault.asset_mint,
+            asset_mint_key,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        let protocol_fee = fee_share_from_bps(amount, protocol_fee_bps)?;
 
         // Adjudicator oracle fee: requires BOTH pool_oracle_fee_vault and
         // pool_oracle_policy to be supplied. The vault fixes the recipient
@@ -1717,12 +1704,8 @@ pub mod omegax_protocol {
                 );
                 fee_share_from_bps(amount, policy.oracle_fee_bps)?
             }
-            (None, Some(policy)) => {
-                require!(
-                    policy.oracle_fee_bps == 0,
-                    OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
-                );
-                0
+            (None, Some(_)) => {
+                return Err(OmegaXProtocolError::FeeVaultRequiredForConfiguredFee.into());
             }
             (None, None) => 0,
             (Some(_), None) => {
@@ -1787,17 +1770,16 @@ pub mod omegax_protocol {
 
         // Accrue the protocol fee carve-out.
         if protocol_fee > 0 {
-            if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref_mut() {
-                let key = vault.key();
-                let mint = vault.asset_mint;
-                let total = accrue_fee(&mut vault.accrued_fees, protocol_fee)?;
-                emit!(FeeAccruedEvent {
-                    vault: key,
-                    asset_mint: mint,
-                    amount: protocol_fee,
-                    accrued_total: total,
-                });
-            }
+            let vault = &mut ctx.accounts.protocol_fee_vault;
+            let key = vault.key();
+            let mint = vault.asset_mint;
+            let total = accrue_fee(&mut vault.accrued_fees, protocol_fee)?;
+            emit!(FeeAccruedEvent {
+                vault: key,
+                asset_mint: mint,
+                amount: protocol_fee,
+                accrued_total: total,
+            });
         }
 
         // Accrue the adjudicator-oracle fee carve-out.
@@ -2004,7 +1986,7 @@ pub mod omegax_protocol {
 
         let amount = args.amount;
 
-        // Phase 1.6 — Pool-treasury entry fee. Validate the optional fee vault
+        // Phase 1.6 — Pool-treasury entry fee. Validate the canonical fee vault
         // matches (liquidity_pool, deposit_asset_mint), then compute the fee
         // against capital_class.fee_bps. The full `amount` remains physically
         // locked in the DomainAssetVault; the fee carve-out is removed from
@@ -2013,25 +1995,18 @@ pub mod omegax_protocol {
         let pool_key = ctx.accounts.liquidity_pool.key();
         let pool_deposit_mint = ctx.accounts.liquidity_pool.deposit_asset_mint;
         let class_fee_bps = ctx.accounts.capital_class.fee_bps;
-        let entry_fee = if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref() {
-            require_keys_eq!(
-                vault.liquidity_pool,
-                pool_key,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            require_keys_eq!(
-                vault.asset_mint,
-                pool_deposit_mint,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            fee_share_from_bps(amount, class_fee_bps)?
-        } else {
-            require!(
-                class_fee_bps == 0,
-                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
-            );
-            0
-        };
+        let pool_treasury_vault = &ctx.accounts.pool_treasury_vault;
+        require_keys_eq!(
+            pool_treasury_vault.liquidity_pool,
+            pool_key,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        require_keys_eq!(
+            pool_treasury_vault.asset_mint,
+            pool_deposit_mint,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        let entry_fee = fee_share_from_bps(amount, class_fee_bps)?;
         let net_amount = checked_sub(amount, entry_fee)?;
 
         let shares = deposit_shares_for_nav(
@@ -2066,20 +2041,18 @@ pub mod omegax_protocol {
 
         // Accrue the entry fee to the pool-treasury vault. SPL tokens already
         // sit in the DomainAssetVault from the transfer above; this only updates
-        // the rail's claim counter. Missing vaults are only allowed when
-        // capital_class.fee_bps == 0.
+        // the rail's claim counter.
         if entry_fee > 0 {
-            if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref_mut() {
-                let vault_key = vault.key();
-                let vault_mint = vault.asset_mint;
-                let accrued_total = accrue_fee(&mut vault.accrued_fees, entry_fee)?;
-                emit!(FeeAccruedEvent {
-                    vault: vault_key,
-                    asset_mint: vault_mint,
-                    amount: entry_fee,
-                    accrued_total,
-                });
-            }
+            let vault = &mut ctx.accounts.pool_treasury_vault;
+            let vault_key = vault.key();
+            let vault_mint = vault.asset_mint;
+            let accrued_total = accrue_fee(&mut vault.accrued_fees, entry_fee)?;
+            emit!(FeeAccruedEvent {
+                vault: vault_key,
+                asset_mint: vault_mint,
+                amount: entry_fee,
+                accrued_total,
+            });
         }
 
         emit!(CapitalClassDepositEvent {
@@ -2177,7 +2150,7 @@ pub mod omegax_protocol {
             ctx.accounts.lp_position.pending_redemption_assets,
         )?;
 
-        // Phase 1.6 — Pool-treasury exit fee. Validate the optional fee vault
+        // Phase 1.6 — Pool-treasury exit fee. Validate the canonical fee vault
         // matches (liquidity_pool, deposit_asset_mint), then compute the carve-out.
         // The full pending request is resolved (LP gives up claim on asset_amount),
         // but only `net_to_lp` physically leaves the vault — the fee carve-out
@@ -2185,25 +2158,18 @@ pub mod omegax_protocol {
         let pool_key = ctx.accounts.liquidity_pool.key();
         let pool_deposit_mint = ctx.accounts.liquidity_pool.deposit_asset_mint;
         let class_fee_bps = ctx.accounts.capital_class.fee_bps;
-        let exit_fee = if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref() {
-            require_keys_eq!(
-                vault.liquidity_pool,
-                pool_key,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            require_keys_eq!(
-                vault.asset_mint,
-                pool_deposit_mint,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            fee_share_from_bps(asset_amount, class_fee_bps)?
-        } else {
-            require!(
-                class_fee_bps == 0,
-                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
-            );
-            0
-        };
+        let pool_treasury_vault = &ctx.accounts.pool_treasury_vault;
+        require_keys_eq!(
+            pool_treasury_vault.liquidity_pool,
+            pool_key,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        require_keys_eq!(
+            pool_treasury_vault.asset_mint,
+            pool_deposit_mint,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        let exit_fee = fee_share_from_bps(asset_amount, class_fee_bps)?;
         let net_to_lp = checked_sub(asset_amount, exit_fee)?;
 
         ctx.accounts.lp_position.pending_redemption_shares = checked_sub(
@@ -2281,19 +2247,18 @@ pub mod omegax_protocol {
 
         // Accrue the exit fee to the pool-treasury vault. SPL tokens are still
         // physically in the vault_token_account; only the rail's claim counter
-        // changes. Missing vaults are only allowed when class_fee_bps == 0.
+        // changes.
         if exit_fee > 0 {
-            if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref_mut() {
-                let vault_key = vault.key();
-                let vault_mint = vault.asset_mint;
-                let accrued_total = accrue_fee(&mut vault.accrued_fees, exit_fee)?;
-                emit!(FeeAccruedEvent {
-                    vault: vault_key,
-                    asset_mint: vault_mint,
-                    amount: exit_fee,
-                    accrued_total,
-                });
-            }
+            let vault = &mut ctx.accounts.pool_treasury_vault;
+            let vault_key = vault.key();
+            let vault_mint = vault.asset_mint;
+            let accrued_total = accrue_fee(&mut vault.accrued_fees, exit_fee)?;
+            emit!(FeeAccruedEvent {
+                vault: vault_key,
+                asset_mint: vault_mint,
+                amount: exit_fee,
+                accrued_total,
+            });
         }
 
         Ok(())
@@ -3602,11 +3567,14 @@ pub struct RecordPremiumPayment<'info> {
     pub plan_reserve_ledger: Box<Account<'info, PlanReserveLedger>>,
     #[account(mut)]
     pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    /// Protocol fee vault for premium-time fee accrual. Required when
-    /// protocol_governance.protocol_fee_bps is nonzero.
-    /// Must match (health_plan.reserve_domain, funding_line.asset_mint).
-    #[account(mut)]
-    pub protocol_fee_vault: Option<Box<Account<'info, ProtocolFeeVault>>>,
+    #[account(
+        mut,
+        seeds = [SEED_PROTOCOL_FEE_VAULT, health_plan.reserve_domain.as_ref(), funding_line.asset_mint.as_ref()],
+        bump = protocol_fee_vault.bump,
+        constraint = protocol_fee_vault.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::FeeVaultMismatch,
+        constraint = protocol_fee_vault.asset_mint == funding_line.asset_mint @ OmegaXProtocolError::FeeVaultMismatch,
+    )]
+    pub protocol_fee_vault: Box<Account<'info, ProtocolFeeVault>>,
     #[account(mut)]
     pub source_token_account: InterfaceAccount<'info, TokenAccount>,
     pub asset_mint: InterfaceAccount<'info, Mint>,
@@ -3896,11 +3864,14 @@ pub struct SettleClaimCase<'info> {
     pub claim_case: Box<Account<'info, ClaimCase>>,
     #[account(mut)]
     pub obligation: Option<Box<Account<'info, Obligation>>>,
-    /// Phase 1.6 — optional protocol fee vault for claim-settlement accrual.
-    /// When supplied, must match (health_plan.reserve_domain, funding_line.asset_mint).
-    /// Validated at runtime; absent means protocol-fee accrual is skipped (backward compat).
-    #[account(mut)]
-    pub protocol_fee_vault: Option<Box<Account<'info, ProtocolFeeVault>>>,
+    #[account(
+        mut,
+        seeds = [SEED_PROTOCOL_FEE_VAULT, health_plan.reserve_domain.as_ref(), funding_line.asset_mint.as_ref()],
+        bump = protocol_fee_vault.bump,
+        constraint = protocol_fee_vault.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::FeeVaultMismatch,
+        constraint = protocol_fee_vault.asset_mint == funding_line.asset_mint @ OmegaXProtocolError::FeeVaultMismatch,
+    )]
+    pub protocol_fee_vault: Box<Account<'info, ProtocolFeeVault>>,
     /// Phase 1.6 — optional pool-oracle fee vault for adjudicator revshare.
     /// When supplied alongside `pool_oracle_policy`, the bps from policy is
     /// applied to the gross amount and credited to the supplied oracle vault.
@@ -4044,11 +4015,14 @@ pub struct DepositIntoCapitalClass<'info> {
         bump
     )]
     pub lp_position: Box<Account<'info, LPPosition>>,
-    /// Phase 1.6 — optional pool-treasury vault for entry-fee accrual.
-    /// When supplied, must match (liquidity_pool, deposit_asset_mint).
-    /// Required when capital_class.fee_bps is nonzero.
-    #[account(mut)]
-    pub pool_treasury_vault: Option<Box<Account<'info, PoolTreasuryVault>>>,
+    #[account(
+        mut,
+        seeds = [SEED_POOL_TREASURY_VAULT, liquidity_pool.key().as_ref(), liquidity_pool.deposit_asset_mint.as_ref()],
+        bump = pool_treasury_vault.bump,
+        constraint = pool_treasury_vault.liquidity_pool == liquidity_pool.key() @ OmegaXProtocolError::FeeVaultMismatch,
+        constraint = pool_treasury_vault.asset_mint == liquidity_pool.deposit_asset_mint @ OmegaXProtocolError::FeeVaultMismatch,
+    )]
+    pub pool_treasury_vault: Box<Account<'info, PoolTreasuryVault>>,
     #[account(mut)]
     pub source_token_account: InterfaceAccount<'info, TokenAccount>,
     pub asset_mint: InterfaceAccount<'info, Mint>,
@@ -4092,11 +4066,14 @@ pub struct ProcessRedemptionQueue<'info> {
     pub pool_class_ledger: Box<Account<'info, PoolClassLedger>>,
     #[account(mut, seeds = [SEED_LP_POSITION, capital_class.key().as_ref(), lp_position.owner.as_ref()], bump = lp_position.bump)]
     pub lp_position: Box<Account<'info, LPPosition>>,
-    /// Phase 1.6 — optional pool-treasury vault for exit-fee accrual.
-    /// When supplied, must match (liquidity_pool, deposit_asset_mint).
-    /// Required when capital_class.fee_bps is nonzero.
-    #[account(mut)]
-    pub pool_treasury_vault: Option<Box<Account<'info, PoolTreasuryVault>>>,
+    #[account(
+        mut,
+        seeds = [SEED_POOL_TREASURY_VAULT, liquidity_pool.key().as_ref(), liquidity_pool.deposit_asset_mint.as_ref()],
+        bump = pool_treasury_vault.bump,
+        constraint = pool_treasury_vault.liquidity_pool == liquidity_pool.key() @ OmegaXProtocolError::FeeVaultMismatch,
+        constraint = pool_treasury_vault.asset_mint == liquidity_pool.deposit_asset_mint @ OmegaXProtocolError::FeeVaultMismatch,
+    )]
+    pub pool_treasury_vault: Box<Account<'info, PoolTreasuryVault>>,
     // PT-2026-04-27-01/02 fix: outflow CPI accounts. Recipient must be the LP
     // position's owner — there is no delegate-recipient pattern for redemptions.
     #[account(
@@ -5541,8 +5518,8 @@ pub struct UpdateLpPositionCredentialingArgs {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct DepositIntoCapitalClassArgs {
     pub amount: u64,
-    /// Backward-compatible wire field. Interpreted as min_shares_out; zero
-    /// means accept the program-derived NAV share price with no minimum.
+    /// Minimum accepted shares out; zero means accept the program-derived
+    /// NAV share price with no minimum.
     pub shares: u64,
 }
 

@@ -196,7 +196,6 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
       ) ?? null,
     [props.poolTreasuryVaults, props.selectedPool?.address, props.selectedPool?.depositAssetMint],
   );
-  const selectedClassRequiresFeeVault = (props.selectedClass?.feeBps ?? 0) > 0;
 
   async function run(label: string, factory: () => Promise<Transaction>) {
     if (!publicKey || !sendTransaction) return;
@@ -738,7 +737,7 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                           !canAct ||
                           !lpOwner ||
                           !selectedPoolAssetVault?.vaultTokenAccount ||
-                          (selectedClassRequiresFeeVault && !selectedPoolTreasuryVault) ||
+                          !selectedPoolTreasuryVault ||
                           !redemptionRecipientTokenAccount.trim() ||
                           busyOn("Process redemption queue")
                         }
@@ -754,7 +753,6 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                               lpOwnerAddress: lpOwner,
                               recentBlockhash: blockhash,
                               shares: parseBigIntInput(queueShares),
-                              poolTreasuryVaultAddress: selectedPoolTreasuryVault?.address ?? null,
                               vaultTokenAccountAddress: selectedPoolAssetVault!.vaultTokenAccount,
                               recipientTokenAccountAddress: redemptionRecipientTokenAccount.trim(),
                             });

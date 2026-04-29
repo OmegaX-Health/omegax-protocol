@@ -4162,7 +4162,6 @@ export function buildRecordPremiumPaymentTx(params: {
   policySeriesAddress?: PublicKeyish | null;
   capitalClassAddress?: PublicKeyish | null;
   poolAssetMint?: PublicKeyish | null;
-  protocolFeeVaultAddress?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
@@ -4205,7 +4204,13 @@ export function buildRecordPremiumPaymentTx(params: {
         isWritable: true,
       },
       optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
-      optionalProtocolAccount(params.protocolFeeVaultAddress, true),
+      {
+        pubkey: deriveProtocolFeeVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
       { pubkey: params.sourceTokenAccountAddress, isWritable: true },
       { pubkey: params.assetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
@@ -4619,7 +4624,6 @@ export function buildSettleClaimCaseTx(params: {
   capitalClassAddress?: PublicKeyish | null;
   allocationPositionAddress?: PublicKeyish | null;
   poolAssetMint?: PublicKeyish | null;
-  protocolFeeVaultAddress?: PublicKeyish | null;
   poolOracleFeeVaultAddress?: PublicKeyish | null;
   poolOraclePolicyAddress?: PublicKeyish | null;
   memberPositionAddress?: PublicKeyish | null;
@@ -4673,7 +4677,13 @@ export function buildSettleClaimCaseTx(params: {
       optionalAllocationLedgerAccount(params.allocationPositionAddress, params.assetMint),
       { pubkey: params.claimCaseAddress, isWritable: true },
       optionalProtocolAccount(params.obligationAddress, true),
-      optionalProtocolAccount(params.protocolFeeVaultAddress, true),
+      {
+        pubkey: deriveProtocolFeeVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.assetMint,
+        }),
+        isWritable: true,
+      },
       optionalProtocolAccount(params.poolOracleFeeVaultAddress, true),
       optionalProtocolAccount(params.poolOraclePolicyAddress),
       optionalProtocolAccount(params.memberPositionAddress),
@@ -4838,9 +4848,8 @@ export function buildDepositIntoCapitalClassTx(params: {
   tokenProgramId?: PublicKeyish | null;
   recentBlockhash: string;
   amount: bigint;
-  /** Backward-compatible wire field. On-chain this is min_shares_out; 0n means no minimum. */
+  /** Minimum accepted shares out; 0n means no minimum. */
   shares: bigint;
-  poolTreasuryVaultAddress?: PublicKeyish | null;
 }): Transaction {
   const owner = toPublicKey(params.owner);
   const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
@@ -4883,7 +4892,13 @@ export function buildDepositIntoCapitalClassTx(params: {
         isWritable: true,
       },
       { pubkey: lpPosition, isWritable: true },
-      optionalProtocolAccount(params.poolTreasuryVaultAddress, true),
+      {
+        pubkey: derivePoolTreasuryVaultPda({
+          liquidityPool: params.poolAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
       { pubkey: params.sourceTokenAccountAddress, isWritable: true },
       { pubkey: params.poolDepositAssetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
@@ -4985,7 +5000,6 @@ export function buildProcessRedemptionQueueTx(params: {
   recentBlockhash: string;
   shares: bigint;
   assetAmount?: bigint;
-  poolTreasuryVaultAddress?: PublicKeyish | null;
   vaultTokenAccountAddress: PublicKeyish;
   recipientTokenAccountAddress: PublicKeyish;
   tokenProgramId?: PublicKeyish | null;
@@ -5030,7 +5044,13 @@ export function buildProcessRedemptionQueueTx(params: {
         isWritable: true,
       },
       { pubkey: lpPosition, isWritable: true },
-      optionalProtocolAccount(params.poolTreasuryVaultAddress, true),
+      {
+        pubkey: derivePoolTreasuryVaultPda({
+          liquidityPool: params.poolAddress,
+          assetMint: params.poolDepositAssetMint,
+        }),
+        isWritable: true,
+      },
       { pubkey: params.poolDepositAssetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
       { pubkey: params.recipientTokenAccountAddress, isWritable: true },
