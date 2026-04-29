@@ -446,6 +446,12 @@ pub mod omegax_protocol {
             ctx.accounts.oracle_profile.claimed,
             OmegaXProtocolError::OracleProfileUnclaimed
         );
+        // Either SOL rail or matching the pool's SPL deposit mint.
+        require!(
+            args.asset_mint == NATIVE_SOL_MINT
+                || args.asset_mint == ctx.accounts.liquidity_pool.deposit_asset_mint,
+            OmegaXProtocolError::AssetMintMismatch
+        );
         if args.asset_mint != NATIVE_SOL_MINT {
             require!(
                 ctx.accounts.domain_asset_vault.is_some(),
@@ -1985,6 +1991,10 @@ pub mod omegax_protocol {
             );
             fee_share_from_bps(amount, class_fee_bps)?
         } else {
+            require!(
+                class_fee_bps == 0,
+                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
+            );
             0
         };
         let net_amount = checked_sub(amount, entry_fee)?;
@@ -5964,6 +5974,8 @@ pub enum OmegaXProtocolError {
     FeeVaultRentExemptionBreach,
     #[msg("Fee vault rail and asset mint disagree (SOL vault used on SPL path or vice versa)")]
     FeeVaultRailMismatch,
+    #[msg("Configured class entry fee requires the matching pool treasury fee vault account")]
+    FeeVaultRequiredForConfiguredFee,
     #[msg("Fee vault basis-points configuration is out of range")]
     FeeVaultBpsMisconfigured,
 }
