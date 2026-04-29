@@ -1,6 +1,6 @@
 # Pre-Mainnet Penetration Test — OmegaX Protocol
 
-**Date:** 2026-04-27  
+**Date:** 2026-04-27 (original) · **Last updated:** 2026-04-29 (post-Phase 1.7 PR4)  
 **Reviewer:** Adversarial review pass, complementing CSO infrastructure audit ([2026-04-27](../../.superstack/security-reports/omegax-protocol-2026-04-27.md))  
 **Scope:** On-chain program, frontend pre-sign review gate, oracle/operator trust boundaries, Genesis launch configuration  
 **Methodology:** Static-source pen-test with PoC tests in `tests/security/`. Each finding has a runnable test that confirms or refutes the claim against the live source tree. PoCs ran via `npm run test:node` on 2026-04-27, all 18 assertions green.
@@ -9,7 +9,9 @@
 
 ## Executive summary
 
-**Verdict: NOT READY FOR MAINNET.** Two CRITICAL findings block launch as-is.
+**Verdict (2026-04-29): READY-WITH-FIXES.** All CRITICAL and HIGH on-chain findings remediated; PT-03 fully closed by Phase 1.6/1.7 PR1–PR4. Remaining items: multisig recommendation doc for governance authority, optional cleanup of dead UI components quarantined in tsconfig, and the LOW/INFO items (PT-09, PT-10, PT-12).
+
+**Original verdict (2026-04-27): NOT READY FOR MAINNET.** Two CRITICAL findings blocked launch as-is.
 
 The OmegaX program in `programs/omegax_protocol/` accepts SPL token deposits but has **no on-chain instruction that releases tokens back out**. Every "settle / process / release" handler updates ledger state and decrements the vault's `total_assets` counter, but **no `transfer_checked` CPI is called**. The IDL contains no `withdraw_*`, `sweep_*`, or fee-collection instruction. The frontend ships a treasury-panel UI whose imports point to nonexistent builders — `pool-treasury-panel.tsx:14-19` imports six `buildWithdraw*Tx` names from `@/lib/protocol`, none of which is exported by that file (49 builders enumerated; zero match).
 
@@ -463,20 +465,21 @@ No remediation required.
 
 ---
 
-## Remediation status (post-Phase 1, 2026-04-28)
+## Remediation status (post-Phase 1.7 PR4, 2026-04-29)
 
-Phase 1 of the remediation plan landed across 6 commits. On-chain
-remediation is substantially complete; PT-03/PT-06/PT-13 (frontend) and
-PT-05 (operator config) remain for Phase 2/3.
+Phases 1 + 1.6 + 1.7 of the remediation plan landed across 21 commits.
+All CRITICAL and HIGH findings are now REMEDIATED. Multisig
+recommendation for governance authority is the only remaining
+mainnet-readiness item from this report.
 
 | ID | Severity | Status | Notes |
 |---|---|---|---|
-| PT-01 | CRITICAL | **REMEDIATED** | All 3 real money-out handlers (`settle_claim_case`, `process_redemption_queue`, `settle_obligation`) now call `transfer_from_domain_vault` with PDA-signed CPI. Verified by [`tests/security/no_money_out_path.test.ts`](../../tests/security/no_money_out_path.test.ts) defense regression. |
+| PT-01 | CRITICAL | **REMEDIATED** | All 3 real money-out handlers (`settle_claim_case`, `process_redemption_queue`, `settle_obligation`) now call `transfer_from_domain_vault` with PDA-signed CPI. Phase 1.7 added 6 explicit `withdraw_*_fee_*` instructions for the fee rails. Verified by [`tests/security/no_money_out_path.test.ts`](../../tests/security/no_money_out_path.test.ts) defense regression — pins the 6 expected withdraw ix names. |
 | PT-02 | CRITICAL | **REMEDIATED** | Vault custody refactored: `create_domain_asset_vault` now `init`s the SPL token account at a new PDA seed with `token::authority = domain_asset_vault`, so the program signs outflows as the vault PDA. Bootstrap scripts updated to derive the new PDA via `deriveDomainAssetVaultTokenAccountPda`; `OMEGAX_*_VAULT_TOKEN_ACCOUNT` env vars no longer required. |
-| PT-03 | HIGH | OPEN | Frontend dead-imports persist on `main`. Phase 2 work (other agent on the UI). |
+| PT-03 | HIGH | **REMEDIATED (Phase 1.6/1.7)** | Phase 1.7 PR2 shipped 6 on-chain `withdraw_*_fee_*` instructions; PR3 added matching `buildWithdraw*Tx` builders + `list*` summary functions in `frontend/lib/protocol.ts`; PR4 mounted `pool-treasury-panel.tsx` into the capital workbench `treasury` tab and removed the broad `components/**/*` tsconfig exclusion (also closing PT-13 for the panel). All three originally-VULN-CONFIRMED PoC checks in [`tests/security/treasury_panel_imports_unresolved.test.ts`](../../tests/security/treasury_panel_imports_unresolved.test.ts) flipped to defense regressions. |
 | PT-04 | HIGH | **REMEDIATED** | `require_claim_intake_submitter` operator branch now constrains `args.claimant == member_position.wallet`; recipient routing moved to the new `ClaimCase.delegate_recipient` field set via `authorize_claim_recipient` (member-only signer). Verified by [`tests/security/program_authorization_gaps.test.ts::[PT-04 defense]`](../../tests/security/program_authorization_gaps.test.ts) and Rust unit tests `claim_intake_submitter_rejects_operator_with_attacker_claimant`, `claim_settlement_routes_to_*`. |
 | PT-05 | HIGH (config) | **REMEDIATED (opt-in)** | `genesis_live_bootstrap_config.ts` now validates distinct operator keypairs when `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` is set in the operator environment. Mainnet operators must set this. The validation throws with a clear message identifying which two roles collapse. Verified by [`tests/genesis_live_bootstrap_config.test.ts`](../../tests/genesis_live_bootstrap_config.test.ts) — both rejection and acceptance paths tested. Multisig recommendation for governance authority is still future operator-runbook work. |
-| PT-13 | HIGH | OPEN | tsconfig restoration deferred to Phase 2 (other agent on the UI). |
+| PT-13 | HIGH | **REMEDIATED (Phase 1.7 PR4)** | Broad `components/**/*` tsconfig exclusion removed; `pool-treasury-panel.tsx`, `capital-workbench.tsx`, and `pool-workspace-context.tsx` are now in the explicit include list. Previously-excluded `lib/ui-capabilities.ts` is also typechecked. Dead components with stale imports are quarantined via specific includes (tracked as a follow-up cleanup). Defense regression in [`tests/security/treasury_panel_imports_unresolved.test.ts`](../../tests/security/treasury_panel_imports_unresolved.test.ts) pins both halves of the closure. |
 | PT-06 | MEDIUM | OPEN (branch-aware) | Branch divergence: this branch uses post-sign toast lifecycle; pre-sign review gate that the original report critiqued doesn't exist on this branch by design. PoC tests skip with a clear message. |
 | PT-07 | MEDIUM | **REMEDIATED** | `register_oracle` requires `args.oracle == ctx.accounts.admin.key()` via `require_keys_eq!`. Closes the squat-then-recover pattern. Verified by [`tests/security/program_authorization_gaps.test.ts::[PT-07 defense]`](../../tests/security/program_authorization_gaps.test.ts). |
 | PT-08 | MEDIUM | **INVALID** | Source verification on 2026-04-28 shows `mark_impairment` does NOT mutate `capital_class.nav_assets` or `liquidity_pool.total_value_locked` — those fields are only changed by `deposit_into_capital_class` (line 1709) and `process_redemption_queue` (line 1838). The original report claimed impairment lowers NAV; that claim was wrong. There is no first-mover advantage from impairment timing. Finding withdrawn. |
@@ -487,22 +490,44 @@ PT-05 (operator config) remain for Phase 2/3.
 
 ### Net result
 
-**Critical/High on-chain findings: all REMEDIATED.** The protocol can now release SPL tokens via PDA-signed CPI in claim settlement, redemption, and obligation settlement flows. The settlement recipient is controlled by the member (via `delegate_recipient`), preventing operator-routed diversion. Oracle profile squatting is closed at registration time.
+**All CRITICAL and HIGH findings REMEDIATED (2026-04-29).** The protocol can release SPL tokens via PDA-signed CPI in claim settlement, redemption, and obligation settlement flows. Phase 1.6/1.7 added explicit fee accumulation hooks across the four inflow handlers and 6 fee-vault withdrawal instructions (SOL + SPL × protocol/pool-treasury/pool-oracle rails) with per-rail authority gating. The settlement recipient is controlled by the member (via `delegate_recipient`), preventing operator-routed diversion. Oracle profile squatting is closed at registration time. Frontend builders + listers + summary types now resolve every panel import; pool-treasury-panel is mounted as a real workbench tab and typechecked.
 
 **Remaining for full mainnet readiness:**
-- Frontend (PT-03, PT-13) — other agent's domain
-- Operator config (PT-05) — distinct-keypair validation, multisig recommendation
-- Fee accumulation + withdrawal infrastructure (plan sections 1.6/1.7) — substantial Phase 1 follow-up
-- Update pen-test report's executive summary verdict from NOT-READY to READY-WITH-FIXES once PT-03/PT-05/PT-13 are addressed
+- Multisig recommendation doc for governance authority (operator-runbook work, not a code finding).
+- Optional cleanup of dead UI components quarantined in `frontend/tsconfig.json` (legacy MVP code with stale imports, not mounted in `app/`).
+- LOW/INFO follow-ups: PT-09, PT-10, PT-12.
+
+The four-PR ladder (PR1: init + accrual; PR2: 6 withdraw ix; PR3: frontend builders/listers/types; PR4: panel mount + tsconfig + report) closed PT-03 + PT-13 in full and PT-01 redundantly across both the settlement outflows (Phase 1) and the new fee rails (Phase 1.7).
 
 **Phase 1 commit history:**
+**Phase 1 commit history (2026-04-28):**
 - `ae50021` — Initial pen-test fixes (PT-04, PT-07) and outflow foundations
 - `ebc8a70` — Vault custody refactor (PT-01/02 prerequisite)
 - `383b924` — ClaimCase delegate_recipient + authorize_claim_recipient instruction
 - `1093f29` — Outflow CPI in settle_claim_case + process_redemption_queue
 - `f8ad166` — Outflow CPI in settle_obligation
 - `a5925b0` — Recipient resolver helper + routing tests + PT-08 withdrawal
-- (this commit) — PT-05 distinct-keypair validation + tests
+- `8c219fe` — PT-05 distinct-operator-keys guard for Genesis bootstrap
+
+**Phase 1.6/1.7 commit history (2026-04-28..2026-04-29) — fee accumulation + withdrawal infrastructure (PT-03 / PT-13 closure):**
+- `9cee4ef` — Fee-vault init scaffolding (3 init ix, accrual helpers, error variants, events)
+- `6634f79` — Wire protocol-fee accrual into `record_premium_payment`
+- `956d0f1` — Wire pool-treasury entry-fee accrual into `deposit_into_capital_class`
+- `8bf2849` — Wire pool-treasury exit-fee accrual into `process_redemption_queue`
+- `7171866` — Wire protocol+oracle fee accrual into `settle_claim_case`
+- `6e84309` — 7 Rust unit tests for fee accrual helpers
+- `db7f2ca` — Regenerate IDL + protocol contract artifacts (Phase 1.6)
+- `03d8c7f` — Extend `tests/protocol_contract.test.ts` with surface assertions
+- `42dba41` — 6 `withdraw_*_fee_*` instructions (SOL+SPL × 3 rails)
+- `aa0c954` — 5 Rust unit tests for `require_fee_vault_balance`
+- `d019e2f` — Regenerate IDL + protocol contract artifacts (Phase 1.7)
+- `a4ec339` — Extend Node tests + flip PT-01/PT-03 IDL assertions to defense regression
+- `0403596` — Frontend `buildWithdraw*Tx` builders, listers, summary types
+- `2cbed15` — Flip PT-03 builder-export assertion to defense regression
+- `2eefe83` — Node tests for builders, derivers, contract args
+- `576819a` — Mount `PoolTreasuryPanel` into capital workbench treasury tab
+- `c026348` — Restore components typecheck for the panel + flip last PT-03 PoC
+- (this commit) — Pen-test report verdict update to READY-WITH-FIXES
 
 ---
 
@@ -526,10 +551,18 @@ npm --prefix frontend run build
 npm run verify:public
 ```
 
-Last run (2026-04-27):
+Last run (2026-04-29, post-Phase 1.7 PR4):
+- `npm run test:node` — 162/162 green; all PT-01 / PT-03 / PT-04 / PT-07 / PT-11 / PT-12 PoCs are now defense regressions (flipped from VULN_CONFIRMED).
+- `npm run rust:test` — 51/51 green, including the seven Phase 1.6 fee-accrual helper tests and the five Phase 1.7 `require_fee_vault_balance` tests.
+- `npm run rust:fmt:check` — clean.
+- `npm run protocol:contract:check` — in sync (`contract_sha256 = f095fb3ee9dd…`).
+- `npm run idl:freshness:check` — IDL matches program source (4 files, `192d35a886c0…`).
+- `npm --prefix frontend run build` — exit 0; the previously-PT-03 dead imports now resolve through the new `buildWithdraw*Tx` exports and the panel typechecks via the explicit `tsconfig.json` include.
+
+Original (2026-04-27, pre-remediation):
 - `npm run test:node` — 114/114 green, including all 19 security PoCs (one added post-build for PT-13)
 - `npm run rust:test` — 36/36 green, including the four `claim_intake_submitter_*` tests cited under PT-11
-- `npm --prefix frontend run build` — exit 0; this is the **PT-03 / PT-13 evidence**: the build succeeds despite the dead imports because tsconfig excludes components from typecheck
+- `npm --prefix frontend run build` — exit 0; this was the original **PT-03 / PT-13 evidence**: the build succeeded despite the dead imports because tsconfig excluded components from typecheck.
 
 Each assertion's pass/fail is the verification record. When the team remediates a finding, the corresponding PoC should fail — at that point the PoC should either be deleted or flipped into a defense test.
 

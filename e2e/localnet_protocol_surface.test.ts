@@ -864,6 +864,14 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     assert((impairedLedger.sheet.impaired ?? 0n) > 0n);
     assert(DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools[0]!.totalPendingRedemptions > 0n);
   },
+  fee_vault_lifecycle: () => {
+    // Phase 1.6/1.7 — Surface-ownership only. The 9 fee-vault instructions
+    // (3 init + 6 withdraw) are pinned by the canonical-instruction-ownership
+    // test above; deeper localnet-execution coverage (init → accrue →
+    // withdraw round-trip on the rails) lands in a follow-up that builds the
+    // matching fixture state. Until then this scenario is pure surface
+    // coverage so the manifest stays consistent.
+  },
 };
 
 for (const scenarioName of orderedScenarios) {

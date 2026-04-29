@@ -5,12 +5,16 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 import {
   CapitalOperatorDrawer,
   type CapitalOperatorSection,
 } from "@/components/capital-operator-drawer";
+import { PoolTreasuryPanel } from "@/components/pool-treasury-panel";
+import { PoolWorkspaceProvider } from "@/components/pool-workspace-context";
 import { useWorkspacePersona } from "@/components/workspace-persona";
+import { deriveWalletCapabilities } from "@/lib/ui-capabilities";
 import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
@@ -26,7 +30,9 @@ import {
   describeLpQueueStatus,
   hasPendingRedemptionQueue,
   shortenAddress,
+  ZERO_PUBKEY,
 } from "@/lib/protocol";
+import type { ProtocolConfigSummary } from "@/lib/protocol";
 import { cn } from "@/lib/cn";
 
 /* ── Constants ──────────────────────────────────────── */
@@ -71,6 +77,14 @@ const TAB_HEROES: Record<CapitalTabId, TabHero> = {
     emphasis: "Plans.",
     tail: "",
     subtitle: "Plans currently drawing from this reserve.",
+  },
+  treasury: {
+    eyebrow: "Fee treasury",
+    title: "Treasury",
+    emphasis: "Withdrawals.",
+    tail: "",
+    subtitle:
+      "Sweep accrued protocol, pool, and oracle fees once the matching authority is connected.",
   },
 };
 
@@ -180,6 +194,7 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const { effectivePersona } = useWorkspacePersona();
   const { snapshot, loading, error, refresh } = useProtocolConsoleSnapshot();
   const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
+  const wallet = useWallet();
 
   /* ── Selection state ── */
 
@@ -330,6 +345,75 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const hero = TAB_HEROES[activeTab];
   const eyebrow = activeTab === "overview" ? personaEyebrow(effectivePersona) : hero.eyebrow;
 
+  /* ── Treasury-tab capabilities ── */
+  // Phase 1.7 PR4 — minimal capabilities derivation for the treasury tab.
+  // Builds a synthetic ProtocolConfigSummary from the snapshot's
+  // ProtocolGovernance so canManageProtocolConfig (and therefore
+  // canWithdrawProtocolFees) detects the governance-authority wallet without
+  // requiring an extra RPC fetch. PoolSummary has the curator field that
+  // canWithdrawPoolTreasury (per-rail authority) reads. walletOracle is
+  // resolved by matching the wallet against any oracle profile in the snapshot.
+  // walletMembership / walletClaimDelegate / walletCapitalPosition are out of
+  // scope for the treasury tab.
+  const walletAddress = wallet.publicKey?.toBase58() ?? null;
+  const treasuryProtocolConfig = useMemo<ProtocolConfigSummary | null>(() => {
+    const governance = snapshot.protocolGovernance;
+    if (!governance) return null;
+    return {
+      address: governance.address,
+      admin: governance.governanceAuthority,
+      governanceAuthority: governance.governanceAuthority,
+      governanceRealm: ZERO_PUBKEY,
+      governanceConfig: ZERO_PUBKEY,
+      protocolFeeBps: governance.protocolFeeBps,
+      defaultStakeMint: ZERO_PUBKEY,
+      minOracleStake: 0n,
+      emergencyPaused: governance.emergencyPause,
+      allowedPayoutMintsHashHex: "",
+    };
+  }, [snapshot.protocolGovernance]);
+  const treasuryPoolSummary = useMemo(() => {
+    if (!selectedPool) return null;
+    return {
+      address: selectedPool.address,
+      poolId: selectedPool.poolId,
+      displayName: selectedPool.displayName,
+      reserveDomain: selectedPool.reserveDomain,
+      depositAssetMint: selectedPool.depositAssetMint,
+      authority: selectedPool.curator ?? ZERO_PUBKEY,
+      organizationRef: "",
+      active: selectedPool.active,
+    };
+  }, [selectedPool]);
+  const treasuryWalletOracle = useMemo(() => {
+    if (!walletAddress) return null;
+    const profile = snapshot.oracleProfiles.find((entry) => entry.oracle === walletAddress);
+    if (!profile) return null;
+    return {
+      address: profile.address,
+      oracle: profile.oracle,
+      active: profile.active,
+      claimed: profile.claimed,
+      admin: profile.admin,
+      bump: 0,
+      metadataUri: "",
+    };
+  }, [snapshot.oracleProfiles, walletAddress]);
+  const treasuryCapabilities = useMemo(
+    () =>
+      deriveWalletCapabilities({
+        walletAddress,
+        pool: treasuryPoolSummary,
+        protocolConfig: treasuryProtocolConfig,
+        poolControlAuthority: null,
+        walletMembership: null,
+        walletOracle: treasuryWalletOracle,
+        walletClaimDelegate: null,
+        walletCapitalPosition: null,
+      }),
+    [treasuryPoolSummary, treasuryProtocolConfig, treasuryWalletOracle, walletAddress],
+  );
+
   /* ── Operator drawer ── */
 
   const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
@@ -347,6 +431,10 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
     allocations: "allocate",
     queue: "queue",
     "linked-plans": "allocate",
+    // Treasury tab opens the operator drawer's provision section by default;
+    // actual fee withdrawals happen in the embedded PoolTreasuryPanel below
+    // the tab heading, not via the drawer.
+    treasury: "provision",
   };
 
   /* ── Invalid selection guard ── */
@@ -917,6 +1005,20 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                     />
                   )}
                 </article>
+              ) : null}
+
+              {/* ── TREASURY ── */}
+              {activeTab === "treasury" ? (
+                selectedPool ? (
+                  <PoolWorkspaceProvider capabilities={treasuryCapabilities}>
+                    <PoolTreasuryPanel poolAddress={selectedPool.address} />
+                  </PoolWorkspaceProvider>
+                ) : (
+                  <CapitalEmptyState
+                    title="Select a pool"
+                    copy="Choose a liquidity pool above to inspect its fee treasury rails and (when authorized) sweep accrued protocol, pool, and oracle fees."
+                  />
+                )
               ) : null}
             </section>
 

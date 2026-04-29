@@ -38,6 +38,9 @@ const EMPTY_PROTOCOL_CONSOLE_SNAPSHOT: ProtocolConsoleSnapshot = {
   outcomeSchemas: [],
   schemaDependencyLedgers: [],
   claimAttestations: [],
+  protocolFeeVaults: [],
+  poolTreasuryVaults: [],
+  poolOracleFeeVaults: [],
 };
 
 export function useProtocolConsoleSnapshot() {

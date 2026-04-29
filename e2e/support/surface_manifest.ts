@@ -12,6 +12,7 @@ export const SCENARIO_ORDER = [
   "liquidity_pool_and_capital_class_lifecycle",
   "allocation_and_deallocation_lifecycle",
   "impairment_and_redemption_queue_lifecycle",
+  "fee_vault_lifecycle",
 ] as const;
 
 export type ScenarioName = (typeof SCENARIO_ORDER)[number];
@@ -134,6 +135,22 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
     focus: "Impairment, restricted capital, and redemption queue pressure remain visible in class and allocation ledgers.",
     instructions: [
       "mark_impairment",
+    ],
+  },
+  fee_vault_lifecycle: {
+    title: "Fee Vault Lifecycle",
+    focus:
+      "Phase 1.6/1.7 fee accumulation + withdrawal infrastructure: governance-init fee vaults per rail, accrual hooks on the inflow handlers (premium / deposit / redemption / claim settle), and per-rail-authority withdrawals across SOL and SPL.",
+    instructions: [
+      "init_protocol_fee_vault",
+      "init_pool_treasury_vault",
+      "init_pool_oracle_fee_vault",
+      "withdraw_protocol_fee_sol",
+      "withdraw_protocol_fee_spl",
+      "withdraw_pool_treasury_sol",
+      "withdraw_pool_treasury_spl",
+      "withdraw_pool_oracle_fee_sol",
+      "withdraw_pool_oracle_fee_spl",
     ],
   },
 };

@@ -498,9 +498,17 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
     canSettleCycles: isRegisteredOracle,
     canOpenDisputes,
     canResolveDisputes: canManageProtocolConfig,
-    canWithdrawPoolTreasury: isRegisteredOracle,
+    // Phase 1.7 — Per-rail authority for the on-chain withdraw_*_fee_* ix:
+    //   protocol_fee  → governance authority (require_governance)
+    //   pool_treasury → pool curator OR governance (require_curator_control)
+    //   pool_oracle   → registered oracle OR oracle admin OR governance
+    //                   (require_oracle_profile_control)
+    // Pool treasury was previously gated on isRegisteredOracle by mistake;
+    // now matches the on-chain require_curator_control. The UI hint surfaces
+    // disabled/enabled state before the chain rejects.
+    canWithdrawPoolTreasury: isPoolAuthority || isPoolOperator || canManageProtocolConfig,
     canWithdrawProtocolFees: canManageProtocolConfig,
-    canWithdrawOracleFees: isRegisteredOracle,
+    canWithdrawOracleFees: isRegisteredOracle || canManageProtocolConfig,
     canOperateOwnedRedemptionQueue,
     canOperateQueueAsOperator,
     canUseExpertTools:

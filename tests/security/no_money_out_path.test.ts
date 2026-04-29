@@ -45,18 +45,30 @@ function extractInstructionBody(name: string): string {
   return programSource.slice(startIdx, i);
 }
 
-test("[PT-01] IDL exposes no withdraw / sweep / fee-collection instruction", () => {
+test("[PT-01 defense regression] IDL exposes the 6 expected fee-vault withdrawal instructions", () => {
+  // Phase 1.7 (PR2) shipped 6 withdraw_*_fee_* instructions, fully closing
+  // PT-01 on the protocol-fee / pool-treasury / pool-oracle rails. This
+  // assertion was flipped from VULN_CONFIRMED to a defense regression: if
+  // any of the six are removed, the original "no money-out path" finding
+  // would re-emerge for that rail.
   const drainPatterns = /^(withdraw|sweep|collect_fee|reclaim|payout)/i;
   const matches = idl.instructions
     .map((ix) => ix.name)
-    .filter((name) => drainPatterns.test(name));
+    .filter((name) => drainPatterns.test(name))
+    .sort();
 
-  // PASSES when there is no withdrawal instruction (vulnerability present).
-  // FAILS once the team adds one — at that point, flip to a defense test.
+  const expected = [
+    "withdraw_pool_oracle_fee_sol",
+    "withdraw_pool_oracle_fee_spl",
+    "withdraw_pool_treasury_sol",
+    "withdraw_pool_treasury_spl",
+    "withdraw_protocol_fee_sol",
+    "withdraw_protocol_fee_spl",
+  ];
   assert.deepEqual(
     matches,
-    [],
-    "Expected no on-chain withdrawal instruction; finding PT-01 would be remediated if any exists",
+    expected,
+    "[PT-01 defense] expected exactly the 6 Phase 1.7 fee-vault withdraw instructions; removal or addition would change the protocol's outflow surface and warrants security review.",
   );
 });
 
