@@ -976,9 +976,7 @@ pub mod omegax_protocol {
         // The full premium amount is booked into the vault; the fee is an
         // internal claim that decrements `accrued_fees - withdrawn_fees`
         // headroom. No user-facing payout reduction here (premiums are not
-        // refundable). Accrual is skipped silently when `protocol_fee_vault`
-        // is None to preserve backward compatibility for callers that have
-        // not yet initialized the fee infrastructure.
+        // refundable).
         if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref_mut() {
             require_keys_eq!(
                 vault.reserve_domain,
@@ -1002,6 +1000,11 @@ pub mod omegax_protocol {
                     accrued_total,
                 });
             }
+        } else {
+            require!(
+                protocol_fee_bps == 0,
+                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
+            );
         }
 
         emit!(FundingFlowRecordedEvent {
@@ -2057,8 +2060,8 @@ pub mod omegax_protocol {
 
         // Accrue the entry fee to the pool-treasury vault. SPL tokens already
         // sit in the DomainAssetVault from the transfer above; this only updates
-        // the rail's claim counter. Skipped silently when entry_fee == 0 (either
-        // pool_treasury_vault is None or capital_class.fee_bps == 0).
+        // the rail's claim counter. Missing vaults are only allowed when
+        // capital_class.fee_bps == 0.
         if entry_fee > 0 {
             if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref_mut() {
                 let vault_key = vault.key();
@@ -2189,6 +2192,10 @@ pub mod omegax_protocol {
             );
             fee_share_from_bps(asset_amount, class_fee_bps)?
         } else {
+            require!(
+                class_fee_bps == 0,
+                OmegaXProtocolError::FeeVaultRequiredForConfiguredFee
+            );
             0
         };
         let net_to_lp = checked_sub(asset_amount, exit_fee)?;
@@ -2268,7 +2275,7 @@ pub mod omegax_protocol {
 
         // Accrue the exit fee to the pool-treasury vault. SPL tokens are still
         // physically in the vault_token_account; only the rail's claim counter
-        // changes. Skipped silently when exit_fee == 0.
+        // changes. Missing vaults are only allowed when class_fee_bps == 0.
         if exit_fee > 0 {
             if let Some(vault) = ctx.accounts.pool_treasury_vault.as_deref_mut() {
                 let vault_key = vault.key();
@@ -3540,9 +3547,9 @@ pub struct RecordPremiumPayment<'info> {
     pub plan_reserve_ledger: Box<Account<'info, PlanReserveLedger>>,
     #[account(mut)]
     pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    /// Phase 1.6 — optional protocol fee vault for accrual at premium time.
-    /// When supplied, must match (health_plan.reserve_domain, funding_line.asset_mint).
-    /// Validated at runtime; absent means premium accrual is skipped (backward compat).
+    /// Protocol fee vault for premium-time fee accrual. Required when
+    /// protocol_governance.protocol_fee_bps is nonzero.
+    /// Must match (health_plan.reserve_domain, funding_line.asset_mint).
     #[account(mut)]
     pub protocol_fee_vault: Option<Box<Account<'info, ProtocolFeeVault>>>,
     #[account(mut)]
@@ -3984,7 +3991,7 @@ pub struct DepositIntoCapitalClass<'info> {
     pub lp_position: Box<Account<'info, LPPosition>>,
     /// Phase 1.6 — optional pool-treasury vault for entry-fee accrual.
     /// When supplied, must match (liquidity_pool, deposit_asset_mint).
-    /// Validated at runtime; absent means entry-fee accrual is skipped (backward compat).
+    /// Required when capital_class.fee_bps is nonzero.
     #[account(mut)]
     pub pool_treasury_vault: Option<Box<Account<'info, PoolTreasuryVault>>>,
     #[account(mut)]
@@ -4032,7 +4039,7 @@ pub struct ProcessRedemptionQueue<'info> {
     pub lp_position: Box<Account<'info, LPPosition>>,
     /// Phase 1.6 — optional pool-treasury vault for exit-fee accrual.
     /// When supplied, must match (liquidity_pool, deposit_asset_mint).
-    /// Validated at runtime; absent means exit-fee accrual is skipped (backward compat).
+    /// Required when capital_class.fee_bps is nonzero.
     #[account(mut)]
     pub pool_treasury_vault: Option<Box<Account<'info, PoolTreasuryVault>>>,
     // PT-2026-04-27-01/02 fix: outflow CPI accounts. Recipient must be the LP

@@ -26,10 +26,12 @@ import {
   hashStringTo32Hex,
   type AllocationPositionSnapshot,
   type CapitalClassSnapshot,
+  type DomainAssetVaultSnapshot,
   type FundingLineSnapshot,
   type HealthPlanSnapshot,
   type LiquidityPoolSnapshot,
   type LPPositionSnapshot,
+  type PoolTreasuryVaultSnapshot,
   type ReserveDomainSnapshot,
 } from "@/lib/protocol";
 import { cn } from "@/lib/cn";
@@ -54,6 +56,8 @@ type CapitalOperatorDrawerProps = {
   allocations: AllocationPositionSnapshot[];
   plans: HealthPlanSnapshot[];
   fundingLines: FundingLineSnapshot[];
+  domainAssetVaults: DomainAssetVaultSnapshot[];
+  poolTreasuryVaults: PoolTreasuryVaultSnapshot[];
 };
 
 const SECTIONS: Array<{ id: CapitalOperatorSection; label: string; blurb: string }> = [
@@ -134,6 +138,7 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
   // Queue
   const [lpOwner, setLpOwner] = useState("");
   const [queueShares, setQueueShares] = useState("0");
+  const [redemptionRecipientTokenAccount, setRedemptionRecipientTokenAccount] = useState("");
   const [lpCredentialed, setLpCredentialed] = useState(true);
   const [lpReason, setLpReason] = useState("");
 
@@ -173,6 +178,25 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
     () => filteredFundingLines.find((line) => line.address === fundingLineAddress) ?? null,
     [filteredFundingLines, fundingLineAddress],
   );
+  const selectedPoolAssetVault = useMemo(
+    () =>
+      props.domainAssetVaults.find(
+        (vault) =>
+          vault.reserveDomain === props.selectedPool?.reserveDomain &&
+          vault.assetMint === props.selectedPool?.depositAssetMint,
+      ) ?? null,
+    [props.domainAssetVaults, props.selectedPool?.depositAssetMint, props.selectedPool?.reserveDomain],
+  );
+  const selectedPoolTreasuryVault = useMemo(
+    () =>
+      props.poolTreasuryVaults.find(
+        (vault) =>
+          vault.liquidityPool === props.selectedPool?.address &&
+          vault.assetMint === props.selectedPool?.depositAssetMint,
+      ) ?? null,
+    [props.poolTreasuryVaults, props.selectedPool?.address, props.selectedPool?.depositAssetMint],
+  );
+  const selectedClassRequiresFeeVault = (props.selectedClass?.feeBps ?? 0) > 0;
 
   async function run(label: string, factory: () => Promise<Transaction>) {
     if (!publicKey || !sendTransaction) return;
@@ -691,11 +715,16 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                       value={lpOwner}
                       onChange={setLpOwner}
                     />
-                    <div className="plans-wizard-row">
+	                    <div className="plans-wizard-row">
                       <TextField
                         label="Shares"
                         value={queueShares}
                         onChange={setQueueShares}
+                      />
+                      <TextField
+                        label="Recipient token account"
+                        value={redemptionRecipientTokenAccount}
+                        onChange={setRedemptionRecipientTokenAccount}
                       />
                     </div>
                     <p className="operator-drawer-hint">
@@ -705,7 +734,14 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                       <button
                         type="button"
                         className="plans-primary-cta"
-                        disabled={!canAct || !lpOwner || busyOn("Process redemption queue")}
+                        disabled={
+                          !canAct ||
+                          !lpOwner ||
+                          !selectedPoolAssetVault?.vaultTokenAccount ||
+                          (selectedClassRequiresFeeVault && !selectedPoolTreasuryVault) ||
+                          !redemptionRecipientTokenAccount.trim() ||
+                          busyOn("Process redemption queue")
+                        }
                         onClick={() =>
                           run("Process redemption queue", async () => {
                             const { blockhash } = await connection.getLatestBlockhash("confirmed");
@@ -718,6 +754,9 @@ export function CapitalOperatorDrawer(props: CapitalOperatorDrawerProps) {
                               lpOwnerAddress: lpOwner,
                               recentBlockhash: blockhash,
                               shares: parseBigIntInput(queueShares),
+                              poolTreasuryVaultAddress: selectedPoolTreasuryVault?.address ?? null,
+                              vaultTokenAccountAddress: selectedPoolAssetVault!.vaultTokenAccount,
+                              recipientTokenAccountAddress: redemptionRecipientTokenAccount.trim(),
                             });
                           })
                         }

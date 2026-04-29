@@ -3275,7 +3275,7 @@
           "docs": [
             "Phase 1.6 — optional pool-treasury vault for entry-fee accrual.",
             "When supplied, must match (liquidity_pool, deposit_asset_mint).",
-            "Validated at runtime; absent means entry-fee accrual is skipped (backward compat)."
+            "Required when capital_class.fee_bps is nonzero."
           ],
           "writable": true,
           "optional": true
@@ -5539,7 +5539,7 @@
           "docs": [
             "Phase 1.6 — optional pool-treasury vault for exit-fee accrual.",
             "When supplied, must match (liquidity_pool, deposit_asset_mint).",
-            "Validated at runtime; absent means exit-fee accrual is skipped (backward compat)."
+            "Required when capital_class.fee_bps is nonzero."
           ],
           "writable": true,
           "optional": true
@@ -5858,9 +5858,9 @@
         {
           "name": "protocol_fee_vault",
           "docs": [
-            "Phase 1.6 — optional protocol fee vault for accrual at premium time.",
-            "When supplied, must match (health_plan.reserve_domain, funding_line.asset_mint).",
-            "Validated at runtime; absent means premium accrual is skipped (backward compat)."
+            "Protocol fee vault for premium-time fee accrual. Required when",
+            "protocol_governance.protocol_fee_bps is nonzero.",
+            "Must match (health_plan.reserve_domain, funding_line.asset_mint)."
           ],
           "writable": true,
           "optional": true
