@@ -1675,6 +1675,11 @@ pub mod omegax_protocol {
         ) {
             (Some(vault), Some(policy)) => {
                 require_keys_eq!(
+                    vault.oracle,
+                    ctx.accounts.claim_case.adjudicator,
+                    OmegaXProtocolError::Unauthorized
+                );
+                require_keys_eq!(
                     vault.asset_mint,
                     asset_mint_key,
                     OmegaXProtocolError::FeeVaultMismatch
@@ -1686,7 +1691,12 @@ pub mod omegax_protocol {
                 );
                 fee_share_from_bps(amount, policy.oracle_fee_bps)?
             }
-            (None, _) => 0,
+            (None, Some(_)) => {
+                // Policy provided without vault is a configuration error;
+                // refuse to silently bypass oracle fees.
+                return Err(OmegaXProtocolError::FeeVaultBpsMisconfigured.into());
+            }
+            (None, None) => 0,
             (Some(_), None) => {
                 // Vault provided without policy is a configuration error;
                 // refuse to silently zero the bps.
