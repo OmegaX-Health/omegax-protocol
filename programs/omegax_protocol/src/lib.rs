@@ -970,32 +970,29 @@ pub mod omegax_protocol {
         // The full premium amount is booked into the vault; the fee is an
         // internal claim that decrements `accrued_fees - withdrawn_fees`
         // headroom. No user-facing payout reduction here (premiums are not
-        // refundable). Accrual is skipped silently when `protocol_fee_vault`
-        // is None to preserve backward compatibility for callers that have
-        // not yet initialized the fee infrastructure.
-        if let Some(vault) = ctx.accounts.protocol_fee_vault.as_deref_mut() {
-            require_keys_eq!(
-                vault.reserve_domain,
-                health_plan_reserve_domain,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            require_keys_eq!(
-                vault.asset_mint,
-                funding_line_asset_mint,
-                OmegaXProtocolError::FeeVaultMismatch
-            );
-            let fee = fee_share_from_bps(amount, protocol_fee_bps)?;
-            if fee > 0 {
-                let vault_key = vault.key();
-                let vault_mint = vault.asset_mint;
-                let accrued_total = accrue_fee(&mut vault.accrued_fees, fee)?;
-                emit!(FeeAccruedEvent {
-                    vault: vault_key,
-                    asset_mint: vault_mint,
-                    amount: fee,
-                    accrued_total,
-                });
-            }
+        // refundable).
+        let vault = &mut ctx.accounts.protocol_fee_vault;
+        require_keys_eq!(
+            vault.reserve_domain,
+            health_plan_reserve_domain,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        require_keys_eq!(
+            vault.asset_mint,
+            funding_line_asset_mint,
+            OmegaXProtocolError::FeeVaultMismatch
+        );
+        let fee = fee_share_from_bps(amount, protocol_fee_bps)?;
+        if fee > 0 {
+            let vault_key = vault.key();
+            let vault_mint = vault.asset_mint;
+            let accrued_total = accrue_fee(&mut vault.accrued_fees, fee)?;
+            emit!(FeeAccruedEvent {
+                vault: vault_key,
+                asset_mint: vault_mint,
+                amount: fee,
+                accrued_total,
+            });
         }
 
         emit!(FundingFlowRecordedEvent {
@@ -3508,11 +3505,10 @@ pub struct RecordPremiumPayment<'info> {
     pub plan_reserve_ledger: Box<Account<'info, PlanReserveLedger>>,
     #[account(mut)]
     pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    /// Phase 1.6 — optional protocol fee vault for accrual at premium time.
-    /// When supplied, must match (health_plan.reserve_domain, funding_line.asset_mint).
-    /// Validated at runtime; absent means premium accrual is skipped (backward compat).
+    /// Protocol fee vault for mandatory premium-time fee accrual.
+    /// Must match (health_plan.reserve_domain, funding_line.asset_mint).
     #[account(mut)]
-    pub protocol_fee_vault: Option<Box<Account<'info, ProtocolFeeVault>>>,
+    pub protocol_fee_vault: Box<Account<'info, ProtocolFeeVault>>,
     #[account(mut)]
     pub source_token_account: InterfaceAccount<'info, TokenAccount>,
     pub asset_mint: InterfaceAccount<'info, Mint>,
