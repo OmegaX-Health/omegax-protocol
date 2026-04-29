@@ -11590,261 +11590,291 @@
     },
     {
       "code": 6018,
+      "name": "Token2022NotSupported",
+      "msg": "Token-2022 custody rails are not supported by this protocol version"
+    },
+    {
+      "code": 6019,
+      "name": "FeeRecipientInvalid",
+      "msg": "Configured fee recipient is missing or invalid"
+    },
+    {
+      "code": 6020,
+      "name": "FeeRecipientMismatch",
+      "msg": "Fee withdrawal recipient does not match the configured fee recipient"
+    },
+    {
+      "code": 6021,
       "name": "FundingLineMismatch",
       "msg": "Funding line mismatch"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "FundingLineTypeMismatch",
       "msg": "Funding line type mismatch"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "InvalidObligationStateTransition",
       "msg": "Invalid obligation state transition"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "AmountExceedsOutstandingObligation",
       "msg": "Amount exceeds outstanding obligation"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "AmountExceedsReservedBalance",
       "msg": "Amount exceeds reserved balance"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "AmountExceedsApprovedClaim",
       "msg": "Amount exceeds approved claim"
     },
     {
-      "code": 6024,
+      "code": 6027,
       "name": "AmountMustBePositive",
       "msg": "Amount must be greater than zero"
     },
     {
-      "code": 6025,
+      "code": 6028,
       "name": "ClaimCaseLinkMismatch",
       "msg": "Claim case linkage mismatch"
     },
     {
-      "code": 6026,
+      "code": 6029,
       "name": "LinkedClaimMustSettleThroughObligation",
       "msg": "Linked claims must settle through the obligation path"
     },
     {
-      "code": 6027,
+      "code": 6030,
       "name": "AmountExceedsAvailableShares",
       "msg": "Amount exceeds available shares"
     },
     {
-      "code": 6028,
+      "code": 6031,
       "name": "AmountExceedsPendingRedemption",
       "msg": "Amount exceeds pending redemption"
     },
     {
-      "code": 6029,
+      "code": 6032,
       "name": "InvalidRedemptionAmount",
       "msg": "Redemption amount cannot be derived from the queued share state"
     },
     {
-      "code": 6030,
+      "code": 6033,
+      "name": "InvalidCapitalShareState",
+      "msg": "Deposit shares cannot be derived from the capital class NAV state"
+    },
+    {
+      "code": 6034,
+      "name": "InvalidDepositShares",
+      "msg": "Deposit would mint zero shares"
+    },
+    {
+      "code": 6035,
+      "name": "MinimumSharesOutNotMet",
+      "msg": "Computed deposit shares are below the requested minimum"
+    },
+    {
+      "code": 6036,
       "name": "RestrictedCapitalClass",
       "msg": "Restricted capital class access failed"
     },
     {
-      "code": 6031,
+      "code": 6037,
       "name": "CapitalClassMismatch",
       "msg": "Capital class ledger mismatch"
     },
     {
-      "code": 6032,
+      "code": 6038,
       "name": "LPPositionHasActiveCapital",
       "msg": "LP position with active capital cannot be decredentialed"
     },
     {
-      "code": 6033,
+      "code": 6039,
       "name": "LockupActive",
       "msg": "Capital class lockup is still active"
     },
     {
-      "code": 6034,
+      "code": 6040,
       "name": "AllocationCapExceeded",
       "msg": "Allocation cap exceeded"
     },
     {
-      "code": 6035,
+      "code": 6041,
       "name": "AllocationPositionMismatch",
       "msg": "Allocation position mismatch"
     },
     {
-      "code": 6036,
+      "code": 6042,
       "name": "InsufficientFreeAllocationCapacity",
       "msg": "Insufficient free allocation capacity"
     },
     {
-      "code": 6037,
+      "code": 6043,
       "name": "ArithmeticError",
       "msg": "Arithmetic overflow or underflow"
     },
     {
-      "code": 6038,
+      "code": 6044,
       "name": "MembershipGateConfigurationInvalid",
       "msg": "Membership gate configuration is invalid"
     },
     {
-      "code": 6039,
+      "code": 6045,
       "name": "MembershipProofModeMismatch",
       "msg": "Membership proof mode does not match the configured plan posture"
     },
     {
-      "code": 6040,
+      "code": 6046,
       "name": "MembershipInviteAuthorityInvalid",
       "msg": "Invite authority is missing or invalid for this plan"
     },
     {
-      "code": 6041,
+      "code": 6047,
       "name": "MembershipInvitePermitExpired",
       "msg": "Invite permit is expired"
     },
     {
-      "code": 6042,
+      "code": 6048,
       "name": "MembershipTokenGateAccountMissing",
       "msg": "Token-gate proof account is missing"
     },
     {
-      "code": 6043,
+      "code": 6049,
       "name": "MembershipTokenGateOwnerMismatch",
       "msg": "Token-gate proof account owner does not match the enrolling wallet"
     },
     {
-      "code": 6044,
+      "code": 6050,
       "name": "MembershipTokenGateMintMismatch",
       "msg": "Token-gate proof account mint does not match the configured gate mint"
     },
     {
-      "code": 6045,
+      "code": 6051,
       "name": "MembershipTokenGateAmountTooLow",
       "msg": "Token-gate proof amount is below the configured minimum"
     },
     {
-      "code": 6046,
+      "code": 6052,
       "name": "MembershipAnchorSeatRequired",
       "msg": "Anchor-backed membership requires an anchor seat account"
     },
     {
-      "code": 6047,
+      "code": 6053,
       "name": "MembershipAnchorSeatAlreadyActive",
       "msg": "Anchor-backed membership seat is already active"
     },
     {
-      "code": 6048,
+      "code": 6054,
       "name": "MembershipAnchorSeatMismatch",
       "msg": "Anchor-backed membership seat does not match the provided anchor reference"
     },
     {
-      "code": 6049,
+      "code": 6055,
       "name": "MembershipAnchorReferenceMissing",
       "msg": "Anchor-backed membership requires a non-zero anchor reference"
     },
     {
-      "code": 6050,
+      "code": 6056,
       "name": "StringTooLong",
       "msg": "Bounded string field exceeds the canonical maximum"
     },
     {
-      "code": 6051,
+      "code": 6057,
       "name": "InvalidOracleQuorum",
       "msg": "Oracle quorum configuration is invalid"
     },
     {
-      "code": 6052,
+      "code": 6058,
       "name": "TooManyOracleSupportedSchemas",
       "msg": "Too many supported schema hashes were provided for one oracle profile"
     },
     {
-      "code": 6053,
+      "code": 6059,
       "name": "PoolOracleApprovalRequired",
       "msg": "Pool oracle approval is required before permissions can be granted"
     },
     {
-      "code": 6054,
+      "code": 6060,
       "name": "OracleProfileInactive",
       "msg": "Oracle profile is inactive"
     },
     {
-      "code": 6055,
+      "code": 6061,
       "name": "OracleProfileUnclaimed",
       "msg": "Oracle profile has not been claimed by its signing key"
     },
     {
-      "code": 6056,
+      "code": 6062,
       "name": "InvalidClaimAttestationDecision",
       "msg": "Claim attestation decision is not a recognized value"
     },
     {
-      "code": 6057,
+      "code": 6063,
       "name": "ClaimAttestationSchemaRequired",
       "msg": "Claim attestation must reference a registered schema key hash"
     },
     {
-      "code": 6058,
+      "code": 6064,
       "name": "ClaimAttestationSchemaUnsupported",
       "msg": "Oracle profile does not advertise support for the selected claim-attestation schema"
     },
     {
-      "code": 6059,
+      "code": 6065,
       "name": "TooManySchemaDependencies",
       "msg": "Too many schema dependency addresses were provided"
     },
     {
-      "code": 6060,
+      "code": 6066,
       "name": "DomainAssetVaultRequired",
       "msg": "Fee vault initialization requires the matching domain asset vault to exist"
     },
     {
-      "code": 6061,
+      "code": 6067,
       "name": "LiquidityPoolMismatch",
       "msg": "Liquidity pool reference does not match the supplied account"
     },
     {
-      "code": 6062,
+      "code": 6068,
       "name": "OracleProfileMismatch",
       "msg": "Oracle profile reference does not match the supplied account"
     },
     {
-      "code": 6063,
+      "code": 6069,
       "name": "FeeVaultMismatch",
       "msg": "Fee vault account does not match the expected scope"
     },
     {
-      "code": 6064,
+      "code": 6070,
       "name": "FeeVaultInsufficientBalance",
       "msg": "Fee vault has insufficient accrued balance for this withdrawal"
     },
     {
-      "code": 6065,
+      "code": 6071,
       "name": "FeeVaultRentExemptionBreach",
       "msg": "Fee vault withdrawal would breach the rent-exempt minimum balance"
     },
     {
-      "code": 6066,
+      "code": 6072,
       "name": "FeeVaultRailMismatch",
       "msg": "Fee vault rail and asset mint disagree (SOL vault used on SPL path or vice versa)"
     },
     {
-      "code": 6067,
+      "code": 6073,
       "name": "FeeVaultRequiredForConfiguredFee",
       "msg": "Configured class entry fee requires the matching pool treasury fee vault account"
     },
     {
-      "code": 6068,
+      "code": 6074,
       "name": "FeeVaultBpsMisconfigured",
       "msg": "Fee vault basis-points configuration is out of range"
     },
     {
-      "code": 6069,
+      "code": 6075,
       "name": "SettlementOutflowAccountsRequired",
       "msg": "Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts"
     }
@@ -13028,6 +13058,10 @@
           },
           {
             "name": "shares",
+            "docs": [
+              "Backward-compatible wire field. Interpreted as min_shares_out; zero",
+              "means accept the program-derived NAV share price with no minimum."
+            ],
             "type": "u64"
           }
         ]
@@ -13131,6 +13165,10 @@
             "type": "pubkey"
           },
           {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
             "name": "rail",
             "docs": [
               "0 = ProtocolFeeVault, 1 = PoolTreasuryVault, 2 = PoolOracleFeeVault."
@@ -13156,6 +13194,10 @@
           {
             "name": "amount",
             "type": "u64"
+          },
+          {
+            "name": "configured_recipient",
+            "type": "pubkey"
           },
           {
             "name": "recipient",
@@ -13516,6 +13558,13 @@
               "Asset mint of the rail (use `NATIVE_SOL_MINT` for SOL)."
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "docs": [
+              "Configured recipient owner for this oracle-fee rail."
+            ],
+            "type": "pubkey"
           }
         ]
       }
@@ -13532,6 +13581,13 @@
               "`NATIVE_SOL_MINT` for the SOL rail."
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "docs": [
+              "Configured recipient owner for this rail."
+            ],
+            "type": "pubkey"
           }
         ]
       }
@@ -13545,6 +13601,14 @@
             "name": "asset_mint",
             "docs": [
               "SPL mint for the fee rail. Pass `NATIVE_SOL_MINT` to bind a SOL-rail vault."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "docs": [
+              "Configured recipient owner for this rail. SOL withdraws must pay this",
+              "address directly; SPL withdraws must pay a token account owned by it."
             ],
             "type": "pubkey"
           }
@@ -14848,6 +14912,10 @@
             "type": "pubkey"
           },
           {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
             "name": "accrued_fees",
             "type": "u64"
           },
@@ -15000,6 +15068,10 @@
             "type": "pubkey"
           },
           {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
             "name": "accrued_fees",
             "type": "u64"
           },
@@ -15037,6 +15109,10 @@
           },
           {
             "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
             "type": "pubkey"
           },
           {
