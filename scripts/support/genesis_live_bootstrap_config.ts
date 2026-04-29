@@ -224,16 +224,31 @@ function parsePubkey(value: string, label: string): string {
 }
 
 /**
- * Returns true when the resolved RPC URL points at a Solana mainnet endpoint.
- * Conservative: matches anything containing `mainnet`. Operators running an
- * isolated rehearsal against a private mainnet-beta-like cluster can bypass
- * via OMEGAX_LIVE_CLUSTER_OVERRIDE=devnet.
+ * Returns true when the resolved RPC URL should be treated as Solana mainnet.
+ * Conservative: only explicit non-mainnet markers (devnet/testnet/localnet)
+ * disable the guard; anything else is treated as mainnet to avoid custom-
+ * domain bypasses.
  *
  * See docs/security/mainnet-privileged-role-controls.md §4 for the policy
  * this guard enforces.
  */
 function isMainnetCluster(rpcUrl: string): boolean {
-  return rpcUrl.toLowerCase().includes("mainnet");
+  const normalized = rpcUrl.trim().toLowerCase();
+  if (!normalized) return true;
+
+  // Explicit non-mainnet markers disable the guard for rehearsals/localnet.
+  if (
+    normalized.includes("devnet")
+    || normalized.includes("testnet")
+    || normalized.includes("localhost")
+    || normalized.includes("127.0.0.1")
+  ) {
+    return false;
+  }
+
+  // Mainnet endpoints can be hosted behind custom domains without the
+  // literal "mainnet" in the URL; default to mainnet unless clearly non-mainnet.
+  return true;
 }
 
 function optionalPubkey(
