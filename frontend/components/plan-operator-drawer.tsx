@@ -470,24 +470,34 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
   const obligationFlowFundingLine = selectedObligationFundingLine;
   const settleClaimFundingLine = selectedClaimFundingLine;
   const impairmentFundingLine = selectedObligationFundingLine ?? selectedFundingLineForClaimResolved;
-  const settlementAssetMint = settleClaimFundingLine?.assetMint ?? selectedObligation?.assetMint ?? null;
-  const selectedSettlementVault = useMemo(
+  const settleClaimAssetMint = settleClaimFundingLine?.assetMint ?? null;
+  const settleObligationAssetMint = selectedObligation?.assetMint ?? obligationFlowFundingLine?.assetMint ?? null;
+  const selectedClaimSettlementVault = useMemo(
     () =>
       props.domainAssetVaults.find(
         (vault) =>
           vault.reserveDomain === props.plan?.reserveDomain &&
-          vault.assetMint === settlementAssetMint,
+          vault.assetMint === settleClaimAssetMint,
       ) ?? null,
-    [props.domainAssetVaults, props.plan?.reserveDomain, settlementAssetMint],
+    [props.domainAssetVaults, props.plan?.reserveDomain, settleClaimAssetMint],
+  );
+  const selectedObligationSettlementVault = useMemo(
+    () =>
+      props.domainAssetVaults.find(
+        (vault) =>
+          vault.reserveDomain === props.plan?.reserveDomain &&
+          vault.assetMint === settleObligationAssetMint,
+      ) ?? null,
+    [props.domainAssetVaults, props.plan?.reserveDomain, settleObligationAssetMint],
   );
   const selectedSettlementProtocolFeeVault = useMemo(
     () =>
       props.protocolFeeVaults.find(
         (vault) =>
           vault.reserveDomain === props.plan?.reserveDomain &&
-          vault.assetMint === settlementAssetMint,
+          vault.assetMint === settleClaimAssetMint,
       ) ?? null,
-    [props.protocolFeeVaults, props.plan?.reserveDomain, settlementAssetMint],
+    [props.protocolFeeVaults, props.plan?.reserveDomain, settleClaimAssetMint],
   );
   const allocationFundingLineAddress =
     section === "funding"
@@ -517,9 +527,9 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
         (vault) =>
           vault.liquidityPool === selectedPool?.address &&
           vault.oracle === selectedClaim?.adjudicator &&
-          vault.assetMint === settlementAssetMint,
+          vault.assetMint === settleClaimAssetMint,
       ) ?? null,
-    [props.poolOracleFeeVaults, selectedPool?.address, selectedClaim?.adjudicator, settlementAssetMint],
+    [props.poolOracleFeeVaults, selectedPool?.address, selectedClaim?.adjudicator, settleClaimAssetMint],
   );
   const selectedFundingVault = useMemo(
     () =>
@@ -1146,7 +1156,7 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                           !selectedClaim ||
                           !settleClaimFundingLine ||
                           !selectedClaim.memberPosition ||
-                          !selectedSettlementVault?.vaultTokenAccount ||
+                          !selectedClaimSettlementVault?.vaultTokenAccount ||
                           !recipientTokenAccount.trim() ||
                           busyOn("Settle claim")
                         }
@@ -1171,7 +1181,7 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               poolOracleFeeVaultAddress: selectedPoolOracleFeeVault?.address ?? null,
                               poolOraclePolicyAddress: selectedPoolOraclePolicy?.address ?? null,
                               memberPositionAddress: selectedClaim!.memberPosition,
-                              vaultTokenAccountAddress: selectedSettlementVault!.vaultTokenAccount,
+                              vaultTokenAccountAddress: selectedClaimSettlementVault!.vaultTokenAccount,
                               recipientTokenAccountAddress: recipientTokenAccount.trim(),
                             });
                           })
@@ -1191,7 +1201,7 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                             (Number.parseInt(settleObligationStatus, 10) || OBLIGATION_STATUS_CLAIMABLE_PAYABLE) === OBLIGATION_STATUS_SETTLED &&
                             (
                               !selectedObligationClaim?.memberPosition ||
-                              !selectedSettlementVault?.vaultTokenAccount ||
+                              !selectedObligationSettlementVault?.vaultTokenAccount ||
                               !recipientTokenAccount.trim()
                             )
                           ) ||
@@ -1220,7 +1230,7 @@ export function PlanOperatorDrawer(props: PlanOperatorDrawerProps) {
                               allocationPositionAddress: selectedObligation!.allocationPosition ?? null,
                               poolAssetMint: selectedPool?.depositAssetMint ?? null,
                               memberPositionAddress: selectedObligationClaim?.memberPosition ?? null,
-                              vaultTokenAccountAddress: selectedSettlementVault?.vaultTokenAccount ?? null,
+                              vaultTokenAccountAddress: selectedObligationSettlementVault?.vaultTokenAccount ?? null,
                               recipientTokenAccountAddress: recipientTokenAccount.trim() || null,
                             });
                           })

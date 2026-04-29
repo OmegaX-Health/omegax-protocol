@@ -50,7 +50,7 @@ The default recipient is the member's own wallet. This step lets the member rout
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Claims operator | `require_claim_operator` | New `ClaimEvidenceRef` PDA; `evidence_hash` and `evidence_ref_hash` recorded; raw evidence stays offchain |
+| Claims operator | `require_claim_operator` | `claim_case.evidence_ref_hash` and `claim_case.decision_support_hash` are updated in place; raw evidence stays offchain |
 
 **Member-visible**: the claim shows `evidence attached` with a reference URI (which resolves to OmegaX Health's evidence portal, NOT to a public link — raw medical content is never on-chain or in public docs).
 
@@ -70,7 +70,7 @@ The default recipient is the member's own wallet. This step lets the member rout
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Claims operator | `require_claim_operator` | `claim_case.state` transitions `proposed` → `claimable` (or `denied` for unhappy path); decision metadata persisted |
+| Claims operator | `require_claim_operator` | `claim_case.intake_status` moves to `approved` or `denied`; adjudicator, approved/denied amounts, and decision metadata are persisted |
 
 **Member-visible**: claim shows `approved at tier 2 (overnight admission), USD 1,000 fixed benefit + up to USD 1,500 reimbursement top-up` — or `denied with reason hash <hex>` for unhappy paths.
 
@@ -80,7 +80,7 @@ The default recipient is the member's own wallet. This step lets the member rout
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Claims operator (or oracle authority for the linked-protection lane) | `require_claim_operator` (or oracle linkage) | New `Obligation` PDA; `obligation.state = reserved`; `obligation.amount = USD 1,000` (fixed) + reimbursement top-up amount recorded separately; `funding_line.reserved += amount` |
+| Claims operator (or oracle authority for the linked-protection lane) | `require_claim_operator` (or oracle linkage) | Existing `Obligation` PDA moves from proposed to reserved; `obligation.reserved_amount` and `funding_line.reserved_amount` increase by the reserved amount |
 
 **Truth chain**: the reserve is now booked against the appropriate funding line. The premium funding line and the LP-allocation funding line each take their share according to the allocation cap and weight (see `frontend/lib/protocol.ts` reserve math). The encumbered-reserve number visible in the public console moves up.
 

@@ -34,6 +34,7 @@ const {
   derivePoolTreasuryVaultPda,
   derivePoolOracleFeeVaultPda,
   deriveDomainAssetVaultPda,
+  deriveDomainAssetLedgerPda,
   deriveDomainAssetVaultTokenAccountPda,
   deriveOracleProfilePda,
   getProgramId,
@@ -101,8 +102,8 @@ test("buildWithdrawProtocolFeeSplTx: programId, discriminator, authority, vault 
   });
   const ix = assertProtocolIxShape(tx, "withdraw_protocol_fee_spl", AUTHORITY);
   // Account order per on-chain struct: authority, governance, reserve_domain,
-  // protocol_fee_vault, domain_asset_vault, asset_mint, vault_token_account,
-  // recipient_token_account, token_program.
+  // protocol_fee_vault, domain_asset_vault, domain_asset_ledger, asset_mint,
+  // vault_token_account, recipient_token_account, token_program.
   assert.equal(ix.keys[1]!.pubkey.toBase58(), deriveProtocolGovernancePda().toBase58());
   assert.equal(ix.keys[2]!.pubkey.toBase58(), RESERVE_DOMAIN.toBase58());
   assert.equal(
@@ -113,15 +114,19 @@ test("buildWithdrawProtocolFeeSplTx: programId, discriminator, authority, vault 
     ix.keys[4]!.pubkey.toBase58(),
     deriveDomainAssetVaultPda({ reserveDomain: RESERVE_DOMAIN, assetMint: SPL_MINT }).toBase58(),
   );
-  assert.equal(ix.keys[5]!.pubkey.toBase58(), SPL_MINT.toBase58());
   assert.equal(
-    ix.keys[6]!.pubkey.toBase58(),
+    ix.keys[5]!.pubkey.toBase58(),
+    deriveDomainAssetLedgerPda({ reserveDomain: RESERVE_DOMAIN, assetMint: SPL_MINT }).toBase58(),
+  );
+  assert.equal(ix.keys[6]!.pubkey.toBase58(), SPL_MINT.toBase58());
+  assert.equal(
+    ix.keys[7]!.pubkey.toBase58(),
     deriveDomainAssetVaultTokenAccountPda({
       reserveDomain: RESERVE_DOMAIN,
       assetMint: SPL_MINT,
     }).toBase58(),
   );
-  assert.equal(ix.keys[7]!.pubkey.toBase58(), RECIPIENT_ATA.toBase58());
+  assert.equal(ix.keys[8]!.pubkey.toBase58(), RECIPIENT_ATA.toBase58());
 });
 
 test("buildWithdrawProtocolFeeSolTx: SOL rail uses NATIVE_SOL_MINT in vault seed", () => {
@@ -145,7 +150,7 @@ test("buildWithdrawProtocolFeeSolTx: SOL rail uses NATIVE_SOL_MINT in vault seed
   );
   assert.equal(ix.keys[4]!.pubkey.toBase58(), RECIPIENT_SYS.toBase58());
   // SOL rail does NOT thread DomainAssetVault — the vault PDA holds lamports
-  // directly. The struct only has 6 accounts vs 9 for the SPL variant.
+  // directly. The struct only has 6 accounts vs 10 for the SPL variant.
   assert.equal(ix.keys.length, 6);
 });
 
@@ -161,7 +166,8 @@ test("buildWithdrawPoolTreasurySplTx: pool-scoped vault PDA, asset_mint check", 
   });
   const ix = assertProtocolIxShape(tx, "withdraw_pool_treasury_spl", AUTHORITY);
   // Account order: authority, governance, liquidity_pool, pool_treasury_vault,
-  // domain_asset_vault, asset_mint, vault_token_account, recipient, token_program.
+  // domain_asset_vault, domain_asset_ledger, asset_mint, vault_token_account,
+  // recipient, token_program.
   assert.equal(ix.keys[2]!.pubkey.toBase58(), POOL.toBase58());
   assert.equal(
     ix.keys[3]!.pubkey.toBase58(),
@@ -170,6 +176,10 @@ test("buildWithdrawPoolTreasurySplTx: pool-scoped vault PDA, asset_mint check", 
   assert.equal(
     ix.keys[4]!.pubkey.toBase58(),
     deriveDomainAssetVaultPda({ reserveDomain: RESERVE_DOMAIN, assetMint: SPL_MINT }).toBase58(),
+  );
+  assert.equal(
+    ix.keys[5]!.pubkey.toBase58(),
+    deriveDomainAssetLedgerPda({ reserveDomain: RESERVE_DOMAIN, assetMint: SPL_MINT }).toBase58(),
   );
 });
 
@@ -208,8 +218,8 @@ test("buildWithdrawPoolOracleFeeSplTx: oracle_profile + per-oracle vault PDA", (
   });
   const ix = assertProtocolIxShape(tx, "withdraw_pool_oracle_fee_spl", ORACLE);
   // Account order: authority, governance, liquidity_pool, oracle_profile,
-  // pool_oracle_fee_vault, domain_asset_vault, asset_mint, vault_token_account,
-  // recipient, token_program.
+  // pool_oracle_fee_vault, domain_asset_vault, domain_asset_ledger, asset_mint,
+  // vault_token_account, recipient, token_program.
   assert.equal(
     ix.keys[3]!.pubkey.toBase58(),
     deriveOracleProfilePda({ oracle: ORACLE }).toBase58(),
@@ -221,6 +231,10 @@ test("buildWithdrawPoolOracleFeeSplTx: oracle_profile + per-oracle vault PDA", (
       oracle: ORACLE,
       assetMint: SPL_MINT,
     }).toBase58(),
+  );
+  assert.equal(
+    ix.keys[6]!.pubkey.toBase58(),
+    deriveDomainAssetLedgerPda({ reserveDomain: RESERVE_DOMAIN, assetMint: SPL_MINT }).toBase58(),
   );
 });
 

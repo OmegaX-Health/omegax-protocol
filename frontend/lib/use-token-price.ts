@@ -61,13 +61,13 @@ async function fetchSolUsdPrice(): Promise<number> {
 }
 
 export function useSolUsdPrice(): UseSolUsdPriceResult {
-  const [price, setPrice] = useState<number | null>(() => readCache()?.price ?? null);
+  const [price, setPrice] = useState<number | null>(() => readFreshCache()?.price ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const cached = readCache();
-    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    const cached = readFreshCache();
+    if (cached) {
       setPrice(cached.price);
       setLoading(false);
       return;
@@ -125,6 +125,12 @@ function readCache(): CachedPrice | null {
   } catch {
     return null;
   }
+}
+
+function readFreshCache(): CachedPrice | null {
+  const cached = readCache();
+  if (!cached) return null;
+  return Date.now() - cached.ts < CACHE_TTL_MS ? cached : null;
 }
 
 function writeCache(cached: CachedPrice): void {

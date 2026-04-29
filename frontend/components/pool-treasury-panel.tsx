@@ -171,10 +171,10 @@ export function PoolTreasuryPanel({ poolAddress }: PoolTreasuryPanelProps) {
   }, [capabilities.canWithdrawProtocolFees, protocolFeeRecipient, publicKey, selectedProtocolFeeVault, sendTransaction]);
   const oracleFeeGuard = useMemo(() => {
     if (!capabilities.canWithdrawOracleFees) {
-      return "Oracle fee withdrawals require the matching active oracle signer with fee-withdraw permissions.";
+      return "Oracle fee withdrawals require the matching oracle wallet, oracle admin, or governance authority.";
     }
     if (!publicKey || !sendTransaction) {
-      return "Connect the authorized oracle wallet to withdraw oracle fees.";
+      return "Connect an authorized oracle or governance wallet to withdraw oracle fees.";
     }
     if (!selectedOracleFeeVault) {
       return "Select an oracle fee vault before submitting a withdrawal.";

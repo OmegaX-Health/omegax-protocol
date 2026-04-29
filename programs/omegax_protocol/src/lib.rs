@@ -2331,6 +2331,11 @@ pub mod omegax_protocol {
             &ctx.accounts.asset_mint,
             &ctx.accounts.token_program,
         )?;
+        book_fee_withdrawal(
+            &mut ctx.accounts.domain_asset_vault.total_assets,
+            &mut ctx.accounts.domain_asset_ledger.sheet,
+            args.amount,
+        )?;
 
         let vault = &mut ctx.accounts.protocol_fee_vault;
         vault.withdrawn_fees = new_withdrawn;
@@ -2420,6 +2425,11 @@ pub mod omegax_protocol {
             &ctx.accounts.asset_mint,
             &ctx.accounts.token_program,
         )?;
+        book_fee_withdrawal(
+            &mut ctx.accounts.domain_asset_vault.total_assets,
+            &mut ctx.accounts.domain_asset_ledger.sheet,
+            args.amount,
+        )?;
 
         let vault = &mut ctx.accounts.pool_treasury_vault;
         vault.withdrawn_fees = new_withdrawn;
@@ -2508,6 +2518,11 @@ pub mod omegax_protocol {
             &ctx.accounts.recipient_token_account,
             &ctx.accounts.asset_mint,
             &ctx.accounts.token_program,
+        )?;
+        book_fee_withdrawal(
+            &mut ctx.accounts.domain_asset_vault.total_assets,
+            &mut ctx.accounts.domain_asset_ledger.sheet,
+            args.amount,
         )?;
 
         let vault = &mut ctx.accounts.pool_oracle_fee_vault;
@@ -4136,6 +4151,12 @@ pub struct WithdrawProtocolFeeSpl<'info> {
     )]
     pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
     #[account(
+        mut,
+        seeds = [SEED_DOMAIN_ASSET_LEDGER, reserve_domain.key().as_ref(), protocol_fee_vault.asset_mint.as_ref()],
+        bump = domain_asset_ledger.bump,
+    )]
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
+    #[account(
         constraint = asset_mint.key() == protocol_fee_vault.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
     pub asset_mint: InterfaceAccount<'info, Mint>,
@@ -4193,6 +4214,12 @@ pub struct WithdrawPoolTreasurySpl<'info> {
         bump = domain_asset_vault.bump,
     )]
     pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
+    #[account(
+        mut,
+        seeds = [SEED_DOMAIN_ASSET_LEDGER, liquidity_pool.reserve_domain.as_ref(), pool_treasury_vault.asset_mint.as_ref()],
+        bump = domain_asset_ledger.bump,
+    )]
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(
         constraint = asset_mint.key() == pool_treasury_vault.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
@@ -4260,6 +4287,12 @@ pub struct WithdrawPoolOracleFeeSpl<'info> {
         bump = domain_asset_vault.bump,
     )]
     pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
+    #[account(
+        mut,
+        seeds = [SEED_DOMAIN_ASSET_LEDGER, liquidity_pool.reserve_domain.as_ref(), pool_oracle_fee_vault.asset_mint.as_ref()],
+        bump = domain_asset_ledger.bump,
+    )]
+    pub domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
     #[account(
         constraint = asset_mint.key() == pool_oracle_fee_vault.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
@@ -6068,12 +6101,12 @@ pub enum OmegaXProtocolError {
     FeeVaultRentExemptionBreach,
     #[msg("Fee vault rail and asset mint disagree (SOL vault used on SPL path or vice versa)")]
     FeeVaultRailMismatch,
-    #[msg("Configured class entry fee requires the matching pool treasury fee vault account")]
-    FeeVaultRequiredForConfiguredFee,
     #[msg("Fee vault basis-points configuration is out of range")]
     FeeVaultBpsMisconfigured,
     #[msg("Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts")]
     SettlementOutflowAccountsRequired,
+    #[msg("Configured fee basis points require the matching fee vault account")]
+    FeeVaultRequiredForConfiguredFee,
 }
 
 fn require_id(value: &str) -> Result<()> {
@@ -7371,6 +7404,16 @@ fn book_inflow(target: &mut u64, amount: u64) -> Result<()> {
 fn book_inflow_sheet(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {
     sheet.funded = checked_add(sheet.funded, amount)?;
     recompute_sheet(sheet)
+}
+
+fn book_fee_withdrawal(
+    domain_assets: &mut u64,
+    domain_sheet: &mut ReserveBalanceSheet,
+    amount: u64,
+) -> Result<()> {
+    *domain_assets = checked_sub(*domain_assets, amount)?;
+    domain_sheet.funded = checked_sub(domain_sheet.funded, amount)?;
+    recompute_sheet(domain_sheet)
 }
 
 fn book_owed(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {

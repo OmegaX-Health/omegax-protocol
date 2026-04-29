@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: f095fb3ee9ddc7ea582401f4cf4ed1bf6f8ee8a602d2e9f66c592beba27d0256
+// contract_sha256: 2ed68cbcb34d0e79edef0c25abe51d64b0283cc77d1989679eca88fe98036360
 export const PROTOCOL_PROGRAM_ID = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B";
 export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
     "adjudicate_claim_case": Uint8Array.from([146, 99, 255, 26, 223, 88, 235, 114]),
@@ -705,6 +705,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
         { name: "oracle_profile", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle_profile.oracle" }] },
         { name: "pool_oracle_fee_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 102, 101, 101, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "liquidity_pool" }, { kind: "account", path: "pool_oracle_fee_vault.oracle" }, { kind: "account", path: "pool_oracle_fee_vault.asset_mint" }] },
         { name: "domain_asset_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "pool_oracle_fee_vault.asset_mint" }] },
+        { name: "domain_asset_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "pool_oracle_fee_vault.asset_mint" }] },
         { name: "asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "recipient_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -724,6 +725,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
         { name: "liquidity_pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 112, 111, 111, 108] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "liquidity_pool.pool_id" }] },
         { name: "pool_treasury_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 116, 114, 101, 97, 115, 117, 114, 121, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "liquidity_pool" }, { kind: "account", path: "pool_treasury_vault.asset_mint" }] },
         { name: "domain_asset_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "pool_treasury_vault.asset_mint" }] },
+        { name: "domain_asset_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "pool_treasury_vault.asset_mint" }] },
         { name: "asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "recipient_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
@@ -743,6 +745,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
         { name: "reserve_domain", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [114, 101, 115, 101, 114, 118, 101, 95, 100, 111, 109, 97, 105, 110] }, { kind: "account", path: "reserve_domain.domain_id" }] },
         { name: "protocol_fee_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 102, 101, 101, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "reserve_domain" }, { kind: "account", path: "protocol_fee_vault.asset_mint" }] },
         { name: "domain_asset_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "reserve_domain" }, { kind: "account", path: "protocol_fee_vault.asset_mint" }] },
+        { name: "domain_asset_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "reserve_domain" }, { kind: "account", path: "protocol_fee_vault.asset_mint" }] },
         { name: "asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "recipient_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },

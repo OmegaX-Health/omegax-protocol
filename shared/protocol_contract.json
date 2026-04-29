@@ -10732,6 +10732,50 @@
           }
         },
         {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_oracle_fee_vault.asset_mint",
+                "account": "PoolOracleFeeVault"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_mint",
           "writable": false,
           "signer": false,
@@ -11106,6 +11150,50 @@
           }
         },
         {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_treasury_vault.asset_mint",
+                "account": "PoolTreasuryVault"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_mint",
           "writable": false,
           "signer": false,
@@ -11452,6 +11540,49 @@
                   117,
                   108,
                   116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "reserve_domain"
+              },
+              {
+                "kind": "account",
+                "path": "protocol_fee_vault.asset_mint",
+                "account": "ProtocolFeeVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
                 ]
               },
               {

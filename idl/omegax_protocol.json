@@ -9981,6 +9981,48 @@
           }
         },
         {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_oracle_fee_vault.asset_mint",
+                "account": "PoolOracleFeeVault"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_mint"
         },
         {
@@ -10326,6 +10368,48 @@
           }
         },
         {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_treasury_vault.asset_mint",
+                "account": "PoolTreasuryVault"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_mint"
         },
         {
@@ -10646,6 +10730,47 @@
                   117,
                   108,
                   116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "reserve_domain"
+              },
+              {
+                "kind": "account",
+                "path": "protocol_fee_vault.asset_mint",
+                "account": "ProtocolFeeVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
                 ]
               },
               {
@@ -11865,18 +11990,18 @@
     },
     {
       "code": 6073,
-      "name": "FeeVaultRequiredForConfiguredFee",
-      "msg": "Configured class entry fee requires the matching pool treasury fee vault account"
-    },
-    {
-      "code": 6074,
       "name": "FeeVaultBpsMisconfigured",
       "msg": "Fee vault basis-points configuration is out of range"
     },
     {
-      "code": 6075,
+      "code": 6074,
       "name": "SettlementOutflowAccountsRequired",
       "msg": "Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts"
+    },
+    {
+      "code": 6075,
+      "name": "FeeVaultRequiredForConfiguredFee",
+      "msg": "Configured fee basis points require the matching fee vault account"
     }
   ],
   "types": [

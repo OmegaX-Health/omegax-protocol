@@ -213,6 +213,29 @@ test("Mainnet bootstrap break-glass override allows local-signer defaults but wa
   assert.match(captured, /BREAK-GLASS.*OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET=1 active/);
 });
 
+test("Mainnet bootstrap break-glass override bypasses distinct-key validation when flag remains set", () => {
+  const originalWrite = process.stderr.write.bind(process.stderr);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (process.stderr as any).write = () => true;
+  let config: ReturnType<typeof loadGenesisLiveBootstrapConfig>;
+  try {
+    config = loadGenesisLiveBootstrapConfig({
+      governanceAuthority: GOVERNANCE,
+      env: {
+        ...baseMainnetEnv(),
+        OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET: "1",
+        OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS: "1",
+      },
+    });
+  } finally {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.stderr as any).write = originalWrite;
+  }
+
+  assert.equal(config.roles.sponsor, GOVERNANCE);
+  assert.equal(config.roles.claimsOperator, GOVERNANCE);
+});
+
 test("OMEGAX_LIVE_CLUSTER_OVERRIDE=devnet bypasses the mainnet guard even on a mainnet RPC URL", () => {
   // Operator running an isolated rehearsal against a private mainnet-beta-
   // like cluster can opt out via the cluster override. The older opt-in

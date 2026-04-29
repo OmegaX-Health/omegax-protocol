@@ -387,7 +387,9 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   }, [selectedPool]);
   const treasuryWalletOracle = useMemo(() => {
     if (!walletAddress) return null;
-    const profile = snapshot.oracleProfiles.find((entry) => entry.oracle === walletAddress);
+    const profile = snapshot.oracleProfiles.find(
+      (entry) => entry.oracle === walletAddress || entry.admin === walletAddress,
+    );
     if (!profile) return null;
     return {
       address: profile.address,

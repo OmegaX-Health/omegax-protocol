@@ -3439,9 +3439,10 @@ export function buildSetProtocolEmergencyPauseTx(params: {
 // matches the on-chain authority requirement above.
 //
 // SPL builders need `reserveDomainAddress` to derive the matching
-// `DomainAssetVault` (where SPL fee tokens physically reside). SOL builders
-// don't reference DomainAssetVault — lamports come straight off the
-// fee-vault PDA via `transfer_lamports_from_fee_vault`.
+// `DomainAssetVault` and `DomainAssetLedger` (where SPL fee tokens physically
+// reside and where funded-balance accounting is reduced). SOL builders don't
+// reference DomainAssetVault — lamports come straight off the fee-vault PDA
+// via `transfer_lamports_from_fee_vault`.
 
 export function buildWithdrawProtocolFeeSplTx(params: {
   governanceAuthority: PublicKeyish;
@@ -3473,6 +3474,10 @@ export function buildWithdrawProtocolFeeSplTx(params: {
       },
       {
         pubkey: deriveDomainAssetVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({ reserveDomain, assetMint }),
         isWritable: true,
       },
       { pubkey: assetMint },
@@ -3554,6 +3559,10 @@ export function buildWithdrawPoolTreasurySplTx(params: {
       },
       {
         pubkey: deriveDomainAssetVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({ reserveDomain, assetMint }),
         isWritable: true,
       },
       { pubkey: assetMint },
@@ -3644,6 +3653,10 @@ export function buildWithdrawPoolOracleFeeSplTx(params: {
       },
       {
         pubkey: deriveDomainAssetVaultPda({ reserveDomain, assetMint }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({ reserveDomain, assetMint }),
         isWritable: true,
       },
       { pubkey: assetMint },
