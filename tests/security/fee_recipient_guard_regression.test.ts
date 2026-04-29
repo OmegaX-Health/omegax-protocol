@@ -62,3 +62,19 @@ test("[CSO-2026-04-29] SPL and SOL fee withdrawals validate configured recipient
     );
   }
 });
+
+test("[CSO-2026-04-29] SPL fee withdrawals debit domain vault accounting", () => {
+  assert.match(programSource, /fn book_fee_withdrawal\s*\(/);
+
+  for (const handler of [
+    "withdraw_protocol_fee_spl",
+    "withdraw_pool_treasury_spl",
+    "withdraw_pool_oracle_fee_spl",
+  ]) {
+    assert.match(
+      extractInstructionBody(handler),
+      /book_fee_withdrawal\s*\(/,
+      `${handler} must debit DomainAssetVault and DomainAssetLedger funded balances after SPL fee outflow`,
+    );
+  }
+});

@@ -3272,13 +3272,44 @@
         },
         {
           "name": "pool_treasury_vault",
-          "docs": [
-            "Phase 1.6 — optional pool-treasury vault for entry-fee accrual.",
-            "When supplied, must match (liquidity_pool, deposit_asset_mint).",
-            "Required when capital_class.fee_bps is nonzero."
-          ],
           "writable": true,
-          "optional": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.deposit_asset_mint",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "source_token_account",
@@ -5536,13 +5567,44 @@
         },
         {
           "name": "pool_treasury_vault",
-          "docs": [
-            "Phase 1.6 — optional pool-treasury vault for exit-fee accrual.",
-            "When supplied, must match (liquidity_pool, deposit_asset_mint).",
-            "Required when capital_class.fee_bps is nonzero."
-          ],
           "writable": true,
-          "optional": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.deposit_asset_mint",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "asset_mint"
@@ -5857,13 +5919,44 @@
         },
         {
           "name": "protocol_fee_vault",
-          "docs": [
-            "Protocol fee vault for premium-time fee accrual. Required when",
-            "protocol_governance.protocol_fee_bps is nonzero.",
-            "Must match (health_plan.reserve_domain, funding_line.asset_mint)."
-          ],
           "writable": true,
-          "optional": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan.reserve_domain",
+                "account": "HealthPlan"
+              },
+              {
+                "kind": "account",
+                "path": "funding_line.asset_mint",
+                "account": "FundingLine"
+              }
+            ]
+          }
         },
         {
           "name": "source_token_account",
@@ -7971,13 +8064,44 @@
         },
         {
           "name": "protocol_fee_vault",
-          "docs": [
-            "Phase 1.6 — optional protocol fee vault for claim-settlement accrual.",
-            "When supplied, must match (health_plan.reserve_domain, funding_line.asset_mint).",
-            "Validated at runtime; absent means protocol-fee accrual is skipped (backward compat)."
-          ],
           "writable": true,
-          "optional": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan.reserve_domain",
+                "account": "HealthPlan"
+              },
+              {
+                "kind": "account",
+                "path": "funding_line.asset_mint",
+                "account": "FundingLine"
+              }
+            ]
+          }
         },
         {
           "name": "pool_oracle_fee_vault",
@@ -9981,6 +10105,48 @@
           }
         },
         {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_oracle_fee_vault.asset_mint",
+                "account": "PoolOracleFeeVault"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_mint"
         },
         {
@@ -10326,6 +10492,48 @@
           }
         },
         {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool.reserve_domain",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool_treasury_vault.asset_mint",
+                "account": "PoolTreasuryVault"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_mint"
         },
         {
@@ -10646,6 +10854,47 @@
                   117,
                   108,
                   116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "reserve_domain"
+              },
+              {
+                "kind": "account",
+                "path": "protocol_fee_vault.asset_mint",
+                "account": "ProtocolFeeVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "domain_asset_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114
                 ]
               },
               {
@@ -11865,18 +12114,18 @@
     },
     {
       "code": 6073,
-      "name": "FeeVaultRequiredForConfiguredFee",
-      "msg": "Configured class entry fee requires the matching pool treasury fee vault account"
-    },
-    {
-      "code": 6074,
       "name": "FeeVaultBpsMisconfigured",
       "msg": "Fee vault basis-points configuration is out of range"
     },
     {
-      "code": 6075,
+      "code": 6074,
       "name": "SettlementOutflowAccountsRequired",
       "msg": "Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts"
+    },
+    {
+      "code": 6075,
+      "name": "FeeVaultRequiredForConfiguredFee",
+      "msg": "Configured fee basis points require the matching fee vault account"
     }
   ],
   "types": [
@@ -13059,8 +13308,8 @@
           {
             "name": "shares",
             "docs": [
-              "Backward-compatible wire field. Interpreted as min_shares_out; zero",
-              "means accept the program-derived NAV share price with no minimum."
+              "Minimum accepted shares out; zero means accept the program-derived",
+              "NAV share price with no minimum."
             ],
             "type": "u64"
           }

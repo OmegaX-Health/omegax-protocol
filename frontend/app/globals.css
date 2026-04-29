@@ -8698,6 +8698,11 @@
       min-height: 2.75rem;
       min-width: 2.75rem;
     }
+
+    .protocol-toolbar-icon-button {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+    }
   }
 
   /*
@@ -9334,11 +9339,20 @@
      * for SOURCE / SDK / DOCS / STATUS / AUDITS links no operator needs
      * mid-task. The sidebar nav already carries everything needed for in-task
      * navigation on mobile; the footer links are desktop reference material.
-     * Footer stays in the DOM for screen readers and crawlers but is hidden
-     * from the visual viewport.
+     * Footer stays in the accessibility tree and DOM for screen readers and
+     * crawlers but is hidden from the visual viewport.
      */
     .protocol-footer {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
     }
   }
 

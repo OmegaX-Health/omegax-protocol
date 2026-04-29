@@ -436,7 +436,7 @@ export function loadGenesisLiveBootstrapConfig(params: {
   // collapse onto a single keypair. Without this guard the defaults silently
   // route every role through governanceAuthority — a single compromise drains
   // the whole protocol.
-  if (env.OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS === "1") {
+  if (env.OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS === "1" && !(targetingMainnet && breakGlass)) {
     const toBase58 = (value: PublicKey | string): string =>
       typeof value === "string" ? value : value.toBase58();
     const roleKeys: Array<[string, PublicKey | string]> = [

@@ -41,6 +41,8 @@ jobs:
     timeout-minutes: 45
     env:
       ANCHOR_VERSION: 0.32.1
+      SOLANA_CLI_VERSION: v3.1.14
+      SOLANA_CLI_INSTALL_SHA256: f2d4860409b14a7aacc6454431d3b5366f2795df696466fe5a7177b0adf5f761
       OMEGAX_E2E_KEEP_ARTIFACTS: '1'
     steps:
       - name: Checkout
@@ -88,13 +90,13 @@ jobs:
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         with:
           path: ~/.local/share/solana
-          key: solana-stable-${{ runner.os }}-v1
+          key: solana-${{ env.SOLANA_CLI_VERSION }}-${{ runner.os }}-v1
 
       - name: Install Solana CLI
         if: steps.solana-cache.outputs.cache-hit != 'true'
         run: |
-          curl -sSfL https://release.anza.xyz/stable/install -o /tmp/solana-install.sh
-          echo '4c69258d317fdd3cf65193053ea2c2f8c29f24a08161afb787b192262c72d070  /tmp/solana-install.sh' | sha256sum -c -
+          curl -sSfL "https://release.anza.xyz/${SOLANA_CLI_VERSION}/install" -o /tmp/solana-install.sh
+          echo "${SOLANA_CLI_INSTALL_SHA256}  /tmp/solana-install.sh" | sha256sum -c -
           sh /tmp/solana-install.sh
 
       - name: Add Solana CLI to PATH

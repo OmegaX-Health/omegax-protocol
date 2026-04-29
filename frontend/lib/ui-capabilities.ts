@@ -87,6 +87,7 @@ export type WalletRole =
   | "compliance_authority"
   | "guardian"
   | "oracle"
+  | "oracle_admin"
   | "member"
   | "claim_delegate"
   | "capital_provider";
@@ -172,6 +173,7 @@ export const POOL_WORKSPACE_SECTION_META: Readonly<Record<PoolWorkspaceSection, 
       "pool_authority",
       "pool_operator",
       "oracle",
+      "oracle_admin",
     ],
     showInNav: true,
   },
@@ -198,6 +200,7 @@ export const POOL_WORKSPACE_SECTION_META: Readonly<Record<PoolWorkspaceSection, 
       "pool_operator",
       "risk_manager",
       "oracle",
+      "oracle_admin",
     ],
     showInNav: true,
   },
@@ -269,6 +272,7 @@ export type WalletCapabilities = {
   isGuardian: boolean;
   isRegisteredMember: boolean;
   isRegisteredOracle: boolean;
+  isOracleAdmin: boolean;
   isClaimDelegate: boolean;
   hasCapitalPosition: boolean;
   canCreatePool: boolean;
@@ -413,7 +417,8 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
   const isComplianceAuthority = sameAddress(walletAddress, input.poolControlAuthority?.complianceAuthority);
   const isGuardian = sameAddress(walletAddress, input.poolControlAuthority?.guardianAuthority);
   const isRegisteredMember = Boolean(input.walletMembership);
-  const isRegisteredOracle = Boolean(input.walletOracle);
+  const isRegisteredOracle = sameAddress(walletAddress, input.walletOracle?.oracle);
+  const isOracleAdmin = sameAddress(walletAddress, input.walletOracle?.admin);
   const isClaimDelegate =
     Boolean(input.walletClaimDelegate?.active)
     && sameAddress(walletAddress, input.walletClaimDelegate?.delegate);
@@ -438,6 +443,7 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
     if (isComplianceAuthority) roles.push("compliance_authority");
     if (isGuardian) roles.push("guardian");
     if (isRegisteredOracle) roles.push("oracle");
+    if (isOracleAdmin) roles.push("oracle_admin");
     if (isRegisteredMember) roles.push("member");
     if (isClaimDelegate) roles.push("claim_delegate");
     if (hasCapitalPosition) roles.push("capital_provider");
@@ -452,7 +458,7 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
   const canOperateQueueAsOperator = isPoolAuthority || isPoolOperator || isRiskManager;
   const canOperateOwnedRedemptionQueue = isConnected && (hasCapitalPosition || isPoolAuthority || isPoolOperator);
   const canManageOracleStake = isConnected && (isRegisteredOracle || canManageProtocolConfig);
-  const canManageOracleProfile = isRegisteredOracle || canManageProtocolConfig;
+  const canManageOracleProfile = isRegisteredOracle || isOracleAdmin || canManageProtocolConfig;
   const canOpenDisputes =
     isPoolAuthority || isPoolOperator || isRiskManager || isGuardian || canManageProtocolConfig;
 
@@ -469,6 +475,7 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
     isGuardian,
     isRegisteredMember,
     isRegisteredOracle,
+    isOracleAdmin,
     isClaimDelegate,
     hasCapitalPosition,
     canCreatePool: isConnected,
@@ -479,7 +486,7 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
     canManageSettings: canManagePoolControls,
     canManageTreasury: isPoolAuthority || isPoolOperator || isRiskManager || canManageProtocolConfig,
     canManageSchemas: isPoolAuthority || isPoolOperator || canManageProtocolConfig,
-    canManageOracles: isPoolAuthority || isPoolOperator || isGovernanceAuthority || isRegisteredOracle,
+    canManageOracles: isPoolAuthority || isPoolOperator || isGovernanceAuthority || isRegisteredOracle || isOracleAdmin,
     canManageLiquidity: isPoolAuthority || isPoolOperator || isRiskManager || hasCapitalPosition,
     canManageClaims: canReviewCoverageClaims,
     canManageCoverage: isPoolAuthority || isPoolOperator || isRegisteredMember || isClaimDelegate,
@@ -508,7 +515,7 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
     // disabled/enabled state before the chain rejects.
     canWithdrawPoolTreasury: isPoolAuthority || isPoolOperator || canManageProtocolConfig,
     canWithdrawProtocolFees: canManageProtocolConfig,
-    canWithdrawOracleFees: isRegisteredOracle || canManageProtocolConfig,
+    canWithdrawOracleFees: isRegisteredOracle || isOracleAdmin || canManageProtocolConfig,
     canOperateOwnedRedemptionQueue,
     canOperateQueueAsOperator,
     canUseExpertTools:
@@ -519,7 +526,8 @@ export function deriveWalletCapabilities(input: WalletCapabilityInput): WalletCa
       || isRiskManager
       || isComplianceAuthority
       || isGuardian
-      || isRegisteredOracle,
+      || isRegisteredOracle
+      || isOracleAdmin,
   };
 }
 

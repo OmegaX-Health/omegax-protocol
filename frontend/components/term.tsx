@@ -112,7 +112,8 @@ export function Term({ name, children }: TermProps) {
       {open ? (
         <span
           id={tooltipId}
-          role="tooltip"
+          role={entry.learnMoreHref ? "group" : "tooltip"}
+          aria-label={entry.learnMoreHref ? entry.label : undefined}
           className="omegax-term-popover"
         >
           <span className="omegax-term-popover-eyebrow">{entry.label}</span>

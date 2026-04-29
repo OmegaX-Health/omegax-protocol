@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// CSO-2026-04-29 regression: a configured pool entry fee must fail closed
-// when the caller omits the matching pool_treasury_vault account.
+// CSO-2026-04-29 regression: capital-class fee flows must always carry the
+// canonical pool_treasury_vault account. No legacy omission branch is allowed.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -29,19 +29,19 @@ function extractInstructionBody(name: string): string {
   return programSource.slice(startIdx, i);
 }
 
-test("[CSO-2026-04-29] deposit entry fees require the pool treasury vault when fee_bps is nonzero", () => {
+test("[CSO-2026-04-29] deposit entry fees require the pool treasury vault account unconditionally", () => {
   const body = extractInstructionBody("deposit_into_capital_class");
-  const missingVaultBranch = /let\s+entry_fee\s*=\s*if\s+let\s+Some\(vault\)[\s\S]+?\}\s+else\s+\{([\s\S]+?)\};/.exec(body);
 
-  assert.ok(missingVaultBranch, "deposit_into_capital_class must keep an explicit missing-vault branch");
+  assert.doesNotMatch(body, /if\s+let\s+Some\(vault\)\s*=\s*ctx\.accounts\.pool_treasury_vault/);
+  assert.doesNotMatch(body, /class_fee_bps\s*==\s*0/);
   assert.match(
-    missingVaultBranch[1],
-    /class_fee_bps\s*==\s*0/,
-    "missing pool_treasury_vault must only be allowed when class_fee_bps is zero",
+    programSource,
+    /pub pool_treasury_vault: Box<Account<'info, PoolTreasuryVault>>/,
+    "pool_treasury_vault must be a required Anchor account, not an optional legacy slot",
   );
   assert.match(
-    missingVaultBranch[1],
-    /FeeVaultRequiredForConfiguredFee/,
-    "missing pool_treasury_vault with nonzero entry fee must return the dedicated fee-vault error",
+    programSource,
+    /seeds = \[SEED_POOL_TREASURY_VAULT, liquidity_pool\.key\(\)\.as_ref\(\), liquidity_pool\.deposit_asset_mint\.as_ref\(\)\]/,
+    "pool_treasury_vault must be the canonical pool+asset PDA",
   );
 });

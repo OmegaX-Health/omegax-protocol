@@ -2,8 +2,8 @@
 //
 // CSO-2026-04-29 regressions for claim settlement:
 // - linked obligations cannot be marked settled without an SPL outflow
-// - configured settlement fee bps cannot be bypassed by omitting fee vaults
-// - public builders must keep Anchor optional-account placeholders in order
+// - settlement must carry the canonical protocol fee vault account
+// - public builders must keep optional account placeholders in order
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -25,7 +25,7 @@ const {
   OBLIGATION_STATUS_SETTLED,
   buildSettleClaimCaseTx,
   buildSettleObligationTx,
-  getProgramId,
+  deriveProtocolFeeVaultPda,
   listProtocolInstructionAccounts,
 } = protocolModule as typeof import("../../frontend/lib/protocol.ts");
 
@@ -64,12 +64,14 @@ test("[CSO-2026-04-29] linked obligation settlement requires SPL outflow account
   assert.match(body, /token_program\.is_some\(\)/);
 });
 
-test("[CSO-2026-04-29] claim settlement fee vault omission is allowed only for zero bps", () => {
+test("[CSO-2026-04-29] claim settlement removed fee-vault omission compatibility branches", () => {
   const body = extractInstructionBody("settle_claim_case");
 
-  assert.match(body, /protocol_fee_bps\s*==\s*0/);
-  assert.match(body, /policy\.oracle_fee_bps\s*==\s*0/);
+  assert.doesNotMatch(body, /protocol_fee_bps\s*==\s*0/);
+  assert.doesNotMatch(body, /policy\.oracle_fee_bps\s*==\s*0/);
+  assert.match(body, /let protocol_fee_vault = &ctx\.accounts\.protocol_fee_vault/);
   assert.match(body, /vault\.oracle[\s\S]+ctx\.accounts\.claim_case\.adjudicator/);
+  assert.match(body, /\(None, Some\(_\)\)[\s\S]+FeeVaultRequiredForConfiguredFee/);
 });
 
 test("[CSO-2026-04-29] settlement builders preserve fee and outflow account slots", () => {
@@ -84,7 +86,6 @@ test("[CSO-2026-04-29] settlement builders preserve fee and outflow account slot
   const vaultTokenAccount = vault.address;
   const recipientTokenAccount = DEVNET_PROTOCOL_FIXTURE_STATE.wallets[1]!.address;
   const recentBlockhash = "11111111111111111111111111111111";
-  const programId = getProgramId().toBase58();
 
   const settleClaim = buildSettleClaimCaseTx({
     authority: DEVNET_PROTOCOL_FIXTURE_STATE.wallets[0]!.address,
@@ -105,7 +106,13 @@ test("[CSO-2026-04-29] settlement builders preserve fee and outflow account slot
     recipientTokenAccountAddress: recipientTokenAccount,
   });
   assertAccountCount("settle_claim_case", settleClaim.instructions[0]!.keys.length);
-  assert.equal(settleClaim.instructions[0]!.keys[14]!.pubkey.toBase58(), programId);
+  assert.equal(
+    settleClaim.instructions[0]!.keys[14]!.pubkey.toBase58(),
+    deriveProtocolFeeVaultPda({
+      reserveDomain: claim.reserveDomain,
+      assetMint: fundingLine.assetMint,
+    }).toBase58(),
+  );
   assert.equal(settleClaim.instructions[0]!.keys[17]!.pubkey.toBase58(), claim.memberPosition);
   assert.equal(settleClaim.instructions[0]!.keys[19]!.pubkey.toBase58(), vaultTokenAccount);
   assert.equal(settleClaim.instructions[0]!.keys[20]!.pubkey.toBase58(), recipientTokenAccount);
