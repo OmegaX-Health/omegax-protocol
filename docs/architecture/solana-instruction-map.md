@@ -85,4 +85,4 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 - The retired pre-rearchitecture product-typing field does not exist in the live surface.
 - Sponsor budgets and LP capital no longer share one overloaded root.
 - Reward and protection both reconcile through the same reserve kernel.
-- For implementation review, follow the facade delegation into `governance.rs`, `reserve_custody.rs`, `plans_membership.rs`, `funding_obligations.rs`, `claims.rs`, `capital.rs`, `fees.rs`, or `oracle_schema.rs`.
+- For implementation review, follow the facade delegation into `governance.rs`, `reserve_custody.rs`, `plans_membership.rs`, `funding_obligations/`, `claims.rs`, `capital/`, `fees.rs`, or `oracle_schema.rs`.

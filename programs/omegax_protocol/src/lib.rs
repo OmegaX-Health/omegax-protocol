@@ -39,6 +39,25 @@ pub use reserve_custody::*;
 pub use state::*;
 pub use types::*;
 
+// Anchor derives these hidden client-account modules next to each `Accounts`
+// context. Re-export them at crate root so `#[program]` sees the same names
+// after moving the contexts into child modules.
+pub(crate) use capital::{
+    __client_accounts_allocate_capital, __client_accounts_create_allocation_position,
+    __client_accounts_create_capital_class, __client_accounts_create_liquidity_pool,
+    __client_accounts_deallocate_capital, __client_accounts_deposit_into_capital_class,
+    __client_accounts_mark_impairment, __client_accounts_process_redemption_queue,
+    __client_accounts_request_redemption, __client_accounts_update_allocation_caps,
+    __client_accounts_update_capital_class_controls,
+    __client_accounts_update_lp_position_credentialing,
+};
+pub(crate) use funding_obligations::{
+    __client_accounts_create_obligation, __client_accounts_fund_sponsor_budget,
+    __client_accounts_open_funding_line, __client_accounts_record_premium_payment,
+    __client_accounts_release_reserve, __client_accounts_reserve_obligation,
+    __client_accounts_settle_obligation,
+};
+
 #[program]
 pub mod omegax_protocol {
     use super::*;

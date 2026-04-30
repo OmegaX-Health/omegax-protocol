@@ -14,9 +14,9 @@ audit-domain modules:
 - [`src/governance.rs`](./src/governance.rs)
 - [`src/reserve_custody.rs`](./src/reserve_custody.rs)
 - [`src/plans_membership.rs`](./src/plans_membership.rs)
-- [`src/funding_obligations.rs`](./src/funding_obligations.rs)
+- [`src/funding_obligations/`](./src/funding_obligations/)
 - [`src/claims.rs`](./src/claims.rs)
-- [`src/capital.rs`](./src/capital.rs)
+- [`src/capital/`](./src/capital/)
 - [`src/fees.rs`](./src/fees.rs)
 - [`src/oracle_schema.rs`](./src/oracle_schema.rs)
 - [`src/kernel.rs`](./src/kernel.rs) and [`src/kernel/`](./src/kernel/) for shared authorization, math, transfer, and reserve-accounting helpers
