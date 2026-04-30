@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "nomad-protect-curve-poc-2026-05",
+  "purpose": "Experimental actuarial and quote-curve PoC for nomad acute emergency cover with prediction-market-style open risk backing.",
+  "status": "experimental_poc_not_genesis_v1_pricing",
+  "targetSolvencyQuantile": 0.995,
+  "methodLimitations": [
+    "This is a product-design and actuarial PoC, not an external actuarial opinion.",
+    "The model tests whether a low-budget quote curve can coexist with reserve-aware pricing and open risk-backer deposits.",
+    "Risk-backer deposits are modeled as junior/backstop reserve capital; they are not treated as member coverage purchases.",
+    "The member quote curve is an issuance and pricing model, not a commitment to offer blind pay-anything insurance.",
+    "Backer yield outputs are simple one-window surplus-share diagnostics, not promised returns.",
+    "Severity distributions are synthetic and should be replaced with credible paid-claim data before production."
+  ],
+  "monteCarlo": {
+    "seed": 28036591,
+    "trials": 30000,
+    "quantiles": [0.95, 0.99, 0.995]
+  },
+  "product": {
+    "displayName": "Nomad Protect Curve PoC",
+    "coverWindowDays": 30,
+    "unitSizeUsd": 100,
+    "minMemberBudgetUsd": 15,
+    "maxMemberCapUsd": 3000,
+    "baseUnitPremiumUsd": 5.25,
+    "curveDepthUnits": 15000,
+    "curveGamma": 1.45,
+    "targetReserveToLimitRatio": 0.15,
+    "reserveStressGamma": 1.15,
+    "maxReserveStressMultiplier": 3.5,
+    "claimsReserveShareOfPremium": 0.9,
+    "premiumShareToRiskBackers": 0.55,
+    "waitingPeriods": {
+      "illnessDays": 7,
+      "accidentHours": 24
+    },
+    "coverageScope": [
+      "acute, unplanned emergency medical treatment during the cover window",
+      "urgent ER or hospital evaluation",
+      "accidental injury requiring urgent treatment",
+      "sudden acute illness requiring ER or inpatient care",
+      "emergency imaging, labs, procedures, medications, and hospital fees tied to the covered event"
+    ],
+    "excludedScope": [
+      "chronic disease management",
+      "known active events before purchase",
+      "routine outpatient care",
+      "elective procedures",
+      "maternity and fertility care",
+      "evacuation, baggage, and trip cancellation",
+      "fraud, sanctions-excluded scenarios, and non-reviewable documentation"
+    ]
+  },
+  "severityModel": {
+    "minUsd": 150,
+    "modeUsd": 900,
+    "p95Usd": 3200,
+    "maxUsd": 8000
+  },
+  "baselineClaimFrequency": 0.04,
+  "openingProtocolReserveUsd": 25000,
+  "quoteSamples": [
+    {
+      "id": "empty-market",
+      "label": "Fresh market with posted backstop",
+      "soldCoverageUsd": 0,
+      "claimsPayingReserveUsd": 85000,
+      "riskMultiplier": 1
+    },
+    {
+      "id": "warm-market",
+      "label": "Warm market after early nomad demand",
+      "soldCoverageUsd": 500000,
+      "claimsPayingReserveUsd": 100000,
+      "riskMultiplier": 1
+    },
+    {
+      "id": "stressed-market",
+      "label": "Stressed market with thin reserves",
+      "soldCoverageUsd": 1500000,
+      "claimsPayingReserveUsd": 90000,
+      "riskMultiplier": 1.15
+    }
+  ],
+  "memberBudgetsUsd": [15, 39, 99, 159],
+  "scenarios": [
+    {
+      "id": "micro-bootstrap-200",
+      "type": "independent_claims",
+      "label": "Micro-cover bootstrap: 200 nomads at 15 USD",
+      "members": 200,
+      "budgetMix": [{ "budgetUsd": 15, "weight": 1 }],
+      "riskMultiplier": 1,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "riskBackerCapitalUsd": 25000
+    },
+    {
+      "id": "mixed-nomad-launch-500",
+      "type": "independent_claims",
+      "label": "Mixed nomad launch: micro + standard budgets",
+      "members": 500,
+      "budgetMix": [
+        { "budgetUsd": 15, "weight": 0.35 },
+        { "budgetUsd": 39, "weight": 0.3 },
+        { "budgetUsd": 99, "weight": 0.2 },
+        { "budgetUsd": 159, "weight": 0.15 }
+      ],
+      "riskMultiplier": 1,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "riskBackerCapitalUsd": 60000
+    },
+    {
+      "id": "market-backed-growth-1500",
+      "type": "independent_claims",
+      "label": "Market-backed growth: open risk capital supports issuance",
+      "members": 1500,
+      "budgetMix": [
+        { "budgetUsd": 15, "weight": 0.35 },
+        { "budgetUsd": 39, "weight": 0.3 },
+        { "budgetUsd": 99, "weight": 0.2 },
+        { "budgetUsd": 159, "weight": 0.15 }
+      ],
+      "riskMultiplier": 1,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "riskBackerCapitalUsd": 180000
+    },
+    {
+      "id": "thin-market-growth-1500",
+      "type": "independent_claims",
+      "label": "Thin-market growth: same demand without enough backers",
+      "members": 1500,
+      "budgetMix": [
+        { "budgetUsd": 15, "weight": 0.35 },
+        { "budgetUsd": 39, "weight": 0.3 },
+        { "budgetUsd": 99, "weight": 0.2 },
+        { "budgetUsd": 159, "weight": 0.15 }
+      ],
+      "riskMultiplier": 1,
+      "frequencyMultiplier": 1,
+      "severityMultiplier": 1,
+      "riskBackerCapitalUsd": 25000
+    },
+    {
+      "id": "expensive-region-adverse-600",
+      "type": "independent_claims",
+      "label": "Expensive-region adverse mix",
+      "members": 600,
+      "budgetMix": [
+        { "budgetUsd": 15, "weight": 0.25 },
+        { "budgetUsd": 39, "weight": 0.25 },
+        { "budgetUsd": 99, "weight": 0.25 },
+        { "budgetUsd": 159, "weight": 0.25 }
+      ],
+      "riskMultiplier": 1.35,
+      "frequencyMultiplier": 1.35,
+      "severityMultiplier": 1.25,
+      "riskBackerCapitalUsd": 75000
+    },
+    {
+      "id": "nomad-hub-cluster-600",
+      "type": "correlated_event",
+      "label": "Nomad hub regional illness cluster",
+      "members": 600,
+      "budgetMix": [
+        { "budgetUsd": 39, "weight": 0.5 },
+        { "budgetUsd": 99, "weight": 0.3 },
+        { "budgetUsd": 159, "weight": 0.2 }
+      ],
+      "riskMultiplier": 1.15,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8,
+      "riskBackerCapitalUsd": 60000
+    }
+  ]
+}
