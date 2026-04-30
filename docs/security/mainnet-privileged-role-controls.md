@@ -10,7 +10,7 @@ The on-chain program enforces role checks (`require_governance`, `require_plan_c
 
 ## 1. Privileged roles
 
-Every entry below maps to a `require_*` check in the onchain program source (`programs/omegax_protocol/src/kernel.rs` plus the relevant domain module) and to a configurable role wallet in `scripts/support/genesis_live_bootstrap_config.ts`. The "Pre-fix default" column documents what the bootstrap fell back to before the mainnet guard added in this doc landed; the **mainnet column is what production must use**.
+Every entry below maps to a `require_*` check in the onchain program source (`programs/omegax_protocol/src/kernel.rs`, `programs/omegax_protocol/src/kernel/`, and the relevant domain module) and to a configurable role wallet in `scripts/support/genesis_live_bootstrap_config.ts`. The "Pre-fix default" column documents what the bootstrap fell back to before the mainnet guard added in this doc landed; the **mainnet column is what production must use**.
 
 | Role | Guards (program) | Allowed actions | Custody owner | Mainnet signer (required) | Pre-fix default |
 |------|------------------|-----------------|---------------|---------------------------|-----------------|
@@ -115,7 +115,7 @@ For release notes, sponsor decks, or LP communication that touches role custody,
 
 ## Appendix: source-of-truth pointers
 
-- Program role checks: `programs/omegax_protocol/src/kernel.rs` and the calling domain modules (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_pool_control`, `require_curator_control`, `require_allocator`)
+- Program role checks: `programs/omegax_protocol/src/kernel.rs`, `programs/omegax_protocol/src/kernel/`, and the calling domain modules (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_pool_control`, `require_curator_control`, `require_allocator`)
 - Bootstrap config: `scripts/support/genesis_live_bootstrap_config.ts`
 - PT-05 distinct-keys guard: shipped in commit `8c219fe`; tests in `tests/genesis_live_bootstrap_config.test.ts`
 - Pen-test report: [`./pre-mainnet-pen-test-2026-04-27.md`](./pre-mainnet-pen-test-2026-04-27.md)

@@ -97,7 +97,7 @@ The canonical public instruction surface is declared in [`programs/omegax_protoc
 - `capital.rs` for liquidity pools, capital classes, LP positions, redemptions, allocations, and impairments
 - `fees.rs` for fee-vault initialization and withdrawals
 - `oracle_schema.rs` for oracle registry, pool oracle permissions/policies, and outcome schemas
-- `kernel.rs` for shared auth, validation, math, token transfer, and reserve-accounting helpers
+- `kernel.rs` plus `kernel/` for shared auth, validation, math, token transfer, and reserve-accounting helpers
 - `state.rs`, `args.rs`, `events.rs`, `errors.rs`, `constants.rs`, and `types.rs` for shared public and internal types
 
 ## Review Hotspots
@@ -109,7 +109,7 @@ then jump to the domain module for the changed instruction:
 - plan and policy-series creation/versioning
 - funding-line, claim-case, and obligation state transitions
 - liquidity-pool, capital-class, and allocation flows
-- reserve-kernel helpers in `src/kernel.rs`
+- reserve-kernel helpers in `src/kernel.rs` and `src/kernel/`
 
 ## Generated Boundaries
 

@@ -19,7 +19,7 @@ audit-domain modules:
 - [`src/capital.rs`](./src/capital.rs)
 - [`src/fees.rs`](./src/fees.rs)
 - [`src/oracle_schema.rs`](./src/oracle_schema.rs)
-- [`src/kernel.rs`](./src/kernel.rs) for shared authorization, math, transfer, and reserve-accounting helpers
+- [`src/kernel.rs`](./src/kernel.rs) and [`src/kernel/`](./src/kernel/) for shared authorization, math, transfer, and reserve-accounting helpers
 
 Shared public surface types live in explicit modules:
 
