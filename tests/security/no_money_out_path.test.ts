@@ -21,29 +21,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import {
+  extractRustFunctionBody,
+  findEnclosingRustFunctionName,
+  programSource,
+} from "./program_source.ts";
 
-const programSource = readFileSync(
-  new URL("../../programs/omegax_protocol/src/lib.rs", import.meta.url),
-  "utf8",
-);
 const idl = JSON.parse(
   readFileSync(new URL("../../idl/omegax_protocol.json", import.meta.url), "utf8"),
 ) as { instructions: Array<{ name: string }> };
 
-function extractInstructionBody(name: string): string {
-  // Match `pub fn <name>(...` and capture until the matching closing brace at indent level 1.
-  const startIdx = programSource.indexOf(`pub fn ${name}(`);
-  assert.notEqual(startIdx, -1, `instruction ${name} should exist in program source`);
-  // Walk forward, tracking brace depth. Function body starts at first `{`.
-  let i = programSource.indexOf("{", startIdx);
-  let depth = 1;
-  i += 1;
-  for (; i < programSource.length && depth > 0; i += 1) {
-    if (programSource[i] === "{") depth += 1;
-    else if (programSource[i] === "}") depth -= 1;
-  }
-  return programSource.slice(startIdx, i);
-}
+const extractInstructionBody = extractRustFunctionBody;
 
 test("[PT-01 defense regression] IDL exposes the 6 expected fee-vault withdrawal instructions", () => {
   // Phase 1.7 (PR2) shipped 6 withdraw_*_fee_* instructions, fully closing
@@ -121,14 +109,7 @@ test("[PT-02] The only token CPI lives in transfer_to_domain_vault and is inflow
   const lines = programSource.split("\n");
   const violations: Array<{ lineno: number; handler: string }> = [];
   for (const callsite of callsiteLines) {
-    let handler = "<unknown>";
-    for (let i = callsite.lineno - 1; i >= 0; i -= 1) {
-      const m = /pub fn (\w+)\s*\(/.exec(lines[i] ?? "");
-      if (m) {
-        handler = m[1];
-        break;
-      }
-    }
+    const handler = findEnclosingRustFunctionName(lines, callsite.lineno) ?? "<unknown>";
     if (!expectedInflowHandlers.has(handler)) {
       violations.push({ lineno: callsite.lineno, handler });
     }
@@ -143,11 +124,7 @@ test("[PT-02] The only token CPI lives in transfer_to_domain_vault and is inflow
   // Sanity: all three expected inflow handlers must in fact use the helper.
   const handlersWithCpi = new Set(
     callsiteLines.map(({ lineno }) => {
-      for (let i = lineno - 1; i >= 0; i -= 1) {
-        const m = /pub fn (\w+)\s*\(/.exec(lines[i] ?? "");
-        if (m) return m[1];
-      }
-      return "<unknown>";
+      return findEnclosingRustFunctionName(lines, lineno) ?? "<unknown>";
     }),
   );
   for (const h of expectedInflowHandlers) {

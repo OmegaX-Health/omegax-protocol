@@ -4,6 +4,11 @@ Date: March 10, 2026
 
 This review predates the health-capital-markets rearchitecture and remains as historical context rather than the current reviewer map.
 
+Update: the later audit-readability cleanup split the live program by audit
+domain. `src/lib.rs` is now an Anchor facade, domain modules hold handlers plus
+their account contexts, and the historical `src/core_accounts.rs` file has been
+removed from live program source.
+
 ## Verdict
 
 The repository is publishable from a fresh clone after this pass. The public release gate is now explicit, public CI checks the Rust baseline as well as the Node/frontend surface, and the Solana program has enough architecture guidance to be reviewable by external contributors.
@@ -44,7 +49,7 @@ The remaining concerns are high-priority cleanup items, not publish blockers.
 
 ## What improved in this pass
 
-- Root account types moved out of `lib.rs` into `src/core_accounts.rs`.
+- At the time, root account types moved out of `lib.rs` into `src/core_accounts.rs`; that historical file was later removed when account state moved into the current audit-domain layout.
 - Solana module and context files now carry reviewer-facing documentation.
 - Public verification now covers Rust formatting, tests, and an Anchor-compatible lint baseline.
 - Public release checks are documented separately from the multi-repo maintainer sync workflow.

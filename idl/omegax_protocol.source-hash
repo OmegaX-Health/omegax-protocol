@@ -1,5 +1,38 @@
-d7103607469a917594bd3780178d476ea94b1fa41cddb079923ffafbefa9132b
+1b0ca570fab4c1f930bc8e2b1b09eb6e859d72945567ef2e25753de44559e8e1
   Cargo.toml
   programs/omegax_protocol/Cargo.toml
-  programs/omegax_protocol/src/core_accounts.rs
+  programs/omegax_protocol/src/args.rs
+  programs/omegax_protocol/src/capital/allocations.rs
+  programs/omegax_protocol/src/capital/classes.rs
+  programs/omegax_protocol/src/capital/impairments.rs
+  programs/omegax_protocol/src/capital/liquidity_pool.rs
+  programs/omegax_protocol/src/capital/lp_positions.rs
+  programs/omegax_protocol/src/capital/mod.rs
+  programs/omegax_protocol/src/capital/redemptions.rs
+  programs/omegax_protocol/src/claims.rs
+  programs/omegax_protocol/src/constants.rs
+  programs/omegax_protocol/src/errors.rs
+  programs/omegax_protocol/src/events.rs
+  programs/omegax_protocol/src/fees.rs
+  programs/omegax_protocol/src/funding_obligations/funding_lines.rs
+  programs/omegax_protocol/src/funding_obligations/inflows.rs
+  programs/omegax_protocol/src/funding_obligations/mod.rs
+  programs/omegax_protocol/src/funding_obligations/obligations.rs
+  programs/omegax_protocol/src/funding_obligations/reserves.rs
+  programs/omegax_protocol/src/funding_obligations/settlement.rs
+  programs/omegax_protocol/src/governance.rs
+  programs/omegax_protocol/src/kernel.rs
+  programs/omegax_protocol/src/kernel/auth.rs
+  programs/omegax_protocol/src/kernel/bindings.rs
+  programs/omegax_protocol/src/kernel/capital_math.rs
+  programs/omegax_protocol/src/kernel/custody.rs
+  programs/omegax_protocol/src/kernel/fees.rs
+  programs/omegax_protocol/src/kernel/membership.rs
+  programs/omegax_protocol/src/kernel/reserve_accounting.rs
   programs/omegax_protocol/src/lib.rs
+  programs/omegax_protocol/src/oracle_schema.rs
+  programs/omegax_protocol/src/plans_membership.rs
+  programs/omegax_protocol/src/reserve_custody.rs
+  programs/omegax_protocol/src/state.rs
+  programs/omegax_protocol/src/tests.rs
+  programs/omegax_protocol/src/types.rs

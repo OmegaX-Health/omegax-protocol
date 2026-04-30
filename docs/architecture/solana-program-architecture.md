@@ -7,9 +7,10 @@ This document explains the current OmegaX onchain architecture after the health-
 Read in this order:
 
 1. [`docs/adr/0001-health-capital-markets-rearchitecture.md`](../adr/0001-health-capital-markets-rearchitecture.md)
-2. [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs)
+2. [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs) for the Anchor facade and public re-exports
 3. [`docs/architecture/solana-instruction-map.md`](./solana-instruction-map.md)
-4. [`docs/MIGRATION_MATRIX.md`](../MIGRATION_MATRIX.md)
+4. The matching implementation module in `programs/omegax_protocol/src/`
+5. [`docs/MIGRATION_MATRIX.md`](../MIGRATION_MATRIX.md)
 
 ## Canonical Layers
 
@@ -86,17 +87,29 @@ The key questions the kernel must always answer are:
 
 ## File Reality
 
-The canonical public surface is currently defined directly in [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs).
+The canonical public instruction surface is declared in [`programs/omegax_protocol/src/lib.rs`](../../programs/omegax_protocol/src/lib.rs). The facade delegates to domain modules that keep each handler near the `#[derive(Accounts)]` context it relies on:
+
+- `governance.rs` for protocol governance and emergency controls
+- `reserve_custody.rs` for reserve domains and domain asset vaults
+- `plans_membership.rs` for health plans, policy series, and member positions
+- `funding_obligations/` for funding lines, reserve movements, obligations, and obligation settlement
+- `claims.rs` for claim lifecycle, direct claim settlement, and attestations
+- `capital/` for liquidity pools, capital classes, LP positions, redemptions, allocations, and impairments
+- `fees.rs` for fee-vault initialization and withdrawals
+- `oracle_schema.rs` for oracle registry, pool oracle permissions/policies, and outcome schemas
+- `kernel.rs` plus `kernel/` for shared auth, validation, math, token transfer, and reserve-accounting helpers
+- `state.rs`, `args.rs`, `events.rs`, `errors.rs`, `constants.rs`, and `types.rs` for shared public and internal types
 
 ## Review Hotspots
 
-If you are reviewing protocol changes, start with these areas in `src/lib.rs`:
+If you are reviewing protocol changes, start with the facade in `src/lib.rs`,
+then jump to the domain module for the changed instruction:
 
 - reserve-domain creation and control flows
 - plan and policy-series creation/versioning
 - funding-line, claim-case, and obligation state transitions
 - liquidity-pool, capital-class, and allocation flows
-- reserve-kernel helper functions near the bottom of the file
+- reserve-kernel helpers in `src/kernel.rs` and `src/kernel/`
 
 ## Generated Boundaries
 
@@ -106,4 +119,4 @@ Generated public artifacts live in:
 - [`shared/`](../../shared/)
 - [`frontend/lib/generated/`](../../frontend/lib/generated/)
 
-Treat `src/lib.rs` as implementation truth, then confirm that the generated artifacts stay aligned.
+Treat `src/lib.rs` as the IDL facade and the domain modules as implementation truth, then confirm that the generated artifacts stay aligned.

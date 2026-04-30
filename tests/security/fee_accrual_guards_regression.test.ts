@@ -6,15 +6,10 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 
 import fixturesModule from "../../frontend/lib/devnet-fixtures.ts";
 import protocolModule from "../../frontend/lib/protocol.ts";
-
-const programSource = readFileSync(
-  new URL("../../programs/omegax_protocol/src/lib.rs", import.meta.url),
-  "utf8",
-);
+import { extractRustFunctionBody } from "./program_source.ts";
 
 const { DEVNET_PROTOCOL_FIXTURE_STATE } =
   fixturesModule as typeof import("../../frontend/lib/devnet-fixtures.ts");
@@ -28,22 +23,7 @@ const {
   listProtocolInstructionAccounts,
 } = protocolModule as typeof import("../../frontend/lib/protocol.ts");
 
-function extractInstructionBody(name: string): string {
-  const startIdx = programSource.indexOf(`pub fn ${name}(`);
-  assert.notEqual(startIdx, -1, `instruction ${name} should exist in program source`);
-
-  let i = programSource.indexOf("{", startIdx);
-  assert.notEqual(i, -1, `instruction ${name} should have a body`);
-
-  let depth = 1;
-  i += 1;
-  for (; i < programSource.length && depth > 0; i += 1) {
-    if (programSource[i] === "{") depth += 1;
-    else if (programSource[i] === "}") depth -= 1;
-  }
-
-  return programSource.slice(startIdx, i);
-}
+const extractInstructionBody = extractRustFunctionBody;
 
 function assertAccountCount(name: Parameters<typeof listProtocolInstructionAccounts>[0], actual: number) {
   assert.equal(
