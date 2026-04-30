@@ -21,19 +21,11 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-
-const programSrc = readFileSync(
-  new URL("../../programs/omegax_protocol/src/lib.rs", import.meta.url),
-  "utf8",
-);
+import { extractRustFunctionBody, programSource as programSrc } from "./program_source.ts";
 
 test("[PT-11] open_claim_case calls require_claim_intake_submitter as the first authorization", () => {
-  const idx = programSrc.indexOf("pub fn open_claim_case(");
-  assert.notEqual(idx, -1, "open_claim_case must exist");
-  const bodyStart = programSrc.indexOf("{", idx);
   // Capture the first 600 characters of the body — the gate must appear early.
-  const head = programSrc.slice(bodyStart, bodyStart + 800);
+  const head = extractRustFunctionBody("open_claim_case").slice(0, 800);
   assert.ok(
     /require_claim_intake_submitter\s*\(/.test(head),
     "[PT-11 regression] open_claim_case must call require_claim_intake_submitter early; CSO-01 fix would regress otherwise",
@@ -41,16 +33,7 @@ test("[PT-11] open_claim_case calls require_claim_intake_submitter as the first 
 });
 
 test("[PT-11] require_claim_intake_submitter accepts only member-self-submit and operator branches", () => {
-  const fnIdx = programSrc.indexOf("fn require_claim_intake_submitter(");
-  assert.notEqual(fnIdx, -1, "require_claim_intake_submitter must exist");
-  const braceIdx = programSrc.indexOf("{", fnIdx);
-  let depth = 1;
-  let i = braceIdx + 1;
-  for (; i < programSrc.length && depth > 0; i += 1) {
-    if (programSrc[i] === "{") depth += 1;
-    else if (programSrc[i] === "}") depth -= 1;
-  }
-  const body = programSrc.slice(fnIdx, i);
+  const body = extractRustFunctionBody("require_claim_intake_submitter");
 
   assert.ok(
     /member_self_submit/.test(body),

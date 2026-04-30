@@ -8,6 +8,8 @@
 - **Companion to:** [`docs/security/pre-mainnet-pen-test-2026-04-27.md`](pre-mainnet-pen-test-2026-04-27.md) (PT-01 .. PT-13 already remediated; this run is fresh ground).
 - **Codex run cost:** 1,038,311 tokens, ~4 minutes wall clock.
 
+> Historical note: this report reflects the pre-refactor file layout. The later audit-readability cleanup kept the protocol surface intact, moved implementation into audit-domain modules, and removed `src/core_accounts.rs` from live program source.
+
 ---
 
 ## Remediation Update — 2026-04-29

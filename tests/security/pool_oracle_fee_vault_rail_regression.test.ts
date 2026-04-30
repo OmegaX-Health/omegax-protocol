@@ -6,29 +6,9 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { extractRustFunctionBody } from "./program_source.ts";
 
-const programSource = readFileSync(
-  new URL("../../programs/omegax_protocol/src/lib.rs", import.meta.url),
-  "utf8",
-);
-
-function extractInstructionBody(name: string): string {
-  const startIdx = programSource.indexOf(`pub fn ${name}(`);
-  assert.notEqual(startIdx, -1, `instruction ${name} should exist in program source`);
-
-  let i = programSource.indexOf("{", startIdx);
-  assert.notEqual(i, -1, `instruction ${name} should have a body`);
-
-  let depth = 1;
-  i += 1;
-  for (; i < programSource.length && depth > 0; i += 1) {
-    if (programSource[i] === "{") depth += 1;
-    else if (programSource[i] === "}") depth -= 1;
-  }
-
-  return programSource.slice(startIdx, i);
-}
+const extractInstructionBody = extractRustFunctionBody;
 
 test("[CSO-2026-04-29] pool oracle fee vault init is pinned to SOL or the pool deposit mint", () => {
   const body = extractInstructionBody("init_pool_oracle_fee_vault");

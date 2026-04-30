@@ -19,24 +19,12 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-
-const programSrc = readFileSync(
-  new URL("../../programs/omegax_protocol/src/lib.rs", import.meta.url),
-  "utf8",
-);
+import { extractRustFunctionBody, programSource as programSrc } from "./program_source.ts";
 
 function extractFunctionBody(signaturePrefix: string): string {
-  const idx = programSrc.indexOf(signaturePrefix);
-  assert.notEqual(idx, -1, `signature ${signaturePrefix} not found`);
-  const braceIdx = programSrc.indexOf("{", idx);
-  let depth = 1;
-  let i = braceIdx + 1;
-  for (; i < programSrc.length && depth > 0; i += 1) {
-    if (programSrc[i] === "{") depth += 1;
-    else if (programSrc[i] === "}") depth -= 1;
-  }
-  return programSrc.slice(idx, i);
+  const match = /(?:pub\s+)?fn\s+(\w+)\s*\(/.exec(signaturePrefix);
+  assert.ok(match, `signature ${signaturePrefix} should include a function name`);
+  return extractRustFunctionBody(match[1]!);
 }
 
 test("[PT-04 defense] require_claim_intake_submitter operator branch constrains args.claimant", () => {

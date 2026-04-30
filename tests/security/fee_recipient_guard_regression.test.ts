@@ -5,28 +5,9 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { extractRustFunctionBody, programSource } from "./program_source.ts";
 
-const programSource = readFileSync(
-  new URL("../../programs/omegax_protocol/src/lib.rs", import.meta.url),
-  "utf8",
-);
-
-function extractInstructionBody(name: string): string {
-  const startIdx = programSource.indexOf(`pub fn ${name}(`);
-  assert.notEqual(startIdx, -1, `instruction ${name} should exist`);
-
-  let i = programSource.indexOf("{", startIdx);
-  assert.notEqual(i, -1, `instruction ${name} should have a body`);
-
-  let depth = 1;
-  i += 1;
-  for (; i < programSource.length && depth > 0; i += 1) {
-    if (programSource[i] === "{") depth += 1;
-    else if (programSource[i] === "}") depth -= 1;
-  }
-  return programSource.slice(startIdx, i);
-}
+const extractInstructionBody = extractRustFunctionBody;
 
 test("[CSO-2026-04-29] fee vault accounts store configured fee recipients", () => {
   for (const accountName of ["ProtocolFeeVault", "PoolTreasuryVault", "PoolOracleFeeVault"]) {

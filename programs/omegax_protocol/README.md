@@ -4,15 +4,30 @@ This crate contains the canonical OmegaX Protocol onchain program.
 
 ## Current shape
 
-The canonical public surface now lives in [`src/lib.rs`](./src/lib.rs).
+The canonical Anchor facade lives in [`src/lib.rs`](./src/lib.rs). It declares
+the program id, re-exports the public protocol types, and keeps every public
+instruction present in `#[program] pub mod omegax_protocol`.
 
-That file contains:
+Instruction implementation now sits next to its account validation context in
+audit-domain modules:
 
-- the Anchor entrypoints
-- the canonical account definitions
-- the reserve-kernel ledger structs
-- the scoped-control events and errors
-- the accounting helpers used by obligations, claims, liquidity, and allocation flows
+- [`src/governance.rs`](./src/governance.rs)
+- [`src/reserve_custody.rs`](./src/reserve_custody.rs)
+- [`src/plans_membership.rs`](./src/plans_membership.rs)
+- [`src/funding_obligations.rs`](./src/funding_obligations.rs)
+- [`src/claims.rs`](./src/claims.rs)
+- [`src/capital.rs`](./src/capital.rs)
+- [`src/fees.rs`](./src/fees.rs)
+- [`src/oracle_schema.rs`](./src/oracle_schema.rs)
+- [`src/kernel.rs`](./src/kernel.rs) for shared authorization, math, transfer, and reserve-accounting helpers
+
+Shared public surface types live in explicit modules:
+
+- [`src/state.rs`](./src/state.rs) for account state and reserve-accounting structs
+- [`src/args.rs`](./src/args.rs) for instruction args
+- [`src/events.rs`](./src/events.rs) for events
+- [`src/errors.rs`](./src/errors.rs) for errors
+- [`src/constants.rs`](./src/constants.rs) for seeds, limits, modes, and flags
 
 The active public object model is:
 
@@ -40,7 +55,10 @@ Restricted and wrapper-only capital classes now rely on managed `LPPosition` cre
 
 ## Important reviewer rule
 
-Older module files still exist in the tree for historical context, but the canonical public program surface is the one declared in `src/lib.rs`. Review the current architecture and instruction map docs before treating older pool-first modules as active design truth.
+Treat `src/lib.rs` as the instruction/IDL facade and the domain modules above as
+the implementation truth. Historical `core_accounts.rs` types have been removed
+from the live program source so stale account layouts are not mistaken for the
+current protocol surface.
 
 ## Orientation docs
 
