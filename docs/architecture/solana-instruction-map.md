@@ -54,6 +54,12 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `open_funding_line` | create a sponsor, premium, LP, backstop, or subsidy funding line |
 | `fund_sponsor_budget` | transfer sponsor budget tokens into the configured domain vault and record reserve funding |
 | `record_premium_payment` | transfer premium tokens into the configured domain vault and record premium income in the reserve kernel |
+| `create_commitment_campaign` | create a Founder-style pre-activation commitment campaign for direct premium or treasury-credit mode |
+| `deposit_commitment` | transfer committed tokens into the existing domain asset vault without increasing claims-paying reserve ledgers |
+| `activate_direct_premium_commitment` | move a same-mint pending commitment into premium reserve accounting |
+| `activate_treasury_credit_commitment` | lock already posted stable capacity for an OMEGAX treasury-credit commitment without selling, pricing, or counting OMEGAX as stable reserve |
+| `refund_commitment` | refund a still-pending commitment in the same token amount originally deposited |
+| `pause_commitment_campaign` | pause, cancel, close, or reactivate a campaign through plan/governance control |
 | `create_obligation` | create a canonical liability unit |
 | `reserve_obligation` | reserve liability against plan-side capital and optionally mirror a linked `ClaimCase` reserve balance |
 | `settle_obligation` | move an obligation into claimable, payable, settled, or canceled states and mirror linked protection-claim settlement state |
@@ -85,4 +91,4 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 - The retired pre-rearchitecture product-typing field does not exist in the live surface.
 - Sponsor budgets and LP capital no longer share one overloaded root.
 - Reward and protection both reconcile through the same reserve kernel.
-- For implementation review, follow the facade delegation into `governance.rs`, `reserve_custody.rs`, `plans_membership.rs`, `funding_obligations/`, `claims.rs`, `capital/`, `fees.rs`, or `oracle_schema.rs`.
+- For implementation review, follow the facade delegation into `governance.rs`, `reserve_custody.rs`, `plans_membership.rs`, `funding_obligations/`, `commitments.rs`, `claims.rs`, `capital/`, `fees.rs`, or `oracle_schema.rs`.

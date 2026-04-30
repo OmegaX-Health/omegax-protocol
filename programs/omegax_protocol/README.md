@@ -15,6 +15,7 @@ audit-domain modules:
 - [`src/reserve_custody.rs`](./src/reserve_custody.rs)
 - [`src/plans_membership.rs`](./src/plans_membership.rs)
 - [`src/funding_obligations/`](./src/funding_obligations/)
+- [`src/commitments.rs`](./src/commitments.rs)
 - [`src/claims.rs`](./src/claims.rs)
 - [`src/capital/`](./src/capital/)
 - [`src/fees.rs`](./src/fees.rs)
@@ -42,6 +43,9 @@ The active public object model is:
 - `MemberPosition`
 - `FundingLine`
 - `FundingLineLedger`
+- `CommitmentCampaign`
+- `CommitmentLedger`
+- `CommitmentPosition`
 - `ClaimCase`
 - `Obligation`
 - `LiquidityPool`
@@ -52,6 +56,8 @@ The active public object model is:
 - `AllocationLedger`
 
 Restricted and wrapper-only capital classes now rely on managed `LPPosition` credentialing. Direct deposits do not carry a caller-supplied credential flag; access is granted on-chain through the canonical LP position for that class and owner.
+
+Founder commitment campaigns are a narrow pre-activation primitive. Pending USDC/PUSD and OMEGAX commitments sit in the existing `DomainAssetVault` custody lane, but they do not increase claims-paying reserve ledgers until an explicit activation instruction runs. `DIRECT_PREMIUM` activation books same-mint commitments into premium reserve accounting. `TREASURY_CREDIT` activation keeps OMEGAX PDA-held as treasury inventory and only locks separately posted stable capacity; v1 has no OMEGAX sale, oracle pricing, swap, reserve-credit, or treasury withdrawal instruction.
 
 ## Important reviewer rule
 

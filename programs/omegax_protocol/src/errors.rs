@@ -158,4 +158,24 @@ pub enum OmegaXProtocolError {
     SettlementOutflowAccountsRequired,
     #[msg("Configured fee basis points require the matching fee vault account")]
     FeeVaultRequiredForConfiguredFee,
+    #[msg("Commitment campaign mode is invalid")]
+    InvalidCommitmentCampaignMode,
+    #[msg("Commitment campaign status is invalid")]
+    InvalidCommitmentCampaignStatus,
+    #[msg("Commitment campaign is not active")]
+    CommitmentCampaignInactive,
+    #[msg("Commitment campaign is not refundable yet")]
+    CommitmentNotRefundable,
+    #[msg("Commitment position is not pending")]
+    CommitmentPositionNotPending,
+    #[msg("Commitment terms hash mismatch")]
+    CommitmentTermsMismatch,
+    #[msg("Commitment cap exceeded")]
+    CommitmentCapExceeded,
+    #[msg("Commitment activation authority mismatch")]
+    CommitmentActivationAuthorityMismatch,
+    #[msg("Stable coverage capacity is insufficient")]
+    InsufficientStableCoverageCapacity,
+    #[msg("Treasury-credit commitments require distinct payment and coverage assets")]
+    TreasuryCreditAssetMismatch,
 }

@@ -12,6 +12,7 @@ pub enum ScopeKind {
     LiquidityPool = 6,
     CapitalClass = 7,
     AllocationPosition = 8,
+    CommitmentCampaign = 9,
 }
 
 #[derive(Clone, Copy)]

@@ -242,6 +242,69 @@ pub struct ClaimCase {
 
 #[account]
 #[derive(InitSpace)]
+pub struct CommitmentCampaign {
+    pub reserve_domain: Pubkey,
+    pub health_plan: Pubkey,
+    pub policy_series: Pubkey,
+    pub coverage_funding_line: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub activation_authority: Pubkey,
+    #[max_len(MAX_ID_LEN)]
+    pub campaign_id: String,
+    #[max_len(MAX_NAME_LEN)]
+    pub display_name: String,
+    #[max_len(MAX_URI_LEN)]
+    pub metadata_uri: String,
+    pub mode: u8,
+    pub status: u8,
+    pub deposit_amount: u64,
+    pub coverage_amount: u64,
+    pub hard_cap_amount: u64,
+    pub starts_at_ts: i64,
+    pub refund_after_ts: i64,
+    pub expires_at_ts: i64,
+    pub terms_hash: [u8; 32],
+    pub audit_nonce: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentLedger {
+    pub campaign: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub pending_amount: u64,
+    pub activated_amount: u64,
+    pub treasury_locked_amount: u64,
+    pub refunded_amount: u64,
+    pub canceled_amount: u64,
+    pub next_queue_index: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentPosition {
+    pub campaign: Pubkey,
+    pub ledger: Pubkey,
+    pub depositor: Pubkey,
+    pub beneficiary: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub amount: u64,
+    pub coverage_amount: u64,
+    pub queue_index: u64,
+    pub state: u8,
+    pub accepted_terms_hash: [u8; 32],
+    pub paid_at: i64,
+    pub activated_at: i64,
+    pub refunded_at: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct Obligation {
     pub reserve_domain: Pubkey,
     pub asset_mint: Pubkey,

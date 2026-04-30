@@ -29,6 +29,9 @@ pub const SEED_MEMBER_POSITION: &[u8] = b"member_position";
 pub const SEED_MEMBERSHIP_ANCHOR_SEAT: &[u8] = b"membership_anchor_seat";
 pub const SEED_FUNDING_LINE: &[u8] = b"funding_line";
 pub const SEED_FUNDING_LINE_LEDGER: &[u8] = b"funding_line_ledger";
+pub const SEED_COMMITMENT_CAMPAIGN: &[u8] = b"commitment_campaign";
+pub const SEED_COMMITMENT_LEDGER: &[u8] = b"commitment_ledger";
+pub const SEED_COMMITMENT_POSITION: &[u8] = b"commitment_position";
 pub const SEED_CLAIM_CASE: &[u8] = b"claim_case";
 pub const SEED_OBLIGATION: &[u8] = b"obligation";
 pub const SEED_LIQUIDITY_POOL: &[u8] = b"liquidity_pool";
@@ -65,6 +68,20 @@ pub const FUNDING_LINE_TYPE_SUBSIDY: u8 = 4;
 pub const FUNDING_LINE_STATUS_OPEN: u8 = 0;
 pub const FUNDING_LINE_STATUS_PAUSED: u8 = 1;
 pub const FUNDING_LINE_STATUS_CLOSED: u8 = 2;
+
+pub const COMMITMENT_MODE_DIRECT_PREMIUM: u8 = 0;
+pub const COMMITMENT_MODE_TREASURY_CREDIT: u8 = 1;
+
+pub const COMMITMENT_CAMPAIGN_STATUS_DRAFT: u8 = 0;
+pub const COMMITMENT_CAMPAIGN_STATUS_ACTIVE: u8 = 1;
+pub const COMMITMENT_CAMPAIGN_STATUS_PAUSED: u8 = 2;
+pub const COMMITMENT_CAMPAIGN_STATUS_CANCELED: u8 = 3;
+pub const COMMITMENT_CAMPAIGN_STATUS_CLOSED: u8 = 4;
+
+pub const COMMITMENT_POSITION_PENDING: u8 = 0;
+pub const COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED: u8 = 1;
+pub const COMMITMENT_POSITION_TREASURY_LOCKED: u8 = 2;
+pub const COMMITMENT_POSITION_REFUNDED: u8 = 3;
 
 pub const ELIGIBILITY_PENDING: u8 = 0;
 pub const ELIGIBILITY_ELIGIBLE: u8 = 1;

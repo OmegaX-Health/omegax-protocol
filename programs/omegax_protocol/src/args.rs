@@ -220,6 +220,49 @@ pub struct RecordPremiumPaymentArgs {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct CreateCommitmentCampaignArgs {
+    #[max_len(MAX_ID_LEN)]
+    pub campaign_id: String,
+    #[max_len(MAX_NAME_LEN)]
+    pub display_name: String,
+    #[max_len(MAX_URI_LEN)]
+    pub metadata_uri: String,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub activation_authority: Pubkey,
+    pub mode: u8,
+    pub deposit_amount: u64,
+    pub coverage_amount: u64,
+    pub hard_cap_amount: u64,
+    pub starts_at_ts: i64,
+    pub refund_after_ts: i64,
+    pub expires_at_ts: i64,
+    pub terms_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct DepositCommitmentArgs {
+    pub beneficiary: Pubkey,
+    pub accepted_terms_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct ActivateCommitmentArgs {
+    pub activation_reason_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct RefundCommitmentArgs {
+    pub refund_reason_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct PauseCommitmentCampaignArgs {
+    pub status: u8,
+    pub reason_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct CreateObligationArgs {
     #[max_len(MAX_ID_LEN)]
     pub obligation_id: String,
