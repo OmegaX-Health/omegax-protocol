@@ -22,6 +22,13 @@ Founder Travel30 commitments are a temporary launch flow for collecting intent a
 - OMEGAX treasury inventory remains PDA-held in v1. There is no v1 treasury withdrawal instruction.
 - OMEGAX activation requires separately posted stable capacity; activation locks that capacity with `restricted` accounting.
 
+## Protocol Console Scope
+
+- The public protocol helper exports PDA derivation and transaction builders for `create_commitment_campaign`, `deposit_commitment`, both activation paths, `refund_commitment`, and `pause_commitment_campaign`.
+- These builders are public-safe primitives for operator surfaces and backend transaction preparation. They are not a buyer checkout in this repository.
+- The Genesis setup panel surfaces Founder Travel30 campaigns, pending custody, pending coverage, direct-premium activation, treasury inventory, and refunds separately from claims-paying reserve.
+- The operator console must continue to show pending commitment reserve impact as `0` until the activation authority executes a valid activation path.
+
 ## Governance
 
 - Campaign status changes use `pause_commitment_campaign` through plan control: plan admin, sponsor operator, or protocol governance authority.

@@ -9,6 +9,9 @@ import protocolModule from "../frontend/lib/protocol.ts";
 import type {
   ClaimAttestationSnapshot,
   ClaimCaseSnapshot,
+  CommitmentCampaignSnapshot,
+  CommitmentLedgerSnapshot,
+  CommitmentPositionSnapshot,
   ObligationSnapshot,
   ProtocolConsoleSnapshot,
 } from "../frontend/lib/protocol.ts";
@@ -23,21 +26,33 @@ const {
 } = genesisConsoleModule as typeof import("../frontend/lib/genesis-protect-acute-console.ts");
 const { buildGenesisProtectAcuteSetupModel } =
   genesisOperatorModule as typeof import("../frontend/lib/genesis-protect-acute-operator.ts");
+const { GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID } =
+  genesisOperatorModule as typeof import("../frontend/lib/genesis-protect-acute-operator.ts");
 const {
   CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW,
   CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
   CLAIM_INTAKE_APPROVED,
   CLAIM_INTAKE_OPEN,
   CLAIM_INTAKE_SETTLED,
+  COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+  COMMITMENT_MODE_DIRECT_PREMIUM,
+  COMMITMENT_MODE_TREASURY_CREDIT,
+  COMMITMENT_POSITION_PENDING,
+  COMMITMENT_POSITION_TREASURY_LOCKED,
   OBLIGATION_DELIVERY_MODE_CLAIMABLE,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   OBLIGATION_STATUS_SETTLED,
+  deriveCommitmentCampaignPda,
+  deriveCommitmentLedgerPda,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 function cloneFixtureSnapshot(): ProtocolConsoleSnapshot {
   const snapshot = structuredClone(DEVNET_PROTOCOL_FIXTURE_STATE) as unknown as ProtocolConsoleSnapshot;
   snapshot.claimAttestations = [];
+  snapshot.commitmentCampaigns = [];
+  snapshot.commitmentLedgers = [];
+  snapshot.commitmentPositions = [];
   return snapshot;
 }
 
@@ -418,4 +433,154 @@ test("Genesis reserve console summarizes lanes by funding path and flags degrade
   });
   assert.equal(premiumOnly.visibleLanes.length, 2);
   assert.ok(premiumOnly.visibleLanes.every((lane) => lane.laneType === "premium"));
+});
+
+test("Genesis setup surfaces Founder commitments separately from claims-paying reserve", () => {
+  const snapshot = cloneFixtureSnapshot();
+  const baselineModel = buildSetupModel(snapshot);
+  const genesisPlan = baselineModel.plan;
+  const travel30Series = baselineModel.seriesBySku.travel30;
+  const travel30PremiumLine = baselineModel.fundingLinesById[GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium];
+
+  assert(genesisPlan, "expected Genesis health plan");
+  assert(travel30Series, "expected Genesis Travel 30 series");
+  assert(travel30PremiumLine, "expected Genesis Travel 30 premium line");
+
+  const directCampaign = deriveCommitmentCampaignPda({
+    healthPlan: genesisPlan.address,
+    campaignId: GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID,
+  }).toBase58();
+  const treasuryCampaign = deriveCommitmentCampaignPda({
+    healthPlan: genesisPlan.address,
+    campaignId: "founder-travel30-omegax",
+  }).toBase58();
+  const directLedger = deriveCommitmentLedgerPda({
+    campaign: directCampaign,
+    paymentAssetMint: travel30PremiumLine.assetMint,
+  }).toBase58();
+  const treasuryPaymentMint = snapshot.rewardMint;
+  const treasuryLedger = deriveCommitmentLedgerPda({
+    campaign: treasuryCampaign,
+    paymentAssetMint: treasuryPaymentMint,
+  }).toBase58();
+
+  const baseCampaign = {
+    reserveDomain: genesisPlan.reserveDomain,
+    healthPlan: genesisPlan.address,
+    policySeries: travel30Series.address,
+    coverageFundingLine: travel30PremiumLine.address,
+    coverageAssetMint: travel30PremiumLine.assetMint,
+    activationAuthority: "oxhocTdPyENqy9RS13iaq2upoNAovMJHu9PMaBxrK8h",
+    status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+    depositAmount: 159n,
+    coverageAmount: 1_000n,
+    hardCapAmount: 159_000n,
+    startsAtTs: 1_770_000_000,
+    refundAfterTs: 1_777_776_000,
+    expiresAtTs: 1_780_000_000,
+    termsHashHex: "11".repeat(32),
+    auditNonce: 0n,
+    bump: 1,
+  } satisfies Omit<CommitmentCampaignSnapshot, "address" | "campaignId" | "displayName" | "metadataUri" | "mode" | "paymentAssetMint">;
+
+  snapshot.commitmentCampaigns = [
+    {
+      ...baseCampaign,
+      address: directCampaign,
+      campaignId: GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID,
+      displayName: "Founder Travel30",
+      metadataUri: "ipfs://founder-travel30",
+      mode: COMMITMENT_MODE_DIRECT_PREMIUM,
+      paymentAssetMint: travel30PremiumLine.assetMint,
+    },
+    {
+      ...baseCampaign,
+      address: treasuryCampaign,
+      campaignId: "founder-travel30-omegax",
+      displayName: "Founder Travel30 OMEGAX",
+      metadataUri: "ipfs://founder-travel30-omegax",
+      mode: COMMITMENT_MODE_TREASURY_CREDIT,
+      paymentAssetMint: treasuryPaymentMint,
+    },
+  ] satisfies CommitmentCampaignSnapshot[];
+  snapshot.commitmentLedgers = [
+    {
+      address: directLedger,
+      campaign: directCampaign,
+      paymentAssetMint: travel30PremiumLine.assetMint,
+      pendingAmount: 159n,
+      activatedAmount: 0n,
+      treasuryLockedAmount: 0n,
+      refundedAmount: 0n,
+      canceledAmount: 0n,
+      nextQueueIndex: 1n,
+      bump: 1,
+    },
+    {
+      address: treasuryLedger,
+      campaign: treasuryCampaign,
+      paymentAssetMint: treasuryPaymentMint,
+      pendingAmount: 0n,
+      activatedAmount: 0n,
+      treasuryLockedAmount: 5_000n,
+      refundedAmount: 0n,
+      canceledAmount: 0n,
+      nextQueueIndex: 1n,
+      bump: 1,
+    },
+  ] satisfies CommitmentLedgerSnapshot[];
+  snapshot.commitmentPositions = [
+    {
+      address: "FounderCommitmentPosition111111111111111111111",
+      campaign: directCampaign,
+      ledger: directLedger,
+      depositor: "FounderDepositor111111111111111111111111111",
+      beneficiary: "FounderBeneficiary111111111111111111111111",
+      paymentAssetMint: travel30PremiumLine.assetMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      amount: 159n,
+      coverageAmount: 1_000n,
+      queueIndex: 0n,
+      state: COMMITMENT_POSITION_PENDING,
+      acceptedTermsHashHex: "11".repeat(32),
+      paidAt: 1_770_000_001,
+      activatedAt: 0,
+      refundedAt: 0,
+      bump: 1,
+    },
+    {
+      address: "FounderTreasuryPosition11111111111111111111111",
+      campaign: treasuryCampaign,
+      ledger: treasuryLedger,
+      depositor: "FounderTreasuryDepositor1111111111111111111",
+      beneficiary: "FounderTreasuryBeneficiary1111111111111111",
+      paymentAssetMint: treasuryPaymentMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      amount: 5_000n,
+      coverageAmount: 1_000n,
+      queueIndex: 0n,
+      state: COMMITMENT_POSITION_TREASURY_LOCKED,
+      acceptedTermsHashHex: "11".repeat(32),
+      paidAt: 1_770_000_002,
+      activatedAt: 1_770_000_102,
+      refundedAt: 0,
+      bump: 1,
+    },
+  ] satisfies CommitmentPositionSnapshot[];
+
+  const model = buildSetupModel(snapshot);
+
+  assert.equal(model.claimsPayingCapital, baselineModel.claimsPayingCapital);
+  assert.equal(model.founderCommitments.campaignCount, 2);
+  assert.equal(model.founderCommitments.pendingPositionCount, 1);
+  assert.equal(model.founderCommitments.pendingCustodyAmount, 159n);
+  assert.equal(model.founderCommitments.pendingCoverageAmount, 1_000n);
+  assert.equal(model.founderCommitments.treasuryInventoryAmount, 5_000n);
+  assert.equal(model.founderCommitments.claimsPayingReserveImpact, 0n);
+  assert.ok(
+    model.founderCommitments.warnings.some((warning) => /do not count as claims-paying reserve/i.test(warning)),
+  );
+  assert.ok(
+    model.founderCommitments.warnings.some((warning) => /OMEGAX stays PDA-held inventory/i.test(warning)),
+  );
 });

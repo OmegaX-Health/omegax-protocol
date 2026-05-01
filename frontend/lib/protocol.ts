@@ -64,6 +64,9 @@ export const SEED_POLICY_SERIES = "policy_series";
 export const SEED_SERIES_RESERVE_LEDGER = "series_reserve_ledger";
 export const SEED_MEMBER_POSITION = "member_position";
 export const SEED_MEMBERSHIP_ANCHOR_SEAT = "membership_anchor_seat";
+export const SEED_COMMITMENT_CAMPAIGN = "commitment_campaign";
+export const SEED_COMMITMENT_LEDGER = "commitment_ledger";
+export const SEED_COMMITMENT_POSITION = "commitment_position";
 export const SEED_FUNDING_LINE = "funding_line";
 export const SEED_FUNDING_LINE_LEDGER = "funding_line_ledger";
 export const SEED_CLAIM_CASE = "claim_case";
@@ -100,6 +103,20 @@ export const MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT = 4;
 export const MEMBERSHIP_PROOF_MODE_OPEN = 0;
 export const MEMBERSHIP_PROOF_MODE_TOKEN_GATE = 1;
 export const MEMBERSHIP_PROOF_MODE_INVITE_PERMIT = 2;
+
+export const COMMITMENT_MODE_DIRECT_PREMIUM = 0;
+export const COMMITMENT_MODE_TREASURY_CREDIT = 1;
+
+export const COMMITMENT_CAMPAIGN_STATUS_DRAFT = 0;
+export const COMMITMENT_CAMPAIGN_STATUS_ACTIVE = 1;
+export const COMMITMENT_CAMPAIGN_STATUS_PAUSED = 2;
+export const COMMITMENT_CAMPAIGN_STATUS_CANCELED = 3;
+export const COMMITMENT_CAMPAIGN_STATUS_CLOSED = 4;
+
+export const COMMITMENT_POSITION_PENDING = 0;
+export const COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED = 1;
+export const COMMITMENT_POSITION_TREASURY_LOCKED = 2;
+export const COMMITMENT_POSITION_REFUNDED = 3;
 
 function assertValidClaimAttestationDecision(decision: number): void {
   if (
@@ -316,6 +333,63 @@ export type MemberPositionSnapshot = {
   eligibilityStatus: number;
   delegatedRights: string[];
   active: boolean;
+};
+
+export type CommitmentCampaignSnapshot = {
+  address: string;
+  reserveDomain: string;
+  healthPlan: string;
+  policySeries?: string | null;
+  coverageFundingLine: string;
+  paymentAssetMint: string;
+  coverageAssetMint: string;
+  activationAuthority: string;
+  campaignId: string;
+  displayName: string;
+  metadataUri: string;
+  mode: number;
+  status: number;
+  depositAmount: BigNumberish;
+  coverageAmount: BigNumberish;
+  hardCapAmount: BigNumberish;
+  startsAtTs: number;
+  refundAfterTs: number;
+  expiresAtTs: number;
+  termsHashHex: string;
+  auditNonce: BigNumberish;
+  bump: number;
+};
+
+export type CommitmentLedgerSnapshot = {
+  address: string;
+  campaign: string;
+  paymentAssetMint: string;
+  pendingAmount: BigNumberish;
+  activatedAmount: BigNumberish;
+  treasuryLockedAmount: BigNumberish;
+  refundedAmount: BigNumberish;
+  canceledAmount: BigNumberish;
+  nextQueueIndex: BigNumberish;
+  bump: number;
+};
+
+export type CommitmentPositionSnapshot = {
+  address: string;
+  campaign: string;
+  ledger: string;
+  depositor: string;
+  beneficiary: string;
+  paymentAssetMint: string;
+  coverageAssetMint: string;
+  amount: BigNumberish;
+  coverageAmount: BigNumberish;
+  queueIndex: BigNumberish;
+  state: number;
+  acceptedTermsHashHex: string;
+  paidAt: number;
+  activatedAt: number;
+  refundedAt: number;
+  bump: number;
 };
 
 export type FundingLineSnapshot = {
@@ -580,6 +654,9 @@ export type ProtocolConsoleSnapshot = {
   healthPlans: HealthPlanSnapshot[];
   policySeries: PolicySeriesSnapshot[];
   memberPositions: MemberPositionSnapshot[];
+  commitmentCampaigns: CommitmentCampaignSnapshot[];
+  commitmentLedgers: CommitmentLedgerSnapshot[];
+  commitmentPositions: CommitmentPositionSnapshot[];
   fundingLines: FundingLineSnapshot[];
   claimCases: ClaimCaseSnapshot[];
   obligations: ObligationSnapshot[];
@@ -1107,6 +1184,53 @@ export function deriveMembershipAnchorSeatPda(params: {
       TEXT_ENCODER.encode(SEED_MEMBERSHIP_ANCHOR_SEAT),
       toPublicKey(params.healthPlan).toBytes(),
       toPublicKey(params.anchorRef).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveCommitmentCampaignPda(params: {
+  healthPlan: PublicKeyish;
+  campaignId: string;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_COMMITMENT_CAMPAIGN),
+      toPublicKey(params.healthPlan).toBytes(),
+      stringSeed(params.campaignId, "commitment campaign id"),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveCommitmentLedgerPda(params: {
+  campaign: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_COMMITMENT_LEDGER),
+      toPublicKey(params.campaign).toBytes(),
+      toPublicKey(params.paymentAssetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveCommitmentPositionPda(params: {
+  campaign: PublicKeyish;
+  depositor: PublicKeyish;
+  beneficiary: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_COMMITMENT_POSITION),
+      toPublicKey(params.campaign).toBytes(),
+      toPublicKey(params.depositor).toBytes(),
+      toPublicKey(params.beneficiary).toBytes(),
     ],
     params.programId ?? PROGRAM_ID,
   );
@@ -1984,6 +2108,9 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     healthPlans: [],
     policySeries: [],
     memberPositions: [],
+    commitmentCampaigns: [],
+    commitmentLedgers: [],
+    commitmentPositions: [],
     fundingLines: [],
     claimCases: [],
     obligations: [],
@@ -2154,6 +2281,68 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           eligibilityStatus: Number(decodedField(decoded, "eligibilityStatus") ?? 0),
           delegatedRights: delegatedRightsFromMask(Number(decodedField(decoded, "delegatedRights") ?? 0)),
           active: Boolean(decodedField(decoded, "active")),
+        });
+        break;
+      case "CommitmentCampaign":
+        snapshot.commitmentCampaigns.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain", "reserve_domain")),
+          healthPlan: asAddress(decodedField(decoded, "healthPlan", "health_plan")),
+          policySeries: asOptionalAddress(decodedField(decoded, "policySeries", "policy_series")),
+          coverageFundingLine: asAddress(decodedField(decoded, "coverageFundingLine", "coverage_funding_line")),
+          paymentAssetMint: asAddress(decodedField(decoded, "paymentAssetMint", "payment_asset_mint")),
+          coverageAssetMint: asAddress(decodedField(decoded, "coverageAssetMint", "coverage_asset_mint")),
+          activationAuthority: asAddress(decodedField(decoded, "activationAuthority", "activation_authority")),
+          campaignId: stringFromAnchorValue(decodedField(decoded, "campaignId", "campaign_id")),
+          displayName: stringFromAnchorValue(decodedField(decoded, "displayName", "display_name")),
+          metadataUri: stringFromAnchorValue(decodedField(decoded, "metadataUri", "metadata_uri")),
+          mode: Number(decodedField(decoded, "mode") ?? 0),
+          status: Number(decodedField(decoded, "status") ?? 0),
+          depositAmount: bigintFromAnchorValue(decodedField(decoded, "depositAmount", "deposit_amount")),
+          coverageAmount: bigintFromAnchorValue(decodedField(decoded, "coverageAmount", "coverage_amount")),
+          hardCapAmount: bigintFromAnchorValue(decodedField(decoded, "hardCapAmount", "hard_cap_amount")),
+          startsAtTs: numberFromAnchorValue(decodedField(decoded, "startsAtTs", "starts_at_ts")),
+          refundAfterTs: numberFromAnchorValue(decodedField(decoded, "refundAfterTs", "refund_after_ts")),
+          expiresAtTs: numberFromAnchorValue(decodedField(decoded, "expiresAtTs", "expires_at_ts")),
+          termsHashHex: bytesToHex(decodedField(decoded, "termsHash", "terms_hash")),
+          auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce", "audit_nonce")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "CommitmentLedger":
+        snapshot.commitmentLedgers.push({
+          address,
+          campaign: asAddress(decodedField(decoded, "campaign")),
+          paymentAssetMint: asAddress(decodedField(decoded, "paymentAssetMint", "payment_asset_mint")),
+          pendingAmount: bigintFromAnchorValue(decodedField(decoded, "pendingAmount", "pending_amount")),
+          activatedAmount: bigintFromAnchorValue(decodedField(decoded, "activatedAmount", "activated_amount")),
+          treasuryLockedAmount: bigintFromAnchorValue(
+            decodedField(decoded, "treasuryLockedAmount", "treasury_locked_amount"),
+          ),
+          refundedAmount: bigintFromAnchorValue(decodedField(decoded, "refundedAmount", "refunded_amount")),
+          canceledAmount: bigintFromAnchorValue(decodedField(decoded, "canceledAmount", "canceled_amount")),
+          nextQueueIndex: bigintFromAnchorValue(decodedField(decoded, "nextQueueIndex", "next_queue_index")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "CommitmentPosition":
+        snapshot.commitmentPositions.push({
+          address,
+          campaign: asAddress(decodedField(decoded, "campaign")),
+          ledger: asAddress(decodedField(decoded, "ledger")),
+          depositor: asAddress(decodedField(decoded, "depositor")),
+          beneficiary: asAddress(decodedField(decoded, "beneficiary")),
+          paymentAssetMint: asAddress(decodedField(decoded, "paymentAssetMint", "payment_asset_mint")),
+          coverageAssetMint: asAddress(decodedField(decoded, "coverageAssetMint", "coverage_asset_mint")),
+          amount: bigintFromAnchorValue(decodedField(decoded, "amount")),
+          coverageAmount: bigintFromAnchorValue(decodedField(decoded, "coverageAmount", "coverage_amount")),
+          queueIndex: bigintFromAnchorValue(decodedField(decoded, "queueIndex", "queue_index")),
+          state: Number(decodedField(decoded, "state") ?? 0),
+          acceptedTermsHashHex: bytesToHex(decodedField(decoded, "acceptedTermsHash", "accepted_terms_hash")),
+          paidAt: numberFromAnchorValue(decodedField(decoded, "paidAt", "paid_at")),
+          activatedAt: numberFromAnchorValue(decodedField(decoded, "activatedAt", "activated_at")),
+          refundedAt: numberFromAnchorValue(decodedField(decoded, "refundedAt", "refunded_at")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
         });
         break;
       case "FundingLine":
@@ -2504,6 +2693,9 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
   );
   snapshot.healthPlans = sortByLabel(snapshot.healthPlans, (row) => row.displayName || row.planId);
   snapshot.policySeries = sortByLabel(snapshot.policySeries, (row) => row.displayName || row.seriesId);
+  snapshot.commitmentCampaigns = sortByLabel(snapshot.commitmentCampaigns, (row) => row.displayName || row.campaignId);
+  snapshot.commitmentLedgers = sortByLabel(snapshot.commitmentLedgers, (row) => `${row.campaign}:${row.paymentAssetMint}`);
+  snapshot.commitmentPositions = sortByLabel(snapshot.commitmentPositions, (row) => `${row.campaign}:${row.queueIndex}`);
   snapshot.fundingLines = sortByLabel(snapshot.fundingLines, (row) => row.displayName || row.lineId);
   snapshot.claimCases = sortByLabel(snapshot.claimCases, (row) => row.claimId);
   snapshot.obligations = sortByLabel(snapshot.obligations, (row) => row.obligationId);
@@ -2662,6 +2854,51 @@ function optionalAllocationLedgerAccount(
     deriveAllocationLedgerPda({ allocationPosition: allocationPositionAddress, assetMint }),
     true,
   );
+}
+
+function commitmentCampaignAddress(params: {
+  campaignAddress?: PublicKeyish | null;
+  healthPlanAddress?: PublicKeyish | null;
+  campaignId?: string | null;
+}): PublicKey {
+  if (params.campaignAddress) return toPublicKey(params.campaignAddress);
+  if (params.healthPlanAddress && params.campaignId) {
+    return deriveCommitmentCampaignPda({
+      healthPlan: params.healthPlanAddress,
+      campaignId: params.campaignId,
+    });
+  }
+  throw new Error("commitment campaign builder requires campaignAddress or healthPlanAddress + campaignId");
+}
+
+function commitmentLedgerAddress(params: {
+  ledgerAddress?: PublicKeyish | null;
+  campaignAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+}): PublicKey {
+  return params.ledgerAddress
+    ? toPublicKey(params.ledgerAddress)
+    : deriveCommitmentLedgerPda({
+      campaign: params.campaignAddress,
+      paymentAssetMint: params.paymentAssetMint,
+    });
+}
+
+function commitmentPositionAddress(params: {
+  positionAddress?: PublicKeyish | null;
+  campaignAddress: PublicKeyish;
+  depositor?: PublicKeyish | null;
+  beneficiary?: PublicKeyish | null;
+}): PublicKey {
+  if (params.positionAddress) return toPublicKey(params.positionAddress);
+  if (params.depositor && params.beneficiary) {
+    return deriveCommitmentPositionPda({
+      campaign: params.campaignAddress,
+      depositor: params.depositor,
+      beneficiary: params.beneficiary,
+    });
+  }
+  throw new Error("commitment position builder requires positionAddress or depositor + beneficiary");
 }
 
 export function buildProtocolTransactionFromInstruction(params: {
@@ -3981,6 +4218,343 @@ export function buildOpenFundingLineTx(params: {
       },
       optionalSeriesReserveLedgerAccount(params.policySeriesAddress, assetMint),
       { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildCreateCommitmentCampaignTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  coverageFundingLineAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  coverageAssetMint: PublicKeyish;
+  activationAuthority: PublicKeyish;
+  recentBlockhash: string;
+  campaignId: string;
+  displayName: string;
+  metadataUri: string;
+  mode: number;
+  depositAmount: bigint;
+  coverageAmount: bigint;
+  hardCapAmount: bigint;
+  startsAtTs: bigint;
+  refundAfterTs: bigint;
+  expiresAtTs: bigint;
+  termsHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const paymentAssetMint = toPublicKey(params.paymentAssetMint);
+  const coverageAssetMint = toPublicKey(params.coverageAssetMint);
+  const campaign = deriveCommitmentCampaignPda({
+    healthPlan: params.healthPlanAddress,
+    campaignId: params.campaignId,
+  });
+  const ledger = deriveCommitmentLedgerPda({
+    campaign,
+    paymentAssetMint,
+  });
+
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "create_commitment_campaign",
+    args: {
+      campaign_id: params.campaignId,
+      display_name: params.displayName,
+      metadata_uri: params.metadataUri,
+      payment_asset_mint: paymentAssetMint,
+      coverage_asset_mint: coverageAssetMint,
+      activation_authority: toPublicKey(params.activationAuthority),
+      mode: params.mode,
+      deposit_amount: params.depositAmount,
+      coverage_amount: params.coverageAmount,
+      hard_cap_amount: params.hardCapAmount,
+      starts_at_ts: params.startsAtTs,
+      refund_after_ts: params.refundAfterTs,
+      expires_at_ts: params.expiresAtTs,
+      terms_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.termsHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: paymentAssetMint,
+        }),
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: coverageAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.coverageFundingLineAddress },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.coverageFundingLineAddress,
+          assetMint: coverageAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: coverageAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: campaign, isWritable: true },
+      { pubkey: ledger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildDepositCommitmentTx(params: {
+  depositor: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  sourceTokenAccountAddress: PublicKeyish;
+  beneficiary: PublicKeyish;
+  recentBlockhash: string;
+  campaignAddress?: PublicKeyish | null;
+  healthPlanAddress?: PublicKeyish | null;
+  campaignId?: string | null;
+  ledgerAddress?: PublicKeyish | null;
+  positionAddress?: PublicKeyish | null;
+  vaultTokenAccountAddress?: PublicKeyish | null;
+  acceptedTermsHashHex?: string | null;
+  tokenProgramId?: PublicKeyish | null;
+}): Transaction {
+  const depositor = toPublicKey(params.depositor);
+  const paymentAssetMint = toPublicKey(params.paymentAssetMint);
+  const beneficiary = toPublicKey(params.beneficiary);
+  const campaign = commitmentCampaignAddress(params);
+  const ledger = commitmentLedgerAddress({
+    ledgerAddress: params.ledgerAddress,
+    campaignAddress: campaign,
+    paymentAssetMint,
+  });
+  const position = commitmentPositionAddress({
+    positionAddress: params.positionAddress,
+    campaignAddress: campaign,
+    depositor,
+    beneficiary,
+  });
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
+  const vaultTokenAccount = params.vaultTokenAccountAddress
+    ? toPublicKey(params.vaultTokenAccountAddress)
+    : deriveDomainAssetVaultTokenAccountPda({
+      reserveDomain: params.reserveDomainAddress,
+      assetMint: paymentAssetMint,
+    });
+
+  return buildProtocolTransactionFromInstruction({
+    feePayer: depositor,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "deposit_commitment",
+    args: {
+      beneficiary,
+      accepted_terms_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.acceptedTermsHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: depositor, isSigner: true, isWritable: true },
+      { pubkey: campaign, isWritable: true },
+      { pubkey: ledger, isWritable: true },
+      { pubkey: position, isWritable: true },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: paymentAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.sourceTokenAccountAddress, isWritable: true },
+      { pubkey: paymentAssetMint },
+      { pubkey: vaultTokenAccount, isWritable: true },
+      { pubkey: tokenProgramId },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+function buildActivateCommitmentTx(params: {
+  instructionName: "activate_direct_premium_commitment" | "activate_treasury_credit_commitment";
+  activationAuthority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  coverageFundingLineAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  coverageAssetMint: PublicKeyish;
+  positionAddress: PublicKeyish;
+  recentBlockhash: string;
+  campaignAddress?: PublicKeyish | null;
+  campaignId?: string | null;
+  ledgerAddress?: PublicKeyish | null;
+  policySeriesAddress?: PublicKeyish | null;
+  activationReasonHashHex?: string | null;
+}): Transaction {
+  const activationAuthority = toPublicKey(params.activationAuthority);
+  const paymentAssetMint = toPublicKey(params.paymentAssetMint);
+  const coverageAssetMint = toPublicKey(params.coverageAssetMint);
+  const campaign = commitmentCampaignAddress(params);
+  const ledger = commitmentLedgerAddress({
+    ledgerAddress: params.ledgerAddress,
+    campaignAddress: campaign,
+    paymentAssetMint,
+  });
+
+  return buildProtocolTransactionFromInstruction({
+    feePayer: activationAuthority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: params.instructionName,
+    args: {
+      activation_reason_hash: Array.from(
+        hexToFixedBytes(normalizeOptionalHex32(params.activationReasonHashHex), 32),
+      ),
+    },
+    accounts: [
+      { pubkey: activationAuthority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: campaign, isWritable: true },
+      { pubkey: ledger, isWritable: true },
+      { pubkey: params.positionAddress, isWritable: true },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: coverageAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.coverageFundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.coverageFundingLineAddress,
+          assetMint: coverageAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: coverageAssetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, coverageAssetMint),
+    ],
+  });
+}
+
+export function buildActivateDirectPremiumCommitmentTx(params: Omit<Parameters<typeof buildActivateCommitmentTx>[0], "instructionName">): Transaction {
+  return buildActivateCommitmentTx({
+    ...params,
+    instructionName: "activate_direct_premium_commitment",
+  });
+}
+
+export function buildActivateTreasuryCreditCommitmentTx(params: Omit<Parameters<typeof buildActivateCommitmentTx>[0], "instructionName">): Transaction {
+  return buildActivateCommitmentTx({
+    ...params,
+    instructionName: "activate_treasury_credit_commitment",
+  });
+}
+
+export function buildRefundCommitmentTx(params: {
+  depositor: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  recipientTokenAccountAddress: PublicKeyish;
+  recentBlockhash: string;
+  campaignAddress?: PublicKeyish | null;
+  healthPlanAddress?: PublicKeyish | null;
+  campaignId?: string | null;
+  ledgerAddress?: PublicKeyish | null;
+  positionAddress?: PublicKeyish | null;
+  beneficiary?: PublicKeyish | null;
+  vaultTokenAccountAddress?: PublicKeyish | null;
+  refundReasonHashHex?: string | null;
+  tokenProgramId?: PublicKeyish | null;
+}): Transaction {
+  const depositor = toPublicKey(params.depositor);
+  const paymentAssetMint = toPublicKey(params.paymentAssetMint);
+  const campaign = commitmentCampaignAddress(params);
+  const ledger = commitmentLedgerAddress({
+    ledgerAddress: params.ledgerAddress,
+    campaignAddress: campaign,
+    paymentAssetMint,
+  });
+  const position = commitmentPositionAddress({
+    positionAddress: params.positionAddress,
+    campaignAddress: campaign,
+    depositor,
+    beneficiary: params.beneficiary,
+  });
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
+  const vaultTokenAccount = params.vaultTokenAccountAddress
+    ? toPublicKey(params.vaultTokenAccountAddress)
+    : deriveDomainAssetVaultTokenAccountPda({
+      reserveDomain: params.reserveDomainAddress,
+      assetMint: paymentAssetMint,
+    });
+
+  return buildProtocolTransactionFromInstruction({
+    feePayer: depositor,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "refund_commitment",
+    args: {
+      refund_reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.refundReasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: depositor, isSigner: true, isWritable: true },
+      { pubkey: campaign, isWritable: true },
+      { pubkey: ledger, isWritable: true },
+      { pubkey: position, isWritable: true },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: paymentAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: paymentAssetMint },
+      { pubkey: vaultTokenAccount, isWritable: true },
+      { pubkey: params.recipientTokenAccountAddress, isWritable: true },
+      { pubkey: tokenProgramId },
+    ],
+  });
+}
+
+export function buildPauseCommitmentCampaignTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  recentBlockhash: string;
+  status: number;
+  campaignAddress?: PublicKeyish | null;
+  campaignId?: string | null;
+  reasonHashHex?: string | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const campaign = commitmentCampaignAddress(params);
+
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "pause_commitment_campaign",
+    args: {
+      status: params.status,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: campaign, isWritable: true },
     ],
   });
 }
