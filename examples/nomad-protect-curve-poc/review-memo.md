@@ -30,6 +30,43 @@ Generated: 2026-05-01T00:00:00.000Z
 | expensive-region-adverse-600 | healthy | 600 | 47928 | 532304 | 34307 | 143135.2 | 0 |
 | nomad-hub-cluster-600 | pause | 600 | 49080 | 617687 | 148245 | 129172 | 19073 |
 
+## End-to-End Production Logic Drill
+
+### Risk Backers
+
+| Backer | Deposit | Shares | Share |
+| --- | ---: | ---: | ---: |
+| backer_micro_15 | 15 | 15 | 0.1% |
+| backer_small_150 | 150 | 150 | 0.99% |
+| backer_anchor_15000 | 15000 | 15000 | 98.91% |
+
+### Signed Quotes
+
+| Member | Budget | Coverage Cap | Premium Used | Quote ID |
+| --- | ---: | ---: | ---: | --- |
+| nomad_micro | 15 | 286 | 15 | quote_nomad_micro_75e730be |
+| nomad_standard | 159 | 3000 | 157.77 | quote_nomad_standard_a305352b |
+| nomad_budget | 39 | 644 | 39 | quote_nomad_budget_90dea56c |
+
+### Activated Entitlements
+
+| Member | Coverage Cap | Remaining Cap | Accident Active | Illness Active | Status |
+| --- | ---: | ---: | --- | --- | --- |
+| nomad_micro | 286 | 0 | 2026-05-02T00:00:00.000Z | 2026-05-08T00:00:00.000Z | exhausted |
+| nomad_standard | 3000 | 1350 | 2026-05-02T00:00:00.000Z | 2026-05-08T00:00:00.000Z | active |
+| nomad_budget | 644 | 644 | 2026-05-02T00:00:00.000Z | 2026-05-08T00:00:00.000Z | active |
+
+### Claim Decisions
+
+| Claim | Member | Decision | Reason | Approved | Denied Over Cap | Remaining Cap |
+| --- | --- | --- | --- | ---: | ---: | ---: |
+| claim_micro_accident_over_cap | nomad_micro | approved | none | 286 | 134 | 0 |
+| claim_standard_illness_wait | nomad_standard | denied | illness_waiting_period | 0 | 0 | 3000 |
+| claim_standard_covered_illness | nomad_standard | approved | none | 1650 | 0 | 1350 |
+| claim_budget_routine_denial | nomad_budget | denied | not_covered | 0 | 0 | 644 |
+
+Final reserve after the drill: 38419.59 USD. Paid claims: 1936 USD.
+
 ## Product Rule
 
 Do not sell this as "put any amount into a pool and you are insured." Sell it as:

@@ -70,3 +70,44 @@ test("Nomad curve PoC keeps risk-backer capital separate from member quote budge
   assert.equal(marketBacked.launchGate, "healthy");
   assert.equal(thinMarket.launchGate, "caution");
 });
+
+test("Nomad curve end-to-end drill mints signed quotes into capped entitlements", () => {
+  const output = readJson<any>(join(REVIEW_DIR, "review-output.json"));
+  const e2e = output.endToEndPoc;
+
+  assert(e2e.productionLogic.includes("risk_backers_deposit_any_amount_for_junior_backstop_shares"));
+  assert.equal(e2e.riskBackerMarket.positions.length, 3);
+  assert.equal(e2e.riskBackerMarket.positions[0].depositUsd, 15);
+  assert.equal(e2e.quoteReceipts.length, 3);
+  assert.equal(e2e.entitlements.length, 3);
+
+  for (const quote of e2e.quoteReceipts) {
+    assert.match(quote.quoteId, /^quote_/);
+    assert.match(quote.signature, /^[0-9a-f]{64}$/);
+    const entitlement = e2e.entitlements.find((entry: any) => entry.quoteId === quote.quoteId);
+    assert(entitlement, `missing entitlement for ${quote.quoteId}`);
+    assert.equal(entitlement.coverageCapUsd, quote.coverageCapUsd);
+    assert.equal(entitlement.premiumPaidUsd, quote.premiumUsedUsd);
+  }
+});
+
+test("Nomad curve end-to-end drill enforces caps, waiting periods, and exclusions", () => {
+  const output = readJson<any>(join(REVIEW_DIR, "review-output.json"));
+  const claims = Object.fromEntries(output.endToEndPoc.claimDecisions.map((claim: any) => [claim.claimId, claim]));
+  const entitlements = Object.fromEntries(output.endToEndPoc.entitlements.map((entry: any) => [entry.member, entry]));
+
+  assert.equal(claims.claim_micro_accident_over_cap.decision, "approved");
+  assert.equal(claims.claim_micro_accident_over_cap.approvedUsd, entitlements.nomad_micro.coverageCapUsd);
+  assert(claims.claim_micro_accident_over_cap.deniedOverCapUsd > 0);
+  assert.equal(entitlements.nomad_micro.status, "exhausted");
+
+  assert.equal(claims.claim_standard_illness_wait.decision, "denied");
+  assert.equal(claims.claim_standard_illness_wait.denialReason, "illness_waiting_period");
+  assert.equal(claims.claim_standard_covered_illness.decision, "approved");
+  assert.equal(claims.claim_standard_covered_illness.approvedUsd, 1650);
+  assert.equal(claims.claim_budget_routine_denial.denialReason, "not_covered");
+
+  assert.equal(output.endToEndPoc.paidClaimsUsd, 1936);
+  assert.equal(output.endToEndPoc.remainingCoverageLimitUsd, 1994);
+  assert(output.endToEndPoc.finalReserveUsd > 0);
+});

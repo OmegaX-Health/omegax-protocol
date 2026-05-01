@@ -28,6 +28,7 @@ The generator writes:
 
 - `review-output.json`
 - `review-memo.md`
+- an end-to-end production-logic drill inside both generated artifacts: open risk-backer deposits, signed quote receipts, activated coverage entitlements, and claim decisions.
 
 ## Curve
 
@@ -38,6 +39,18 @@ unit_price(u) = base_unit_premium * risk_multiplier * reserve_stress * (1 + u / 
 ```
 
 The buyer's quote integrates over the curve from current active units to the new issued units. Thin reserve states increase `reserve_stress`, so the same `15 USD` budget buys less cover when risk capital is scarce.
+
+## Production Logic Drill
+
+The PoC now models the full product path:
+
+1. Risk backers deposit any amount into junior/backstop capital.
+2. Members request signed quote receipts from the curve and reserve snapshot.
+3. Purchases activate coverage entitlements with fixed caps, windows, and waiting periods.
+4. Claim decisions enforce evidence, covered scope, waiting periods, remaining cap, and claims-paying reserve.
+5. Approved claims reduce both the member's remaining cap and the market reserve.
+
+The generated memo intentionally includes one capped micro-cover payout, one waiting-period denial, one ordinary approved illness claim, and one not-covered denial.
 
 ## Boundaries
 

@@ -84,6 +84,105 @@
     }
   ],
   "memberBudgetsUsd": [15, 39, 99, 159],
+  "endToEndPoc": {
+    "quoteSigner": "nomad-curve-pricing-oracle-v0",
+    "pricingCurveHash": "nomad-curve-v0.1",
+    "termsHash": "nomad-acute-curve-terms-v0.1",
+    "reserveSnapshotHash": "nomad-reserve-snapshot-v0.1",
+    "quoteTtlMinutes": 10,
+    "issuedAt": "2026-05-01T00:00:00.000Z",
+    "windowStart": "2026-05-02T00:00:00.000Z",
+    "riskBackerDeposits": [
+      {
+        "backer": "backer_micro_15",
+        "depositUsd": 15,
+        "class": "junior_backstop"
+      },
+      {
+        "backer": "backer_small_150",
+        "depositUsd": 150,
+        "class": "junior_backstop"
+      },
+      {
+        "backer": "backer_anchor_15000",
+        "depositUsd": 15000,
+        "class": "junior_backstop"
+      }
+    ],
+    "quoteRequests": [
+      {
+        "member": "nomad_micro",
+        "budgetUsd": 15,
+        "riskMultiplier": 1,
+        "residenceCountry": "Portugal",
+        "destinationCountry": "Thailand"
+      },
+      {
+        "member": "nomad_standard",
+        "budgetUsd": 159,
+        "riskMultiplier": 1,
+        "residenceCountry": "United States",
+        "destinationCountry": "Japan"
+      },
+      {
+        "member": "nomad_budget",
+        "budgetUsd": 39,
+        "riskMultiplier": 1.15,
+        "residenceCountry": "Brazil",
+        "destinationCountry": "Indonesia"
+      }
+    ],
+    "claimDrills": [
+      {
+        "claimId": "claim_micro_accident_over_cap",
+        "member": "nomad_micro",
+        "eventKind": "accident",
+        "eventAt": "2026-05-05T10:00:00.000Z",
+        "submittedAt": "2026-05-05T18:00:00.000Z",
+        "requestedUsd": 420,
+        "operatorRecommendedUsd": 420,
+        "coveredEvent": true,
+        "evidenceComplete": true,
+        "expectedOutcome": "approved_capped"
+      },
+      {
+        "claimId": "claim_standard_illness_wait",
+        "member": "nomad_standard",
+        "eventKind": "illness",
+        "eventAt": "2026-05-04T09:30:00.000Z",
+        "submittedAt": "2026-05-04T17:00:00.000Z",
+        "requestedUsd": 900,
+        "operatorRecommendedUsd": 900,
+        "coveredEvent": true,
+        "evidenceComplete": true,
+        "expectedOutcome": "denied_waiting_period"
+      },
+      {
+        "claimId": "claim_standard_covered_illness",
+        "member": "nomad_standard",
+        "eventKind": "illness",
+        "eventAt": "2026-05-13T11:00:00.000Z",
+        "submittedAt": "2026-05-13T20:00:00.000Z",
+        "requestedUsd": 1800,
+        "operatorRecommendedUsd": 1650,
+        "coveredEvent": true,
+        "evidenceComplete": true,
+        "expectedOutcome": "approved"
+      },
+      {
+        "claimId": "claim_budget_routine_denial",
+        "member": "nomad_budget",
+        "eventKind": "illness",
+        "eventAt": "2026-05-15T12:00:00.000Z",
+        "submittedAt": "2026-05-15T19:00:00.000Z",
+        "requestedUsd": 120,
+        "operatorRecommendedUsd": 0,
+        "coveredEvent": false,
+        "evidenceComplete": true,
+        "expectedOutcome": "denied_not_covered"
+      }
+    ]
+  },
   "scenarios": [
     {
       "id": "micro-bootstrap-200",

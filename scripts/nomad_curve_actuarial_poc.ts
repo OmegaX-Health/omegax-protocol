@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -71,6 +72,46 @@ type CorrelatedScenario = {
 
 type Scenario = IndependentScenario | CorrelatedScenario;
 
+type RiskBackerDeposit = {
+  backer: string;
+  depositUsd: number;
+  class: "junior_backstop";
+};
+
+type QuoteRequest = {
+  member: string;
+  budgetUsd: number;
+  riskMultiplier: number;
+  residenceCountry: string;
+  destinationCountry: string;
+};
+
+type ClaimDrill = {
+  claimId: string;
+  member: string;
+  eventKind: "accident" | "illness";
+  eventAt: string;
+  submittedAt: string;
+  requestedUsd: number;
+  operatorRecommendedUsd: number;
+  coveredEvent: boolean;
+  evidenceComplete: boolean;
+  expectedOutcome: string;
+};
+
+type EndToEndPocAssumptions = {
+  quoteSigner: string;
+  pricingCurveHash: string;
+  termsHash: string;
+  reserveSnapshotHash: string;
+  quoteTtlMinutes: number;
+  issuedAt: string;
+  windowStart: string;
+  riskBackerDeposits: RiskBackerDeposit[];
+  quoteRequests: QuoteRequest[];
+  claimDrills: ClaimDrill[];
+};
+
 type Assumptions = {
   schemaVersion: number;
   reviewId: string;
@@ -89,6 +130,7 @@ type Assumptions = {
   openingProtocolReserveUsd: number;
   quoteSamples: QuoteSample[];
   memberBudgetsUsd: number[];
+  endToEndPoc: EndToEndPocAssumptions;
   scenarios: Scenario[];
 };
 
@@ -116,6 +158,70 @@ type Portfolio = {
   averagePremiumUsd: number;
   averageCoverageCapUsd: number;
   finalMarginalUnitPriceUsd: number;
+};
+
+type RiskBackerPosition = RiskBackerDeposit & {
+  positionId: string;
+  shares: number;
+  sharePct: number;
+};
+
+type SignedQuoteReceipt = QuoteRequest & MemberQuote & {
+  quoteId: string;
+  product: string;
+  coverageWindowDays: number;
+  windowStart: string;
+  windowEnd: string;
+  termsHash: string;
+  pricingCurveHash: string;
+  reserveSnapshotHash: string;
+  issuedAt: string;
+  expiresAt: string;
+  signer: string;
+  signature: string;
+};
+
+type CoverageEntitlement = {
+  entitlementId: string;
+  quoteId: string;
+  member: string;
+  premiumPaidUsd: number;
+  coverageCapUsd: number;
+  remainingCapUsd: number;
+  windowStart: string;
+  windowEnd: string;
+  accidentWaitUntil: string;
+  illnessWaitUntil: string;
+  termsHash: string;
+  pricingCurveHash: string;
+  status: "active" | "exhausted";
+};
+
+type ClaimDecision = ClaimDrill & {
+  entitlementId: string | null;
+  decision: "approved" | "denied";
+  denialReason: string | null;
+  approvedUsd: number;
+  deniedOverCapUsd: number;
+  remainingCapAfterUsd: number;
+  reserveAfterUsd: number;
+  stateTrail: string[];
+};
+
+type EndToEndPocOutput = {
+  productionLogic: string[];
+  riskBackerMarket: {
+    totalBackerCapitalUsd: number;
+    sharePriceUsd: number;
+    positions: RiskBackerPosition[];
+  };
+  quoteReceipts: SignedQuoteReceipt[];
+  entitlements: CoverageEntitlement[];
+  claimDecisions: ClaimDecision[];
+  finalReserveUsd: number;
+  paidClaimsUsd: number;
+  activeCoverageLimitUsd: number;
+  remainingCoverageLimitUsd: number;
 };
 
 const ROOT = process.cwd();
@@ -172,6 +278,24 @@ function roundMoney(value: number): number {
 
 function roundPercent(value: number): number {
   return Number((value * 100).toFixed(2));
+}
+
+function hashRecord(prefix: string, value: unknown): string {
+  return createHash("sha256")
+    .update(`${prefix}:${JSON.stringify(value)}`)
+    .digest("hex");
+}
+
+function addMinutes(iso: string, minutes: number): string {
+  return new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
+}
+
+function addDays(iso: string, days: number): string {
+  return addMinutes(iso, days * 24 * 60);
+}
+
+function maxIso(left: string, right: string): string {
+  return new Date(Math.max(new Date(left).getTime(), new Date(right).getTime())).toISOString();
 }
 
 function reserveStressMultiplier(product: ProductAssumptions, state: QuoteState): number {
@@ -561,6 +685,298 @@ function buildQuoteTables(assumptions: Assumptions) {
   });
 }
 
+function buildRiskBackerMarket(assumptions: Assumptions) {
+  const deposits = assumptions.endToEndPoc.riskBackerDeposits;
+  const totalBackerCapitalUsd = roundMoney(deposits.reduce((sum, deposit) => sum + deposit.depositUsd, 0));
+  const sharePriceUsd = 1;
+  const positions = deposits.map((deposit) => ({
+    ...deposit,
+    positionId: `rb_${hashRecord("risk-backer", deposit).slice(0, 10)}`,
+    shares: roundMoney(deposit.depositUsd / sharePriceUsd),
+    sharePct: totalBackerCapitalUsd > 0 ? roundPercent(deposit.depositUsd / totalBackerCapitalUsd) : 0,
+  }));
+
+  return {
+    totalBackerCapitalUsd,
+    sharePriceUsd,
+    positions,
+  };
+}
+
+function buildQuoteAndEntitlement(params: {
+  assumptions: Assumptions;
+  request: QuoteRequest;
+  state: QuoteState;
+}): {
+  quote: SignedQuoteReceipt;
+  entitlement: CoverageEntitlement;
+} {
+  const { assumptions, request, state } = params;
+  const e2e = assumptions.endToEndPoc;
+  const quote = quoteForBudget({
+    product: assumptions.product,
+    state,
+    budgetUsd: request.budgetUsd,
+    riskMultiplier: request.riskMultiplier,
+  });
+  const quoteId = `quote_${request.member}_${hashRecord("quote-id", {
+    member: request.member,
+    issuedAt: e2e.issuedAt,
+    budgetUsd: request.budgetUsd,
+  }).slice(0, 8)}`;
+  const windowEnd = addDays(e2e.windowStart, assumptions.product.coverWindowDays);
+  const receiptCore = {
+    quoteId,
+    member: request.member,
+    budgetUsd: request.budgetUsd,
+    premiumUsedUsd: quote.premiumUsedUsd,
+    coverageCapUsd: quote.coverageCapUsd,
+    windowStart: e2e.windowStart,
+    windowEnd,
+    termsHash: e2e.termsHash,
+    pricingCurveHash: e2e.pricingCurveHash,
+    reserveSnapshotHash: e2e.reserveSnapshotHash,
+  };
+  const signedQuote: SignedQuoteReceipt = {
+    ...request,
+    ...quote,
+    quoteId,
+    product: assumptions.product.displayName,
+    coverageWindowDays: assumptions.product.coverWindowDays,
+    windowStart: e2e.windowStart,
+    windowEnd,
+    termsHash: e2e.termsHash,
+    pricingCurveHash: e2e.pricingCurveHash,
+    reserveSnapshotHash: e2e.reserveSnapshotHash,
+    issuedAt: e2e.issuedAt,
+    expiresAt: addMinutes(e2e.issuedAt, e2e.quoteTtlMinutes),
+    signer: e2e.quoteSigner,
+    signature: hashRecord("signed-quote", {
+      ...receiptCore,
+      signer: e2e.quoteSigner,
+    }),
+  };
+  const entitlement: CoverageEntitlement = {
+    entitlementId: `ent_${request.member}_${hashRecord("entitlement", receiptCore).slice(0, 8)}`,
+    quoteId,
+    member: request.member,
+    premiumPaidUsd: signedQuote.premiumUsedUsd,
+    coverageCapUsd: signedQuote.coverageCapUsd,
+    remainingCapUsd: signedQuote.coverageCapUsd,
+    windowStart: signedQuote.windowStart,
+    windowEnd: signedQuote.windowEnd,
+    accidentWaitUntil: maxIso(signedQuote.windowStart, addDays(signedQuote.issuedAt, assumptions.product.waitingPeriods.accidentHours / 24)),
+    illnessWaitUntil: maxIso(signedQuote.windowStart, addDays(signedQuote.issuedAt, assumptions.product.waitingPeriods.illnessDays)),
+    termsHash: signedQuote.termsHash,
+    pricingCurveHash: signedQuote.pricingCurveHash,
+    status: "active",
+  };
+
+  return {
+    quote: signedQuote,
+    entitlement,
+  };
+}
+
+function denyClaim(params: {
+  drill: ClaimDrill;
+  entitlementId: string | null;
+  reason: string;
+  reserveUsd: number;
+  remainingCapUsd: number;
+  trail?: string[];
+}): ClaimDecision {
+  return {
+    ...params.drill,
+    entitlementId: params.entitlementId,
+    decision: "denied",
+    denialReason: params.reason,
+    approvedUsd: 0,
+    deniedOverCapUsd: 0,
+    remainingCapAfterUsd: params.remainingCapUsd,
+    reserveAfterUsd: roundMoney(params.reserveUsd),
+    stateTrail: ["submitted", ...(params.trail ?? []), "denied"],
+  };
+}
+
+function adjudicateClaim(params: {
+  drill: ClaimDrill;
+  entitlement: CoverageEntitlement | undefined;
+  reserveUsd: number;
+}): {
+  decision: ClaimDecision;
+  reserveUsd: number;
+} {
+  const { drill, entitlement } = params;
+  if (!entitlement) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: null,
+        reason: "no_active_entitlement",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd: 0,
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+
+  const remainingCapUsd = entitlement.remainingCapUsd;
+  const eventAt = new Date(drill.eventAt).getTime();
+  if (!drill.evidenceComplete) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: entitlement.entitlementId,
+        reason: "incomplete_evidence",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd,
+        trail: ["evidence_hold"],
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+  if (eventAt < new Date(entitlement.windowStart).getTime() || eventAt > new Date(entitlement.windowEnd).getTime()) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: entitlement.entitlementId,
+        reason: "outside_coverage_window",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd,
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+  if (drill.eventKind === "accident" && eventAt < new Date(entitlement.accidentWaitUntil).getTime()) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: entitlement.entitlementId,
+        reason: "accident_waiting_period",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd,
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+  if (drill.eventKind === "illness" && eventAt < new Date(entitlement.illnessWaitUntil).getTime()) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: entitlement.entitlementId,
+        reason: "illness_waiting_period",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd,
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+  if (!drill.coveredEvent || drill.operatorRecommendedUsd <= 0) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: entitlement.entitlementId,
+        reason: "not_covered",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd,
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+
+  const eligibleUsd = Math.min(drill.requestedUsd, drill.operatorRecommendedUsd);
+  const approvedUsd = roundMoney(Math.max(0, Math.min(eligibleUsd, entitlement.remainingCapUsd, params.reserveUsd)));
+  if (approvedUsd <= 0) {
+    return {
+      decision: denyClaim({
+        drill,
+        entitlementId: entitlement.entitlementId,
+        reason: entitlement.remainingCapUsd <= 0 ? "coverage_cap_exhausted" : "reserve_exhausted",
+        reserveUsd: params.reserveUsd,
+        remainingCapUsd,
+      }),
+      reserveUsd: params.reserveUsd,
+    };
+  }
+
+  entitlement.remainingCapUsd = roundMoney(entitlement.remainingCapUsd - approvedUsd);
+  entitlement.status = entitlement.remainingCapUsd <= 0 ? "exhausted" : "active";
+  const reserveAfterUsd = roundMoney(params.reserveUsd - approvedUsd);
+
+  return {
+    decision: {
+      ...drill,
+      entitlementId: entitlement.entitlementId,
+      decision: "approved",
+      denialReason: null,
+      approvedUsd,
+      deniedOverCapUsd: roundMoney(Math.max(0, eligibleUsd - approvedUsd)),
+      remainingCapAfterUsd: entitlement.remainingCapUsd,
+      reserveAfterUsd,
+      stateTrail: [
+        "submitted",
+        "evidence_attached",
+        "operator_recommended",
+        "cap_checked",
+        "reserve_booked",
+        "settled",
+      ],
+    },
+    reserveUsd: reserveAfterUsd,
+  };
+}
+
+function buildEndToEndPoc(assumptions: Assumptions): EndToEndPocOutput {
+  const riskBackerMarket = buildRiskBackerMarket(assumptions);
+  const state: QuoteState = {
+    soldUnits: 0,
+    claimsPayingReserveUsd: assumptions.openingProtocolReserveUsd + riskBackerMarket.totalBackerCapitalUsd,
+  };
+  let reserveUsd = state.claimsPayingReserveUsd;
+  const quoteReceipts: SignedQuoteReceipt[] = [];
+  const entitlements: CoverageEntitlement[] = [];
+
+  for (const request of assumptions.endToEndPoc.quoteRequests) {
+    const { quote, entitlement } = buildQuoteAndEntitlement({ assumptions, request, state });
+    quoteReceipts.push(quote);
+    entitlements.push(entitlement);
+    state.soldUnits += quote.units;
+    const premiumReserveUsd = roundMoney(quote.premiumUsedUsd * assumptions.product.claimsReserveShareOfPremium);
+    state.claimsPayingReserveUsd = roundMoney(state.claimsPayingReserveUsd + premiumReserveUsd);
+    reserveUsd = state.claimsPayingReserveUsd;
+  }
+
+  const claimDecisions: ClaimDecision[] = [];
+  let paidClaimsUsd = 0;
+  for (const drill of assumptions.endToEndPoc.claimDrills) {
+    const entitlement = entitlements.find((entry) => entry.member === drill.member);
+    const result = adjudicateClaim({ drill, entitlement, reserveUsd });
+    claimDecisions.push(result.decision);
+    reserveUsd = result.reserveUsd;
+    paidClaimsUsd = roundMoney(paidClaimsUsd + result.decision.approvedUsd);
+    state.claimsPayingReserveUsd = reserveUsd;
+  }
+
+  return {
+    productionLogic: [
+      "risk_backers_deposit_any_amount_for_junior_backstop_shares",
+      "members_request_signed_quotes_from_curve_and_reserve_snapshot",
+      "purchase_activation_mints_coverage_entitlement_with_fixed_cap_and_waiting_periods",
+      "claim_adjudication_checks_window_waiting_period_evidence_scope_remaining_cap_and_reserve",
+      "approved_claims_reduce_member_remaining_cap_and_claims_paying_reserve",
+    ],
+    riskBackerMarket,
+    quoteReceipts,
+    entitlements,
+    claimDecisions,
+    finalReserveUsd: roundMoney(reserveUsd),
+    paidClaimsUsd,
+    activeCoverageLimitUsd: entitlements.reduce((sum, entitlement) => sum + entitlement.coverageCapUsd, 0),
+    remainingCoverageLimitUsd: roundMoney(entitlements.reduce((sum, entitlement) => sum + entitlement.remainingCapUsd, 0)),
+  };
+}
+
 function buildMemo(output: ReturnType<typeof buildOutput>, assumptions: Assumptions): string {
   const sample = output.quoteTables[0]!;
   const micro = sample.quotes.find((quote) => quote.budgetUsd === assumptions.product.minMemberBudgetUsd)!;
@@ -572,6 +988,18 @@ function buildMemo(output: ReturnType<typeof buildOutput>, assumptions: Assumpti
   }).join("\n");
   const quoteRows = sample.quotes.map((quote) =>
     `| ${quote.budgetUsd} | ${quote.coverageCapUsd} | ${quote.premiumUsedUsd} | ${quote.impliedPremiumRatePct}% |`,
+  ).join("\n");
+  const backerRows = output.endToEndPoc.riskBackerMarket.positions.map((position) =>
+    `| ${position.backer} | ${position.depositUsd} | ${position.shares} | ${position.sharePct}% |`,
+  ).join("\n");
+  const quoteReceiptRows = output.endToEndPoc.quoteReceipts.map((quote) =>
+    `| ${quote.member} | ${quote.budgetUsd} | ${quote.coverageCapUsd} | ${quote.premiumUsedUsd} | ${quote.quoteId} |`,
+  ).join("\n");
+  const entitlementRows = output.endToEndPoc.entitlements.map((entitlement) =>
+    `| ${entitlement.member} | ${entitlement.coverageCapUsd} | ${entitlement.remainingCapUsd} | ${entitlement.accidentWaitUntil} | ${entitlement.illnessWaitUntil} | ${entitlement.status} |`,
+  ).join("\n");
+  const claimRows = output.endToEndPoc.claimDecisions.map((claim) =>
+    `| ${claim.claimId} | ${claim.member} | ${claim.decision} | ${claim.denialReason ?? "none"} | ${claim.approvedUsd} | ${claim.deniedOverCapUsd} | ${claim.remainingCapAfterUsd} |`,
   ).join("\n");
 
   return `# Nomad Protect Curve PoC
@@ -598,6 +1026,34 @@ ${quoteRows}
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 ${scenarioRows}
 
+## End-to-End Production Logic Drill
+
+### Risk Backers
+
+| Backer | Deposit | Shares | Share |
+| --- | ---: | ---: | ---: |
+${backerRows}
+
+### Signed Quotes
+
+| Member | Budget | Coverage Cap | Premium Used | Quote ID |
+| --- | ---: | ---: | ---: | --- |
+${quoteReceiptRows}
+
+### Activated Entitlements
+
+| Member | Coverage Cap | Remaining Cap | Accident Active | Illness Active | Status |
+| --- | ---: | ---: | --- | --- | --- |
+${entitlementRows}
+
+### Claim Decisions
+
+| Claim | Member | Decision | Reason | Approved | Denied Over Cap | Remaining Cap |
+| --- | --- | --- | --- | ---: | ---: | ---: |
+${claimRows}
+
+Final reserve after the drill: ${output.endToEndPoc.finalReserveUsd} USD. Paid claims: ${output.endToEndPoc.paidClaimsUsd} USD.
+
 ## Product Rule
 
 Do not sell this as "put any amount into a pool and you are insured." Sell it as:
@@ -613,6 +1069,7 @@ ${assumptions.methodLimitations.map((limit) => `- ${limit}`).join("\n")}
 function buildOutput() {
   const assumptions = readJson<Assumptions>(ASSUMPTIONS_PATH);
   const quoteTables = buildQuoteTables(assumptions);
+  const endToEndPoc = buildEndToEndPoc(assumptions);
   const scenarioResults = assumptions.scenarios.map((scenario, index) => {
     if (scenario.type === "independent_claims") {
       return evaluateIndependentScenario(scenario, assumptions, 1000 + index * 7919);
@@ -645,6 +1102,7 @@ function buildOutput() {
     },
     quoteTables,
     scenarioResults,
+    endToEndPoc,
     methodLimitations: assumptions.methodLimitations,
   };
 }
