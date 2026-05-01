@@ -84,6 +84,159 @@
     }
   ],
   "memberBudgetsUsd": [15, 39, 99, 159],
+  "hybridModels": [
+    {
+      "id": "separated-backstop-curve",
+      "name": "Separated Backstop Curve",
+      "kind": "separated_backstop_market",
+      "oneLine": "Members buy capped cover from the curve while backers freely supply junior reserve capital.",
+      "memberOffering": "30-day acute emergency cover; choose any budget from 15 USD upward; quote returns a fixed cap up to 3000 USD.",
+      "marketMechanism": "Prediction-market feeling lives in open backer deposits and visible reserve depth, not in member claim promises.",
+      "productionBoundary": "Insurance-grade member entitlement; market-grade capital supply; no trader decides an individual claim.",
+      "scale": {
+        "members": 500,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.35 },
+          { "budgetUsd": 39, "weight": 0.3 },
+          { "budgetUsd": 99, "weight": 0.2 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 1,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 60000
+      }
+    },
+    {
+      "id": "loss-ratio-signal-market",
+      "name": "Loss-Ratio Signal Market",
+      "kind": "loss_ratio_event_market",
+      "oneLine": "Members still buy capped insurance; traders separately price whether the pool loss ratio breaches a threshold.",
+      "memberOffering": "Same 30-day acute cover, with the pool quote curve nudged by a public aggregate-loss signal.",
+      "marketMechanism": "A yes/no market on aggregate loss ratio above 65%; it produces a pricing signal but does not pay claims.",
+      "productionBoundary": "The event market must settle on aggregate pool data only and be legally separate from the insurance promise.",
+      "scale": {
+        "members": 1000,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.3 },
+          { "budgetUsd": 39, "weight": 0.3 },
+          { "budgetUsd": 99, "weight": 0.25 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1.05,
+        "frequencyMultiplier": 1.05,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 120000
+      },
+      "market": {
+        "eventThresholdLossRatio": 0.65,
+        "liquidityUsd": 75000,
+        "marketProbabilityBiasPct": 3.5,
+        "quoteAdjustmentSensitivity": 0.2
+      }
+    },
+    {
+      "id": "collateralized-sidecar-vault",
+      "name": "Collateralized Sidecar Vault",
+      "kind": "collateralized_sidecar",
+      "oneLine": "Backers buy tranche-like risk shares that absorb pool losses in a transparent waterfall.",
+      "memberOffering": "30-day acute cover sold through the same quote curve; capacity expands when tranche capital clears.",
+      "marketMechanism": "Capital-market sidecar: junior and senior backers earn premium share for absorbing modeled claim volatility.",
+      "productionBoundary": "Closest to insurance-linked securities or collateralized reinsurance; requires strong offering restrictions.",
+      "scale": {
+        "members": 1500,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.35 },
+          { "budgetUsd": 39, "weight": 0.3 },
+          { "budgetUsd": 99, "weight": 0.2 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 1,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 180000
+      },
+      "tranches": [
+        { "id": "sponsor-first-loss", "label": "Sponsor first loss", "capitalUsd": 35000, "couponSharePct": 0 },
+        { "id": "junior-sidecar", "label": "Junior sidecar", "capitalUsd": 65000, "couponSharePct": 62 },
+        { "id": "senior-sidecar", "label": "Senior sidecar", "capitalUsd": 115000, "couponSharePct": 38 }
+      ]
+    },
+    {
+      "id": "parametric-fast-cash-overlay",
+      "name": "Parametric Fast-Cash Overlay",
+      "kind": "parametric_fast_cash",
+      "oneLine": "A small fixed cash benefit pays quickly when an independently verifiable acute event trigger fires.",
+      "memberOffering": "15 USD buys a 250 USD fast-cash benefit for ER admission or qualifying urgent-care trigger.",
+      "marketMechanism": "Backers price trigger frequency instead of open-ended medical bills; settlement is faster but has basis risk.",
+      "productionBoundary": "Can sit beside indemnity cover; trigger design must be explicit and not pretend to reimburse all losses.",
+      "scale": {
+        "members": 1200,
+        "budgetMix": [{ "budgetUsd": 15, "weight": 1 }],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 1.15,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 50000
+      },
+      "parametric": {
+        "benefitUsd": 250,
+        "eventFrequency": 0.052,
+        "premiumPerMemberUsd": 15
+      }
+    },
+    {
+      "id": "member-mutual-rebate-pool",
+      "name": "Member Mutual Rebate Pool",
+      "kind": "member_mutual_rebate",
+      "oneLine": "Members buy capped cover and receive surplus rebates when the cohort has a good claims month.",
+      "memberOffering": "30-day capped cover with visible cohort economics; expected surplus funds member rebates and backer yield.",
+      "marketMechanism": "The market element is a transparent surplus/rebate scoreboard, not speculative trading on claims.",
+      "productionBoundary": "More consumer-friendly than a prediction market; still needs insurance-grade claim handling and rebate rules.",
+      "scale": {
+        "members": 800,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.25 },
+          { "budgetUsd": 39, "weight": 0.35 },
+          { "budgetUsd": 99, "weight": 0.25 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 0.95,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 85000
+      },
+      "rebate": {
+        "memberSurplusSharePct": 35,
+        "backerSurplusSharePct": 45,
+        "protocolSurplusSharePct": 20
+      }
+    },
+    {
+      "id": "pure-pay-anything-pool",
+      "name": "Pure Pay-Anything Pool",
+      "kind": "pure_pay_anything_pool",
+      "oneLine": "Everyone pays any amount and receives the same broad cover promise.",
+      "memberOffering": "Any payment from 15 USD upward is treated as full 3000 USD acute cover.",
+      "marketMechanism": "Feels viral but collapses pricing: low-budget members buy the same liability as high-budget members.",
+      "productionBoundary": "Use only as a red-team failure case; do not ship this as insurance.",
+      "scale": {
+        "members": 500,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.7 },
+          { "budgetUsd": 39, "weight": 0.2 },
+          { "budgetUsd": 99, "weight": 0.08 },
+          { "budgetUsd": 159, "weight": 0.02 }
+        ],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 1,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 25000
+      },
+      "purePool": {
+        "promisedCapUsd": 3000
+      }
+    }
+  ],
   "endToEndPoc": {
     "quoteSigner": "nomad-curve-pricing-oracle-v0",
     "pricingCurveHash": "nomad-curve-v0.1",

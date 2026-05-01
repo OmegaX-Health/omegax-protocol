@@ -111,3 +111,39 @@ test("Nomad curve end-to-end drill enforces caps, waiting periods, and exclusion
   assert.equal(output.endToEndPoc.remainingCoverageLimitUsd, 1994);
   assert(output.endToEndPoc.finalReserveUsd > 0);
 });
+
+test("Nomad hybrid model report compares viable market-insurance mixes", () => {
+  const output = readJson<any>(join(REVIEW_DIR, "review-output.json"));
+  const report = readFileSync(join(REVIEW_DIR, "hybrid-model-report.md"), "utf8");
+  const byId = Object.fromEntries(output.hybridModelResults.map((model: any) => [model.id, model]));
+
+  assert.equal(output.hybridModelResults.length, 6);
+  assert.equal(byId["separated-backstop-curve"].verdict, "ship_candidate");
+  assert.equal(byId["separated-backstop-curve"].launchGate, "healthy");
+  assert.equal(byId["loss-ratio-signal-market"].verdict, "needs_wrapper");
+  assert(byId["loss-ratio-signal-market"].market.marketProbabilityPct > 0);
+  assert.equal(byId["collateralized-sidecar-vault"].market.trancheCount, 3);
+  assert.equal(byId["parametric-fast-cash-overlay"].market.benefitUsd, 250);
+  assert(byId["member-mutual-rebate-pool"].market.expectedRebatePerMemberUsd >= 0);
+  assert.equal(byId["pure-pay-anything-pool"].verdict, "reject");
+  assert.equal(byId["pure-pay-anything-pool"].launchGate, "pause");
+  assert(report.includes("## Simple Language Summary"));
+});
+
+test("Nomad hybrid scale checks expose thin-capital failure modes", () => {
+  const output = readJson<any>(join(REVIEW_DIR, "review-output.json"));
+
+  for (const model of output.hybridModelResults) {
+    assert.equal(model.scaleChecks.length, 3);
+    assert(model.firstPrinciples.length >= 3);
+    assert(model.policyDesign.length >= 3);
+  }
+
+  const parametric = output.hybridModelResults.find((model: any) => model.id === "parametric-fast-cash-overlay");
+  const scaled = parametric.scaleChecks.find((check: any) => check.label === "3x demand with matching capital");
+  const thin = parametric.scaleChecks.find((check: any) => check.label === "3x demand with launch capital");
+
+  assert.equal(scaled.launchGate, "healthy");
+  assert.equal(thin.launchGate, "caution");
+  assert(thin.reserveToActiveLimitPct < scaled.reserveToActiveLimitPct);
+});

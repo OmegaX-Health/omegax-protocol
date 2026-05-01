@@ -30,6 +30,19 @@ Generated: 2026-05-01T00:00:00.000Z
 | expensive-region-adverse-600 | healthy | 600 | 47928 | 532304 | 34307 | 143135.2 | 0 |
 | nomad-hub-cluster-600 | pause | 600 | 49080 | 617687 | 148245 | 129172 | 19073 |
 
+## Hybrid Model Snapshot
+
+| Model | Verdict | Gate | Members | Avg Premium | Avg Cap | Expected Loss Ratio | p99.5 Claims | Reserve |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Separated Backstop Curve | ship_candidate | healthy | 500 | 65.88 | 1001 | 37.94% | 22626 | 114646 |
+| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 63.32 | 809 | 36.93% | 36087 | 201991.6 |
+| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 59.84 | 723 | 34.27% | 44438 | 285782.15 |
+| Parametric Fast-Cash Overlay | ship_candidate | healthy | 1200 | 15 | 250 | 99.72% | 23250 | 91200 |
+| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 67.17 | 925 | 34.82% | 30344 | 158361.68 |
+| Pure Pay-Anything Pool | reject | pause | 500 | 29.5 | 3000 | 155.59% | 40431 | 63273.2 |
+
+See `hybrid-model-report.md` for the full first-principles model comparison, scale checks, and plain-language explanation.
+
 ## End-to-End Production Logic Drill
 
 ### Risk Backers

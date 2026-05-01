@@ -28,7 +28,9 @@ The generator writes:
 
 - `review-output.json`
 - `review-memo.md`
+- `hybrid-model-report.md`
 - an end-to-end production-logic drill inside both generated artifacts: open risk-backer deposits, signed quote receipts, activated coverage entitlements, and claim decisions.
+- a hybrid model comparison covering separated backstop, loss-ratio market, sidecar vault, parametric fast cash, mutual rebate, and a red-team pay-anything failure case.
 
 ## Curve
 

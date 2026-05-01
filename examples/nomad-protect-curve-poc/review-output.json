@@ -328,6 +328,551 @@
       "launchGate": "pause"
     }
   ],
+  "hybridModelResults": [
+    {
+      "id": "separated-backstop-curve",
+      "name": "Separated Backstop Curve",
+      "kind": "separated_backstop_market",
+      "verdict": "ship_candidate",
+      "launchGate": "healthy",
+      "oneLine": "Members buy capped cover from the curve while backers freely supply junior reserve capital.",
+      "memberOffering": "30-day acute emergency cover; choose any budget from 15 USD upward; quote returns a fixed cap up to 3000 USD.",
+      "marketMechanism": "Prediction-market feeling lives in open backer deposits and visible reserve depth, not in member claim promises.",
+      "productionBoundary": "Insurance-grade member entitlement; market-grade capital supply; no trader decides an individual claim.",
+      "firstPrinciples": [
+        "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
+        "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+        "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates."
+      ],
+      "policyDesign": [
+        "Member policy: choose budget, receive capped quote, activate entitlement.",
+        "Backer policy: deposit any amount into junior backstop capital.",
+        "Issuance rule: pause or reprice when reserve depth falls below target."
+      ],
+      "offering": {
+        "members": 500,
+        "averagePremiumUsd": 65.88,
+        "averageCoverageCapUsd": 1001,
+        "activeCoverageLimitUsd": 500538,
+        "memberBudgetRangeUsd": [
+          15,
+          159
+        ]
+      },
+      "actuarial": {
+        "grossPremiumUsd": 32940,
+        "claimsPayingReserveUsd": 114646,
+        "expectedClaimsUsd": 12497,
+        "expectedLossRatioPct": 37.94,
+        "p95ClaimsUsd": 18583,
+        "p99ClaimsUsd": 21536,
+        "p995ClaimsUsd": 22626,
+        "reserveBreachProbability": 0,
+        "reserveToActiveLimitPct": 22.9,
+        "additionalReserveNeededUsd": 0,
+        "reserveFloorAdditionalNeededUsd": 0,
+        "expectedSurplusUsd": 20443
+      },
+      "market": {
+        "riskBackerCapitalUsd": 60000
+      },
+      "scaleChecks": [
+        {
+          "label": "launch scale",
+          "members": 500,
+          "riskBackerCapitalUsd": 60000,
+          "grossPremiumUsd": 30719.99,
+          "activeCoverageLimitUsd": 472397,
+          "claimsPayingReserveUsd": 112647.99,
+          "p995ClaimsUsd": 21950,
+          "reserveToActiveLimitPct": 23.85,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with matching capital",
+          "members": 1500,
+          "riskBackerCapitalUsd": 180000,
+          "grossPremiumUsd": 91043.42,
+          "activeCoverageLimitUsd": 1095641,
+          "claimsPayingReserveUsd": 286939.08,
+          "p995ClaimsUsd": 44670,
+          "reserveToActiveLimitPct": 26.19,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with launch capital",
+          "members": 1500,
+          "riskBackerCapitalUsd": 60000,
+          "grossPremiumUsd": 88439.3,
+          "activeCoverageLimitUsd": 1073115,
+          "claimsPayingReserveUsd": 164595.37,
+          "p995ClaimsUsd": 44487,
+          "reserveToActiveLimitPct": 15.34,
+          "launchGate": "healthy"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "loss-ratio-signal-market",
+      "name": "Loss-Ratio Signal Market",
+      "kind": "loss_ratio_event_market",
+      "verdict": "needs_wrapper",
+      "launchGate": "healthy",
+      "oneLine": "Members still buy capped insurance; traders separately price whether the pool loss ratio breaches a threshold.",
+      "memberOffering": "Same 30-day acute cover, with the pool quote curve nudged by a public aggregate-loss signal.",
+      "marketMechanism": "A yes/no market on aggregate loss ratio above 65%; it produces a pricing signal but does not pay claims.",
+      "productionBoundary": "The event market must settle on aggregate pool data only and be legally separate from the insurance promise.",
+      "firstPrinciples": [
+        "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
+        "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+        "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.",
+        "A prediction market is useful as an aggregate signal only if it cannot alter individual claim outcomes.",
+        "The event must be objective: for example, pool loss ratio above a published threshold after claim close."
+      ],
+      "policyDesign": [
+        "Member policy: fixed 30-day acute emergency entitlement with signed quote receipt.",
+        "Market contract: aggregate pool loss ratio above threshold, settled after claim runout.",
+        "Firewall: market traders cannot approve, deny, delay, or see raw member medical evidence."
+      ],
+      "offering": {
+        "members": 1000,
+        "averagePremiumUsd": 63.32,
+        "averageCoverageCapUsd": 809,
+        "activeCoverageLimitUsd": 808718,
+        "memberBudgetRangeUsd": [
+          15,
+          159
+        ]
+      },
+      "actuarial": {
+        "grossPremiumUsd": 63324,
+        "claimsPayingReserveUsd": 201991.6,
+        "expectedClaimsUsd": 23386,
+        "expectedLossRatioPct": 36.93,
+        "p95ClaimsUsd": 30944,
+        "p99ClaimsUsd": 34650,
+        "p995ClaimsUsd": 36087,
+        "reserveBreachProbability": 0,
+        "reserveToActiveLimitPct": 24.98,
+        "additionalReserveNeededUsd": 0,
+        "reserveFloorAdditionalNeededUsd": 0,
+        "expectedSurplusUsd": 39938
+      },
+      "market": {
+        "riskBackerCapitalUsd": 120000,
+        "eventThresholdLossRatioPct": 65,
+        "thresholdClaimsUsd": 41160.6,
+        "fairProbabilityPct": 0.01,
+        "marketProbabilityPct": 3.51,
+        "yesPriceCents": 3.51,
+        "liquidityUsd": 75000,
+        "quoteAdjustmentPct": 0.7
+      },
+      "scaleChecks": [
+        {
+          "label": "launch scale",
+          "members": 1000,
+          "riskBackerCapitalUsd": 120000,
+          "grossPremiumUsd": 65424,
+          "activeCoverageLimitUsd": 828965,
+          "claimsPayingReserveUsd": 203881.6,
+          "p995ClaimsUsd": 36352,
+          "reserveToActiveLimitPct": 24.59,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with matching capital",
+          "members": 3000,
+          "riskBackerCapitalUsd": 360000,
+          "grossPremiumUsd": 193152,
+          "activeCoverageLimitUsd": 1764929,
+          "claimsPayingReserveUsd": 558836.8,
+          "p995ClaimsUsd": 74750,
+          "reserveToActiveLimitPct": 31.66,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with launch capital",
+          "members": 3000,
+          "riskBackerCapitalUsd": 120000,
+          "grossPremiumUsd": 196368,
+          "activeCoverageLimitUsd": 1783717,
+          "claimsPayingReserveUsd": 321731.2,
+          "p995ClaimsUsd": 75276,
+          "reserveToActiveLimitPct": 18.04,
+          "launchGate": "healthy"
+        }
+      ],
+      "notes": [
+        "Prediction market is modeled as a pricing and monitoring signal, not as claims-paying capital."
+      ]
+    },
+    {
+      "id": "collateralized-sidecar-vault",
+      "name": "Collateralized Sidecar Vault",
+      "kind": "collateralized_sidecar",
+      "verdict": "needs_wrapper",
+      "launchGate": "healthy",
+      "oneLine": "Backers buy tranche-like risk shares that absorb pool losses in a transparent waterfall.",
+      "memberOffering": "30-day acute cover sold through the same quote curve; capacity expands when tranche capital clears.",
+      "marketMechanism": "Capital-market sidecar: junior and senior backers earn premium share for absorbing modeled claim volatility.",
+      "productionBoundary": "Closest to insurance-linked securities or collateralized reinsurance; requires strong offering restrictions.",
+      "firstPrinciples": [
+        "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
+        "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+        "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.",
+        "Backers should know exactly which layer of loss they absorb and when their capital can be released.",
+        "This is a capital-markets wrapper around insurance risk, not consumer gambling."
+      ],
+      "policyDesign": [
+        "Member policy: same capped acute cover.",
+        "Capital policy: first-loss sponsor layer, junior sidecar layer, senior sidecar layer.",
+        "Release rule: capital unlocks only after claim runout, dispute window, and reserve reconciliation."
+      ],
+      "offering": {
+        "members": 1500,
+        "averagePremiumUsd": 59.84,
+        "averageCoverageCapUsd": 723,
+        "activeCoverageLimitUsd": 1084538,
+        "memberBudgetRangeUsd": [
+          15,
+          159
+        ]
+      },
+      "actuarial": {
+        "grossPremiumUsd": 89757.94,
+        "claimsPayingReserveUsd": 285782.15,
+        "expectedClaimsUsd": 30758,
+        "expectedLossRatioPct": 34.27,
+        "p95ClaimsUsd": 39266,
+        "p99ClaimsUsd": 42891,
+        "p995ClaimsUsd": 44438,
+        "reserveBreachProbability": 0,
+        "reserveToActiveLimitPct": 26.35,
+        "additionalReserveNeededUsd": 0,
+        "reserveFloorAdditionalNeededUsd": 0,
+        "expectedSurplusUsd": 59000
+      },
+      "market": {
+        "riskBackerCapitalUsd": 180000,
+        "trancheCount": 3,
+        "juniorExpectedLossPct": 0.9,
+        "seniorExpectedLossPct": 0,
+        "maxTrancheP995LossPct": 100
+      },
+      "scaleChecks": [
+        {
+          "label": "launch scale",
+          "members": 1500,
+          "riskBackerCapitalUsd": 180000,
+          "grossPremiumUsd": 90864,
+          "activeCoverageLimitUsd": 1094107,
+          "claimsPayingReserveUsd": 286777.6,
+          "p995ClaimsUsd": 44381,
+          "reserveToActiveLimitPct": 26.21,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with matching capital",
+          "members": 4500,
+          "riskBackerCapitalUsd": 540000,
+          "grossPremiumUsd": 273622.4,
+          "activeCoverageLimitUsd": 2261817,
+          "claimsPayingReserveUsd": 811260.16,
+          "p995ClaimsUsd": 90635,
+          "reserveToActiveLimitPct": 35.87,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with launch capital",
+          "members": 4500,
+          "riskBackerCapitalUsd": 180000,
+          "grossPremiumUsd": 276923.35,
+          "activeCoverageLimitUsd": 2278342,
+          "claimsPayingReserveUsd": 454231.01,
+          "p995ClaimsUsd": 90781,
+          "reserveToActiveLimitPct": 19.94,
+          "launchGate": "healthy"
+        }
+      ],
+      "notes": [
+        "Sponsor first loss: attaches at 0 USD, expected loss 86.21%, p99.5 impairment 100%.",
+        "Junior sidecar: attaches at 35000 USD, expected loss 0.9%, p99.5 impairment 14.52%.",
+        "Senior sidecar: attaches at 100000 USD, expected loss 0%, p99.5 impairment 0%."
+      ]
+    },
+    {
+      "id": "parametric-fast-cash-overlay",
+      "name": "Parametric Fast-Cash Overlay",
+      "kind": "parametric_fast_cash",
+      "verdict": "ship_candidate",
+      "launchGate": "healthy",
+      "oneLine": "A small fixed cash benefit pays quickly when an independently verifiable acute event trigger fires.",
+      "memberOffering": "15 USD buys a 250 USD fast-cash benefit for ER admission or qualifying urgent-care trigger.",
+      "marketMechanism": "Backers price trigger frequency instead of open-ended medical bills; settlement is faster but has basis risk.",
+      "productionBoundary": "Can sit beside indemnity cover; trigger design must be explicit and not pretend to reimburse all losses.",
+      "firstPrinciples": [
+        "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
+        "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+        "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.",
+        "A fixed benefit is easier to price than open-ended reimbursement, but creates basis risk for members.",
+        "The trigger must be independently verifiable and hard to manipulate."
+      ],
+      "policyDesign": [
+        "Member policy: small fixed cash benefit for a named urgent-care or ER trigger.",
+        "Claim rule: verified trigger pays fixed benefit without itemized bill reimbursement.",
+        "Disclosure: fast cash may be less than the medical bill and is not full health cover."
+      ],
+      "offering": {
+        "members": 1200,
+        "averagePremiumUsd": 15,
+        "averageCoverageCapUsd": 250,
+        "activeCoverageLimitUsd": 300000,
+        "memberBudgetRangeUsd": [
+          15,
+          15
+        ]
+      },
+      "actuarial": {
+        "grossPremiumUsd": 18000,
+        "claimsPayingReserveUsd": 91200,
+        "expectedClaimsUsd": 17949,
+        "expectedLossRatioPct": 99.72,
+        "p95ClaimsUsd": 21250,
+        "p99ClaimsUsd": 22750,
+        "p995ClaimsUsd": 23250,
+        "reserveBreachProbability": 0,
+        "reserveToActiveLimitPct": 30.4,
+        "additionalReserveNeededUsd": 0,
+        "reserveFloorAdditionalNeededUsd": 0,
+        "expectedSurplusUsd": 51
+      },
+      "market": {
+        "riskBackerCapitalUsd": 50000,
+        "triggerFrequencyPct": 5.98,
+        "benefitUsd": 250,
+        "premiumPerMemberUsd": 15
+      },
+      "scaleChecks": [
+        {
+          "label": "launch scale",
+          "members": 1200,
+          "riskBackerCapitalUsd": 50000,
+          "grossPremiumUsd": 18000,
+          "activeCoverageLimitUsd": 300000,
+          "claimsPayingReserveUsd": 91200,
+          "p995ClaimsUsd": 23250,
+          "reserveToActiveLimitPct": 30.4,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with matching capital",
+          "members": 3600,
+          "riskBackerCapitalUsd": 150000,
+          "grossPremiumUsd": 54000,
+          "activeCoverageLimitUsd": 900000,
+          "claimsPayingReserveUsd": 223600,
+          "p995ClaimsUsd": 63000,
+          "reserveToActiveLimitPct": 24.84,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with launch capital",
+          "members": 3600,
+          "riskBackerCapitalUsd": 50000,
+          "grossPremiumUsd": 54000,
+          "activeCoverageLimitUsd": 900000,
+          "claimsPayingReserveUsd": 123600,
+          "p995ClaimsUsd": 63000,
+          "reserveToActiveLimitPct": 13.73,
+          "launchGate": "caution"
+        }
+      ],
+      "notes": [
+        "Parametric benefit pays fast, but may underpay or overpay relative to the actual medical bill."
+      ]
+    },
+    {
+      "id": "member-mutual-rebate-pool",
+      "name": "Member Mutual Rebate Pool",
+      "kind": "member_mutual_rebate",
+      "verdict": "ship_candidate",
+      "launchGate": "healthy",
+      "oneLine": "Members buy capped cover and receive surplus rebates when the cohort has a good claims month.",
+      "memberOffering": "30-day capped cover with visible cohort economics; expected surplus funds member rebates and backer yield.",
+      "marketMechanism": "The market element is a transparent surplus/rebate scoreboard, not speculative trading on claims.",
+      "productionBoundary": "More consumer-friendly than a prediction market; still needs insurance-grade claim handling and rebate rules.",
+      "firstPrinciples": [
+        "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
+        "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+        "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.",
+        "Members can share upside from good claims experience without betting against sick members.",
+        "Rebates should be discretionary surplus distributions after reserves are satisfied."
+      ],
+      "policyDesign": [
+        "Member policy: capped acute cover plus possible end-of-window surplus rebate.",
+        "Rebate rule: paid only after p99.5 reserve, claims runout, and fraud holds are cleared.",
+        "Backer rule: backers earn a defined surplus share before protocol margin."
+      ],
+      "offering": {
+        "members": 800,
+        "averagePremiumUsd": 67.17,
+        "averageCoverageCapUsd": 925,
+        "activeCoverageLimitUsd": 740235,
+        "memberBudgetRangeUsd": [
+          15,
+          159
+        ]
+      },
+      "actuarial": {
+        "grossPremiumUsd": 53735.2,
+        "claimsPayingReserveUsd": 158361.68,
+        "expectedClaimsUsd": 18708,
+        "expectedLossRatioPct": 34.82,
+        "p95ClaimsUsd": 25677,
+        "p99ClaimsUsd": 29168,
+        "p995ClaimsUsd": 30344,
+        "reserveBreachProbability": 0,
+        "reserveToActiveLimitPct": 21.39,
+        "additionalReserveNeededUsd": 0,
+        "reserveFloorAdditionalNeededUsd": 0,
+        "expectedSurplusUsd": 35027
+      },
+      "market": {
+        "riskBackerCapitalUsd": 85000,
+        "memberRebatePoolUsd": 12259.45,
+        "expectedRebatePerMemberUsd": 15.32,
+        "backerSurplusSharePct": 45
+      },
+      "scaleChecks": [
+        {
+          "label": "launch scale",
+          "members": 800,
+          "riskBackerCapitalUsd": 85000,
+          "grossPremiumUsd": 51347.11,
+          "activeCoverageLimitUsd": 714600,
+          "claimsPayingReserveUsd": 156212.4,
+          "p995ClaimsUsd": 29795,
+          "reserveToActiveLimitPct": 21.86,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with matching capital",
+          "members": 2400,
+          "riskBackerCapitalUsd": 255000,
+          "grossPremiumUsd": 159790.73,
+          "activeCoverageLimitUsd": 1610653,
+          "claimsPayingReserveUsd": 423811.66,
+          "p995ClaimsUsd": 61594,
+          "reserveToActiveLimitPct": 26.31,
+          "launchGate": "healthy"
+        },
+        {
+          "label": "3x demand with launch capital",
+          "members": 2400,
+          "riskBackerCapitalUsd": 85000,
+          "grossPremiumUsd": 158220,
+          "activeCoverageLimitUsd": 1600204,
+          "claimsPayingReserveUsd": 252398,
+          "p995ClaimsUsd": 61547,
+          "reserveToActiveLimitPct": 15.77,
+          "launchGate": "healthy"
+        }
+      ],
+      "notes": [
+        "Rebate is modeled only from expected surplus; production would pay it after claim runout and reserve lock."
+      ]
+    },
+    {
+      "id": "pure-pay-anything-pool",
+      "name": "Pure Pay-Anything Pool",
+      "kind": "pure_pay_anything_pool",
+      "verdict": "reject",
+      "launchGate": "pause",
+      "oneLine": "Everyone pays any amount and receives the same broad cover promise.",
+      "memberOffering": "Any payment from 15 USD upward is treated as full 3000 USD acute cover.",
+      "marketMechanism": "Feels viral but collapses pricing: low-budget members buy the same liability as high-budget members.",
+      "productionBoundary": "Use only as a red-team failure case; do not ship this as insurance.",
+      "firstPrinciples": [
+        "If every budget receives the same liability, low-budget demand dominates and premium no longer tracks risk.",
+        "A viral pool is not the same thing as a solvent insurance product.",
+        "The failure is structural, not a tuning problem."
+      ],
+      "policyDesign": [
+        "Do not ship.",
+        "If used as an onboarding metaphor, immediately convert payment into a capped quote before activation.",
+        "Never represent arbitrary payment as broad, uncapped health insurance."
+      ],
+      "offering": {
+        "members": 500,
+        "averagePremiumUsd": 29.5,
+        "averageCoverageCapUsd": 3000,
+        "activeCoverageLimitUsd": 1500000,
+        "memberBudgetRangeUsd": [
+          15,
+          159
+        ]
+      },
+      "actuarial": {
+        "grossPremiumUsd": 14748,
+        "claimsPayingReserveUsd": 63273.2,
+        "expectedClaimsUsd": 22946,
+        "expectedLossRatioPct": 155.59,
+        "p95ClaimsUsd": 33601,
+        "p99ClaimsUsd": 38502,
+        "p995ClaimsUsd": 40431,
+        "reserveBreachProbability": 0,
+        "reserveToActiveLimitPct": 4.22,
+        "additionalReserveNeededUsd": 0,
+        "reserveFloorAdditionalNeededUsd": 161727,
+        "expectedSurplusUsd": -8198
+      },
+      "market": {
+        "riskBackerCapitalUsd": 25000,
+        "promisedCapUsd": 3000,
+        "averagePremiumRatePct": 0.98
+      },
+      "scaleChecks": [
+        {
+          "label": "launch scale",
+          "members": 500,
+          "riskBackerCapitalUsd": 25000,
+          "grossPremiumUsd": 14124,
+          "activeCoverageLimitUsd": 1500000,
+          "claimsPayingReserveUsd": 62711.6,
+          "p995ClaimsUsd": 40270,
+          "reserveToActiveLimitPct": 4.18,
+          "launchGate": "pause"
+        },
+        {
+          "label": "3x demand with matching capital",
+          "members": 1500,
+          "riskBackerCapitalUsd": 75000,
+          "grossPremiumUsd": 45408,
+          "activeCoverageLimitUsd": 4500000,
+          "claimsPayingReserveUsd": 140867.2,
+          "p995ClaimsUsd": 98617,
+          "reserveToActiveLimitPct": 3.13,
+          "launchGate": "pause"
+        },
+        {
+          "label": "3x demand with launch capital",
+          "members": 1500,
+          "riskBackerCapitalUsd": 25000,
+          "grossPremiumUsd": 45768,
+          "activeCoverageLimitUsd": 4500000,
+          "claimsPayingReserveUsd": 91191.2,
+          "p995ClaimsUsd": 97810,
+          "reserveToActiveLimitPct": 2.03,
+          "launchGate": "pause"
+        }
+      ],
+      "notes": [
+        "This intentionally fails because pricing is no longer risk-proportional."
+      ]
+    }
+  ],
   "endToEndPoc": {
     "productionLogic": [
       "risk_backers_deposit_any_amount_for_junior_backstop_shares",

@@ -112,6 +112,59 @@ type EndToEndPocAssumptions = {
   claimDrills: ClaimDrill[];
 };
 
+type HybridModelKind =
+  | "separated_backstop_market"
+  | "loss_ratio_event_market"
+  | "collateralized_sidecar"
+  | "parametric_fast_cash"
+  | "member_mutual_rebate"
+  | "pure_pay_anything_pool";
+
+type HybridScaleAssumptions = {
+  members: number;
+  budgetMix: BudgetMix;
+  riskMultiplier: number;
+  frequencyMultiplier: number;
+  severityMultiplier: number;
+  riskBackerCapitalUsd: number;
+};
+
+type HybridModelAssumptions = {
+  id: string;
+  name: string;
+  kind: HybridModelKind;
+  oneLine: string;
+  memberOffering: string;
+  marketMechanism: string;
+  productionBoundary: string;
+  scale: HybridScaleAssumptions;
+  market?: {
+    eventThresholdLossRatio: number;
+    liquidityUsd: number;
+    marketProbabilityBiasPct: number;
+    quoteAdjustmentSensitivity: number;
+  };
+  tranches?: Array<{
+    id: string;
+    label: string;
+    capitalUsd: number;
+    couponSharePct: number;
+  }>;
+  parametric?: {
+    benefitUsd: number;
+    eventFrequency: number;
+    premiumPerMemberUsd: number;
+  };
+  rebate?: {
+    memberSurplusSharePct: number;
+    backerSurplusSharePct: number;
+    protocolSurplusSharePct: number;
+  };
+  purePool?: {
+    promisedCapUsd: number;
+  };
+};
+
 type Assumptions = {
   schemaVersion: number;
   reviewId: string;
@@ -130,6 +183,7 @@ type Assumptions = {
   openingProtocolReserveUsd: number;
   quoteSamples: QuoteSample[];
   memberBudgetsUsd: number[];
+  hybridModels: HybridModelAssumptions[];
   endToEndPoc: EndToEndPocAssumptions;
   scenarios: Scenario[];
 };
@@ -224,11 +278,71 @@ type EndToEndPocOutput = {
   remainingCoverageLimitUsd: number;
 };
 
+type ClaimDistribution = {
+  claims: number[];
+  averageClaimsUsd: number;
+  p95ClaimsUsd: number;
+  p99ClaimsUsd: number;
+  p995ClaimsUsd: number;
+  reserveBreachProbability: number;
+};
+
+type HybridScaleCheck = {
+  label: string;
+  members: number;
+  riskBackerCapitalUsd: number;
+  grossPremiumUsd: number;
+  activeCoverageLimitUsd: number;
+  claimsPayingReserveUsd: number;
+  p995ClaimsUsd: number;
+  reserveToActiveLimitPct: number;
+  launchGate: Gate;
+};
+
+type HybridModelResult = {
+  id: string;
+  name: string;
+  kind: HybridModelKind;
+  verdict: "ship_candidate" | "needs_wrapper" | "research_only" | "reject";
+  launchGate: Gate;
+  oneLine: string;
+  memberOffering: string;
+  marketMechanism: string;
+  productionBoundary: string;
+  firstPrinciples: string[];
+  policyDesign: string[];
+  offering: {
+    members: number;
+    averagePremiumUsd: number;
+    averageCoverageCapUsd: number;
+    activeCoverageLimitUsd: number;
+    memberBudgetRangeUsd: [number, number];
+  };
+  actuarial: {
+    grossPremiumUsd: number;
+    claimsPayingReserveUsd: number;
+    expectedClaimsUsd: number;
+    expectedLossRatioPct: number;
+    p95ClaimsUsd: number;
+    p99ClaimsUsd: number;
+    p995ClaimsUsd: number;
+    reserveBreachProbability: number;
+    reserveToActiveLimitPct: number;
+    additionalReserveNeededUsd: number;
+    reserveFloorAdditionalNeededUsd: number;
+    expectedSurplusUsd: number;
+  };
+  market: Record<string, number | string | null>;
+  scaleChecks: HybridScaleCheck[];
+  notes: string[];
+};
+
 const ROOT = process.cwd();
 const REVIEW_DIR = join(ROOT, "examples", "nomad-protect-curve-poc");
 const ASSUMPTIONS_PATH = join(REVIEW_DIR, "assumptions.json");
 const OUTPUT_PATH = join(REVIEW_DIR, "review-output.json");
 const MEMO_PATH = join(REVIEW_DIR, "review-memo.md");
+const HYBRID_REPORT_PATH = join(REVIEW_DIR, "hybrid-model-report.md");
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
@@ -278,6 +392,10 @@ function roundMoney(value: number): number {
 
 function roundPercent(value: number): number {
   return Number((value * 100).toFixed(2));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function hashRecord(prefix: string, value: unknown): string {
@@ -466,14 +584,14 @@ function groupedCaps(memberQuotes: MemberQuote[]): Array<{ capUsd: number; count
   return [...counts.entries()].map(([capUsd, count]) => ({ capUsd, count }));
 }
 
-function simulateClaims(params: {
+function simulateClaimsDistribution(params: {
   assumptions: Assumptions;
   portfolio: Portfolio;
   frequencyMultiplier: number;
   severityMultiplier: number;
   reserveUsd: number;
   seedOffset: number;
-}) {
+}): ClaimDistribution {
   const rng = createRng((params.assumptions.monteCarlo.seed + params.seedOffset) >>> 0);
   const groups = groupedCaps(params.portfolio.memberQuotes);
   const claims: number[] = [];
@@ -500,12 +618,25 @@ function simulateClaims(params: {
   const breachProbability = claims.filter((value) => value > params.reserveUsd).length / claims.length;
 
   return {
+    claims,
     averageClaimsUsd: roundUsd(average),
     p95ClaimsUsd: roundUsd(p95),
     p99ClaimsUsd: roundUsd(p99),
     p995ClaimsUsd: roundUsd(p995),
     reserveBreachProbability: Number(breachProbability.toFixed(6)),
   };
+}
+
+function simulateClaims(params: {
+  assumptions: Assumptions;
+  portfolio: Portfolio;
+  frequencyMultiplier: number;
+  severityMultiplier: number;
+  reserveUsd: number;
+  seedOffset: number;
+}) {
+  const { claims: _claims, ...metrics } = simulateClaimsDistribution(params);
+  return metrics;
 }
 
 function evaluateGate(params: { reserveUsd: number; p995ClaimsUsd: number; breachProbability: number }): Gate {
@@ -977,6 +1108,515 @@ function buildEndToEndPoc(assumptions: Assumptions): EndToEndPocOutput {
   };
 }
 
+function budgetRange(mix: BudgetMix): [number, number] {
+  const budgets = mix.map((entry) => entry.budgetUsd);
+  return [Math.min(...budgets), Math.max(...budgets)];
+}
+
+function buildFlatPromisePortfolio(params: {
+  assumptions: Assumptions;
+  members: number;
+  budgetMix: BudgetMix;
+  promisedCapUsd: number;
+  seedOffset: number;
+}): Portfolio {
+  const rng = createRng((params.assumptions.monteCarlo.seed + params.seedOffset) >>> 0);
+  const memberQuotes: MemberQuote[] = [];
+  for (let i = 0; i < params.members; i += 1) {
+    const budgetUsd = chooseBudget(params.budgetMix, rng);
+    memberQuotes.push({
+      budgetUsd,
+      premiumUsedUsd: budgetUsd,
+      coverageCapUsd: params.promisedCapUsd,
+      units: params.promisedCapUsd / params.assumptions.product.unitSizeUsd,
+      averageUnitPriceUsd: roundMoney(budgetUsd / (params.promisedCapUsd / params.assumptions.product.unitSizeUsd)),
+      marginalUnitPriceUsd: roundMoney(budgetUsd / (params.promisedCapUsd / params.assumptions.product.unitSizeUsd)),
+      reserveStressMultiplier: 1,
+      impliedPremiumRatePct: roundPercent(budgetUsd / params.promisedCapUsd),
+    });
+  }
+
+  const grossPremiumUsd = memberQuotes.reduce((sum, quote) => sum + quote.premiumUsedUsd, 0);
+  const activeCoverageLimitUsd = memberQuotes.reduce((sum, quote) => sum + quote.coverageCapUsd, 0);
+  return {
+    memberQuotes,
+    grossPremiumUsd: roundMoney(grossPremiumUsd),
+    claimsReserveFromPremiumUsd: roundMoney(grossPremiumUsd * params.assumptions.product.claimsReserveShareOfPremium),
+    activeCoverageLimitUsd: roundUsd(activeCoverageLimitUsd),
+    averagePremiumUsd: roundMoney(grossPremiumUsd / params.members),
+    averageCoverageCapUsd: roundUsd(activeCoverageLimitUsd / params.members),
+    finalMarginalUnitPriceUsd: memberQuotes.length > 0 ? memberQuotes[memberQuotes.length - 1]!.marginalUnitPriceUsd : 0,
+  };
+}
+
+function evaluateHybridIndemnity(params: {
+  assumptions: Assumptions;
+  model: HybridModelAssumptions;
+  scale: HybridScaleAssumptions;
+  seedOffset: number;
+}): {
+  portfolio: Portfolio;
+  distribution: ClaimDistribution;
+  claimsPayingReserveUsd: number;
+  launchGate: Gate;
+  additionalReserveNeededUsd: number;
+  reserveFloorAdditionalNeededUsd: number;
+  expectedSurplusUsd: number;
+} {
+  const { assumptions, model, scale, seedOffset } = params;
+  const portfolio = model.kind === "pure_pay_anything_pool"
+    ? buildFlatPromisePortfolio({
+      assumptions,
+      members: scale.members,
+      budgetMix: scale.budgetMix,
+      promisedCapUsd: model.purePool?.promisedCapUsd ?? assumptions.product.maxMemberCapUsd,
+      seedOffset,
+    })
+    : buildPortfolio({
+      assumptions,
+      members: scale.members,
+      budgetMix: scale.budgetMix,
+      riskMultiplier: scale.riskMultiplier,
+      riskBackerCapitalUsd: scale.riskBackerCapitalUsd,
+      seedOffset,
+    });
+  const claimsPayingReserveUsd = roundMoney(
+    assumptions.openingProtocolReserveUsd
+    + scale.riskBackerCapitalUsd
+    + portfolio.claimsReserveFromPremiumUsd,
+  );
+  const distribution = simulateClaimsDistribution({
+    assumptions,
+    portfolio,
+    frequencyMultiplier: scale.frequencyMultiplier,
+    severityMultiplier: scale.severityMultiplier,
+    reserveUsd: claimsPayingReserveUsd,
+    seedOffset: seedOffset + 457,
+  });
+  const solvencyGate = evaluateGate({
+    reserveUsd: claimsPayingReserveUsd,
+    p995ClaimsUsd: distribution.p995ClaimsUsd,
+    breachProbability: distribution.reserveBreachProbability,
+  });
+  const reserveFloorAdditionalNeededUsd = Math.max(
+    0,
+    roundUsd((assumptions.product.targetReserveToLimitRatio * portfolio.activeCoverageLimitUsd) - claimsPayingReserveUsd),
+  );
+  const launchGate = applyReserveFloorGate({
+    baseGate: solvencyGate,
+    reserveUsd: claimsPayingReserveUsd,
+    activeCoverageLimitUsd: portfolio.activeCoverageLimitUsd,
+    product: assumptions.product,
+  });
+
+  return {
+    portfolio,
+    distribution,
+    claimsPayingReserveUsd,
+    launchGate,
+    additionalReserveNeededUsd: Math.max(0, distribution.p995ClaimsUsd - claimsPayingReserveUsd),
+    reserveFloorAdditionalNeededUsd,
+    expectedSurplusUsd: roundUsd(portfolio.grossPremiumUsd - distribution.averageClaimsUsd),
+  };
+}
+
+function simulateParametricDistribution(params: {
+  assumptions: Assumptions;
+  members: number;
+  eventFrequency: number;
+  benefitUsd: number;
+  reserveUsd: number;
+  seedOffset: number;
+}): ClaimDistribution {
+  const rng = createRng((params.assumptions.monteCarlo.seed + params.seedOffset) >>> 0);
+  const claims: number[] = [];
+  for (let trial = 0; trial < params.assumptions.monteCarlo.trials; trial += 1) {
+    claims.push(claimCount(params.members, params.eventFrequency, rng) * params.benefitUsd);
+  }
+  const average = claims.reduce((sum, value) => sum + value, 0) / claims.length;
+  const p95 = quantile(claims, 0.95);
+  const p99 = quantile(claims, 0.99);
+  const p995 = quantile(claims, params.assumptions.targetSolvencyQuantile);
+  const breachProbability = claims.filter((value) => value > params.reserveUsd).length / claims.length;
+  return {
+    claims,
+    averageClaimsUsd: roundUsd(average),
+    p95ClaimsUsd: roundUsd(p95),
+    p99ClaimsUsd: roundUsd(p99),
+    p995ClaimsUsd: roundUsd(p995),
+    reserveBreachProbability: Number(breachProbability.toFixed(6)),
+  };
+}
+
+function evaluateHybridParametric(params: {
+  assumptions: Assumptions;
+  model: HybridModelAssumptions;
+  scale: HybridScaleAssumptions;
+  seedOffset: number;
+}) {
+  const parametric = params.model.parametric!;
+  const grossPremiumUsd = roundMoney(params.scale.members * parametric.premiumPerMemberUsd);
+  const claimsReserveFromPremiumUsd = roundMoney(grossPremiumUsd * params.assumptions.product.claimsReserveShareOfPremium);
+  const activeCoverageLimitUsd = roundUsd(params.scale.members * parametric.benefitUsd);
+  const claimsPayingReserveUsd = roundMoney(
+    params.assumptions.openingProtocolReserveUsd
+    + params.scale.riskBackerCapitalUsd
+    + claimsReserveFromPremiumUsd,
+  );
+  const distribution = simulateParametricDistribution({
+    assumptions: params.assumptions,
+    members: params.scale.members,
+    eventFrequency: parametric.eventFrequency * params.scale.frequencyMultiplier,
+    benefitUsd: parametric.benefitUsd,
+    reserveUsd: claimsPayingReserveUsd,
+    seedOffset: params.seedOffset + 457,
+  });
+  const solvencyGate = evaluateGate({
+    reserveUsd: claimsPayingReserveUsd,
+    p995ClaimsUsd: distribution.p995ClaimsUsd,
+    breachProbability: distribution.reserveBreachProbability,
+  });
+  const reserveFloorAdditionalNeededUsd = Math.max(
+    0,
+    roundUsd((params.assumptions.product.targetReserveToLimitRatio * activeCoverageLimitUsd) - claimsPayingReserveUsd),
+  );
+  const launchGate = applyReserveFloorGate({
+    baseGate: solvencyGate,
+    reserveUsd: claimsPayingReserveUsd,
+    activeCoverageLimitUsd,
+    product: params.assumptions.product,
+  });
+  const portfolio: Portfolio = {
+    memberQuotes: [],
+    grossPremiumUsd,
+    claimsReserveFromPremiumUsd,
+    activeCoverageLimitUsd,
+    averagePremiumUsd: parametric.premiumPerMemberUsd,
+    averageCoverageCapUsd: parametric.benefitUsd,
+    finalMarginalUnitPriceUsd: parametric.premiumPerMemberUsd,
+  };
+
+  return {
+    portfolio,
+    distribution,
+    claimsPayingReserveUsd,
+    launchGate,
+    additionalReserveNeededUsd: Math.max(0, distribution.p995ClaimsUsd - claimsPayingReserveUsd),
+    reserveFloorAdditionalNeededUsd,
+    expectedSurplusUsd: roundUsd(grossPremiumUsd - distribution.averageClaimsUsd),
+  };
+}
+
+function buildScaleCheck(params: {
+  assumptions: Assumptions;
+  model: HybridModelAssumptions;
+  label: string;
+  memberFactor: number;
+  capitalFactor: number;
+  seedOffset: number;
+}): HybridScaleCheck {
+  const scale: HybridScaleAssumptions = {
+    ...params.model.scale,
+    members: Math.round(params.model.scale.members * params.memberFactor),
+    riskBackerCapitalUsd: roundMoney(params.model.scale.riskBackerCapitalUsd * params.capitalFactor),
+  };
+  const result = params.model.kind === "parametric_fast_cash"
+    ? evaluateHybridParametric({
+      assumptions: params.assumptions,
+      model: params.model,
+      scale,
+      seedOffset: params.seedOffset,
+    })
+    : evaluateHybridIndemnity({
+      assumptions: params.assumptions,
+      model: params.model,
+      scale,
+      seedOffset: params.seedOffset,
+    });
+
+  return {
+    label: params.label,
+    members: scale.members,
+    riskBackerCapitalUsd: scale.riskBackerCapitalUsd,
+    grossPremiumUsd: result.portfolio.grossPremiumUsd,
+    activeCoverageLimitUsd: result.portfolio.activeCoverageLimitUsd,
+    claimsPayingReserveUsd: result.claimsPayingReserveUsd,
+    p995ClaimsUsd: result.distribution.p995ClaimsUsd,
+    reserveToActiveLimitPct: result.portfolio.activeCoverageLimitUsd > 0
+      ? roundPercent(result.claimsPayingReserveUsd / result.portfolio.activeCoverageLimitUsd)
+      : 0,
+    launchGate: result.launchGate,
+  };
+}
+
+function trancheExpectedLosses(
+  claims: number[],
+  tranches: NonNullable<HybridModelAssumptions["tranches"]>,
+) {
+  let attachmentUsd = 0;
+  return tranches.map((tranche) => {
+    const losses = claims.map((claim) =>
+      Math.min(Math.max(claim - attachmentUsd, 0), tranche.capitalUsd),
+    );
+    const expectedLossUsd = losses.reduce((sum, loss) => sum + loss, 0) / losses.length;
+    const p995LossUsd = quantile(losses, 0.995);
+    const row = {
+      id: tranche.id,
+      label: tranche.label,
+      attachmentUsd,
+      capitalUsd: tranche.capitalUsd,
+      couponSharePct: tranche.couponSharePct,
+      expectedLossPct: roundPercent(expectedLossUsd / Math.max(tranche.capitalUsd, 1)),
+      p995LossPct: roundPercent(p995LossUsd / Math.max(tranche.capitalUsd, 1)),
+    };
+    attachmentUsd += tranche.capitalUsd;
+    return row;
+  });
+}
+
+function hybridFirstPrinciples(model: HybridModelAssumptions): string[] {
+  const shared = [
+    "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
+    "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+    "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.",
+  ];
+  if (model.kind === "pure_pay_anything_pool") {
+    return [
+      "If every budget receives the same liability, low-budget demand dominates and premium no longer tracks risk.",
+      "A viral pool is not the same thing as a solvent insurance product.",
+      "The failure is structural, not a tuning problem.",
+    ];
+  }
+  if (model.kind === "loss_ratio_event_market") {
+    return [
+      ...shared,
+      "A prediction market is useful as an aggregate signal only if it cannot alter individual claim outcomes.",
+      "The event must be objective: for example, pool loss ratio above a published threshold after claim close.",
+    ];
+  }
+  if (model.kind === "collateralized_sidecar") {
+    return [
+      ...shared,
+      "Backers should know exactly which layer of loss they absorb and when their capital can be released.",
+      "This is a capital-markets wrapper around insurance risk, not consumer gambling.",
+    ];
+  }
+  if (model.kind === "parametric_fast_cash") {
+    return [
+      ...shared,
+      "A fixed benefit is easier to price than open-ended reimbursement, but creates basis risk for members.",
+      "The trigger must be independently verifiable and hard to manipulate.",
+    ];
+  }
+  if (model.kind === "member_mutual_rebate") {
+    return [
+      ...shared,
+      "Members can share upside from good claims experience without betting against sick members.",
+      "Rebates should be discretionary surplus distributions after reserves are satisfied.",
+    ];
+  }
+  return shared;
+}
+
+function hybridPolicyDesign(model: HybridModelAssumptions): string[] {
+  if (model.kind === "pure_pay_anything_pool") {
+    return [
+      "Do not ship.",
+      "If used as an onboarding metaphor, immediately convert payment into a capped quote before activation.",
+      "Never represent arbitrary payment as broad, uncapped health insurance.",
+    ];
+  }
+  if (model.kind === "loss_ratio_event_market") {
+    return [
+      "Member policy: fixed 30-day acute emergency entitlement with signed quote receipt.",
+      "Market contract: aggregate pool loss ratio above threshold, settled after claim runout.",
+      "Firewall: market traders cannot approve, deny, delay, or see raw member medical evidence.",
+    ];
+  }
+  if (model.kind === "collateralized_sidecar") {
+    return [
+      "Member policy: same capped acute cover.",
+      "Capital policy: first-loss sponsor layer, junior sidecar layer, senior sidecar layer.",
+      "Release rule: capital unlocks only after claim runout, dispute window, and reserve reconciliation.",
+    ];
+  }
+  if (model.kind === "parametric_fast_cash") {
+    return [
+      "Member policy: small fixed cash benefit for a named urgent-care or ER trigger.",
+      "Claim rule: verified trigger pays fixed benefit without itemized bill reimbursement.",
+      "Disclosure: fast cash may be less than the medical bill and is not full health cover.",
+    ];
+  }
+  if (model.kind === "member_mutual_rebate") {
+    return [
+      "Member policy: capped acute cover plus possible end-of-window surplus rebate.",
+      "Rebate rule: paid only after p99.5 reserve, claims runout, and fraud holds are cleared.",
+      "Backer rule: backers earn a defined surplus share before protocol margin.",
+    ];
+  }
+  return [
+    "Member policy: choose budget, receive capped quote, activate entitlement.",
+    "Backer policy: deposit any amount into junior backstop capital.",
+    "Issuance rule: pause or reprice when reserve depth falls below target.",
+  ];
+}
+
+function verdictFor(model: HybridModelAssumptions, launchGate: Gate): HybridModelResult["verdict"] {
+  if (model.kind === "pure_pay_anything_pool") return "reject";
+  if (launchGate === "pause") return "research_only";
+  if (model.kind === "loss_ratio_event_market" || model.kind === "collateralized_sidecar") return "needs_wrapper";
+  return "ship_candidate";
+}
+
+function buildHybridModelResult(
+  assumptions: Assumptions,
+  model: HybridModelAssumptions,
+  index: number,
+): HybridModelResult {
+  const seedOffset = 20_000 + index * 9_973;
+  const evaluated = model.kind === "parametric_fast_cash"
+    ? evaluateHybridParametric({
+      assumptions,
+      model,
+      scale: model.scale,
+      seedOffset,
+    })
+    : evaluateHybridIndemnity({
+      assumptions,
+      model,
+      scale: model.scale,
+      seedOffset,
+    });
+  const { portfolio, distribution } = evaluated;
+  const expectedLossRatioPct = portfolio.grossPremiumUsd > 0
+    ? roundPercent(distribution.averageClaimsUsd / portfolio.grossPremiumUsd)
+    : 0;
+  const market: Record<string, number | string | null> = {
+    riskBackerCapitalUsd: model.scale.riskBackerCapitalUsd,
+  };
+  const notes: string[] = [];
+
+  if (model.market) {
+    const thresholdClaimsUsd = roundMoney(portfolio.grossPremiumUsd * model.market.eventThresholdLossRatio);
+    const fairProbability = distribution.claims.filter((claim) => claim > thresholdClaimsUsd).length / distribution.claims.length;
+    const marketProbability = clamp(fairProbability + model.market.marketProbabilityBiasPct / 100, 0.01, 0.99);
+    market.eventThresholdLossRatioPct = roundPercent(model.market.eventThresholdLossRatio);
+    market.thresholdClaimsUsd = thresholdClaimsUsd;
+    market.fairProbabilityPct = roundPercent(fairProbability);
+    market.marketProbabilityPct = roundPercent(marketProbability);
+    market.yesPriceCents = roundMoney(marketProbability * 100);
+    market.liquidityUsd = model.market.liquidityUsd;
+    market.quoteAdjustmentPct = roundPercent((marketProbability - fairProbability) * model.market.quoteAdjustmentSensitivity);
+    notes.push("Prediction market is modeled as a pricing and monitoring signal, not as claims-paying capital.");
+  }
+
+  if (model.tranches) {
+    const tranches = trancheExpectedLosses(distribution.claims, model.tranches);
+    const junior = tranches.find((tranche) => tranche.id === "junior-sidecar");
+    const senior = tranches.find((tranche) => tranche.id === "senior-sidecar");
+    market.trancheCount = tranches.length;
+    market.juniorExpectedLossPct = junior?.expectedLossPct ?? null;
+    market.seniorExpectedLossPct = senior?.expectedLossPct ?? null;
+    market.maxTrancheP995LossPct = Math.max(...tranches.map((tranche) => tranche.p995LossPct));
+    notes.push(...tranches.map((tranche) =>
+      `${tranche.label}: attaches at ${tranche.attachmentUsd} USD, expected loss ${tranche.expectedLossPct}%, p99.5 impairment ${tranche.p995LossPct}%.`,
+    ));
+  }
+
+  if (model.parametric) {
+    market.triggerFrequencyPct = roundPercent(model.parametric.eventFrequency * model.scale.frequencyMultiplier);
+    market.benefitUsd = model.parametric.benefitUsd;
+    market.premiumPerMemberUsd = model.parametric.premiumPerMemberUsd;
+    notes.push("Parametric benefit pays fast, but may underpay or overpay relative to the actual medical bill.");
+  }
+
+  if (model.rebate) {
+    const surplus = Math.max(0, evaluated.expectedSurplusUsd);
+    const memberRebatePoolUsd = roundMoney(surplus * (model.rebate.memberSurplusSharePct / 100));
+    market.memberRebatePoolUsd = memberRebatePoolUsd;
+    market.expectedRebatePerMemberUsd = roundMoney(memberRebatePoolUsd / model.scale.members);
+    market.backerSurplusSharePct = model.rebate.backerSurplusSharePct;
+    notes.push("Rebate is modeled only from expected surplus; production would pay it after claim runout and reserve lock.");
+  }
+
+  if (model.kind === "pure_pay_anything_pool") {
+    market.promisedCapUsd = model.purePool?.promisedCapUsd ?? assumptions.product.maxMemberCapUsd;
+    market.averagePremiumRatePct = portfolio.activeCoverageLimitUsd > 0
+      ? roundPercent(portfolio.grossPremiumUsd / portfolio.activeCoverageLimitUsd)
+      : 0;
+    notes.push("This intentionally fails because pricing is no longer risk-proportional.");
+  }
+
+  return {
+    id: model.id,
+    name: model.name,
+    kind: model.kind,
+    verdict: verdictFor(model, evaluated.launchGate),
+    launchGate: evaluated.launchGate,
+    oneLine: model.oneLine,
+    memberOffering: model.memberOffering,
+    marketMechanism: model.marketMechanism,
+    productionBoundary: model.productionBoundary,
+    firstPrinciples: hybridFirstPrinciples(model),
+    policyDesign: hybridPolicyDesign(model),
+    offering: {
+      members: model.scale.members,
+      averagePremiumUsd: portfolio.averagePremiumUsd,
+      averageCoverageCapUsd: portfolio.averageCoverageCapUsd,
+      activeCoverageLimitUsd: portfolio.activeCoverageLimitUsd,
+      memberBudgetRangeUsd: budgetRange(model.scale.budgetMix),
+    },
+    actuarial: {
+      grossPremiumUsd: portfolio.grossPremiumUsd,
+      claimsPayingReserveUsd: evaluated.claimsPayingReserveUsd,
+      expectedClaimsUsd: distribution.averageClaimsUsd,
+      expectedLossRatioPct,
+      p95ClaimsUsd: distribution.p95ClaimsUsd,
+      p99ClaimsUsd: distribution.p99ClaimsUsd,
+      p995ClaimsUsd: distribution.p995ClaimsUsd,
+      reserveBreachProbability: distribution.reserveBreachProbability,
+      reserveToActiveLimitPct: portfolio.activeCoverageLimitUsd > 0
+        ? roundPercent(evaluated.claimsPayingReserveUsd / portfolio.activeCoverageLimitUsd)
+        : 0,
+      additionalReserveNeededUsd: evaluated.additionalReserveNeededUsd,
+      reserveFloorAdditionalNeededUsd: evaluated.reserveFloorAdditionalNeededUsd,
+      expectedSurplusUsd: evaluated.expectedSurplusUsd,
+    },
+    market,
+    scaleChecks: [
+      buildScaleCheck({
+        assumptions,
+        model,
+        label: "launch scale",
+        memberFactor: 1,
+        capitalFactor: 1,
+        seedOffset: seedOffset + 1_000,
+      }),
+      buildScaleCheck({
+        assumptions,
+        model,
+        label: "3x demand with matching capital",
+        memberFactor: 3,
+        capitalFactor: 3,
+        seedOffset: seedOffset + 2_000,
+      }),
+      buildScaleCheck({
+        assumptions,
+        model,
+        label: "3x demand with launch capital",
+        memberFactor: 3,
+        capitalFactor: 1,
+        seedOffset: seedOffset + 3_000,
+      }),
+    ],
+    notes,
+  };
+}
+
+function buildHybridModelResults(assumptions: Assumptions): HybridModelResult[] {
+  return assumptions.hybridModels.map((model, index) => buildHybridModelResult(assumptions, model, index));
+}
+
 function buildMemo(output: ReturnType<typeof buildOutput>, assumptions: Assumptions): string {
   const sample = output.quoteTables[0]!;
   const micro = sample.quotes.find((quote) => quote.budgetUsd === assumptions.product.minMemberBudgetUsd)!;
@@ -1000,6 +1640,9 @@ function buildMemo(output: ReturnType<typeof buildOutput>, assumptions: Assumpti
   ).join("\n");
   const claimRows = output.endToEndPoc.claimDecisions.map((claim) =>
     `| ${claim.claimId} | ${claim.member} | ${claim.decision} | ${claim.denialReason ?? "none"} | ${claim.approvedUsd} | ${claim.deniedOverCapUsd} | ${claim.remainingCapAfterUsd} |`,
+  ).join("\n");
+  const hybridRows = output.hybridModelResults.map((model) =>
+    `| ${model.name} | ${model.verdict} | ${model.launchGate} | ${model.offering.members} | ${model.offering.averagePremiumUsd} | ${model.offering.averageCoverageCapUsd} | ${model.actuarial.expectedLossRatioPct}% | ${model.actuarial.p995ClaimsUsd} | ${model.actuarial.claimsPayingReserveUsd} |`,
   ).join("\n");
 
   return `# Nomad Protect Curve PoC
@@ -1025,6 +1668,14 @@ ${quoteRows}
 | Scenario | Gate | Members | Premium | Active Cover Limit | p99.5 or Stress Claims | Reserve | Extra Reserve |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 ${scenarioRows}
+
+## Hybrid Model Snapshot
+
+| Model | Verdict | Gate | Members | Avg Premium | Avg Cap | Expected Loss Ratio | p99.5 Claims | Reserve |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+${hybridRows}
+
+See \`hybrid-model-report.md\` for the full first-principles model comparison, scale checks, and plain-language explanation.
 
 ## End-to-End Production Logic Drill
 
@@ -1066,10 +1717,134 @@ ${assumptions.methodLimitations.map((limit) => `- ${limit}`).join("\n")}
 `;
 }
 
+function buildHybridModelReport(output: ReturnType<typeof buildOutput>, assumptions: Assumptions): string {
+  const rows = output.hybridModelResults.map((model) =>
+    `| ${model.name} | ${model.verdict} | ${model.launchGate} | ${model.offering.members} | ${model.offering.averagePremiumUsd} | ${model.offering.averageCoverageCapUsd} | ${model.actuarial.expectedLossRatioPct}% | ${model.actuarial.p995ClaimsUsd} | ${model.actuarial.claimsPayingReserveUsd} |`,
+  ).join("\n");
+  const scaleRows = output.hybridModelResults.flatMap((model) =>
+    model.scaleChecks.map((scale) =>
+      `| ${model.name} | ${scale.label} | ${scale.launchGate} | ${scale.members} | ${scale.riskBackerCapitalUsd} | ${scale.activeCoverageLimitUsd} | ${scale.p995ClaimsUsd} | ${scale.claimsPayingReserveUsd} | ${scale.reserveToActiveLimitPct}% |`,
+    ),
+  ).join("\n");
+  const modelSections = output.hybridModelResults.map((model, index) => {
+    const marketRows = Object.entries(model.market).map(([key, value]) =>
+      `| ${key} | ${value ?? "n/a"} |`,
+    ).join("\n");
+    return `## Model ${index + 1}: ${model.name}
+
+**Verdict:** ${model.verdict}. **Launch gate:** ${model.launchGate}.
+
+${model.oneLine}
+
+### Offering
+
+- ${model.memberOffering}
+- Members modeled: ${model.offering.members}.
+- Average premium: ${model.offering.averagePremiumUsd} USD.
+- Average coverage cap: ${model.offering.averageCoverageCapUsd} USD.
+- Active coverage limit: ${model.offering.activeCoverageLimitUsd} USD.
+- Budget range: ${model.offering.memberBudgetRangeUsd[0]}-${model.offering.memberBudgetRangeUsd[1]} USD.
+
+### Market Design
+
+${model.marketMechanism}
+
+Production boundary: ${model.productionBoundary}
+
+| Market Field | Value |
+| --- | ---: |
+${marketRows}
+
+### Actuarial Output
+
+| Metric | Value |
+| --- | ---: |
+| Gross premium | ${model.actuarial.grossPremiumUsd} |
+| Expected claims | ${model.actuarial.expectedClaimsUsd} |
+| Expected loss ratio | ${model.actuarial.expectedLossRatioPct}% |
+| p95 claims | ${model.actuarial.p95ClaimsUsd} |
+| p99 claims | ${model.actuarial.p99ClaimsUsd} |
+| p99.5 claims | ${model.actuarial.p995ClaimsUsd} |
+| Claims-paying reserve | ${model.actuarial.claimsPayingReserveUsd} |
+| Reserve breach probability | ${model.actuarial.reserveBreachProbability} |
+| Extra p99.5 reserve needed | ${model.actuarial.additionalReserveNeededUsd} |
+| Extra reserve-floor capital needed | ${model.actuarial.reserveFloorAdditionalNeededUsd} |
+| Expected surplus | ${model.actuarial.expectedSurplusUsd} |
+
+### First Principles
+
+${model.firstPrinciples.map((item) => `- ${item}`).join("\n")}
+
+### Policy Design
+
+${model.policyDesign.map((item) => `- ${item}`).join("\n")}
+
+${model.notes.length > 0 ? `### Notes\n\n${model.notes.map((item) => `- ${item}`).join("\n")}\n` : ""}`;
+  }).join("\n");
+
+  return `# Hybrid Insurance + Prediction Market Models
+
+Generated: ${output.generatedAt}
+
+## Decision
+
+A mix is viable, but not as one undifferentiated pool. The first-principles split is:
+
+- Member side: insurance-grade coverage promise with a signed quote, fixed cap, defined window, waiting periods, exclusions, and claims adjudication.
+- Market side: prediction/capital mechanism that prices aggregate risk, supplies backstop capital, or distributes surplus, without deciding individual claims.
+- Protocol side: reserve gates, p99.5 stress checks, capital release rules, fraud controls, and regulatory wrapper boundaries.
+
+The best product shape is not "prediction market replaces insurance." It is "insurance entitlement plus market-priced risk capital."
+
+## Model Scoreboard
+
+| Model | Verdict | Gate | Members | Avg Premium | Avg Cap | Expected Loss Ratio | p99.5 Claims | Reserve |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+${rows}
+
+## Scale Checks
+
+| Model | Scale | Gate | Members | Backer Capital | Active Cover Limit | p99.5 Claims | Reserve | Reserve / Active Limit |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+${scaleRows}
+
+${modelSections}
+
+## Simple Language Summary
+
+1. The cleanest viable version is: users buy capped cover; backers can deposit any amount; the curve adjusts how much cover a budget buys.
+2. A prediction market can help if it predicts aggregate pool losses, reserve stress, or backer pricing. It should not vote on whether Josip's hospital bill gets paid.
+3. The sidecar vault is the most finance-native model. It can scale capital, but it needs the strongest legal wrapper.
+4. Parametric fast cash is the simplest consumer product: 15 USD buys a small fixed payout if a clear trigger happens. It is fast, but not full health insurance.
+5. Mutual rebates are friendlier than speculation: members get upside when the month is healthy, after reserves are safe.
+6. The pure pay-anything pool fails. It grows fast in a pitch, then breaks because the same 3000 USD promise is sold for 15 USD and 159 USD.
+
+## Source Notes
+
+- NAIC risk-based capital: insurers should hold capital in proportion to size and risk, and capital requirements exist so policyholder promises can be paid.
+- NAIC consumer health guidance: health insurance is a premium-for-benefits arrangement, not a promise that every bill is fully paid.
+- CFTC prediction-market guidance: event contracts are generally yes/no or outcome-linked contracts whose prices express perceived probabilities; regulated markets are expected to be neutral platforms, not counterparties taking the other side of users.
+- CFTC 2026 prediction-market releases: the event-contract framework is actively evolving, so any real deployment needs current legal review.
+
+## Sources
+
+- NAIC Risk-Based Capital: https://content.naic.org/insurance-topics/risk-based-capital
+- NAIC Health Insurance Consumer Guide: https://content.naic.org/consumer/health-insurance.htm
+- CFTC Prediction Markets and Event Contracts: https://www.cftc.gov/LearnandProtect/PredictionMarkets
+- CFTC Prediction Markets Advisory, March 12, 2026: https://www.cftc.gov/PressRoom/PressReleases/9193-26
+- CFTC Prediction Markets ANPRM, March 12, 2026: https://www.cftc.gov/PressRoom/PressReleases/9194-26
+
+## Limits
+
+${assumptions.methodLimitations.map((limit) => `- ${limit}`).join("\n")}
+`;
+}
+
 function buildOutput() {
   const assumptions = readJson<Assumptions>(ASSUMPTIONS_PATH);
   const quoteTables = buildQuoteTables(assumptions);
   const endToEndPoc = buildEndToEndPoc(assumptions);
+  const hybridModelResults = buildHybridModelResults(assumptions);
   const scenarioResults = assumptions.scenarios.map((scenario, index) => {
     if (scenario.type === "independent_claims") {
       return evaluateIndependentScenario(scenario, assumptions, 1000 + index * 7919);
@@ -1102,6 +1877,7 @@ function buildOutput() {
     },
     quoteTables,
     scenarioResults,
+    hybridModelResults,
     endToEndPoc,
     methodLimitations: assumptions.methodLimitations,
   };
@@ -1110,5 +1886,7 @@ function buildOutput() {
 const output = buildOutput();
 writeFileSync(OUTPUT_PATH, `${JSON.stringify(output, null, 2)}\n`);
 writeFileSync(MEMO_PATH, buildMemo(output, readJson<Assumptions>(ASSUMPTIONS_PATH)));
+writeFileSync(HYBRID_REPORT_PATH, buildHybridModelReport(output, readJson<Assumptions>(ASSUMPTIONS_PATH)));
 console.log("Generated examples/nomad-protect-curve-poc/review-output.json");
 console.log("Generated examples/nomad-protect-curve-poc/review-memo.md");
+console.log("Generated examples/nomad-protect-curve-poc/hybrid-model-report.md");
