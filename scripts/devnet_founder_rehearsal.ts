@@ -998,9 +998,11 @@ async function ensureLiquidityPool(
     {
       poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
       reserveDomain: reserveDomain.toBase58(),
-      depositAssetMint: usdc.mint.toBase58(),
     },
   );
+  const poolDepositAssetMint = existingPool
+    ? new PublicKey(existingPool.depositAssetMint)
+    : usdc.mint;
   if (!existingPool) {
     await sendSignedTransaction(ctx, {
       label: `create_liquidity_pool:${CANONICAL_FOUNDER_REHEARSAL_IDS.poolId}`,
@@ -1041,7 +1043,7 @@ async function ensureLiquidityPool(
       tx: protocol.buildCreateCapitalClassTx({
         authority: ctx.governance.publicKey,
         poolAddress: pool,
-        poolDepositAssetMint: usdc.mint,
+        poolDepositAssetMint,
         classId,
         displayName: "Founder Travel30 Waterfall Class",
         shareMint: null,
