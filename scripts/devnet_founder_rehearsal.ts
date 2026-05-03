@@ -2053,15 +2053,37 @@ async function simulateExpectedFailure(
   tx.feePayer = tx.feePayer ?? signers[0]?.publicKey;
   tx.recentBlockhash = latest.blockhash;
   tx.sign(...uniqueKeypairs(signers));
-  const result = await ctx.connection.simulateTransaction(tx);
-  if (!result.value.err) {
+  const encodedTransaction = Buffer.from(
+    tx.serialize({
+      requireAllSignatures: true,
+      verifySignatures: false,
+    }),
+  ).toString("base64");
+  const response = await (
+    ctx.connection as unknown as {
+      _rpcRequest(methodName: string, args: unknown[]): Promise<{
+        error?: unknown;
+        result?: {
+          value?: {
+            err?: unknown;
+            logs?: string[];
+          };
+        };
+      }>;
+    }
+  )._rpcRequest("simulateTransaction", [
+    encodedTransaction,
+    { commitment: "confirmed", encoding: "base64", sigVerify: true },
+  ]);
+  const err = response.error ?? response.result?.value?.err;
+  if (!err) {
     throw new Error(`Negative simulation unexpectedly passed: ${label}`);
   }
   ctx.negativeSimulations.push({
     label,
     expectedFailure: "program/client rejection",
-    err: result.value.err,
-    logs: result.value.logs ?? [],
+    err,
+    logs: response.result?.value?.logs ?? [],
   });
   console.log(`[founder-rehearsal] negative:${label}: expected failure`);
 }
