@@ -5789,6 +5789,40 @@
           "optional": false
         },
         {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "campaign",
           "writable": true,
           "signer": false,
@@ -12342,6 +12376,12 @@
         },
         {
           "name": "pool_oracle_policy",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "oracle_fee_attestation",
           "writable": false,
           "signer": false,
           "optional": true

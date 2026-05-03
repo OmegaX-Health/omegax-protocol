@@ -1002,8 +1002,12 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
       acceptedTermsHashHex: termsHashHex,
     });
     const depositIx = assertProtocolTxInstruction(depositTx, "deposit_commitment");
-    assert.equal(depositIx.keys[5]!.pubkey.toBase58(), pendingPosition);
-    assert.equal(depositIx.keys[6]!.pubkey.toBase58(), deriveDomainAssetVaultPda({
+    assert.equal(depositIx.keys[5]!.pubkey.toBase58(), deriveCommitmentLedgerPda({
+      campaign,
+      paymentAssetMint: usdcRail.mint,
+    }).toBase58());
+    assert.equal(depositIx.keys[6]!.pubkey.toBase58(), pendingPosition);
+    assert.equal(depositIx.keys[7]!.pubkey.toBase58(), deriveDomainAssetVaultPda({
       reserveDomain: genesisPlan.reserveDomain,
       assetMint: usdcRail.mint,
     }).toBase58());

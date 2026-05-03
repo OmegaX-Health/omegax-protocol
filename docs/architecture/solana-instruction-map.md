@@ -58,7 +58,7 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `publish_reserve_asset_rail_price` | publish governance/oracle-approved reserve asset pricing used by mixed-reserve capacity checks |
 | `create_commitment_campaign` | create a Founder-style pre-activation commitment campaign and its first payment rail |
 | `create_commitment_payment_rail` | add another accepted payment asset to the same commitment campaign without splitting campaign treasury accounting |
-| `deposit_commitment` | transfer committed tokens into the existing domain asset vault without increasing claims-paying reserve ledgers |
+| `deposit_commitment` | transfer committed tokens into the existing domain asset vault without increasing claims-paying reserve ledgers; blocked by the global emergency pause |
 | `activate_direct_premium_commitment` | move a same-mint pending commitment into premium reserve accounting |
 | `activate_treasury_credit_commitment` | legacy path to lock already posted stable capacity for a treasury-credit commitment |
 | `activate_waterfall_commitment` | activate a commitment into mixed-reserve accounting only when the payment asset rail has enabled reserve capacity |
@@ -70,9 +70,9 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `release_reserve` | release reserved liability back to free capital and mirror linked protection-claim reserve state |
 | `open_claim_case` | open an explicit claim lifecycle from the enrolled member wallet or a plan claim/operator path |
 | `attach_claim_evidence_ref` | attach evidence and decision-support references |
-| `attest_claim_case` | anchor a verified-schema oracle attestation against the claim's locked evidence hash; LP-allocation claims also require pool oracle approval and `ATTEST_CLAIM` permission |
+| `attest_claim_case` | anchor a verified-schema oracle attestation against the claim's locked evidence hash; non-LP claims require the plan oracle authority, while LP-allocation claims require pool oracle approval and `ATTEST_CLAIM` permission |
 | `adjudicate_claim_case` | approve or deny a claim case and optionally bind it to the matching `Obligation` |
-| `settle_claim_case` | settle approved claim payouts through the reserve kernel only when no linked `Obligation` exists |
+| `settle_claim_case` | settle approved claim payouts through the reserve kernel only when no linked `Obligation` exists; fee carve-outs must leave a positive net payout and oracle-fee accrual must bind to the attesting `ClaimAttestation` |
 | `mark_impairment` | record impairment against the affected ledgers and optional obligation |
 
 ## Capital Surface

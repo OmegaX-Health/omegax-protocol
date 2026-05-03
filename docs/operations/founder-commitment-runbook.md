@@ -28,6 +28,7 @@ Founder Travel30 commitments are a temporary launch flow for collecting intent a
 
 - The public protocol helper exports PDA derivation and transaction builders for reserve-asset rail configuration/pricing, `create_commitment_campaign`, `create_commitment_payment_rail`, `deposit_commitment`, direct/treasury/waterfall activation, `refund_commitment`, and `pause_commitment_campaign`.
 - These builders are public-safe primitives for operator surfaces and backend transaction preparation. They are not a buyer checkout in this repository.
+- `deposit_commitment` carries the protocol governance PDA and is blocked by global emergency pause; `refund_commitment` remains the safe exit path for still-pending positions.
 - The Genesis setup panel surfaces the Founder Travel30 campaign, payment rail count, pending custody, pending coverage, waterfall activation, legacy treasury inventory, and refunds separately from claims-paying reserve.
 - The operator console must continue to show pending commitment reserve impact as `0` until the activation authority executes a valid activation path.
 - RWA policy metadata and parsers remain in the repo for future legal/product work, but active launch UX and default devnet fixtures hide RWA pathways unless a deliberate future flag enables them.

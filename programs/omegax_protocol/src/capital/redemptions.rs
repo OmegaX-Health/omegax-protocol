@@ -108,7 +108,12 @@ pub(crate) fn process_redemption_queue(
         OmegaXProtocolError::FeeVaultMismatch
     );
     let exit_fee = fee_share_from_bps(asset_amount, class_fee_bps)?;
+    require!(
+        exit_fee < asset_amount,
+        OmegaXProtocolError::FeeVaultBpsMisconfigured
+    );
     let net_to_lp = checked_sub(asset_amount, exit_fee)?;
+    require_positive_amount(net_to_lp)?;
 
     ctx.accounts.lp_position.pending_redemption_shares = checked_sub(
         ctx.accounts.lp_position.pending_redemption_shares,

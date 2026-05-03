@@ -17,7 +17,7 @@ pub(crate) fn initialize_protocol_governance(
     args: InitializeProtocolGovernanceArgs,
 ) -> Result<()> {
     require!(
-        args.protocol_fee_bps <= 10_000,
+        args.protocol_fee_bps <= MAX_CONFIGURED_FEE_BPS,
         OmegaXProtocolError::InvalidBps
     );
 

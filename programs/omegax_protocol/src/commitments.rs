@@ -282,6 +282,7 @@ pub(crate) fn deposit_commitment(
     ctx: Context<DepositCommitment>,
     args: DepositCommitmentArgs,
 ) -> Result<()> {
+    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_commitment_campaign_active(&ctx.accounts.campaign)?;
     require!(
         args.accepted_terms_hash == ctx.accounts.campaign.terms_hash,
@@ -1090,6 +1091,8 @@ pub struct CreateCommitmentPaymentRail<'info> {
 pub struct DepositCommitment<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
     #[account(mut, seeds = [SEED_COMMITMENT_CAMPAIGN, campaign.health_plan.as_ref(), campaign.campaign_id.as_bytes()], bump = campaign.bump)]
     pub campaign: Box<Account<'info, CommitmentCampaign>>,
     #[account(seeds = [SEED_COMMITMENT_PAYMENT_RAIL, campaign.key().as_ref(), payment_rail.payment_asset_mint.as_ref()], bump = payment_rail.bump)]

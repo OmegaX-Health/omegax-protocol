@@ -272,19 +272,20 @@ test("deposit, refund, and pause commitment builders keep commitment custody out
     acceptedTermsHashHex: TERMS_HASH,
   });
   const depositIx = assertProtocolIxShape(depositTx, "deposit_commitment", DEPOSITOR);
-  assert.equal(depositIx.keys.length, 12);
-  assert.equal(depositIx.keys[1]!.pubkey.toBase58(), campaign.toBase58());
-  assert.equal(depositIx.keys[2]!.pubkey.toBase58(), paymentRail.toBase58());
-  assert.equal(depositIx.keys[3]!.pubkey.toBase58(), reserveAssetRail.toBase58());
-  assert.equal(depositIx.keys[4]!.pubkey.toBase58(), ledger.toBase58());
-  assert.equal(depositIx.keys[5]!.pubkey.toBase58(), position.toBase58());
+  assert.equal(depositIx.keys.length, 13);
+  assert.equal(depositIx.keys[1]!.pubkey.toBase58(), deriveProtocolGovernancePda().toBase58());
+  assert.equal(depositIx.keys[2]!.pubkey.toBase58(), campaign.toBase58());
+  assert.equal(depositIx.keys[3]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(depositIx.keys[4]!.pubkey.toBase58(), reserveAssetRail.toBase58());
+  assert.equal(depositIx.keys[5]!.pubkey.toBase58(), ledger.toBase58());
+  assert.equal(depositIx.keys[6]!.pubkey.toBase58(), position.toBase58());
   assert.equal(
-    depositIx.keys[6]!.pubkey.toBase58(),
+    depositIx.keys[7]!.pubkey.toBase58(),
     deriveDomainAssetVaultPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: paymentMint }).toBase58(),
   );
-  assert.equal(depositIx.keys[7]!.pubkey.toBase58(), SOURCE_TOKEN_ACCOUNT.toBase58());
+  assert.equal(depositIx.keys[8]!.pubkey.toBase58(), SOURCE_TOKEN_ACCOUNT.toBase58());
   assert.equal(
-    depositIx.keys[9]!.pubkey.toBase58(),
+    depositIx.keys[10]!.pubkey.toBase58(),
     deriveDomainAssetVaultTokenAccountPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: paymentMint }).toBase58(),
   );
 

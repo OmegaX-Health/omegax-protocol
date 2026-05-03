@@ -4838,6 +4838,7 @@ export function buildDepositCommitmentTx(params: {
     },
     accounts: [
       { pubkey: depositor, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: campaign, isWritable: true },
       { pubkey: paymentRail },
       { pubkey: reserveAssetRail },
@@ -5760,6 +5761,8 @@ export function buildSettleClaimCaseTx(params: {
   poolAssetMint?: PublicKeyish | null;
   poolOracleFeeVaultAddress?: PublicKeyish | null;
   poolOraclePolicyAddress?: PublicKeyish | null;
+  oracleFeeAttestationAddress?: PublicKeyish | null;
+  oracleFeeAddress?: PublicKeyish | null;
   memberPositionAddress?: PublicKeyish | null;
   vaultTokenAccountAddress?: PublicKeyish | null;
   recipientTokenAccountAddress?: PublicKeyish | null;
@@ -5767,6 +5770,14 @@ export function buildSettleClaimCaseTx(params: {
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
+  const oracleFeeAttestation = params.oracleFeeAttestationAddress
+    ? toPublicKey(params.oracleFeeAttestationAddress)
+    : params.oracleFeeAddress
+      ? deriveClaimAttestationPda({
+        claimCase: params.claimCaseAddress,
+        oracle: params.oracleFeeAddress,
+      })
+      : null;
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -5820,6 +5831,7 @@ export function buildSettleClaimCaseTx(params: {
       },
       optionalProtocolAccount(params.poolOracleFeeVaultAddress, true),
       optionalProtocolAccount(params.poolOraclePolicyAddress),
+      optionalProtocolAccount(oracleFeeAttestation),
       optionalProtocolAccount(params.memberPositionAddress),
       { pubkey: params.assetMint },
       optionalProtocolAccount(params.vaultTokenAccountAddress, true),

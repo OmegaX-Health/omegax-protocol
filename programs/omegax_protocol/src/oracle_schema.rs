@@ -191,7 +191,7 @@ pub(crate) fn set_pool_oracle_policy(
         OmegaXProtocolError::InvalidOracleQuorum
     );
     require!(
-        args.oracle_fee_bps <= 10_000,
+        args.oracle_fee_bps <= MAX_CONFIGURED_FEE_BPS,
         OmegaXProtocolError::InvalidBps
     );
 

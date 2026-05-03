@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: d7daf306f61df6768b9737724ce9f09c0dee8582274b7f93b18e107bfad4bdc3
+// contract_sha256: 7c17f469236ac2b62a4e33bebee7cb8073c223665cba532219f504ccae96aa1c
 export const PROTOCOL_PROGRAM_ID = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B";
 export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
     "activate_direct_premium_commitment": Uint8Array.from([94, 177, 11, 111, 30, 246, 181, 78]),
@@ -501,6 +501,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
     ],
     "deposit_commitment": [
         { name: "depositor", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+        { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
         { name: "campaign", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 109, 109, 105, 116, 109, 101, 110, 116, 95, 99, 97, 109, 112, 97, 105, 103, 110] }, { kind: "account", path: "campaign.health_plan" }, { kind: "account", path: "campaign.campaign_id" }] },
         { name: "payment_rail", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 111, 109, 109, 105, 116, 109, 101, 110, 116, 95, 112, 97, 121, 109, 101, 110, 116, 95, 114, 97, 105, 108] }, { kind: "account", path: "campaign" }, { kind: "account", path: "payment_rail.payment_asset_mint" }] },
         { name: "reserve_asset_rail", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [114, 101, 115, 101, 114, 118, 101, 95, 97, 115, 115, 101, 116, 95, 114, 97, 105, 108] }, { kind: "account", path: "campaign.reserve_domain" }, { kind: "account", path: "payment_rail.payment_asset_mint" }] },
@@ -782,6 +783,7 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
         { name: "protocol_fee_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 102, 101, 101, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "funding_line.asset_mint" }] },
         { name: "pool_oracle_fee_vault", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
         { name: "pool_oracle_policy", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "oracle_fee_attestation", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
         { name: "member_position", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
