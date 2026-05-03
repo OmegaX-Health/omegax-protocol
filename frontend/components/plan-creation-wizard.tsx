@@ -176,8 +176,8 @@ const STEP_COPY: Record<StepId, StepCopy> = {
   verification: {
     headline: "Choose who verifies",
     emphasis: "outcomes.",
-    body: "The verifiers and quorum you pick decide when rewards unlock and when claims pay out.",
-    tip: "Pick enough verifiers to avoid single-operator risk, but keep the quorum simple.",
+    body: "The verifiers you pick define who may attest outcomes; quorum is recorded for the future finality layer.",
+    tip: "Pick enough verifiers to avoid single-operator risk, but keep the launch quorum simple.",
   },
   "reward-lane": {
     headline: "Set up your",

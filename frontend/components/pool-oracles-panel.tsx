@@ -402,7 +402,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         </div>
 
         <p className="field-help">
-          Approvals + quorum determine who can vote on outcomes and settle claims for this pool.
+          Approvals and permissions define which oracles may attest for this pool; quorum is recorded for the future finality layer.
         </p>
 
         <div className="flex flex-wrap gap-2">
