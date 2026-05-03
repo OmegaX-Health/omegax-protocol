@@ -96,6 +96,7 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
     instructions: [
       "create_health_plan",
       "create_policy_series",
+      "initialize_series_reserve_ledger",
       "version_policy_series",
       "open_member_position",
       "update_member_eligibility",
