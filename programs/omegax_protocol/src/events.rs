@@ -65,12 +65,45 @@ pub struct FundingFlowRecordedEvent {
 }
 
 #[event]
+pub struct ReserveAssetRailConfiguredEvent {
+    pub reserve_domain: Pubkey,
+    pub reserve_asset_rail: Pubkey,
+    pub asset_mint: Pubkey,
+    pub role: u8,
+    pub payout_priority: u8,
+    pub oracle_source: u8,
+    pub active: bool,
+    pub reason_hash: [u8; 32],
+}
+
+#[event]
+pub struct ReserveAssetRailPricePublishedEvent {
+    pub reserve_asset_rail: Pubkey,
+    pub asset_mint: Pubkey,
+    pub oracle_authority: Pubkey,
+    pub price_usd_1e8: u64,
+    pub confidence_bps: u16,
+    pub published_at_ts: i64,
+    pub proof_hash: [u8; 32],
+}
+
+#[event]
 pub struct CommitmentCampaignCreatedEvent {
     pub campaign: Pubkey,
     pub health_plan: Pubkey,
     pub funding_line: Pubkey,
     pub payment_asset_mint: Pubkey,
     pub coverage_asset_mint: Pubkey,
+    pub mode: u8,
+}
+
+#[event]
+pub struct CommitmentPaymentRailCreatedEvent {
+    pub campaign: Pubkey,
+    pub payment_rail: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub reserve_asset_rail: Pubkey,
     pub mode: u8,
 }
 

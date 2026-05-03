@@ -61,6 +61,8 @@ function commitmentModeLabel(mode: number): string {
       return "DIRECT_PREMIUM";
     case 1:
       return "TREASURY_CREDIT";
+    case 2:
+      return "WATERFALL_RESERVE";
     default:
       return `MODE_${mode}`;
   }
@@ -257,18 +259,27 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
           <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">lock</span>
           <p>
             <strong>Founder Travel30 commitment mode.</strong>{" "}
-            Pending deposits are shown as custody or treasury inventory here and stay out of claims-paying reserve until activation.
+            Pending deposits are shown as custody or rail inventory here and stay out of claims-paying reserve until activation.
           </p>
         </div>
 
         <div className="plans-settings-grid">
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">Commitment campaigns</span>
-              <span className="plans-settings-lane">Founder Travel30 campaigns currently visible to the protocol console</span>
+              <span className="plans-settings-label">Commitment campaign</span>
+              <span className="plans-settings-lane">Founder Travel30 campaign visibility in the protocol console</span>
             </div>
             <span className="plans-settings-address">
               {props.model.founderCommitments.activeCampaignCount}/{props.model.founderCommitments.campaignCount} active
+            </span>
+          </div>
+          <div className="plans-settings-row">
+            <div>
+              <span className="plans-settings-label">Payment rails</span>
+              <span className="plans-settings-lane">Accepted assets under the same Founder campaign, not split treasury campaigns</span>
+            </div>
+            <span className="plans-settings-address">
+              {props.model.founderCommitments.waterfallRailCount}/{props.model.founderCommitments.paymentRailCount} waterfall
             </span>
           </div>
           <div className="plans-settings-row">
@@ -295,7 +306,7 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
           <div className="plans-settings-row">
             <div>
               <span className="plans-settings-label">Treasury inventory</span>
-              <span className="plans-settings-lane">OMEGAX-style treasury-credit amount locked as inventory after activation</span>
+              <span className="plans-settings-lane">Legacy treasury-credit amount locked as inventory after activation</span>
             </div>
             <span className="plans-settings-address">{formatAmount(props.model.founderCommitments.treasuryInventoryAmount)}</span>
           </div>
@@ -315,7 +326,9 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-[var(--foreground)]">{row.displayName}</p>
-                    <p className="field-help">{row.campaignId} · {commitmentModeLabel(row.mode)}</p>
+                    <p className="field-help">
+                      {row.campaignId} · {commitmentModeLabel(row.mode)} · {row.paymentRailCount} rail{row.paymentRailCount === 1 ? "" : "s"}
+                    </p>
                   </div>
                   <span className={`status-pill ${row.status === 1 ? "status-ok" : "status-off"}`}>
                     status={row.status}
@@ -333,6 +346,10 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
                   <div className="plans-settings-row">
                     <span className="plans-settings-label">Treasury locked</span>
                     <span className="plans-settings-address">{formatAmount(row.treasuryLockedAmount)}</span>
+                  </div>
+                  <div className="plans-settings-row">
+                    <span className="plans-settings-label">Waterfall rails</span>
+                    <span className="plans-settings-address">{formatAmount(row.waterfallRailCount)}</span>
                   </div>
                   <div className="plans-settings-row">
                     <span className="plans-settings-label">Refunded</span>

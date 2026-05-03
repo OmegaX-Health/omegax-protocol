@@ -11,6 +11,7 @@ import type {
   ClaimCaseSnapshot,
   CommitmentCampaignSnapshot,
   CommitmentLedgerSnapshot,
+  CommitmentPaymentRailSnapshot,
   CommitmentPositionSnapshot,
   ObligationSnapshot,
   ProtocolConsoleSnapshot,
@@ -35,22 +36,23 @@ const {
   CLAIM_INTAKE_OPEN,
   CLAIM_INTAKE_SETTLED,
   COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
-  COMMITMENT_MODE_DIRECT_PREMIUM,
-  COMMITMENT_MODE_TREASURY_CREDIT,
+  COMMITMENT_MODE_WATERFALL_RESERVE,
   COMMITMENT_POSITION_PENDING,
-  COMMITMENT_POSITION_TREASURY_LOCKED,
+  COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
   OBLIGATION_DELIVERY_MODE_CLAIMABLE,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   OBLIGATION_STATUS_SETTLED,
   deriveCommitmentCampaignPda,
   deriveCommitmentLedgerPda,
+  deriveCommitmentPaymentRailPda,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 function cloneFixtureSnapshot(): ProtocolConsoleSnapshot {
   const snapshot = structuredClone(DEVNET_PROTOCOL_FIXTURE_STATE) as unknown as ProtocolConsoleSnapshot;
   snapshot.claimAttestations = [];
   snapshot.commitmentCampaigns = [];
+  snapshot.commitmentPaymentRails = [];
   snapshot.commitmentLedgers = [];
   snapshot.commitmentPositions = [];
   return snapshot;
@@ -446,22 +448,26 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
   assert(travel30Series, "expected Genesis Travel 30 series");
   assert(travel30PremiumLine, "expected Genesis Travel 30 premium line");
 
-  const directCampaign = deriveCommitmentCampaignPda({
+  const campaign = deriveCommitmentCampaignPda({
     healthPlan: genesisPlan.address,
     campaignId: GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID,
   }).toBase58();
-  const treasuryCampaign = deriveCommitmentCampaignPda({
-    healthPlan: genesisPlan.address,
-    campaignId: "founder-travel30-omegax",
-  }).toBase58();
-  const directLedger = deriveCommitmentLedgerPda({
-    campaign: directCampaign,
+  const usdcLedger = deriveCommitmentLedgerPda({
+    campaign,
     paymentAssetMint: travel30PremiumLine.assetMint,
   }).toBase58();
-  const treasuryPaymentMint = snapshot.rewardMint;
-  const treasuryLedger = deriveCommitmentLedgerPda({
-    campaign: treasuryCampaign,
-    paymentAssetMint: treasuryPaymentMint,
+  const omegaxPaymentMint = snapshot.rewardMint;
+  const omegaxLedger = deriveCommitmentLedgerPda({
+    campaign,
+    paymentAssetMint: omegaxPaymentMint,
+  }).toBase58();
+  const usdcRail = deriveCommitmentPaymentRailPda({
+    campaign,
+    paymentAssetMint: travel30PremiumLine.assetMint,
+  }).toBase58();
+  const omegaxRail = deriveCommitmentPaymentRailPda({
+    campaign,
+    paymentAssetMint: omegaxPaymentMint,
   }).toBase58();
 
   const baseCampaign = {
@@ -486,27 +492,52 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
   snapshot.commitmentCampaigns = [
     {
       ...baseCampaign,
-      address: directCampaign,
+      address: campaign,
       campaignId: GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID,
       displayName: "Founder Travel30",
       metadataUri: "ipfs://founder-travel30",
-      mode: COMMITMENT_MODE_DIRECT_PREMIUM,
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
       paymentAssetMint: travel30PremiumLine.assetMint,
     },
-    {
-      ...baseCampaign,
-      address: treasuryCampaign,
-      campaignId: "founder-travel30-omegax",
-      displayName: "Founder Travel30 OMEGAX",
-      metadataUri: "ipfs://founder-travel30-omegax",
-      mode: COMMITMENT_MODE_TREASURY_CREDIT,
-      paymentAssetMint: treasuryPaymentMint,
-    },
   ] satisfies CommitmentCampaignSnapshot[];
+  snapshot.commitmentPaymentRails = [
+    {
+      address: usdcRail,
+      campaign,
+      reserveDomain: genesisPlan.reserveDomain,
+      paymentAssetMint: travel30PremiumLine.assetMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      reserveAssetRail: "FounderUsdcReserveRail111111111111111111111",
+      coverageFundingLine: travel30PremiumLine.address,
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+      status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+      depositAmount: 159n,
+      coverageAmount: 1_000n,
+      hardCapAmount: 159_000n,
+      auditNonce: 0n,
+      bump: 1,
+    },
+    {
+      address: omegaxRail,
+      campaign,
+      reserveDomain: genesisPlan.reserveDomain,
+      paymentAssetMint: omegaxPaymentMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      reserveAssetRail: "FounderOmegaxReserveRail1111111111111111111",
+      coverageFundingLine: travel30PremiumLine.address,
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+      status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+      depositAmount: 5_000n,
+      coverageAmount: 1_000n,
+      hardCapAmount: 5_000_000n,
+      auditNonce: 0n,
+      bump: 1,
+    },
+  ] satisfies CommitmentPaymentRailSnapshot[];
   snapshot.commitmentLedgers = [
     {
-      address: directLedger,
-      campaign: directCampaign,
+      address: usdcLedger,
+      campaign,
       paymentAssetMint: travel30PremiumLine.assetMint,
       pendingAmount: 159n,
       activatedAmount: 0n,
@@ -517,12 +548,12 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
       bump: 1,
     },
     {
-      address: treasuryLedger,
-      campaign: treasuryCampaign,
-      paymentAssetMint: treasuryPaymentMint,
+      address: omegaxLedger,
+      campaign,
+      paymentAssetMint: omegaxPaymentMint,
       pendingAmount: 0n,
-      activatedAmount: 0n,
-      treasuryLockedAmount: 5_000n,
+      activatedAmount: 5_000n,
+      treasuryLockedAmount: 0n,
       refundedAmount: 0n,
       canceledAmount: 0n,
       nextQueueIndex: 1n,
@@ -532,8 +563,8 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
   snapshot.commitmentPositions = [
     {
       address: "FounderCommitmentPosition111111111111111111111",
-      campaign: directCampaign,
-      ledger: directLedger,
+      campaign,
+      ledger: usdcLedger,
       depositor: "FounderDepositor111111111111111111111111111",
       beneficiary: "FounderBeneficiary111111111111111111111111",
       paymentAssetMint: travel30PremiumLine.assetMint,
@@ -549,17 +580,17 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
       bump: 1,
     },
     {
-      address: "FounderTreasuryPosition11111111111111111111111",
-      campaign: treasuryCampaign,
-      ledger: treasuryLedger,
+      address: "FounderOmegaxPosition111111111111111111111111",
+      campaign,
+      ledger: omegaxLedger,
       depositor: "FounderTreasuryDepositor1111111111111111111",
       beneficiary: "FounderTreasuryBeneficiary1111111111111111",
-      paymentAssetMint: treasuryPaymentMint,
+      paymentAssetMint: omegaxPaymentMint,
       coverageAssetMint: travel30PremiumLine.assetMint,
       amount: 5_000n,
       coverageAmount: 1_000n,
       queueIndex: 0n,
-      state: COMMITMENT_POSITION_TREASURY_LOCKED,
+      state: COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
       acceptedTermsHashHex: "11".repeat(32),
       paidAt: 1_770_000_002,
       activatedAt: 1_770_000_102,
@@ -571,16 +602,18 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
   const model = buildSetupModel(snapshot);
 
   assert.equal(model.claimsPayingCapital, baselineModel.claimsPayingCapital);
-  assert.equal(model.founderCommitments.campaignCount, 2);
+  assert.equal(model.founderCommitments.campaignCount, 1);
+  assert.equal(model.founderCommitments.paymentRailCount, 2);
+  assert.equal(model.founderCommitments.waterfallRailCount, 2);
   assert.equal(model.founderCommitments.pendingPositionCount, 1);
   assert.equal(model.founderCommitments.pendingCustodyAmount, 159n);
   assert.equal(model.founderCommitments.pendingCoverageAmount, 1_000n);
-  assert.equal(model.founderCommitments.treasuryInventoryAmount, 5_000n);
+  assert.equal(model.founderCommitments.treasuryInventoryAmount, 0n);
   assert.equal(model.founderCommitments.claimsPayingReserveImpact, 0n);
   assert.ok(
     model.founderCommitments.warnings.some((warning) => /do not count as claims-paying reserve/i.test(warning)),
   );
   assert.ok(
-    model.founderCommitments.warnings.some((warning) => /OMEGAX stays PDA-held inventory/i.test(warning)),
+    model.founderCommitments.warnings.some((warning) => /stable rails pay first and OMEGAX-style rails remain last/i.test(warning)),
   );
 });

@@ -44,6 +44,34 @@ pub struct DomainAssetVault {
     pub bump: u8,
 }
 
+#[account]
+#[derive(InitSpace)]
+pub struct ReserveAssetRail {
+    pub reserve_domain: Pubkey,
+    pub asset_mint: Pubkey,
+    pub oracle_authority: Pubkey,
+    #[max_len(MAX_ID_LEN)]
+    pub asset_symbol: String,
+    pub role: u8,
+    pub payout_priority: u8,
+    pub oracle_source: u8,
+    pub oracle_feed_id: [u8; 32],
+    pub max_staleness_seconds: i64,
+    pub haircut_bps: u16,
+    pub max_exposure_bps: u16,
+    pub deposit_enabled: bool,
+    pub payout_enabled: bool,
+    pub capacity_enabled: bool,
+    pub active: bool,
+    pub last_price_usd_1e8: u64,
+    pub last_price_confidence_bps: u16,
+    pub last_price_published_at_ts: i64,
+    pub last_price_slot: u64,
+    pub last_price_proof_hash: [u8; 32],
+    pub audit_nonce: u64,
+    pub bump: u8,
+}
+
 // Fee accounting account types. SPL tokens for fees physically reside in the
 // matching DomainAssetVault.vault_token_account; these accounts track each
 // rail's claim against that pool. Withdrawals decrement `withdrawn_fees` and
@@ -265,6 +293,24 @@ pub struct CommitmentCampaign {
     pub refund_after_ts: i64,
     pub expires_at_ts: i64,
     pub terms_hash: [u8; 32],
+    pub audit_nonce: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentPaymentRail {
+    pub campaign: Pubkey,
+    pub reserve_domain: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub reserve_asset_rail: Pubkey,
+    pub coverage_funding_line: Pubkey,
+    pub mode: u8,
+    pub status: u8,
+    pub deposit_amount: u64,
+    pub coverage_amount: u64,
+    pub hard_cap_amount: u64,
     pub audit_nonce: u64,
     pub bump: u8,
 }

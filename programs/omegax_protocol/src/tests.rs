@@ -355,6 +355,39 @@ fn treasury_credit_commitment_never_counts_omegax_as_stable_reserve() {
 }
 
 #[test]
+fn reserve_asset_capacity_requires_published_price() {
+    let mut rail = ReserveAssetRail {
+        reserve_domain: Pubkey::new_unique(),
+        asset_mint: Pubkey::new_unique(),
+        oracle_authority: Pubkey::new_unique(),
+        asset_symbol: "OMEGAX".to_string(),
+        role: RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
+        payout_priority: 4,
+        oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+        oracle_feed_id: [7u8; 32],
+        max_staleness_seconds: 0,
+        haircut_bps: 5_000,
+        max_exposure_bps: 1_000,
+        deposit_enabled: true,
+        payout_enabled: true,
+        capacity_enabled: true,
+        active: true,
+        last_price_usd_1e8: 0,
+        last_price_confidence_bps: 0,
+        last_price_published_at_ts: 0,
+        last_price_slot: 0,
+        last_price_proof_hash: [0u8; 32],
+        audit_nonce: 0,
+        bump: 1,
+    };
+
+    assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_err());
+
+    rail.last_price_usd_1e8 = 42_000_000;
+    assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_ok());
+}
+
+#[test]
 fn allocation_and_impairment_reduce_redeemable_before_free_hits_zero() {
     let mut sheet = ReserveBalanceSheet::default();
     book_inflow_sheet(&mut sheet, 1_000).unwrap();

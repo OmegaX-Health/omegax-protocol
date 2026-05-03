@@ -50,6 +50,34 @@ pub struct CreateDomainAssetVaultArgs {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct ConfigureReserveAssetRailArgs {
+    pub asset_mint: Pubkey,
+    pub oracle_authority: Pubkey,
+    #[max_len(MAX_ID_LEN)]
+    pub asset_symbol: String,
+    pub role: u8,
+    pub payout_priority: u8,
+    pub oracle_source: u8,
+    pub oracle_feed_id: [u8; 32],
+    pub max_staleness_seconds: i64,
+    pub haircut_bps: u16,
+    pub max_exposure_bps: u16,
+    pub deposit_enabled: bool,
+    pub payout_enabled: bool,
+    pub capacity_enabled: bool,
+    pub active: bool,
+    pub reason_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct PublishReserveAssetRailPriceArgs {
+    pub price_usd_1e8: u64,
+    pub confidence_bps: u16,
+    pub published_at_ts: i64,
+    pub proof_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct InitProtocolFeeVaultArgs {
     /// SPL mint for the fee rail. Pass `NATIVE_SOL_MINT` to bind a SOL-rail vault.
     pub asset_mint: Pubkey,
@@ -238,6 +266,18 @@ pub struct CreateCommitmentCampaignArgs {
     pub refund_after_ts: i64,
     pub expires_at_ts: i64,
     pub terms_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct CreateCommitmentPaymentRailArgs {
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub reserve_asset_rail: Pubkey,
+    pub coverage_funding_line: Pubkey,
+    pub mode: u8,
+    pub deposit_amount: u64,
+    pub coverage_amount: u64,
+    pub hard_cap_amount: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]

@@ -54,10 +54,14 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `open_funding_line` | create a sponsor, premium, LP, backstop, or subsidy funding line |
 | `fund_sponsor_budget` | transfer sponsor budget tokens into the configured domain vault and record reserve funding |
 | `record_premium_payment` | transfer premium tokens into the configured domain vault and record premium income in the reserve kernel |
-| `create_commitment_campaign` | create a Founder-style pre-activation commitment campaign for direct premium or treasury-credit mode |
+| `configure_reserve_asset_rail` | create or update an accepted reserve asset rail with role, waterfall priority, oracle source, freshness, haircut, and exposure controls |
+| `publish_reserve_asset_rail_price` | publish governance/oracle-approved reserve asset pricing used by mixed-reserve capacity checks |
+| `create_commitment_campaign` | create a Founder-style pre-activation commitment campaign and its first payment rail |
+| `create_commitment_payment_rail` | add another accepted payment asset to the same commitment campaign without splitting campaign treasury accounting |
 | `deposit_commitment` | transfer committed tokens into the existing domain asset vault without increasing claims-paying reserve ledgers |
 | `activate_direct_premium_commitment` | move a same-mint pending commitment into premium reserve accounting |
-| `activate_treasury_credit_commitment` | lock already posted stable capacity for an OMEGAX treasury-credit commitment without selling, pricing, or counting OMEGAX as stable reserve |
+| `activate_treasury_credit_commitment` | legacy path to lock already posted stable capacity for a treasury-credit commitment |
+| `activate_waterfall_commitment` | activate a commitment into mixed-reserve accounting only when the payment asset rail has enabled reserve capacity |
 | `refund_commitment` | refund a still-pending commitment in the same token amount originally deposited |
 | `pause_commitment_campaign` | pause, cancel, close, or reactivate a campaign through plan/governance control |
 | `create_obligation` | create a canonical liability unit |

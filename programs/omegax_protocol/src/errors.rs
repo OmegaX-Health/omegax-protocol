@@ -178,4 +178,26 @@ pub enum OmegaXProtocolError {
     InsufficientStableCoverageCapacity,
     #[msg("Treasury-credit commitments require distinct payment and coverage assets")]
     TreasuryCreditAssetMismatch,
+    #[msg("Reserve asset role is invalid")]
+    InvalidReserveAssetRole,
+    #[msg("Reserve asset oracle source is invalid")]
+    InvalidReserveOracleSource,
+    #[msg("Reserve asset rail mismatch")]
+    ReserveAssetRailMismatch,
+    #[msg("Reserve asset rail is inactive")]
+    ReserveAssetRailInactive,
+    #[msg("Reserve asset rail does not allow deposits")]
+    ReserveAssetRailDepositDisabled,
+    #[msg("Reserve asset rail does not allow claims payout")]
+    ReserveAssetRailPayoutDisabled,
+    #[msg("Reserve asset rail cannot count toward claims capacity")]
+    ReserveAssetRailCapacityDisabled,
+    #[msg("Reserve asset oracle price is stale or missing")]
+    ReserveAssetPriceStale,
+    #[msg("Reserve asset oracle price is invalid")]
+    ReserveAssetPriceInvalid,
+    #[msg("Commitment payment rail mismatch")]
+    CommitmentPaymentRailMismatch,
+    #[msg("Commitment payment rail is inactive")]
+    CommitmentPaymentRailInactive,
 }

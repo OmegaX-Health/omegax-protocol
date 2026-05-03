@@ -20,14 +20,22 @@ const {
   COMMITMENT_CAMPAIGN_STATUS_PAUSED,
   COMMITMENT_MODE_DIRECT_PREMIUM,
   COMMITMENT_MODE_TREASURY_CREDIT,
+  COMMITMENT_MODE_WATERFALL_RESERVE,
+  RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+  RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
   buildActivateDirectPremiumCommitmentTx,
   buildActivateTreasuryCreditCommitmentTx,
+  buildActivateWaterfallCommitmentTx,
+  buildConfigureReserveAssetRailTx,
   buildCreateCommitmentCampaignTx,
+  buildCreateCommitmentPaymentRailTx,
   buildDepositCommitmentTx,
   buildPauseCommitmentCampaignTx,
+  buildPublishReserveAssetRailPriceTx,
   buildRefundCommitmentTx,
   deriveCommitmentCampaignPda,
   deriveCommitmentLedgerPda,
+  deriveCommitmentPaymentRailPda,
   deriveCommitmentPositionPda,
   deriveDomainAssetLedgerPda,
   deriveDomainAssetVaultPda,
@@ -35,6 +43,7 @@ const {
   deriveFundingLineLedgerPda,
   derivePlanReserveLedgerPda,
   deriveProtocolGovernancePda,
+  deriveReserveAssetRailPda,
   deriveSeriesReserveLedgerPda,
   getProgramId,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
@@ -66,6 +75,14 @@ const campaign = deriveCommitmentCampaignPda({
 const ledger = deriveCommitmentLedgerPda({
   campaign,
   paymentAssetMint: paymentMint,
+});
+const paymentRail = deriveCommitmentPaymentRailPda({
+  campaign,
+  paymentAssetMint: paymentMint,
+});
+const reserveAssetRail = deriveReserveAssetRailPda({
+  reserveDomain: genesisPlan.reserveDomain,
+  assetMint: paymentMint,
 });
 const position = deriveCommitmentPositionPda({
   campaign,
@@ -106,6 +123,47 @@ test("commitment PDA helpers mirror the Founder Travel30 account seeds", () => {
   assert.match(position.toBase58(), /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
   assert.notEqual(campaign.toBase58(), ledger.toBase58());
   assert.notEqual(ledger.toBase58(), position.toBase58());
+  assert.notEqual(paymentRail.toBase58(), ledger.toBase58());
+  assert.notEqual(reserveAssetRail.toBase58(), paymentRail.toBase58());
+});
+
+test("reserve asset rail builders expose the mixed-treasury oracle controls", () => {
+  const configureTx = buildConfigureReserveAssetRailTx({
+    authority: AUTHORITY,
+    reserveDomainAddress: genesisPlan.reserveDomain,
+    assetMint: paymentMint,
+    assetSymbol: "USDC",
+    role: RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+    payoutPriority: 1,
+    oracleSource: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+    oracleFeedIdHex: "aa".repeat(32),
+    maxStalenessSeconds: 300n,
+    haircutBps: 0,
+    maxExposureBps: 10_000,
+    depositEnabled: true,
+    payoutEnabled: true,
+    capacityEnabled: true,
+    active: true,
+    recentBlockhash: RECENT_BLOCKHASH,
+    reasonHashHex: "ab".repeat(32),
+  });
+  const configureIx = assertProtocolIxShape(configureTx, "configure_reserve_asset_rail", AUTHORITY);
+  assert.equal(configureIx.keys.length, 5);
+  assert.equal(configureIx.keys[3]!.pubkey.toBase58(), reserveAssetRail.toBase58());
+
+  const publishTx = buildPublishReserveAssetRailPriceTx({
+    authority: AUTHORITY,
+    reserveDomainAddress: genesisPlan.reserveDomain,
+    assetMint: paymentMint,
+    priceUsd1e8: 100_000_000n,
+    confidenceBps: 5,
+    publishedAtTs: 1_770_000_000n,
+    proofHashHex: "cd".repeat(32),
+    recentBlockhash: RECENT_BLOCKHASH,
+  });
+  const publishIx = assertProtocolIxShape(publishTx, "publish_reserve_asset_rail_price", AUTHORITY);
+  assert.equal(publishIx.keys.length, 3);
+  assert.equal(publishIx.keys[2]!.pubkey.toBase58(), reserveAssetRail.toBase58());
 });
 
 test("create commitment campaign builder uses the canonical campaign and reserve accounts", () => {
@@ -132,29 +190,54 @@ test("create commitment campaign builder uses the canonical campaign and reserve
   });
 
   const ix = assertProtocolIxShape(tx, "create_commitment_campaign", AUTHORITY);
-  assert.equal(ix.keys.length, 11);
+  assert.equal(ix.keys.length, 13);
   assert.equal(ix.keys[1]!.pubkey.toBase58(), deriveProtocolGovernancePda().toBase58());
   assert.equal(ix.keys[2]!.pubkey.toBase58(), genesisPlan.address);
   assert.equal(
     ix.keys[3]!.pubkey.toBase58(),
-    deriveDomainAssetVaultPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: paymentMint }).toBase58(),
+      deriveDomainAssetVaultPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: paymentMint }).toBase58(),
   );
+  assert.equal(ix.keys[4]!.pubkey.toBase58(), reserveAssetRail.toBase58());
   assert.equal(
-    ix.keys[4]!.pubkey.toBase58(),
+    ix.keys[5]!.pubkey.toBase58(),
     deriveDomainAssetLedgerPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: coverageMint }).toBase58(),
   );
-  assert.equal(ix.keys[5]!.pubkey.toBase58(), travel30PremiumLine.address);
+  assert.equal(ix.keys[6]!.pubkey.toBase58(), travel30PremiumLine.address);
   assert.equal(
-    ix.keys[6]!.pubkey.toBase58(),
+    ix.keys[7]!.pubkey.toBase58(),
     deriveFundingLineLedgerPda({ fundingLine: travel30PremiumLine.address, assetMint: coverageMint }).toBase58(),
   );
   assert.equal(
-    ix.keys[7]!.pubkey.toBase58(),
+    ix.keys[8]!.pubkey.toBase58(),
     derivePlanReserveLedgerPda({ healthPlan: genesisPlan.address, assetMint: coverageMint }).toBase58(),
   );
-  assert.equal(ix.keys[8]!.pubkey.toBase58(), campaign.toBase58());
-  assert.equal(ix.keys[9]!.pubkey.toBase58(), ledger.toBase58());
-  assert.equal(ix.keys[10]!.pubkey.toBase58(), SystemProgram.programId.toBase58());
+  assert.equal(ix.keys[9]!.pubkey.toBase58(), campaign.toBase58());
+  assert.equal(ix.keys[10]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(ix.keys[11]!.pubkey.toBase58(), ledger.toBase58());
+  assert.equal(ix.keys[12]!.pubkey.toBase58(), SystemProgram.programId.toBase58());
+});
+
+test("additional commitment payment rail builder adds assets without splitting campaigns", () => {
+  const tx = buildCreateCommitmentPaymentRailTx({
+    authority: AUTHORITY,
+    healthPlanAddress: genesisPlan.address,
+    reserveDomainAddress: genesisPlan.reserveDomain,
+    campaignAddress: campaign,
+    coverageFundingLineAddress: travel30PremiumLine.address,
+    paymentAssetMint: paymentMint,
+    coverageAssetMint: coverageMint,
+    recentBlockhash: RECENT_BLOCKHASH,
+    mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+    depositAmount: 159_000_000n,
+    coverageAmount: 1_000_000_000n,
+    hardCapAmount: 159_000_000_000n,
+  });
+  const ix = assertProtocolIxShape(tx, "create_commitment_payment_rail", AUTHORITY);
+  assert.equal(ix.keys.length, 10);
+  assert.equal(ix.keys[3]!.pubkey.toBase58(), campaign.toBase58());
+  assert.equal(ix.keys[6]!.pubkey.toBase58(), travel30PremiumLine.address);
+  assert.equal(ix.keys[7]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(ix.keys[8]!.pubkey.toBase58(), ledger.toBase58());
 });
 
 test("deposit, refund, and pause commitment builders keep commitment custody outside reserve accounting", () => {
@@ -170,17 +253,19 @@ test("deposit, refund, and pause commitment builders keep commitment custody out
     acceptedTermsHashHex: TERMS_HASH,
   });
   const depositIx = assertProtocolIxShape(depositTx, "deposit_commitment", DEPOSITOR);
-  assert.equal(depositIx.keys.length, 10);
+  assert.equal(depositIx.keys.length, 12);
   assert.equal(depositIx.keys[1]!.pubkey.toBase58(), campaign.toBase58());
-  assert.equal(depositIx.keys[2]!.pubkey.toBase58(), ledger.toBase58());
-  assert.equal(depositIx.keys[3]!.pubkey.toBase58(), position.toBase58());
+  assert.equal(depositIx.keys[2]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(depositIx.keys[3]!.pubkey.toBase58(), reserveAssetRail.toBase58());
+  assert.equal(depositIx.keys[4]!.pubkey.toBase58(), ledger.toBase58());
+  assert.equal(depositIx.keys[5]!.pubkey.toBase58(), position.toBase58());
   assert.equal(
-    depositIx.keys[4]!.pubkey.toBase58(),
+    depositIx.keys[6]!.pubkey.toBase58(),
     deriveDomainAssetVaultPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: paymentMint }).toBase58(),
   );
-  assert.equal(depositIx.keys[5]!.pubkey.toBase58(), SOURCE_TOKEN_ACCOUNT.toBase58());
+  assert.equal(depositIx.keys[7]!.pubkey.toBase58(), SOURCE_TOKEN_ACCOUNT.toBase58());
   assert.equal(
-    depositIx.keys[7]!.pubkey.toBase58(),
+    depositIx.keys[9]!.pubkey.toBase58(),
     deriveDomainAssetVaultTokenAccountPda({ reserveDomain: genesisPlan.reserveDomain, assetMint: paymentMint }).toBase58(),
   );
 
@@ -196,11 +281,12 @@ test("deposit, refund, and pause commitment builders keep commitment custody out
     refundReasonHashHex: "22".repeat(32),
   });
   const refundIx = assertProtocolIxShape(refundTx, "refund_commitment", DEPOSITOR);
-  assert.equal(refundIx.keys.length, 9);
+  assert.equal(refundIx.keys.length, 10);
   assert.equal(refundIx.keys[1]!.pubkey.toBase58(), campaign.toBase58());
-  assert.equal(refundIx.keys[2]!.pubkey.toBase58(), ledger.toBase58());
-  assert.equal(refundIx.keys[3]!.pubkey.toBase58(), position.toBase58());
-  assert.equal(refundIx.keys[7]!.pubkey.toBase58(), RECIPIENT_TOKEN_ACCOUNT.toBase58());
+  assert.equal(refundIx.keys[2]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(refundIx.keys[3]!.pubkey.toBase58(), ledger.toBase58());
+  assert.equal(refundIx.keys[4]!.pubkey.toBase58(), position.toBase58());
+  assert.equal(refundIx.keys[8]!.pubkey.toBase58(), RECIPIENT_TOKEN_ACCOUNT.toBase58());
 
   const pauseTx = buildPauseCommitmentCampaignTx({
     authority: AUTHORITY,
@@ -233,12 +319,13 @@ test("activation builders expose direct-premium and treasury-credit flows with o
     activationReasonHashHex: "44".repeat(32),
   });
   const directIx = assertProtocolIxShape(directTx, "activate_direct_premium_commitment", AUTHORITY);
-  assert.equal(directIx.keys.length, 11);
+  assert.equal(directIx.keys.length, 12);
   assert.equal(directIx.keys[3]!.pubkey.toBase58(), campaign.toBase58());
-  assert.equal(directIx.keys[4]!.pubkey.toBase58(), ledger.toBase58());
-  assert.equal(directIx.keys[5]!.pubkey.toBase58(), position.toBase58());
+  assert.equal(directIx.keys[4]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(directIx.keys[5]!.pubkey.toBase58(), ledger.toBase58());
+  assert.equal(directIx.keys[6]!.pubkey.toBase58(), position.toBase58());
   assert.equal(
-    directIx.keys[10]!.pubkey.toBase58(),
+    directIx.keys[11]!.pubkey.toBase58(),
     deriveSeriesReserveLedgerPda({ policySeries: travel30Series.address, assetMint: coverageMint }).toBase58(),
   );
 
@@ -255,10 +342,31 @@ test("activation builders expose direct-premium and treasury-credit flows with o
     activationReasonHashHex: "55".repeat(32),
   });
   const treasuryIx = assertProtocolIxShape(treasuryTx, "activate_treasury_credit_commitment", AUTHORITY);
-  assert.equal(treasuryIx.keys.length, 11);
+  assert.equal(treasuryIx.keys.length, 12);
   assert.equal(treasuryIx.keys[0]!.isSigner, true);
   assert.equal(treasuryIx.keys[3]!.pubkey.toBase58(), campaign.toBase58());
-  assert.equal(treasuryIx.keys[4]!.pubkey.toBase58(), ledger.toBase58());
-  assert.equal(treasuryIx.keys[10]!.pubkey.toBase58(), getProgramId().toBase58());
+  assert.equal(treasuryIx.keys[4]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(treasuryIx.keys[5]!.pubkey.toBase58(), ledger.toBase58());
+  assert.equal(treasuryIx.keys[11]!.pubkey.toBase58(), getProgramId().toBase58());
   assert.equal(COMMITMENT_MODE_TREASURY_CREDIT, 1);
+
+  const waterfallTx = buildActivateWaterfallCommitmentTx({
+    activationAuthority: AUTHORITY,
+    healthPlanAddress: genesisPlan.address,
+    reserveDomainAddress: genesisPlan.reserveDomain,
+    campaignAddress: campaign,
+    ledgerAddress: ledger,
+    paymentAssetMint: paymentMint,
+    coverageAssetMint: coverageMint,
+    coverageFundingLineAddress: travel30PremiumLine.address,
+    policySeriesAddress: travel30Series.address,
+    positionAddress: position,
+    recentBlockhash: RECENT_BLOCKHASH,
+    activationReasonHashHex: "66".repeat(32),
+  });
+  const waterfallIx = assertProtocolIxShape(waterfallTx, "activate_waterfall_commitment", AUTHORITY);
+  assert.equal(waterfallIx.keys.length, 13);
+  assert.equal(waterfallIx.keys[4]!.pubkey.toBase58(), paymentRail.toBase58());
+  assert.equal(waterfallIx.keys[5]!.pubkey.toBase58(), reserveAssetRail.toBase58());
+  assert.equal(waterfallIx.keys[6]!.pubkey.toBase58(), ledger.toBase58());
 });

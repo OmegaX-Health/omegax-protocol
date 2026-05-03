@@ -55,6 +55,7 @@ export const SEED_RESERVE_DOMAIN = "reserve_domain";
 export const SEED_DOMAIN_ASSET_VAULT = "domain_asset_vault";
 export const SEED_DOMAIN_ASSET_VAULT_TOKEN = "domain_asset_vault_token";
 export const SEED_DOMAIN_ASSET_LEDGER = "domain_asset_ledger";
+export const SEED_RESERVE_ASSET_RAIL = "reserve_asset_rail";
 export const SEED_PROTOCOL_FEE_VAULT = "protocol_fee_vault";
 export const SEED_POOL_TREASURY_VAULT = "pool_treasury_vault";
 export const SEED_POOL_ORACLE_FEE_VAULT = "pool_oracle_fee_vault";
@@ -65,6 +66,7 @@ export const SEED_SERIES_RESERVE_LEDGER = "series_reserve_ledger";
 export const SEED_MEMBER_POSITION = "member_position";
 export const SEED_MEMBERSHIP_ANCHOR_SEAT = "membership_anchor_seat";
 export const SEED_COMMITMENT_CAMPAIGN = "commitment_campaign";
+export const SEED_COMMITMENT_PAYMENT_RAIL = "commitment_payment_rail";
 export const SEED_COMMITMENT_LEDGER = "commitment_ledger";
 export const SEED_COMMITMENT_POSITION = "commitment_position";
 export const SEED_FUNDING_LINE = "funding_line";
@@ -106,6 +108,7 @@ export const MEMBERSHIP_PROOF_MODE_INVITE_PERMIT = 2;
 
 export const COMMITMENT_MODE_DIRECT_PREMIUM = 0;
 export const COMMITMENT_MODE_TREASURY_CREDIT = 1;
+export const COMMITMENT_MODE_WATERFALL_RESERVE = 2;
 
 export const COMMITMENT_CAMPAIGN_STATUS_DRAFT = 0;
 export const COMMITMENT_CAMPAIGN_STATUS_ACTIVE = 1;
@@ -117,6 +120,17 @@ export const COMMITMENT_POSITION_PENDING = 0;
 export const COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED = 1;
 export const COMMITMENT_POSITION_TREASURY_LOCKED = 2;
 export const COMMITMENT_POSITION_REFUNDED = 3;
+export const COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED = 4;
+
+export const RESERVE_ASSET_ROLE_PRIMARY_STABLE = 0;
+export const RESERVE_ASSET_ROLE_SECONDARY_STABLE = 1;
+export const RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL = 2;
+export const RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT = 3;
+
+export const RESERVE_ORACLE_SOURCE_NONE = 0;
+export const RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM = 1;
+export const RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_FEED = 2;
+export const RESERVE_ORACLE_SOURCE_GOVERNANCE_ATTESTED = 3;
 
 function assertValidClaimAttestationDecision(decision: number): void {
   if (
@@ -255,6 +269,32 @@ export type DomainAssetVaultSnapshot = {
   bump: number;
 };
 
+export type ReserveAssetRailSnapshot = {
+  address: string;
+  reserveDomain: string;
+  assetMint: string;
+  oracleAuthority: string;
+  assetSymbol: string;
+  role: number;
+  payoutPriority: number;
+  oracleSource: number;
+  oracleFeedIdHex: string;
+  maxStalenessSeconds: number;
+  haircutBps: number;
+  maxExposureBps: number;
+  depositEnabled: boolean;
+  payoutEnabled: boolean;
+  capacityEnabled: boolean;
+  active: boolean;
+  lastPriceUsd1e8: BigNumberish;
+  lastPriceConfidenceBps: number;
+  lastPricePublishedAtTs: number;
+  lastPriceSlot: BigNumberish;
+  lastPriceProofHashHex: string;
+  auditNonce: BigNumberish;
+  bump: number;
+};
+
 // Phase 1.6/1.7 — Fee-vault snapshot types. The panel surfaces SOL rails
 // as `paymentMint === ZERO_PUBKEY`; the listers below translate
 // `assetMint === NATIVE_SOL_MINT` to that UI sentinel.
@@ -356,6 +396,23 @@ export type CommitmentCampaignSnapshot = {
   refundAfterTs: number;
   expiresAtTs: number;
   termsHashHex: string;
+  auditNonce: BigNumberish;
+  bump: number;
+};
+
+export type CommitmentPaymentRailSnapshot = {
+  address: string;
+  campaign: string;
+  reserveDomain: string;
+  paymentAssetMint: string;
+  coverageAssetMint: string;
+  reserveAssetRail: string;
+  coverageFundingLine: string;
+  mode: number;
+  status: number;
+  depositAmount: BigNumberish;
+  coverageAmount: BigNumberish;
+  hardCapAmount: BigNumberish;
   auditNonce: BigNumberish;
   bump: number;
 };
@@ -650,11 +707,13 @@ export type ProtocolConsoleSnapshot = {
   protocolGovernance: ProtocolGovernanceSnapshot | null;
   reserveDomains: ReserveDomainSnapshot[];
   domainAssetVaults: DomainAssetVaultSnapshot[];
+  reserveAssetRails: ReserveAssetRailSnapshot[];
   domainAssetLedgers: ReserveScopedSnapshot[];
   healthPlans: HealthPlanSnapshot[];
   policySeries: PolicySeriesSnapshot[];
   memberPositions: MemberPositionSnapshot[];
   commitmentCampaigns: CommitmentCampaignSnapshot[];
+  commitmentPaymentRails: CommitmentPaymentRailSnapshot[];
   commitmentLedgers: CommitmentLedgerSnapshot[];
   commitmentPositions: CommitmentPositionSnapshot[];
   fundingLines: FundingLineSnapshot[];
@@ -734,6 +793,32 @@ export type CapitalReadModel = {
       weightBps: number;
     }>;
   }>;
+};
+
+export type MixedReserveWaterfallRail = {
+  reserveAssetRail: string;
+  reserveDomain: string;
+  assetMint: string;
+  assetSymbol: string;
+  role: number;
+  payoutPriority: number;
+  payoutEnabled: boolean;
+  capacityEnabled: boolean;
+  active: boolean;
+  oracleSource: number;
+  oracleFeedIdHex: string;
+  priceFresh: boolean;
+  priceUsd1e8: bigint;
+  freeAmountRaw: bigint;
+  haircutBps: number;
+  maxExposureBps: number;
+  effectiveCapacityUsd1e8: bigint;
+};
+
+export type MixedReserveWaterfallModel = {
+  reserveDomain: string;
+  totalEffectiveCapacityUsd1e8: bigint;
+  payoutOrder: MixedReserveWaterfallRail[];
 };
 
 export type MemberReadModel = {
@@ -1044,6 +1129,21 @@ export function deriveDomainAssetLedgerPda(params: {
   );
 }
 
+export function deriveReserveAssetRailPda(params: {
+  reserveDomain: PublicKeyish;
+  assetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_RESERVE_ASSET_RAIL),
+      toPublicKey(params.reserveDomain).toBytes(),
+      toPublicKey(params.assetMint).toBytes(),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
 // Phase 1.6/1.7 — Fee-vault PDA derivers. SPL rails pass `assetMint = the
 // SPL mint pubkey`; SOL rails pass `assetMint = NATIVE_SOL_MINT_KEY` (the
 // canonical wrapped-SOL mint). The on-chain seeds are identical for both
@@ -1199,6 +1299,21 @@ export function deriveCommitmentCampaignPda(params: {
       TEXT_ENCODER.encode(SEED_COMMITMENT_CAMPAIGN),
       toPublicKey(params.healthPlan).toBytes(),
       stringSeed(params.campaignId, "commitment campaign id"),
+    ],
+    params.programId ?? PROGRAM_ID,
+  );
+}
+
+export function deriveCommitmentPaymentRailPda(params: {
+  campaign: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  programId?: PublicKey;
+}): PublicKey {
+  return derivePda(
+    [
+      TEXT_ENCODER.encode(SEED_COMMITMENT_PAYMENT_RAIL),
+      toPublicKey(params.campaign).toBytes(),
+      toPublicKey(params.paymentAssetMint).toBytes(),
     ],
     params.programId ?? PROGRAM_ID,
   );
@@ -1553,6 +1668,75 @@ export function availableFundingLineBalance(
 ): bigint {
   if (line.sheet) return recomputeReserveBalanceSheet(line.sheet).free;
   return toBigIntAmount(line.fundedAmount) - toBigIntAmount(line.spentAmount);
+}
+
+export function buildMixedReserveWaterfallModel(params: {
+  reserveDomainAddress: PublicKeyish;
+  snapshot: Pick<ProtocolConsoleSnapshot, "reserveAssetRails" | "domainAssetLedgers">;
+  assetDecimalsByMint?: Record<string, number>;
+  nowTs?: number;
+}): MixedReserveWaterfallModel {
+  const reserveDomain = normalizeAddress(params.reserveDomainAddress);
+  const nowTs = params.nowTs ?? Math.floor(Date.now() / 1000);
+  const ledgersByMint = new Map(
+    params.snapshot.domainAssetLedgers
+      .filter((ledger) => ledger.reserveDomain === reserveDomain)
+      .map((ledger) => [ledger.assetMint, recomputeReserveBalanceSheet(ledger.sheet)]),
+  );
+  const rails = params.snapshot.reserveAssetRails
+    .filter((rail) => rail.reserveDomain === reserveDomain)
+    .filter((rail) => rail.active && rail.payoutEnabled)
+    .sort((left, right) => left.payoutPriority - right.payoutPriority || left.assetSymbol.localeCompare(right.assetSymbol));
+
+  const rawRails = rails.map((rail): MixedReserveWaterfallRail => {
+    const sheet = ledgersByMint.get(rail.assetMint) ?? recomputeReserveBalanceSheet();
+    const price = toBigIntAmount(rail.lastPriceUsd1e8);
+    const publishedAt = Number(rail.lastPricePublishedAtTs ?? 0);
+    const maxStaleness = Number(rail.maxStalenessSeconds ?? 0);
+    const priceFresh =
+      rail.capacityEnabled
+      && price > 0n
+      && (maxStaleness === 0 || (publishedAt > 0 && nowTs - publishedAt <= maxStaleness));
+    const decimals = Math.max(0, Math.min(18, params.assetDecimalsByMint?.[rail.assetMint] ?? 6));
+    const decimalFactor = 10n ** BigInt(decimals);
+    const haircutNumerator = BigInt(Math.max(0, 10_000 - rail.haircutBps));
+    const uncappedCapacity = priceFresh
+      ? (sheet.free * price * haircutNumerator) / (10_000n * decimalFactor)
+      : 0n;
+    return {
+      reserveAssetRail: rail.address,
+      reserveDomain: rail.reserveDomain,
+      assetMint: rail.assetMint,
+      assetSymbol: rail.assetSymbol,
+      role: rail.role,
+      payoutPriority: rail.payoutPriority,
+      payoutEnabled: rail.payoutEnabled,
+      capacityEnabled: rail.capacityEnabled,
+      active: rail.active,
+      oracleSource: rail.oracleSource,
+      oracleFeedIdHex: rail.oracleFeedIdHex,
+      priceFresh,
+      priceUsd1e8: price,
+      freeAmountRaw: sheet.free,
+      haircutBps: rail.haircutBps,
+      maxExposureBps: rail.maxExposureBps,
+      effectiveCapacityUsd1e8: uncappedCapacity,
+    };
+  });
+  const uncappedTotal = rawRails.reduce((sum, rail) => sum + rail.effectiveCapacityUsd1e8, 0n);
+  const payoutOrder = rawRails.map((rail) => {
+    if (rail.maxExposureBps <= 0 || rail.maxExposureBps >= 10_000 || uncappedTotal === 0n) return rail;
+    const capped = (uncappedTotal * BigInt(rail.maxExposureBps)) / 10_000n;
+    return {
+      ...rail,
+      effectiveCapacityUsd1e8: rail.effectiveCapacityUsd1e8 > capped ? capped : rail.effectiveCapacityUsd1e8,
+    };
+  });
+  return {
+    reserveDomain,
+    payoutOrder,
+    totalEffectiveCapacityUsd1e8: payoutOrder.reduce((sum, rail) => sum + rail.effectiveCapacityUsd1e8, 0n),
+  };
 }
 
 export function describeSeriesMode(mode: number): string {
@@ -2104,11 +2288,13 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     protocolGovernance: null,
     reserveDomains: [],
     domainAssetVaults: [],
+    reserveAssetRails: [],
     domainAssetLedgers: [],
     healthPlans: [],
     policySeries: [],
     memberPositions: [],
     commitmentCampaigns: [],
+    commitmentPaymentRails: [],
     commitmentLedgers: [],
     commitmentPositions: [],
     fundingLines: [],
@@ -2179,6 +2365,33 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           assetMint: asAddress(decodedField(decoded, "assetMint")),
           vaultTokenAccount: asAddress(decodedField(decoded, "vaultTokenAccount")),
           totalAssets: bigintFromAnchorValue(decodedField(decoded, "totalAssets")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "ReserveAssetRail":
+        snapshot.reserveAssetRails.push({
+          address,
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain", "reserve_domain")),
+          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
+          oracleAuthority: asAddress(decodedField(decoded, "oracleAuthority", "oracle_authority")),
+          assetSymbol: stringFromAnchorValue(decodedField(decoded, "assetSymbol", "asset_symbol")),
+          role: Number(decodedField(decoded, "role") ?? 0),
+          payoutPriority: Number(decodedField(decoded, "payoutPriority", "payout_priority") ?? 0),
+          oracleSource: Number(decodedField(decoded, "oracleSource", "oracle_source") ?? 0),
+          oracleFeedIdHex: bytesToHex(decodedField(decoded, "oracleFeedId", "oracle_feed_id")),
+          maxStalenessSeconds: numberFromAnchorValue(decodedField(decoded, "maxStalenessSeconds", "max_staleness_seconds")),
+          haircutBps: Number(decodedField(decoded, "haircutBps", "haircut_bps") ?? 0),
+          maxExposureBps: Number(decodedField(decoded, "maxExposureBps", "max_exposure_bps") ?? 0),
+          depositEnabled: Boolean(decodedField(decoded, "depositEnabled", "deposit_enabled")),
+          payoutEnabled: Boolean(decodedField(decoded, "payoutEnabled", "payout_enabled")),
+          capacityEnabled: Boolean(decodedField(decoded, "capacityEnabled", "capacity_enabled")),
+          active: Boolean(decodedField(decoded, "active")),
+          lastPriceUsd1e8: bigintFromAnchorValue(decodedField(decoded, "lastPriceUsd1e8", "last_price_usd_1e8")),
+          lastPriceConfidenceBps: Number(decodedField(decoded, "lastPriceConfidenceBps", "last_price_confidence_bps") ?? 0),
+          lastPricePublishedAtTs: numberFromAnchorValue(decodedField(decoded, "lastPricePublishedAtTs", "last_price_published_at_ts")),
+          lastPriceSlot: bigintFromAnchorValue(decodedField(decoded, "lastPriceSlot", "last_price_slot")),
+          lastPriceProofHashHex: bytesToHex(decodedField(decoded, "lastPriceProofHash", "last_price_proof_hash")),
+          auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce", "audit_nonce")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
         });
         break;
@@ -2305,6 +2518,24 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           refundAfterTs: numberFromAnchorValue(decodedField(decoded, "refundAfterTs", "refund_after_ts")),
           expiresAtTs: numberFromAnchorValue(decodedField(decoded, "expiresAtTs", "expires_at_ts")),
           termsHashHex: bytesToHex(decodedField(decoded, "termsHash", "terms_hash")),
+          auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce", "audit_nonce")),
+          bump: Number(decodedField(decoded, "bump") ?? 0),
+        });
+        break;
+      case "CommitmentPaymentRail":
+        snapshot.commitmentPaymentRails.push({
+          address,
+          campaign: asAddress(decodedField(decoded, "campaign")),
+          reserveDomain: asAddress(decodedField(decoded, "reserveDomain", "reserve_domain")),
+          paymentAssetMint: asAddress(decodedField(decoded, "paymentAssetMint", "payment_asset_mint")),
+          coverageAssetMint: asAddress(decodedField(decoded, "coverageAssetMint", "coverage_asset_mint")),
+          reserveAssetRail: asAddress(decodedField(decoded, "reserveAssetRail", "reserve_asset_rail")),
+          coverageFundingLine: asAddress(decodedField(decoded, "coverageFundingLine", "coverage_funding_line")),
+          mode: Number(decodedField(decoded, "mode") ?? 0),
+          status: Number(decodedField(decoded, "status") ?? 0),
+          depositAmount: bigintFromAnchorValue(decodedField(decoded, "depositAmount", "deposit_amount")),
+          coverageAmount: bigintFromAnchorValue(decodedField(decoded, "coverageAmount", "coverage_amount")),
+          hardCapAmount: bigintFromAnchorValue(decodedField(decoded, "hardCapAmount", "hard_cap_amount")),
           auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce", "audit_nonce")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
         });
@@ -2691,9 +2922,11 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     snapshot.domainAssetVaults,
     (row) => `${row.reserveDomain}:${row.assetMint}`,
   );
+  snapshot.reserveAssetRails = sortByLabel(snapshot.reserveAssetRails, (row) => `${row.reserveDomain}:${row.payoutPriority}:${row.assetSymbol || row.assetMint}`);
   snapshot.healthPlans = sortByLabel(snapshot.healthPlans, (row) => row.displayName || row.planId);
   snapshot.policySeries = sortByLabel(snapshot.policySeries, (row) => row.displayName || row.seriesId);
   snapshot.commitmentCampaigns = sortByLabel(snapshot.commitmentCampaigns, (row) => row.displayName || row.campaignId);
+  snapshot.commitmentPaymentRails = sortByLabel(snapshot.commitmentPaymentRails, (row) => `${row.campaign}:${row.paymentAssetMint}`);
   snapshot.commitmentLedgers = sortByLabel(snapshot.commitmentLedgers, (row) => `${row.campaign}:${row.paymentAssetMint}`);
   snapshot.commitmentPositions = sortByLabel(snapshot.commitmentPositions, (row) => `${row.campaign}:${row.queueIndex}`);
   snapshot.fundingLines = sortByLabel(snapshot.fundingLines, (row) => row.displayName || row.lineId);
@@ -2879,6 +3112,19 @@ function commitmentLedgerAddress(params: {
   return params.ledgerAddress
     ? toPublicKey(params.ledgerAddress)
     : deriveCommitmentLedgerPda({
+      campaign: params.campaignAddress,
+      paymentAssetMint: params.paymentAssetMint,
+    });
+}
+
+function commitmentPaymentRailAddress(params: {
+  paymentRailAddress?: PublicKeyish | null;
+  campaignAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+}): PublicKey {
+  return params.paymentRailAddress
+    ? toPublicKey(params.paymentRailAddress)
+    : deriveCommitmentPaymentRailPda({
       campaign: params.campaignAddress,
       paymentAssetMint: params.paymentAssetMint,
     });
@@ -3635,6 +3881,95 @@ export function buildCreateDomainAssetVaultTx(params: {
   });
 }
 
+export function buildConfigureReserveAssetRailTx(params: {
+  authority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  assetSymbol: string;
+  oracleAuthority?: PublicKeyish | null;
+  role: number;
+  payoutPriority: number;
+  oracleSource: number;
+  oracleFeedIdHex?: string | null;
+  maxStalenessSeconds: bigint;
+  haircutBps: number;
+  maxExposureBps: number;
+  depositEnabled: boolean;
+  payoutEnabled: boolean;
+  capacityEnabled: boolean;
+  active: boolean;
+  reasonHashHex?: string | null;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const assetMint = toPublicKey(params.assetMint);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "configure_reserve_asset_rail",
+    args: {
+      asset_mint: assetMint,
+      oracle_authority: toPublicKey(params.oracleAuthority ?? authority),
+      asset_symbol: params.assetSymbol,
+      role: params.role,
+      payout_priority: params.payoutPriority,
+      oracle_source: params.oracleSource,
+      oracle_feed_id: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.oracleFeedIdHex), 32)),
+      max_staleness_seconds: params.maxStalenessSeconds,
+      haircut_bps: params.haircutBps,
+      max_exposure_bps: params.maxExposureBps,
+      deposit_enabled: params.depositEnabled,
+      payout_enabled: params.payoutEnabled,
+      capacity_enabled: params.capacityEnabled,
+      active: params.active,
+      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.reserveDomainAddress },
+      {
+        pubkey: deriveReserveAssetRailPda({ reserveDomain: params.reserveDomainAddress, assetMint }),
+        isWritable: true,
+      },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildPublishReserveAssetRailPriceTx(params: {
+  authority: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  priceUsd1e8: bigint;
+  confidenceBps: number;
+  publishedAtTs: bigint;
+  proofHashHex?: string | null;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const assetMint = toPublicKey(params.assetMint);
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "publish_reserve_asset_rail_price",
+    args: {
+      price_usd_1e8: params.priceUsd1e8,
+      confidence_bps: params.confidenceBps,
+      published_at_ts: params.publishedAtTs,
+      proof_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.proofHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      {
+        pubkey: deriveReserveAssetRailPda({ reserveDomain: params.reserveDomainAddress, assetMint }),
+        isWritable: true,
+      },
+    ],
+  });
+}
+
 export function buildSetProtocolEmergencyPauseTx(params: {
   authority: PublicKeyish;
   recentBlockhash: string;
@@ -4229,6 +4564,7 @@ export function buildCreateCommitmentCampaignTx(params: {
   coverageFundingLineAddress: PublicKeyish;
   paymentAssetMint: PublicKeyish;
   coverageAssetMint: PublicKeyish;
+  reserveAssetRailAddress?: PublicKeyish | null;
   activationAuthority: PublicKeyish;
   recentBlockhash: string;
   campaignId: string;
@@ -4254,6 +4590,16 @@ export function buildCreateCommitmentCampaignTx(params: {
     campaign,
     paymentAssetMint,
   });
+  const paymentRail = deriveCommitmentPaymentRailPda({
+    campaign,
+    paymentAssetMint,
+  });
+  const reserveAssetRail = params.reserveAssetRailAddress
+    ? toPublicKey(params.reserveAssetRailAddress)
+    : deriveReserveAssetRailPda({
+      reserveDomain: params.reserveDomainAddress,
+      assetMint: paymentAssetMint,
+    });
 
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
@@ -4285,6 +4631,7 @@ export function buildCreateCommitmentCampaignTx(params: {
           assetMint: paymentAssetMint,
         }),
       },
+      { pubkey: reserveAssetRail },
       {
         pubkey: deriveDomainAssetLedgerPda({
           reserveDomain: params.reserveDomainAddress,
@@ -4308,7 +4655,74 @@ export function buildCreateCommitmentCampaignTx(params: {
         isWritable: true,
       },
       { pubkey: campaign, isWritable: true },
+      { pubkey: paymentRail, isWritable: true },
       { pubkey: ledger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
+export function buildCreateCommitmentPaymentRailTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  campaignAddress?: PublicKeyish | null;
+  campaignId?: string | null;
+  coverageFundingLineAddress: PublicKeyish;
+  paymentAssetMint: PublicKeyish;
+  coverageAssetMint: PublicKeyish;
+  reserveAssetRailAddress?: PublicKeyish | null;
+  recentBlockhash: string;
+  mode: number;
+  depositAmount: bigint;
+  coverageAmount: bigint;
+  hardCapAmount: bigint;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const paymentAssetMint = toPublicKey(params.paymentAssetMint);
+  const coverageAssetMint = toPublicKey(params.coverageAssetMint);
+  const campaign = commitmentCampaignAddress(params);
+  const reserveAssetRail = params.reserveAssetRailAddress
+    ? toPublicKey(params.reserveAssetRailAddress)
+    : deriveReserveAssetRailPda({
+      reserveDomain: params.reserveDomainAddress,
+      assetMint: paymentAssetMint,
+    });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "create_commitment_payment_rail",
+    args: {
+      payment_asset_mint: paymentAssetMint,
+      coverage_asset_mint: coverageAssetMint,
+      reserve_asset_rail: reserveAssetRail,
+      coverage_funding_line: toPublicKey(params.coverageFundingLineAddress),
+      mode: params.mode,
+      deposit_amount: params.depositAmount,
+      coverage_amount: params.coverageAmount,
+      hard_cap_amount: params.hardCapAmount,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: campaign, isWritable: true },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: paymentAssetMint,
+        }),
+      },
+      { pubkey: reserveAssetRail },
+      { pubkey: params.coverageFundingLineAddress },
+      {
+        pubkey: deriveCommitmentPaymentRailPda({ campaign, paymentAssetMint }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveCommitmentLedgerPda({ campaign, paymentAssetMint }),
+        isWritable: true,
+      },
       { pubkey: SystemProgram.programId },
     ],
   });
@@ -4324,6 +4738,8 @@ export function buildDepositCommitmentTx(params: {
   campaignAddress?: PublicKeyish | null;
   healthPlanAddress?: PublicKeyish | null;
   campaignId?: string | null;
+  paymentRailAddress?: PublicKeyish | null;
+  reserveAssetRailAddress?: PublicKeyish | null;
   ledgerAddress?: PublicKeyish | null;
   positionAddress?: PublicKeyish | null;
   vaultTokenAccountAddress?: PublicKeyish | null;
@@ -4334,6 +4750,17 @@ export function buildDepositCommitmentTx(params: {
   const paymentAssetMint = toPublicKey(params.paymentAssetMint);
   const beneficiary = toPublicKey(params.beneficiary);
   const campaign = commitmentCampaignAddress(params);
+  const paymentRail = commitmentPaymentRailAddress({
+    paymentRailAddress: params.paymentRailAddress,
+    campaignAddress: campaign,
+    paymentAssetMint,
+  });
+  const reserveAssetRail = params.reserveAssetRailAddress
+    ? toPublicKey(params.reserveAssetRailAddress)
+    : deriveReserveAssetRailPda({
+      reserveDomain: params.reserveDomainAddress,
+      assetMint: paymentAssetMint,
+    });
   const ledger = commitmentLedgerAddress({
     ledgerAddress: params.ledgerAddress,
     campaignAddress: campaign,
@@ -4364,6 +4791,8 @@ export function buildDepositCommitmentTx(params: {
     accounts: [
       { pubkey: depositor, isSigner: true, isWritable: true },
       { pubkey: campaign, isWritable: true },
+      { pubkey: paymentRail },
+      { pubkey: reserveAssetRail },
       { pubkey: ledger, isWritable: true },
       { pubkey: position, isWritable: true },
       {
@@ -4383,7 +4812,7 @@ export function buildDepositCommitmentTx(params: {
 }
 
 function buildActivateCommitmentTx(params: {
-  instructionName: "activate_direct_premium_commitment" | "activate_treasury_credit_commitment";
+  instructionName: "activate_direct_premium_commitment" | "activate_treasury_credit_commitment" | "activate_waterfall_commitment";
   activationAuthority: PublicKeyish;
   healthPlanAddress: PublicKeyish;
   reserveDomainAddress: PublicKeyish;
@@ -4394,6 +4823,8 @@ function buildActivateCommitmentTx(params: {
   recentBlockhash: string;
   campaignAddress?: PublicKeyish | null;
   campaignId?: string | null;
+  paymentRailAddress?: PublicKeyish | null;
+  reserveAssetRailAddress?: PublicKeyish | null;
   ledgerAddress?: PublicKeyish | null;
   policySeriesAddress?: PublicKeyish | null;
   activationReasonHashHex?: string | null;
@@ -4402,6 +4833,17 @@ function buildActivateCommitmentTx(params: {
   const paymentAssetMint = toPublicKey(params.paymentAssetMint);
   const coverageAssetMint = toPublicKey(params.coverageAssetMint);
   const campaign = commitmentCampaignAddress(params);
+  const paymentRail = commitmentPaymentRailAddress({
+    paymentRailAddress: params.paymentRailAddress,
+    campaignAddress: campaign,
+    paymentAssetMint,
+  });
+  const reserveAssetRail = params.reserveAssetRailAddress
+    ? toPublicKey(params.reserveAssetRailAddress)
+    : deriveReserveAssetRailPda({
+      reserveDomain: params.reserveDomainAddress,
+      assetMint: paymentAssetMint,
+    });
   const ledger = commitmentLedgerAddress({
     ledgerAddress: params.ledgerAddress,
     campaignAddress: campaign,
@@ -4422,12 +4864,16 @@ function buildActivateCommitmentTx(params: {
       { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: campaign, isWritable: true },
+      { pubkey: paymentRail },
+      ...(params.instructionName === "activate_waterfall_commitment"
+        ? [{ pubkey: reserveAssetRail }]
+        : []),
       { pubkey: ledger, isWritable: true },
       { pubkey: params.positionAddress, isWritable: true },
       {
         pubkey: deriveDomainAssetLedgerPda({
           reserveDomain: params.reserveDomainAddress,
-          assetMint: coverageAssetMint,
+          assetMint: params.instructionName === "activate_waterfall_commitment" ? paymentAssetMint : coverageAssetMint,
         }),
         isWritable: true,
       },
@@ -4435,18 +4881,21 @@ function buildActivateCommitmentTx(params: {
       {
         pubkey: deriveFundingLineLedgerPda({
           fundingLine: params.coverageFundingLineAddress,
-          assetMint: coverageAssetMint,
+          assetMint: params.instructionName === "activate_waterfall_commitment" ? paymentAssetMint : coverageAssetMint,
         }),
         isWritable: true,
       },
       {
         pubkey: derivePlanReserveLedgerPda({
           healthPlan: params.healthPlanAddress,
-          assetMint: coverageAssetMint,
+          assetMint: params.instructionName === "activate_waterfall_commitment" ? paymentAssetMint : coverageAssetMint,
         }),
         isWritable: true,
       },
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, coverageAssetMint),
+      optionalSeriesReserveLedgerAccount(
+        params.policySeriesAddress,
+        params.instructionName === "activate_waterfall_commitment" ? paymentAssetMint : coverageAssetMint,
+      ),
     ],
   });
 }
@@ -4465,6 +4914,13 @@ export function buildActivateTreasuryCreditCommitmentTx(params: Omit<Parameters<
   });
 }
 
+export function buildActivateWaterfallCommitmentTx(params: Omit<Parameters<typeof buildActivateCommitmentTx>[0], "instructionName">): Transaction {
+  return buildActivateCommitmentTx({
+    ...params,
+    instructionName: "activate_waterfall_commitment",
+  });
+}
+
 export function buildRefundCommitmentTx(params: {
   depositor: PublicKeyish;
   reserveDomainAddress: PublicKeyish;
@@ -4474,6 +4930,7 @@ export function buildRefundCommitmentTx(params: {
   campaignAddress?: PublicKeyish | null;
   healthPlanAddress?: PublicKeyish | null;
   campaignId?: string | null;
+  paymentRailAddress?: PublicKeyish | null;
   ledgerAddress?: PublicKeyish | null;
   positionAddress?: PublicKeyish | null;
   beneficiary?: PublicKeyish | null;
@@ -4484,6 +4941,11 @@ export function buildRefundCommitmentTx(params: {
   const depositor = toPublicKey(params.depositor);
   const paymentAssetMint = toPublicKey(params.paymentAssetMint);
   const campaign = commitmentCampaignAddress(params);
+  const paymentRail = commitmentPaymentRailAddress({
+    paymentRailAddress: params.paymentRailAddress,
+    campaignAddress: campaign,
+    paymentAssetMint,
+  });
   const ledger = commitmentLedgerAddress({
     ledgerAddress: params.ledgerAddress,
     campaignAddress: campaign,
@@ -4513,6 +4975,7 @@ export function buildRefundCommitmentTx(params: {
     accounts: [
       { pubkey: depositor, isSigner: true, isWritable: true },
       { pubkey: campaign, isWritable: true },
+      { pubkey: paymentRail },
       { pubkey: ledger, isWritable: true },
       { pubkey: position, isWritable: true },
       {

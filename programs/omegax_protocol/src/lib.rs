@@ -20,6 +20,7 @@ pub mod kernel;
 pub mod oracle_schema;
 pub mod plans_membership;
 pub mod reserve_custody;
+pub mod reserve_waterfall;
 pub mod state;
 pub mod types;
 
@@ -38,6 +39,7 @@ pub(crate) use kernel::*;
 pub use oracle_schema::*;
 pub use plans_membership::*;
 pub use reserve_custody::*;
+pub use reserve_waterfall::*;
 pub use state::*;
 pub use types::*;
 
@@ -56,7 +58,8 @@ pub(crate) use capital::{
 pub(crate) use commitments::{
     __client_accounts_activate_direct_premium_commitment,
     __client_accounts_activate_treasury_credit_commitment,
-    __client_accounts_create_commitment_campaign, __client_accounts_deposit_commitment,
+    __client_accounts_activate_waterfall_commitment, __client_accounts_create_commitment_campaign,
+    __client_accounts_create_commitment_payment_rail, __client_accounts_deposit_commitment,
     __client_accounts_pause_commitment_campaign, __client_accounts_refund_commitment,
 };
 pub(crate) use funding_obligations::{
@@ -64,6 +67,10 @@ pub(crate) use funding_obligations::{
     __client_accounts_open_funding_line, __client_accounts_record_premium_payment,
     __client_accounts_release_reserve, __client_accounts_reserve_obligation,
     __client_accounts_settle_obligation,
+};
+pub(crate) use reserve_waterfall::{
+    __client_accounts_configure_reserve_asset_rail,
+    __client_accounts_publish_reserve_asset_rail_price,
 };
 
 #[program]
@@ -110,6 +117,20 @@ pub mod omegax_protocol {
         args: CreateDomainAssetVaultArgs,
     ) -> Result<()> {
         crate::reserve_custody::create_domain_asset_vault(ctx, args)
+    }
+
+    pub fn configure_reserve_asset_rail(
+        ctx: Context<ConfigureReserveAssetRail>,
+        args: ConfigureReserveAssetRailArgs,
+    ) -> Result<()> {
+        crate::reserve_waterfall::configure_reserve_asset_rail(ctx, args)
+    }
+
+    pub fn publish_reserve_asset_rail_price(
+        ctx: Context<PublishReserveAssetRailPrice>,
+        args: PublishReserveAssetRailPriceArgs,
+    ) -> Result<()> {
+        crate::reserve_waterfall::publish_reserve_asset_rail_price(ctx, args)
     }
 
     /// Phase 1.6 — Initialize the protocol-fee vault for a (reserve_domain, asset_mint)
@@ -211,6 +232,13 @@ pub mod omegax_protocol {
         crate::commitments::create_commitment_campaign(ctx, args)
     }
 
+    pub fn create_commitment_payment_rail(
+        ctx: Context<CreateCommitmentPaymentRail>,
+        args: CreateCommitmentPaymentRailArgs,
+    ) -> Result<()> {
+        crate::commitments::create_commitment_payment_rail(ctx, args)
+    }
+
     pub fn deposit_commitment(
         ctx: Context<DepositCommitment>,
         args: DepositCommitmentArgs,
@@ -230,6 +258,13 @@ pub mod omegax_protocol {
         args: ActivateCommitmentArgs,
     ) -> Result<()> {
         crate::commitments::activate_treasury_credit_commitment(ctx, args)
+    }
+
+    pub fn activate_waterfall_commitment(
+        ctx: Context<ActivateWaterfallCommitment>,
+        args: ActivateCommitmentArgs,
+    ) -> Result<()> {
+        crate::commitments::activate_waterfall_commitment(ctx, args)
     }
 
     pub fn refund_commitment(
