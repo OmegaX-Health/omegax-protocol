@@ -62,6 +62,22 @@ type EvidenceTransaction = {
   postStateHash: string;
 };
 
+type ChainSignatureEvidence = {
+  signature: string;
+  slot: number;
+  err: unknown;
+  blockTime: number | null | undefined;
+  memo: string | null;
+  observedAccounts: Array<{
+    label: string;
+    address: string;
+  }>;
+  signerAddresses?: string[];
+  accountAddresses?: string[];
+  instructionPrograms?: string[];
+  currentObservedStateHash?: string;
+};
+
 type NegativeSimulation = {
   label: string;
   expectedFailure: string;
@@ -111,7 +127,16 @@ const CLAIM_REHEARSAL_USD = 25;
 const TERMS_HASH = sha256Hex("founder-travel30-devnet-rehearsal-terms-v1");
 
 function jsonReplacer(_key: string, value: unknown): unknown {
-  return typeof value === "bigint" ? value.toString() : value;
+  if (typeof value === "bigint") return value.toString();
+  if (
+    value &&
+    typeof value === "object" &&
+    value.constructor?.name === "BN" &&
+    typeof (value as { toString?: unknown }).toString === "function"
+  ) {
+    return (value as { toString(): string }).toString();
+  }
+  return value;
 }
 
 async function importFreshProtocol(): Promise<ProtocolModule> {
@@ -125,6 +150,14 @@ async function importFreshProtocol(): Promise<ProtocolModule> {
 function loadLocalEnv(): void {
   loadEnvFile(resolve(process.cwd(), ".env.local"));
   loadEnvFile(resolve(process.cwd(), "frontend/.env.local"));
+}
+
+function combineInstructions(...transactions: Transaction[]): Transaction {
+  const tx = new Transaction();
+  for (const source of transactions) {
+    tx.add(...source.instructions);
+  }
+  return tx;
 }
 
 function keypairPath(label: string): string {
@@ -346,6 +379,88 @@ async function postStateHash(
     }),
   );
   return sha256Hex(hash.toString("hex"));
+}
+
+async function collectChainSignatureEvidence(
+  ctx: RehearsalContext,
+  targets: Array<{ label: string; address: PublicKey }>,
+): Promise<ChainSignatureEvidence[]> {
+  const bySignature = new Map<string, ChainSignatureEvidence>();
+  const uniqueTargets = [
+    ...new Map(
+      targets.map((target) => [target.address.toBase58(), target]),
+    ).values(),
+  ];
+  for (const target of uniqueTargets) {
+    const signatures = await ctx.connection.getSignaturesForAddress(
+      target.address,
+      { limit: 12 },
+      "confirmed",
+    );
+    for (const signatureInfo of signatures) {
+      const entry =
+        bySignature.get(signatureInfo.signature) ??
+        ({
+          signature: signatureInfo.signature,
+          slot: signatureInfo.slot,
+          err: signatureInfo.err,
+          blockTime: signatureInfo.blockTime,
+          memo: signatureInfo.memo,
+          observedAccounts: [],
+        } satisfies ChainSignatureEvidence);
+      entry.observedAccounts.push({
+        label: target.label,
+        address: target.address.toBase58(),
+      });
+      bySignature.set(signatureInfo.signature, entry);
+    }
+  }
+
+  const evidence = [...bySignature.values()]
+    .sort((a, b) => b.slot - a.slot)
+    .slice(0, 120);
+  for (const entry of evidence) {
+    try {
+      const parsed = await ctx.connection.getParsedTransaction(
+        entry.signature,
+        {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        },
+      );
+      const accountKeys = parsed?.transaction.message.accountKeys ?? [];
+      entry.signerAddresses = accountKeys
+        .filter((account) => account.signer)
+        .map((account) => account.pubkey.toBase58());
+      entry.accountAddresses = accountKeys.map((account) =>
+        account.pubkey.toBase58(),
+      );
+      entry.instructionPrograms = parsed?.transaction.message.instructions.map(
+        (instruction) => {
+          const parsedInstruction = instruction as {
+            program?: string;
+            programId?: PublicKey;
+          };
+          return (
+            parsedInstruction.programId?.toBase58() ??
+            parsedInstruction.program ??
+            "unknown"
+          );
+        },
+      );
+    } catch (error) {
+      entry.instructionPrograms = [
+        `transaction-detail-unavailable:${error instanceof Error ? error.message : String(error)}`,
+      ];
+    }
+  }
+  if (evidence.length > 0) {
+    evidence[0].currentObservedStateHash = await postStateHash(
+      ctx.connection,
+      uniqueTargets.map((target) => target.address),
+    );
+  }
+  return evidence;
 }
 
 async function buildAssets(ctx: RehearsalContext): Promise<AssetRuntime[]> {
@@ -1913,17 +2028,30 @@ async function runNegativeSimulations(
     campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
   });
   const usdc = requireAsset(assets, "USDC");
-  const member = ensureLocalKeypair("member-usdc-refund", ctx.mode);
+  const pusd = requireAsset(assets, "PUSD");
+  const refundedMember = ensureLocalKeypair("member-usdc-refund", ctx.mode);
+  const pendingMember = ensureLocalKeypair("member-usdc-pending", ctx.mode);
+  const activatedMember = ensureLocalKeypair("member-usdc-activate", ctx.mode);
   const wrong = ensureLocalKeypair("member-usdc-wrong-wallet", ctx.mode);
   await ensureFeeBalance(ctx, wrong.publicKey, "wrong-wallet");
-  const position = protocol.deriveCommitmentPositionPda({
+  const refundedPosition = protocol.deriveCommitmentPositionPda({
     campaign,
-    depositor: member.publicKey,
-    beneficiary: member.publicKey,
+    depositor: refundedMember.publicKey,
+    beneficiary: refundedMember.publicKey,
+  });
+  const pendingPosition = protocol.deriveCommitmentPositionPda({
+    campaign,
+    depositor: pendingMember.publicKey,
+    beneficiary: pendingMember.publicKey,
+  });
+  const activatedPosition = protocol.deriveCommitmentPositionPda({
+    campaign,
+    depositor: activatedMember.publicKey,
+    beneficiary: activatedMember.publicKey,
   });
   const recipientAta = await ensureAta(
     ctx,
-    member.publicKey,
+    refundedMember.publicKey,
     usdc.mint,
     "USDC:negative-recipient",
   );
@@ -1931,18 +2059,24 @@ async function runNegativeSimulations(
     ctx,
     "double_refund",
     protocol.buildRefundCommitmentTx({
-      depositor: member.publicKey,
+      depositor: refundedMember.publicKey,
       campaignAddress: campaign,
-      positionAddress: position,
+      positionAddress: refundedPosition,
       reserveDomainAddress: reserveDomain,
       paymentAssetMint: usdc.mint,
       recipientTokenAccountAddress: recipientAta,
-      beneficiary: member.publicKey,
+      beneficiary: refundedMember.publicKey,
       refundReasonHashHex: sha256Hex("negative:double-refund"),
       tokenProgramId: TOKEN_PROGRAM_ID,
       recentBlockhash: "11111111111111111111111111111111",
     }),
-    [member],
+    [refundedMember],
+  );
+  const pendingRecipientAta = await ensureAta(
+    ctx,
+    pendingMember.publicKey,
+    usdc.mint,
+    "USDC:wrong-wallet-recipient",
   );
   await simulateExpectedFailure(
     ctx,
@@ -1950,16 +2084,50 @@ async function runNegativeSimulations(
     protocol.buildRefundCommitmentTx({
       depositor: wrong.publicKey,
       campaignAddress: campaign,
-      positionAddress: position,
+      positionAddress: pendingPosition,
       reserveDomainAddress: reserveDomain,
       paymentAssetMint: usdc.mint,
-      recipientTokenAccountAddress: recipientAta,
-      beneficiary: member.publicKey,
+      recipientTokenAccountAddress: pendingRecipientAta,
+      beneficiary: pendingMember.publicKey,
       refundReasonHashHex: sha256Hex("negative:wrong-wallet"),
       tokenProgramId: TOKEN_PROGRAM_ID,
       recentBlockhash: "11111111111111111111111111111111",
     }),
     [wrong],
+  );
+  const wrongMintRecipientAta = await getAssociatedTokenAddress(
+    pusd.mint,
+    pendingMember.publicKey,
+    true,
+    TOKEN_PROGRAM_ID,
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "wrong_mint_refund",
+    combineInstructions(
+      new Transaction().add(
+        createAssociatedTokenAccountIdempotentInstruction(
+          ctx.governance.publicKey,
+          wrongMintRecipientAta,
+          pendingMember.publicKey,
+          pusd.mint,
+          TOKEN_PROGRAM_ID,
+        ),
+      ),
+      protocol.buildRefundCommitmentTx({
+        depositor: pendingMember.publicKey,
+        campaignAddress: campaign,
+        positionAddress: pendingPosition,
+        reserveDomainAddress: reserveDomain,
+        paymentAssetMint: pusd.mint,
+        recipientTokenAccountAddress: wrongMintRecipientAta,
+        beneficiary: pendingMember.publicKey,
+        refundReasonHashHex: sha256Hex("negative:wrong-mint-refund"),
+        tokenProgramId: TOKEN_PROGRAM_ID,
+        recentBlockhash: "11111111111111111111111111111111",
+      }),
+    ),
+    [ctx.governance, pendingMember],
   );
   await simulateExpectedFailure(
     ctx,
@@ -1974,13 +2142,7 @@ async function runNegativeSimulations(
       coverageFundingLineAddress: usdc.fundingLine,
       reserveAssetRailAddress: usdc.reserveAssetRail,
       policySeriesAddress: policySeries,
-      positionAddress: protocol.deriveCommitmentPositionPda({
-        campaign,
-        depositor: ensureLocalKeypair("member-usdc-activate", ctx.mode)
-          .publicKey,
-        beneficiary: ensureLocalKeypair("member-usdc-activate", ctx.mode)
-          .publicKey,
-      }),
+      positionAddress: activatedPosition,
       activationReasonHashHex: sha256Hex("negative:double-activation"),
       recentBlockhash: "11111111111111111111111111111111",
     }),
@@ -1988,24 +2150,135 @@ async function runNegativeSimulations(
   );
   await simulateExpectedFailure(
     ctx,
+    "wrong_rail_activation",
+    protocol.buildActivateWaterfallCommitmentTx({
+      activationAuthority: ctx.governance.publicKey,
+      healthPlanAddress: healthPlan,
+      reserveDomainAddress: reserveDomain,
+      campaignAddress: campaign,
+      paymentAssetMint: usdc.mint,
+      coverageAssetMint: usdc.mint,
+      coverageFundingLineAddress: usdc.fundingLine,
+      reserveAssetRailAddress: pusd.reserveAssetRail,
+      policySeriesAddress: policySeries,
+      positionAddress: pendingPosition,
+      activationReasonHashHex: sha256Hex("negative:wrong-rail-activation"),
+      recentBlockhash: "11111111111111111111111111111111",
+    }),
+    [ctx.governance],
+  );
+  const stalePriceTs =
+    BigInt(Math.floor(Date.now() / 1000)) - 7n * 86_400n - 60n;
+  await simulateExpectedFailure(
+    ctx,
+    "stale_price_activation",
+    combineInstructions(
+      protocol.buildPublishReserveAssetRailPriceTx({
+        authority: ctx.governance.publicKey,
+        reserveDomainAddress: reserveDomain,
+        assetMint: usdc.mint,
+        priceUsd1e8: usdc.priceUsd1e8,
+        confidenceBps: 5,
+        publishedAtTs: stalePriceTs,
+        proofHashHex: sha256Hex("negative:stale-price"),
+        recentBlockhash: "11111111111111111111111111111111",
+      }),
+      protocol.buildActivateWaterfallCommitmentTx({
+        activationAuthority: ctx.governance.publicKey,
+        healthPlanAddress: healthPlan,
+        reserveDomainAddress: reserveDomain,
+        campaignAddress: campaign,
+        paymentAssetMint: usdc.mint,
+        coverageAssetMint: usdc.mint,
+        coverageFundingLineAddress: usdc.fundingLine,
+        reserveAssetRailAddress: usdc.reserveAssetRail,
+        policySeriesAddress: policySeries,
+        positionAddress: pendingPosition,
+        activationReasonHashHex: sha256Hex("negative:stale-price-activation"),
+        recentBlockhash: "11111111111111111111111111111111",
+      }),
+    ),
+    [ctx.governance],
+  );
+  const pausedMember = ensureLocalKeypair(
+    "member-usdc-paused-campaign",
+    ctx.mode,
+  );
+  const pausedSourceAta = await getAssociatedTokenAddress(
+    usdc.mint,
+    pausedMember.publicKey,
+    true,
+    TOKEN_PROGRAM_ID,
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "paused_campaign_deposit",
+    combineInstructions(
+      new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: ctx.governance.publicKey,
+          toPubkey: pausedMember.publicKey,
+          lamports: Number(ROLE_MIN_LAMPORTS),
+        }),
+        createAssociatedTokenAccountIdempotentInstruction(
+          ctx.governance.publicKey,
+          pausedSourceAta,
+          pausedMember.publicKey,
+          usdc.mint,
+          TOKEN_PROGRAM_ID,
+        ),
+        createMintToInstruction(
+          usdc.mint,
+          pausedSourceAta,
+          ctx.governance.publicKey,
+          usdc.depositAmount,
+          [],
+          TOKEN_PROGRAM_ID,
+        ),
+      ),
+      protocol.buildPauseCommitmentCampaignTx({
+        authority: ctx.governance.publicKey,
+        healthPlanAddress: healthPlan,
+        campaignAddress: campaign,
+        status: protocol.COMMITMENT_CAMPAIGN_STATUS_PAUSED,
+        reasonHashHex: sha256Hex("negative:paused-campaign"),
+        recentBlockhash: "11111111111111111111111111111111",
+      }),
+      protocol.buildDepositCommitmentTx({
+        depositor: pausedMember.publicKey,
+        healthPlanAddress: healthPlan,
+        campaignAddress: campaign,
+        reserveDomainAddress: reserveDomain,
+        paymentAssetMint: usdc.mint,
+        sourceTokenAccountAddress: pausedSourceAta,
+        beneficiary: pausedMember.publicKey,
+        reserveAssetRailAddress: usdc.reserveAssetRail,
+        acceptedTermsHashHex: TERMS_HASH,
+        tokenProgramId: TOKEN_PROGRAM_ID,
+        recentBlockhash: "11111111111111111111111111111111",
+      }),
+    ),
+    [ctx.governance, pausedMember],
+  );
+  await simulateExpectedFailure(
+    ctx,
     "duplicate_claim",
     protocol.buildOpenClaimCaseTx({
-      authority: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
+      authority: activatedMember.publicKey,
       healthPlanAddress: healthPlan,
       memberPositionAddress: protocol.deriveMemberPositionPda({
         healthPlan,
-        wallet: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
+        wallet: activatedMember.publicKey,
         seriesScope: policySeries,
       }),
       fundingLineAddress: usdc.fundingLine,
       claimId: "founder-usdc-claim",
       policySeriesAddress: policySeries,
-      claimantAddress: ensureLocalKeypair("member-usdc-activate", ctx.mode)
-        .publicKey,
+      claimantAddress: activatedMember.publicKey,
       evidenceRefHashHex: sha256Hex("negative:duplicate-claim"),
       recentBlockhash: "11111111111111111111111111111111",
     }),
-    [ensureLocalKeypair("member-usdc-activate", ctx.mode)],
+    [activatedMember],
   );
   await simulateExpectedFailure(
     ctx,
@@ -2222,11 +2495,54 @@ async function writeEvidence(
     campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
   });
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
+  const chainSignatureTargets = [
+    { label: "reserve_domain", address: reserveDomain },
+    { label: "health_plan", address: healthPlan },
+    { label: "policy_series", address: policySeries },
+    { label: "commitment_campaign", address: campaign },
+    {
+      label: "liquidity_pool",
+      address: protocol.deriveLiquidityPoolPda({
+        reserveDomain,
+        poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
+      }),
+    },
+    ...assets.flatMap((asset) => [
+      { label: `${asset.symbol}:funding_line`, address: asset.fundingLine },
+      {
+        label: `${asset.symbol}:reserve_asset_rail`,
+        address: asset.reserveAssetRail,
+      },
+      {
+        label: `${asset.symbol}:vault_token_account`,
+        address: asset.vaultTokenAccount,
+      },
+      {
+        label: `${asset.symbol}:claim_case`,
+        address: protocol.deriveClaimCasePda({
+          healthPlan,
+          claimId: `founder-${asset.symbol.toLowerCase()}-claim`,
+        }),
+      },
+      {
+        label: `${asset.symbol}:obligation`,
+        address: protocol.deriveObligationPda({
+          fundingLine: asset.fundingLine,
+          obligationId: `founder-${asset.symbol.toLowerCase()}-obligation`,
+        }),
+      },
+    ]),
+  ];
+  const chainSignatures = await collectChainSignatureEvidence(
+    ctx,
+    chainSignatureTargets,
+  );
   const bundle = redactEvidence({
     generatedAt: new Date().toISOString(),
     programId: protocol.getProgramId().toBase58(),
     canonicalIds: CANONICAL_FOUNDER_REHEARSAL_IDS,
     transactions: ctx.transactions,
+    chainSignatures,
     negativeSimulations: ctx.negativeSimulations,
     addresses: {
       reserveDomain: reserveDomain.toBase58(),
@@ -2264,6 +2580,10 @@ async function writeEvidence(
   writeFileSync(
     join(ctx.evidenceDir, "transactions.json"),
     `${JSON.stringify(redactEvidence(ctx.transactions), jsonReplacer, 2)}\n`,
+  );
+  writeFileSync(
+    join(ctx.evidenceDir, "chain-signatures.json"),
+    `${JSON.stringify(redactEvidence(chainSignatures), jsonReplacer, 2)}\n`,
   );
   writeFileSync(
     join(ctx.evidenceDir, "negative-simulations.json"),
