@@ -32,7 +32,13 @@ export const CANONICAL_FOUNDER_REHEARSAL_IDS = {
   poolId: "omega-health-income",
 } as const;
 
-export type FounderAssetSymbol = "USDC" | "PUSD" | "WSOL" | "WBTC" | "WETH" | "OMEGAX";
+export type FounderAssetSymbol =
+  | "USDC"
+  | "PUSD"
+  | "WSOL"
+  | "WBTC"
+  | "WETH"
+  | "OMEGAX";
 
 export type FounderAssetRail = {
   symbol: FounderAssetSymbol;
@@ -151,7 +157,9 @@ export function parseRehearsalArgs(argv: readonly string[]): RehearsalArgs {
     throw new Error("Use exactly one of --plan or --execute.");
   }
   for (const flag of flags) {
-    if (!["--plan", "--execute", "--resume", "--actuarial-only"].includes(flag)) {
+    if (
+      !["--plan", "--execute", "--resume", "--actuarial-only"].includes(flag)
+    ) {
       throw new Error(`Unknown devnet founder rehearsal flag: ${flag}`);
     }
   }
@@ -168,13 +176,43 @@ export function assertMaySend(mode: RehearsalMode): void {
   }
 }
 
-export function requireClassicTokenProgramId(tokenProgramId: PublicKey | string | null | undefined): PublicKey {
-  const resolved = tokenProgramId ? new PublicKey(tokenProgramId) : TOKEN_PROGRAM_ID;
+export function requireClassicTokenProgramId(
+  tokenProgramId: PublicKey | string | null | undefined,
+): PublicKey {
+  const resolved = tokenProgramId
+    ? new PublicKey(tokenProgramId)
+    : TOKEN_PROGRAM_ID;
   if (!resolved.equals(TOKEN_PROGRAM_ID)) {
-    const detail = resolved.equals(TOKEN_2022_PROGRAM_ID) ? "Token-2022" : resolved.toBase58();
-    throw new Error(`Founder rehearsal only accepts classic SPL Token accounts; rejected ${detail}.`);
+    const detail = resolved.equals(TOKEN_2022_PROGRAM_ID)
+      ? "Token-2022"
+      : resolved.toBase58();
+    throw new Error(
+      `Founder rehearsal only accepts classic SPL Token accounts; rejected ${detail}.`,
+    );
   }
   return resolved;
+}
+
+export function assertProtocolGovernanceAuthorityMatches(params: {
+  actualGovernanceAuthority: string;
+  localOperator: string;
+  configuredGovernanceAuthority?: string | null;
+}): "local" | "configured" {
+  const actual = new PublicKey(params.actualGovernanceAuthority).toBase58();
+  const local = new PublicKey(params.localOperator).toBase58();
+  if (actual === local) return "local";
+  if (params.configuredGovernanceAuthority) {
+    const configured = new PublicKey(
+      params.configuredGovernanceAuthority,
+    ).toBase58();
+    if (actual === configured) return "configured";
+  }
+  const expected = params.configuredGovernanceAuthority
+    ? `${local} or configured governance ${new PublicKey(params.configuredGovernanceAuthority).toBase58()}`
+    : local;
+  throw new Error(
+    `Canonical devnet account mismatch for protocol_governance: governanceAuthority expected ${expected}, got ${actual}.`,
+  );
 }
 
 export function fundingLineIdForAsset(symbol: FounderAssetSymbol): string {
@@ -205,7 +243,7 @@ export function usd1e8ForRaw(params: {
   const raw = toBigInt(params.amountRaw);
   const price = toBigInt(params.priceUsd1e8);
   if (raw <= 0n || price <= 0n) return 0n;
-  return (raw * price) / (10n ** BigInt(params.decimals));
+  return (raw * price) / 10n ** BigInt(params.decimals);
 }
 
 export function sha256Hex(value: string): string {
@@ -223,11 +261,15 @@ export function assertCanonicalAccountMatches(
     const actualValue = normalizeComparable(actual[key]);
     const normalizedExpected = normalizeComparable(expectedValue);
     if (actualValue !== normalizedExpected) {
-      mismatches.push(`${key}: expected ${normalizedExpected}, got ${actualValue}`);
+      mismatches.push(
+        `${key}: expected ${normalizedExpected}, got ${actualValue}`,
+      );
     }
   }
   if (mismatches.length > 0) {
-    throw new Error(`Canonical devnet account mismatch for ${label}: ${mismatches.join("; ")}`);
+    throw new Error(
+      `Canonical devnet account mismatch for ${label}: ${mismatches.join("; ")}`,
+    );
   }
 }
 
@@ -257,8 +299,10 @@ function redact(value: unknown, keyHint = ""): unknown {
   }
   if (typeof value === "string") {
     if (SENSITIVE_KEY_PATTERN.test(keyHint)) return "<redacted>";
-    if (/\/Users\/[^/\s]+\/\.config\/solana\//.test(value)) return "<redacted-local-path>";
-    if (/\b(raw health data|diagnosis|patient)\b/i.test(value)) return "<redacted>";
+    if (/\/Users\/[^/\s]+\/\.config\/solana\//.test(value))
+      return "<redacted-local-path>";
+    if (/\b(raw health data|diagnosis|patient)\b/i.test(value))
+      return "<redacted>";
   }
   return value;
 }
@@ -328,13 +372,18 @@ export type ChainActuarialGate = {
   notes: string[];
 };
 
-export function evaluateChainActuarialGate(input: ChainActuarialGateInput): ChainActuarialGate {
+export function evaluateChainActuarialGate(
+  input: ChainActuarialGateInput,
+): ChainActuarialGate {
   const rows = input.assets
     .slice()
     .sort((left, right) => left.payoutPriority - right.payoutPriority)
     .map((asset) => assetCapacity(asset, input.nowTs));
   const countedBeforeCaps = rows.filter((row) => row.counted);
-  const haircutTotal = countedBeforeCaps.reduce((sum, row) => sum + row.haircutAdjustedUsd, 0);
+  const haircutTotal = countedBeforeCaps.reduce(
+    (sum, row) => sum + row.haircutAdjustedUsd,
+    0,
+  );
 
   for (const row of rows) {
     if (!row.counted) {
@@ -345,8 +394,12 @@ export function evaluateChainActuarialGate(input: ChainActuarialGateInput): Chai
     row.cappedCapacityUsd = Math.min(row.haircutAdjustedUsd, capUsd);
   }
 
-  const grossReserveUsd = roundMoney(rows.reduce((sum, row) => sum + (row.counted ? row.grossUsd : 0), 0));
-  const haircutAdjustedReserveUsd = roundMoney(rows.reduce((sum, row) => sum + row.cappedCapacityUsd, 0));
+  const grossReserveUsd = roundMoney(
+    rows.reduce((sum, row) => sum + (row.counted ? row.grossUsd : 0), 0),
+  );
+  const haircutAdjustedReserveUsd = roundMoney(
+    rows.reduce((sum, row) => sum + row.cappedCapacityUsd, 0),
+  );
   const freeReserveUsd = haircutAdjustedReserveUsd;
   const members = Math.max(1, input.activatedTravel30Members);
   const claims = simulateTravel30Claims({
@@ -356,13 +409,18 @@ export function evaluateChainActuarialGate(input: ChainActuarialGateInput): Chai
   const p95ClaimsUsd = roundMoney(quantile(claims, 0.95));
   const p99ClaimsUsd = roundMoney(quantile(claims, 0.99));
   const p995ClaimsUsd = roundMoney(quantile(claims, 0.995));
-  const reserveBreachProbability = claims.filter((value) => value > freeReserveUsd).length / claims.length;
-  const safeConcurrentTravel30Members = findSafeMembers(input.assumptions, freeReserveUsd);
-  const launchGate = p995ClaimsUsd <= freeReserveUsd && reserveBreachProbability <= 0.005
-    ? "healthy"
-    : p99ClaimsUsd <= freeReserveUsd
-      ? "caution"
-      : "pause";
+  const reserveBreachProbability =
+    claims.filter((value) => value > freeReserveUsd).length / claims.length;
+  const safeConcurrentTravel30Members = findSafeMembers(
+    input.assumptions,
+    freeReserveUsd,
+  );
+  const launchGate =
+    p995ClaimsUsd <= freeReserveUsd && reserveBreachProbability <= 0.005
+      ? "healthy"
+      : p99ClaimsUsd <= freeReserveUsd
+        ? "caution"
+        : "pause";
 
   return {
     grossReserveUsd,
@@ -377,7 +435,10 @@ export function evaluateChainActuarialGate(input: ChainActuarialGateInput): Chai
     countedAssets: rows.filter((row) => row.counted).map((row) => row.symbol),
     excludedAssets: rows
       .filter((row) => !row.counted)
-      .map((row) => ({ symbol: row.symbol, reason: row.exclusionReason ?? "excluded" })),
+      .map((row) => ({
+        symbol: row.symbol,
+        reason: row.exclusionReason ?? "excluded",
+      })),
     assetRows: rows,
     notes: [
       "Pending commitments are excluded from claims-paying reserve.",
@@ -388,15 +449,19 @@ export function evaluateChainActuarialGate(input: ChainActuarialGateInput): Chai
   };
 }
 
-function assetCapacity(asset: ChainAssetCapacityInput, nowTs: number): AssetCapacityRow {
+function assetCapacity(
+  asset: ChainAssetCapacityInput,
+  nowTs: number,
+): AssetCapacityRow {
   const price = toBigInt(asset.priceUsd1e8);
   const fundedRaw = toBigInt(asset.fundedRaw);
   const reservedRaw = toBigInt(asset.reservedRaw);
   const claimableRaw = toBigInt(asset.claimableRaw);
   const payableRaw = toBigInt(asset.payableRaw);
   const settledRaw = toBigInt(asset.settledRaw);
-  const stale = asset.maxStalenessSeconds > 0
-    && nowTs - asset.pricePublishedAtTs > asset.maxStalenessSeconds;
+  const stale =
+    asset.maxStalenessSeconds > 0 &&
+    nowTs - asset.pricePublishedAtTs > asset.maxStalenessSeconds;
   const base = {
     ...asset,
     grossUsd: 0,
@@ -405,17 +470,39 @@ function assetCapacity(asset: ChainAssetCapacityInput, nowTs: number): AssetCapa
     haircutAdjustedUsd: 0,
     cappedCapacityUsd: 0,
   };
-  if (!asset.active) return { ...base, counted: false, exclusionReason: "rail inactive" };
-  if (!asset.capacityEnabled) return { ...base, counted: false, exclusionReason: "capacity disabled" };
-  if (price <= 0n) return { ...base, counted: false, exclusionReason: "missing price" };
+  if (!asset.active)
+    return { ...base, counted: false, exclusionReason: "rail inactive" };
+  if (!asset.capacityEnabled)
+    return { ...base, counted: false, exclusionReason: "capacity disabled" };
+  if (price <= 0n)
+    return { ...base, counted: false, exclusionReason: "missing price" };
   if (stale) return { ...base, counted: false, exclusionReason: "stale price" };
 
   const encumberedRaw = reservedRaw + claimableRaw + payableRaw + settledRaw;
   const freeRaw = fundedRaw > encumberedRaw ? fundedRaw - encumberedRaw : 0n;
-  const grossUsd = usdNumber(usd1e8ForRaw({ amountRaw: fundedRaw, decimals: asset.decimals, priceUsd1e8: price }));
-  const encumberedUsd = usdNumber(usd1e8ForRaw({ amountRaw: encumberedRaw, decimals: asset.decimals, priceUsd1e8: price }));
-  const freeUsd = usdNumber(usd1e8ForRaw({ amountRaw: freeRaw, decimals: asset.decimals, priceUsd1e8: price }));
-  const haircutAdjustedUsd = freeUsd * Math.max(0, 10_000 - asset.haircutBps) / 10_000;
+  const grossUsd = usdNumber(
+    usd1e8ForRaw({
+      amountRaw: fundedRaw,
+      decimals: asset.decimals,
+      priceUsd1e8: price,
+    }),
+  );
+  const encumberedUsd = usdNumber(
+    usd1e8ForRaw({
+      amountRaw: encumberedRaw,
+      decimals: asset.decimals,
+      priceUsd1e8: price,
+    }),
+  );
+  const freeUsd = usdNumber(
+    usd1e8ForRaw({
+      amountRaw: freeRaw,
+      decimals: asset.decimals,
+      priceUsd1e8: price,
+    }),
+  );
+  const haircutAdjustedUsd =
+    (freeUsd * Math.max(0, 10_000 - asset.haircutBps)) / 10_000;
   return {
     ...base,
     counted: freeUsd > 0,
@@ -437,14 +524,20 @@ export function chainInputsFromSnapshot(params: {
   nowTs: number;
 }): ChainAssetCapacityInput[] {
   return params.assets.map((asset) => {
-    const ledger = params.ledgers.find((row) =>
-      row.reserveDomain === params.reserveDomain && row.assetMint === asset.mint
+    const ledger = params.ledgers.find(
+      (row) =>
+        row.reserveDomain === params.reserveDomain &&
+        row.assetMint === asset.mint,
     );
-    const rail = params.rails.find((row) =>
-      row.reserveDomain === params.reserveDomain && row.assetMint === asset.mint
+    const rail = params.rails.find(
+      (row) =>
+        row.reserveDomain === params.reserveDomain &&
+        row.assetMint === asset.mint,
     );
     const sheet = ledger?.sheet ?? {};
-    const positions = params.commitmentPositions.filter((position) => position.paymentAssetMint === asset.mint);
+    const positions = params.commitmentPositions.filter(
+      (position) => position.paymentAssetMint === asset.mint,
+    );
     const pendingRaw = positions
       .filter((position) => position.state === COMMITMENT_POSITION_PENDING)
       .reduce((sum, position) => sum + toBigInt(position.amount), 0n);
@@ -452,15 +545,30 @@ export function chainInputsFromSnapshot(params: {
       .filter((position) => position.state === COMMITMENT_POSITION_REFUNDED)
       .reduce((sum, position) => sum + toBigInt(position.amount), 0n);
     const activatedRaw = positions
-      .filter((position) => position.state === COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED)
+      .filter(
+        (position) =>
+          position.state === COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
+      )
       .reduce((sum, position) => sum + toBigInt(position.amount), 0n);
-    const obligations = params.obligations.filter((row) => row.assetMint === asset.mint);
+    const obligations = params.obligations.filter(
+      (row) => row.assetMint === asset.mint,
+    );
     const reservedRaw = obligations
       .filter((row) => row.status === OBLIGATION_STATUS_RESERVED)
-      .reduce((sum, row) => sum + toBigInt(row.reservedAmount ?? row.principalAmount), 0n);
+      .reduce(
+        (sum, row) => sum + toBigInt(row.reservedAmount ?? row.principalAmount),
+        0n,
+      );
     const claimableRaw = obligations
       .filter((row) => row.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE)
-      .reduce((sum, row) => sum + toBigInt(row.claimableAmount ?? row.payableAmount ?? row.principalAmount), 0n);
+      .reduce(
+        (sum, row) =>
+          sum +
+          toBigInt(
+            row.claimableAmount ?? row.payableAmount ?? row.principalAmount,
+          ),
+        0n,
+      );
     return {
       symbol: asset.symbol,
       mint: asset.mint,
@@ -472,8 +580,14 @@ export function chainInputsFromSnapshot(params: {
       fundedRaw: maxBigInt(toBigInt(sheetField(sheet, "funded")), activatedRaw),
       pendingRaw,
       refundedRaw,
-      reservedRaw: maxBigInt(toBigInt(sheetField(sheet, "reserved")), reservedRaw),
-      claimableRaw: maxBigInt(toBigInt(sheetField(sheet, "claimable")), claimableRaw),
+      reservedRaw: maxBigInt(
+        toBigInt(sheetField(sheet, "reserved")),
+        reservedRaw,
+      ),
+      claimableRaw: maxBigInt(
+        toBigInt(sheetField(sheet, "claimable")),
+        claimableRaw,
+      ),
       payableRaw: toBigInt(sheetField(sheet, "payable")),
       settledRaw: toBigInt(sheetField(sheet, "settled")),
       active: rail?.active ?? asset.capacityEnabled,
@@ -484,7 +598,10 @@ export function chainInputsFromSnapshot(params: {
   });
 }
 
-function sheetField(sheet: PartialReserveBalanceSheet, key: keyof PartialReserveBalanceSheet): BigNumberish {
+function sheetField(
+  sheet: PartialReserveBalanceSheet,
+  key: keyof PartialReserveBalanceSheet,
+): BigNumberish {
   const value = sheet[key];
   return value ?? 0n;
 }
@@ -515,42 +632,79 @@ function simulateTravel30Claims(params: {
   const rng = createRng(params.assumptions.seed + params.members);
   const values: number[] = [];
   for (let trial = 0; trial < params.assumptions.trials; trial += 1) {
-    const claims = claimCount(params.members, params.assumptions.baselineClaimFrequency, rng);
+    const claims = claimCount(
+      params.members,
+      params.assumptions.baselineClaimFrequency,
+      rng,
+    );
     let total = 0;
     for (let index = 0; index < claims; index += 1) {
       total += sampleSeverity(params.assumptions, rng);
     }
-    values.push(Math.min(total, params.members * params.assumptions.maxPayoutUsd));
+    values.push(
+      Math.min(total, params.members * params.assumptions.maxPayoutUsd),
+    );
   }
   return values;
 }
 
-function findSafeMembers(assumptions: GenesisActuarialAssumptions, reserveUsd: number): number {
+function findSafeMembers(
+  assumptions: GenesisActuarialAssumptions,
+  reserveUsd: number,
+): number {
   if (reserveUsd <= 0) return 0;
   let low = 0;
   let high = 1;
-  while (high < 50_000 && quantile(simulateTravel30Claims({ members: high, assumptions }), 0.995) <= reserveUsd) {
+  while (
+    high < 50_000 &&
+    quantile(simulateTravel30Claims({ members: high, assumptions }), 0.995) <=
+      reserveUsd
+  ) {
     high *= 2;
   }
   while (low + 1 < high) {
     const mid = Math.floor((low + high) / 2);
-    const p995 = quantile(simulateTravel30Claims({ members: mid, assumptions }), 0.995);
+    const p995 = quantile(
+      simulateTravel30Claims({ members: mid, assumptions }),
+      0.995,
+    );
     if (p995 <= reserveUsd) low = mid;
     else high = mid;
   }
   return low;
 }
 
-function sampleSeverity(assumptions: GenesisActuarialAssumptions, rng: () => number): number {
+function sampleSeverity(
+  assumptions: GenesisActuarialAssumptions,
+  rng: () => number,
+): number {
   const p = rng();
   const max = assumptions.maxPayoutUsd;
   if (p < 0.75) {
-    return triangular(assumptions.severityMinUsd, assumptions.severityModeUsd, assumptions.severityP95Usd, rng);
+    return triangular(
+      assumptions.severityMinUsd,
+      assumptions.severityModeUsd,
+      assumptions.severityP95Usd,
+      rng,
+    );
   }
-  return Math.min(max, triangular(assumptions.severityModeUsd, assumptions.severityP95Usd, assumptions.severityMaxUsd, rng));
+  return Math.min(
+    max,
+    triangular(
+      assumptions.severityModeUsd,
+      assumptions.severityP95Usd,
+      assumptions.severityMaxUsd,
+      rng,
+    ),
+  );
 }
 
-function triangular(min: number, mode: number, max: number, rng: () => number): number {
+function triangular(
+  min: number,
+  mode: number,
+  max: number,
+  rng: () => number,
+): number {
   const u = rng();
   const c = (mode - min) / (max - min);
   if (u < c) {
@@ -569,7 +723,10 @@ function claimCount(n: number, p: number, rng: () => number): number {
 
 function quantile(values: number[], p: number): number {
   const sorted = [...values].sort((left, right) => left - right);
-  const index = Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)));
+  const index = Math.min(
+    sorted.length - 1,
+    Math.floor(p * (sorted.length - 1)),
+  );
   return sorted[index] ?? 0;
 }
 

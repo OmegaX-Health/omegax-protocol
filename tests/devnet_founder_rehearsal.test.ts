@@ -9,6 +9,7 @@ import {
   FOUNDER_ASSET_RAILS,
   assertCanonicalAccountMatches,
   assertMaySend,
+  assertProtocolGovernanceAuthorityMatches,
   chainInputsFromSnapshot,
   evaluateChainActuarialGate,
   fundingLineIdForAsset,
@@ -57,6 +58,35 @@ test("devnet founder rehearsal hard-fails canonical account mismatches", () => {
       campaignId: "founder-travel30",
       mode: 2,
     }), /Canonical devnet account mismatch.*mode/i);
+});
+
+test("devnet founder rehearsal accepts configured governance handoff but rejects unknown protocol authority", () => {
+  const local = "BGN6pVpuD9GPSsExtBi7pe4RLCJrkFVsQd9mw7ZdH8Ez";
+  const configured = "27AFKaBMMPYzSBxBR24hyVDZE7GDYBFE7ae1hrYWBPFP";
+  assert.equal(
+    assertProtocolGovernanceAuthorityMatches({
+      actualGovernanceAuthority: local,
+      localOperator: local,
+      configuredGovernanceAuthority: configured,
+    }),
+    "local",
+  );
+  assert.equal(
+    assertProtocolGovernanceAuthorityMatches({
+      actualGovernanceAuthority: configured,
+      localOperator: local,
+      configuredGovernanceAuthority: configured,
+    }),
+    "configured",
+  );
+  assert.throws(
+    () => assertProtocolGovernanceAuthorityMatches({
+      actualGovernanceAuthority: "D2xAeHq1yiXPDeaq7H5oY5j3QnPrH2EuwYBAzn9KWz7H",
+      localOperator: local,
+      configuredGovernanceAuthority: configured,
+    }),
+    /protocol_governance.*expected/i,
+  );
 });
 
 test("devnet founder rehearsal accepts only classic SPL token program IDs", () => {

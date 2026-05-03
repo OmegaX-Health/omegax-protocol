@@ -35,6 +35,7 @@ import {
   type FounderAssetSymbol,
   assertCanonicalAccountMatches,
   assertMaySend,
+  assertProtocolGovernanceAuthorityMatches,
   chainInputsFromSnapshot,
   evaluateChainActuarialGate,
   fundingLineIdForAsset,
@@ -49,7 +50,8 @@ import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
 import { keypairFromFile } from "./support/script_helpers.ts";
 
 type ProtocolModule = typeof import("../frontend/lib/protocol.ts");
-const { PROTOCOL_PROGRAM_ID } = contractModule as typeof import("../frontend/lib/generated/protocol-contract.ts");
+const { PROTOCOL_PROGRAM_ID } =
+  contractModule as typeof import("../frontend/lib/generated/protocol-contract.ts");
 
 type EvidenceTransaction = {
   label: string;
@@ -82,6 +84,7 @@ type RehearsalContext = {
   connection: Connection;
   governance: Keypair;
   oracle: Keypair;
+  protocolGovernanceAuthority: PublicKey | null;
   mode: "plan" | "execute";
   resume: boolean;
   evidenceDir: string;
@@ -96,7 +99,10 @@ type MemberSet = {
 };
 
 const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
-const LOCAL_REHEARSAL_DIR = resolve(homedir(), ".config/solana/omegax-devnet/founder-rehearsal");
+const LOCAL_REHEARSAL_DIR = resolve(
+  homedir(),
+  ".config/solana/omegax-devnet/founder-rehearsal",
+);
 const GOVERNANCE_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 const ROLE_MIN_LAMPORTS = 150_000_000n;
 const GOVERNANCE_MIN_LAMPORTS = 2n * BigInt(LAMPORTS_PER_SOL);
@@ -110,7 +116,9 @@ function jsonReplacer(_key: string, value: unknown): unknown {
 
 async function importFreshProtocol(): Promise<ProtocolModule> {
   const url = `${pathToFileURL(resolve(process.cwd(), "frontend/lib/protocol.ts")).href}?v=${Date.now()}`;
-  const module = await import(url) as { default?: ProtocolModule } & ProtocolModule;
+  const module = (await import(url)) as {
+    default?: ProtocolModule;
+  } & ProtocolModule;
   return (module.default ?? module) as ProtocolModule;
 }
 
@@ -137,20 +145,84 @@ function ensureLocalKeypair(label: string, mode: "plan" | "execute"): Keypair {
 
 function loadGovernanceKeypair(mode: "plan" | "execute"): Keypair | null {
   if (mode !== "execute") return null;
-  const configuredPath = process.env.SOLANA_KEYPAIR?.trim() || GOVERNANCE_KEYPAIR_PATH;
+  const configuredPath =
+    process.env.SOLANA_KEYPAIR?.trim() || GOVERNANCE_KEYPAIR_PATH;
   return keypairFromFile(configuredPath);
 }
 
-async function ensureFeeBalance(ctx: RehearsalContext, wallet: PublicKey, label: string, minimumLamports = ROLE_MIN_LAMPORTS): Promise<void> {
+function configuredGovernanceControlAddress(): string | null {
+  const raw =
+    process.env.GOVERNANCE_CONFIG ||
+    process.env.NEXT_PUBLIC_GOVERNANCE_CONFIG ||
+    "";
+  const normalized = raw.trim();
+  if (!normalized) return null;
+  return new PublicKey(normalized).toBase58();
+}
+
+function protocolGovernanceSource(
+  ctx: RehearsalContext,
+  governanceAuthority: string,
+): "local" | "configured" {
+  return assertProtocolGovernanceAuthorityMatches({
+    actualGovernanceAuthority: governanceAuthority,
+    localOperator: ctx.governance.publicKey.toBase58(),
+    configuredGovernanceAuthority: configuredGovernanceControlAddress(),
+  });
+}
+
+async function preflightProtocolGovernance(
+  ctx: RehearsalContext,
+): Promise<void> {
+  const snapshot = await ctx.protocol.loadProtocolConsoleSnapshot(
+    ctx.connection,
+  );
+  if (!snapshot.protocolGovernance) {
+    ctx.protocolGovernanceAuthority = ctx.governance.publicKey;
+    return;
+  }
+  const source = protocolGovernanceSource(
+    ctx,
+    snapshot.protocolGovernance.governanceAuthority,
+  );
+  ctx.protocolGovernanceAuthority = new PublicKey(
+    snapshot.protocolGovernance.governanceAuthority,
+  );
+  if (source === "configured") {
+    console.log(
+      `[founder-rehearsal] protocol_governance authority is configured governance ${ctx.protocolGovernanceAuthority.toBase58()}; operator-scoped launch controls will be used where already delegated.`,
+    );
+  }
+}
+
+function requireLocalProtocolGovernanceAuthority(
+  ctx: RehearsalContext,
+  label: string,
+): void {
+  const authority = ctx.protocolGovernanceAuthority;
+  if (!authority || authority.equals(ctx.governance.publicKey)) return;
+  throw new Error(
+    `${label} requires the protocol governance signer ${authority.toBase58()}, but this runner only has the operator signer ${ctx.governance.publicKey.toBase58()}. Execute through governance or bootstrap the required account before rerunning.`,
+  );
+}
+
+async function ensureFeeBalance(
+  ctx: RehearsalContext,
+  wallet: PublicKey,
+  label: string,
+  minimumLamports = ROLE_MIN_LAMPORTS,
+): Promise<void> {
   const current = BigInt(await ctx.connection.getBalance(wallet, "confirmed"));
   if (current >= minimumLamports) return;
   assertMaySend(ctx.mode);
   const delta = Number(minimumLamports - current);
-  const tx = new Transaction().add(SystemProgram.transfer({
-    fromPubkey: ctx.governance.publicKey,
-    toPubkey: wallet,
-    lamports: delta,
-  }));
+  const tx = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: ctx.governance.publicKey,
+      toPubkey: wallet,
+      lamports: delta,
+    }),
+  );
   await sendSignedTransaction(ctx, {
     label: `fund-fees:${label}`,
     tx,
@@ -159,42 +231,65 @@ async function ensureFeeBalance(ctx: RehearsalContext, wallet: PublicKey, label:
   });
 }
 
-async function ensureGovernanceHasDevnetSol(ctx: RehearsalContext): Promise<void> {
-  const current = BigInt(await ctx.connection.getBalance(ctx.governance.publicKey, "confirmed"));
+async function ensureGovernanceHasDevnetSol(
+  ctx: RehearsalContext,
+): Promise<void> {
+  const current = BigInt(
+    await ctx.connection.getBalance(ctx.governance.publicKey, "confirmed"),
+  );
   if (current >= GOVERNANCE_MIN_LAMPORTS) return;
   assertMaySend(ctx.mode);
-  const signature = await ctx.connection.requestAirdrop(ctx.governance.publicKey, Number(GOVERNANCE_MIN_LAMPORTS - current));
+  const signature = await ctx.connection.requestAirdrop(
+    ctx.governance.publicKey,
+    Number(GOVERNANCE_MIN_LAMPORTS - current),
+  );
   const latest = await ctx.connection.getLatestBlockhash("confirmed");
-  await ctx.connection.confirmTransaction({ ...latest, signature }, "confirmed");
+  await ctx.connection.confirmTransaction(
+    { ...latest, signature },
+    "confirmed",
+  );
   ctx.transactions.push({
     label: "airdrop:governance-fees",
     signature,
     slot: latest.lastValidBlockHeight,
     signer: ctx.governance.publicKey.toBase58(),
     accounts: [ctx.governance.publicKey.toBase58()],
-    postStateHash: await postStateHash(ctx.connection, [ctx.governance.publicKey]),
+    postStateHash: await postStateHash(ctx.connection, [
+      ctx.governance.publicKey,
+    ]),
   });
 }
 
-async function sendSignedTransaction(ctx: RehearsalContext, params: {
-  label: string;
-  tx: Transaction;
-  signer: Keypair;
-  signers: Keypair[];
-}): Promise<string> {
+async function sendSignedTransaction(
+  ctx: RehearsalContext,
+  params: {
+    label: string;
+    tx: Transaction;
+    signer: Keypair;
+    signers: Keypair[];
+  },
+): Promise<string> {
   assertMaySend(ctx.mode);
   const latest = await ctx.connection.getLatestBlockhash("confirmed");
   params.tx.feePayer = params.tx.feePayer ?? params.signer.publicKey;
   params.tx.recentBlockhash = latest.blockhash;
   const uniqueSigners = uniqueKeypairs(params.signers);
   params.tx.sign(...uniqueSigners);
-  const signature = await ctx.connection.sendRawTransaction(params.tx.serialize(), {
-    maxRetries: 5,
-    skipPreflight: false,
-  });
-  const confirmation = await ctx.connection.confirmTransaction({ ...latest, signature }, "confirmed");
+  const signature = await ctx.connection.sendRawTransaction(
+    params.tx.serialize(),
+    {
+      maxRetries: 5,
+      skipPreflight: false,
+    },
+  );
+  const confirmation = await ctx.connection.confirmTransaction(
+    { ...latest, signature },
+    "confirmed",
+  );
   if (confirmation.value.err) {
-    throw new Error(`${params.label} failed during confirmation: ${JSON.stringify(confirmation.value.err)}`);
+    throw new Error(
+      `${params.label} failed during confirmation: ${JSON.stringify(confirmation.value.err)}`,
+    );
   }
   const accounts = transactionAccounts(params.tx);
   ctx.transactions.push({
@@ -229,14 +324,27 @@ function transactionAccounts(tx: Transaction): PublicKey[] {
   return [...addresses.values()];
 }
 
-async function postStateHash(connection: Connection, accounts: PublicKey[]): Promise<string> {
-  const unique = [...new Map(accounts.map((account) => [account.toBase58(), account])).values()];
+async function postStateHash(
+  connection: Connection,
+  accounts: PublicKey[],
+): Promise<string> {
+  const unique = [
+    ...new Map(
+      accounts.map((account) => [account.toBase58(), account]),
+    ).values(),
+  ];
   const infos = await connection.getMultipleAccountsInfo(unique, "confirmed");
-  const hash = Buffer.concat(unique.map((account, index) => {
-    const info = infos[index];
-    const digest = sha256Hex(info?.data ? Buffer.from(info.data).toString("hex") : "missing");
-    return Buffer.from(`${account.toBase58()}:${info?.owner.toBase58() ?? "missing"}:${info?.lamports ?? 0}:${digest}\n`);
-  }));
+  const hash = Buffer.concat(
+    unique.map((account, index) => {
+      const info = infos[index];
+      const digest = sha256Hex(
+        info?.data ? Buffer.from(info.data).toString("hex") : "missing",
+      );
+      return Buffer.from(
+        `${account.toBase58()}:${info?.owner.toBase58() ?? "missing"}:${info?.lamports ?? 0}:${digest}\n`,
+      );
+    }),
+  );
   return sha256Hex(hash.toString("hex"));
 }
 
@@ -264,7 +372,10 @@ async function buildAssets(ctx: RehearsalContext): Promise<AssetRuntime[]> {
       planId: CANONICAL_FOUNDER_REHEARSAL_IDS.planId,
     });
     const fundingLineId = fundingLineIdForAsset(rail.symbol);
-    const fundingLine = ctx.protocol.deriveFundingLinePda({ healthPlan, lineId: fundingLineId });
+    const fundingLine = ctx.protocol.deriveFundingLinePda({
+      healthPlan,
+      lineId: fundingLineId,
+    });
     assets.push({
       ...rail,
       mint,
@@ -272,20 +383,36 @@ async function buildAssets(ctx: RehearsalContext): Promise<AssetRuntime[]> {
       claimAmount,
       fundingLineId,
       fundingLine,
-      reserveAssetRail: ctx.protocol.deriveReserveAssetRailPda({ reserveDomain, assetMint: mint }),
-      vaultTokenAccount: ctx.protocol.deriveDomainAssetVaultTokenAccountPda({ reserveDomain, assetMint: mint }),
+      reserveAssetRail: ctx.protocol.deriveReserveAssetRailPda({
+        reserveDomain,
+        assetMint: mint,
+      }),
+      vaultTokenAccount: ctx.protocol.deriveDomainAssetVaultTokenAccountPda({
+        reserveDomain,
+        assetMint: mint,
+      }),
     });
   }
   return assets;
 }
 
-async function ensureControlledClassicMint(ctx: RehearsalContext, asset: FounderAssetRail): Promise<PublicKey> {
+async function ensureControlledClassicMint(
+  ctx: RehearsalContext,
+  asset: FounderAssetRail,
+): Promise<PublicKey> {
   const envMint = process.env[asset.mintEnv]?.trim();
   if (envMint) {
     const mint = new PublicKey(envMint);
-    const info = await getMint(ctx.connection, mint, "confirmed", TOKEN_PROGRAM_ID);
+    const info = await getMint(
+      ctx.connection,
+      mint,
+      "confirmed",
+      TOKEN_PROGRAM_ID,
+    );
     if (info.decimals !== asset.decimals) {
-      throw new Error(`${asset.symbol} mint ${mint.toBase58()} has ${info.decimals} decimals; expected ${asset.decimals}.`);
+      throw new Error(
+        `${asset.symbol} mint ${mint.toBase58()} has ${info.decimals} decimals; expected ${asset.decimals}.`,
+      );
     }
     requireClassicTokenProgramId(TOKEN_PROGRAM_ID);
     return mint;
@@ -296,19 +423,37 @@ async function ensureControlledClassicMint(ctx: RehearsalContext, asset: Founder
       new PublicKey(PROTOCOL_PROGRAM_ID),
     )[0];
   }
-  const mintKeypair = ensureLocalKeypair(asset.localMintLabel ?? `${asset.symbol.toLowerCase()}-mint`, ctx.mode);
-  const existing = await ctx.connection.getAccountInfo(mintKeypair.publicKey, "confirmed");
+  const mintKeypair = ensureLocalKeypair(
+    asset.localMintLabel ?? `${asset.symbol.toLowerCase()}-mint`,
+    ctx.mode,
+  );
+  const existing = await ctx.connection.getAccountInfo(
+    mintKeypair.publicKey,
+    "confirmed",
+  );
   if (existing) {
     if (!existing.owner.equals(TOKEN_PROGRAM_ID)) {
-      throw new Error(`${asset.symbol} controlled mint exists but is not owned by classic SPL Token.`);
+      throw new Error(
+        `${asset.symbol} controlled mint exists but is not owned by classic SPL Token.`,
+      );
     }
-    const info = await getMint(ctx.connection, mintKeypair.publicKey, "confirmed", TOKEN_PROGRAM_ID);
+    const info = await getMint(
+      ctx.connection,
+      mintKeypair.publicKey,
+      "confirmed",
+      TOKEN_PROGRAM_ID,
+    );
     if (info.decimals !== asset.decimals) {
-      throw new Error(`${asset.symbol} controlled mint decimals mismatch: expected ${asset.decimals}, got ${info.decimals}.`);
+      throw new Error(
+        `${asset.symbol} controlled mint decimals mismatch: expected ${asset.decimals}, got ${info.decimals}.`,
+      );
     }
     return mintKeypair.publicKey;
   }
-  const rent = await ctx.connection.getMinimumBalanceForRentExemption(MINT_SIZE, "confirmed");
+  const rent = await ctx.connection.getMinimumBalanceForRentExemption(
+    MINT_SIZE,
+    "confirmed",
+  );
   const tx = new Transaction().add(
     SystemProgram.createAccount({
       fromPubkey: ctx.governance.publicKey,
@@ -334,8 +479,18 @@ async function ensureControlledClassicMint(ctx: RehearsalContext, asset: Founder
   return mintKeypair.publicKey;
 }
 
-async function ensureAta(ctx: RehearsalContext, owner: PublicKey, mint: PublicKey, label: string): Promise<PublicKey> {
-  const ata = await getAssociatedTokenAddress(mint, owner, true, TOKEN_PROGRAM_ID);
+async function ensureAta(
+  ctx: RehearsalContext,
+  owner: PublicKey,
+  mint: PublicKey,
+  label: string,
+): Promise<PublicKey> {
+  const ata = await getAssociatedTokenAddress(
+    mint,
+    owner,
+    true,
+    TOKEN_PROGRAM_ID,
+  );
   const existing = await ctx.connection.getAccountInfo(ata, "confirmed");
   if (existing) return ata;
   const tx = new Transaction().add(
@@ -356,8 +511,19 @@ async function ensureAta(ctx: RehearsalContext, owner: PublicKey, mint: PublicKe
   return ata;
 }
 
-async function mintOrWrapForMember(ctx: RehearsalContext, asset: AssetRuntime, owner: PublicKey, amount: bigint, label: string): Promise<PublicKey> {
-  const ata = await ensureAta(ctx, owner, asset.mint, `${asset.symbol}:${label}`);
+async function mintOrWrapForMember(
+  ctx: RehearsalContext,
+  asset: AssetRuntime,
+  owner: PublicKey,
+  amount: bigint,
+  label: string,
+): Promise<PublicKey> {
+  const ata = await ensureAta(
+    ctx,
+    owner,
+    asset.mint,
+    `${asset.symbol}:${label}`,
+  );
   if (asset.isNativeSol) {
     const tx = new Transaction().add(
       SystemProgram.transfer({
@@ -376,7 +542,14 @@ async function mintOrWrapForMember(ctx: RehearsalContext, asset: AssetRuntime, o
     return ata;
   }
   const tx = new Transaction().add(
-    createMintToInstruction(asset.mint, ata, ctx.governance.publicKey, amount, [], TOKEN_PROGRAM_ID),
+    createMintToInstruction(
+      asset.mint,
+      ata,
+      ctx.governance.publicKey,
+      amount,
+      [],
+      TOKEN_PROGRAM_ID,
+    ),
   );
   await sendSignedTransaction(ctx, {
     label: `mint-payment:${asset.symbol}:${label}`,
@@ -387,7 +560,10 @@ async function mintOrWrapForMember(ctx: RehearsalContext, asset: AssetRuntime, o
   return ata;
 }
 
-async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]): Promise<void> {
+async function ensureProtocolGraph(
+  ctx: RehearsalContext,
+  assets: AssetRuntime[],
+): Promise<void> {
   const protocol = ctx.protocol;
   const reserveDomain = protocol.deriveReserveDomainPda({
     domainId: CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId,
@@ -419,17 +595,33 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
     });
     snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
   }
-  assertCanonicalAccountMatches("protocol_governance", snapshot.protocolGovernance as Record<string, unknown> | null, {
-    governanceAuthority: ctx.governance.publicKey.toBase58(),
-  });
+  if (snapshot.protocolGovernance) {
+    protocolGovernanceSource(
+      ctx,
+      snapshot.protocolGovernance.governanceAuthority,
+    );
+    ctx.protocolGovernanceAuthority = new PublicKey(
+      snapshot.protocolGovernance.governanceAuthority,
+    );
+  }
 
-  const domain = snapshot.reserveDomains.find((row) => row.address === reserveDomain.toBase58());
-  assertCanonicalAccountMatches("reserve_domain:open-health-usdc", domain as Record<string, unknown> | null, {
-    domainId: CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId,
-    settlementMode: 0,
-    active: true,
-  });
+  const domain = snapshot.reserveDomains.find(
+    (row) => row.address === reserveDomain.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    "reserve_domain:open-health-usdc",
+    domain as Record<string, unknown> | null,
+    {
+      domainId: CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId,
+      settlementMode: 0,
+      active: true,
+    },
+  );
   if (!domain) {
+    requireLocalProtocolGovernanceAuthority(
+      ctx,
+      `create_reserve_domain:${CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId}`,
+    );
     await sendSignedTransaction(ctx, {
       label: `create_reserve_domain:${CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId}`,
       tx: protocol.buildCreateReserveDomainTx({
@@ -448,12 +640,18 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
   }
 
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const plan = snapshot.healthPlans.find((row) => row.address === healthPlan.toBase58());
-  assertCanonicalAccountMatches("health_plan:genesis-protect-acute-v1", plan as Record<string, unknown> | null, {
-    planId: CANONICAL_FOUNDER_REHEARSAL_IDS.planId,
-    reserveDomain: reserveDomain.toBase58(),
-    active: true,
-  });
+  const plan = snapshot.healthPlans.find(
+    (row) => row.address === healthPlan.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    "health_plan:genesis-protect-acute-v1",
+    plan as Record<string, unknown> | null,
+    {
+      planId: CANONICAL_FOUNDER_REHEARSAL_IDS.planId,
+      reserveDomain: reserveDomain.toBase58(),
+      active: true,
+    },
+  );
   if (!plan) {
     const tx = protocol.buildProtocolTransactionFromInstruction({
       feePayer: ctx.governance.publicKey,
@@ -463,7 +661,8 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
         plan_id: CANONICAL_FOUNDER_REHEARSAL_IDS.planId,
         display_name: "Genesis Protect Acute",
         organization_ref: "OmegaX Health",
-        metadata_uri: "https://protocol.omegax.health/plans/genesis-protect-acute-v1",
+        metadata_uri:
+          "https://protocol.omegax.health/plans/genesis-protect-acute-v1",
         sponsor: ctx.governance.publicKey,
         sponsor_operator: ctx.governance.publicKey,
         claims_operator: ctx.governance.publicKey,
@@ -475,9 +674,15 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
         membership_invite_authority: protocol.ZERO_PUBKEY_KEY,
         allowed_rail_mask: 0xffff,
         default_funding_priority: 0,
-        oracle_policy_hash: [...Buffer.from(sha256Hex("plan:genesis:oracle-policy"), "hex")],
-        schema_binding_hash: [...Buffer.from(sha256Hex("plan:genesis:schema-binding"), "hex")],
-        compliance_baseline_hash: [...Buffer.from(sha256Hex("plan:genesis:compliance"), "hex")],
+        oracle_policy_hash: [
+          ...Buffer.from(sha256Hex("plan:genesis:oracle-policy"), "hex"),
+        ],
+        schema_binding_hash: [
+          ...Buffer.from(sha256Hex("plan:genesis:schema-binding"), "hex"),
+        ],
+        compliance_baseline_hash: [
+          ...Buffer.from(sha256Hex("plan:genesis:compliance"), "hex"),
+        ],
         pause_flags: 0,
       },
       accounts: [
@@ -502,12 +707,18 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
   }
 
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const series = snapshot.policySeries.find((row) => row.address === policySeries.toBase58());
-  assertCanonicalAccountMatches("policy_series:genesis-travel-30-v1", series as Record<string, unknown> | null, {
-    seriesId: CANONICAL_FOUNDER_REHEARSAL_IDS.seriesId,
-    healthPlan: healthPlan.toBase58(),
-    status: protocol.SERIES_STATUS_ACTIVE,
-  });
+  const series = snapshot.policySeries.find(
+    (row) => row.address === policySeries.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    "policy_series:genesis-travel-30-v1",
+    series as Record<string, unknown> | null,
+    {
+      seriesId: CANONICAL_FOUNDER_REHEARSAL_IDS.seriesId,
+      healthPlan: healthPlan.toBase58(),
+      status: protocol.SERIES_STATUS_ACTIVE,
+    },
+  );
   if (!series) {
     await sendSignedTransaction(ctx, {
       label: `create_policy_series:${CANONICAL_FOUNDER_REHEARSAL_IDS.seriesId}`,
@@ -517,7 +728,8 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
         assetMint: usdc.mint,
         seriesId: CANONICAL_FOUNDER_REHEARSAL_IDS.seriesId,
         displayName: "Genesis Travel 30",
-        metadataUri: "https://protocol.omegax.health/products/genesis-travel-30-v1.json",
+        metadataUri:
+          "https://protocol.omegax.health/products/genesis-travel-30-v1.json",
         mode: protocol.SERIES_MODE_PROTECTION,
         status: protocol.SERIES_STATUS_ACTIVE,
         adjudicationMode: 0,
@@ -538,23 +750,48 @@ async function ensureProtocolGraph(ctx: RehearsalContext, assets: AssetRuntime[]
   }
 
   for (const asset of assets) {
-    await ensureFundingLine(ctx, reserveDomain, healthPlan, policySeries, asset);
+    await ensureFundingLine(
+      ctx,
+      reserveDomain,
+      healthPlan,
+      policySeries,
+      asset,
+    );
   }
 
   await ensureLiquidityPool(ctx, reserveDomain, usdc);
   await ensureOracleAndSchema(ctx);
-  await ensureCommitmentCampaign(ctx, reserveDomain, healthPlan, policySeries, assets);
+  await ensureCommitmentCampaign(
+    ctx,
+    reserveDomain,
+    healthPlan,
+    policySeries,
+    assets,
+  );
 }
 
-async function ensureDomainAssetVault(ctx: RehearsalContext, reserveDomain: PublicKey, asset: AssetRuntime): Promise<void> {
+async function ensureDomainAssetVault(
+  ctx: RehearsalContext,
+  reserveDomain: PublicKey,
+  asset: AssetRuntime,
+): Promise<void> {
   const protocol = ctx.protocol;
-  const address = protocol.deriveDomainAssetVaultPda({ reserveDomain, assetMint: asset.mint });
-  const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existing = snapshot.domainAssetVaults.find((row) => row.address === address.toBase58());
-  assertCanonicalAccountMatches(`domain_asset_vault:${asset.symbol}`, existing as Record<string, unknown> | null, {
-    reserveDomain: reserveDomain.toBase58(),
-    assetMint: asset.mint.toBase58(),
+  const address = protocol.deriveDomainAssetVaultPda({
+    reserveDomain,
+    assetMint: asset.mint,
   });
+  const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
+  const existing = snapshot.domainAssetVaults.find(
+    (row) => row.address === address.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    `domain_asset_vault:${asset.symbol}`,
+    existing as Record<string, unknown> | null,
+    {
+      reserveDomain: reserveDomain.toBase58(),
+      assetMint: asset.mint.toBase58(),
+    },
+  );
   if (existing) return;
   await sendSignedTransaction(ctx, {
     label: `create_domain_asset_vault:${asset.symbol}`,
@@ -570,19 +807,29 @@ async function ensureDomainAssetVault(ctx: RehearsalContext, reserveDomain: Publ
   });
 }
 
-async function ensureReserveAssetRail(ctx: RehearsalContext, reserveDomain: PublicKey, asset: AssetRuntime): Promise<void> {
+async function ensureReserveAssetRail(
+  ctx: RehearsalContext,
+  reserveDomain: PublicKey,
+  asset: AssetRuntime,
+): Promise<void> {
   const protocol = ctx.protocol;
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existing = snapshot.reserveAssetRails.find((row) => row.address === asset.reserveAssetRail.toBase58());
-  assertCanonicalAccountMatches(`reserve_asset_rail:${asset.symbol}`, existing as Record<string, unknown> | null, {
-    reserveDomain: reserveDomain.toBase58(),
-    assetMint: asset.mint.toBase58(),
-    payoutPriority: asset.payoutPriority,
-    haircutBps: asset.haircutBps,
-    maxExposureBps: asset.maxExposureBps,
-    capacityEnabled: asset.capacityEnabled,
-    active: true,
-  });
+  const existing = snapshot.reserveAssetRails.find(
+    (row) => row.address === asset.reserveAssetRail.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    `reserve_asset_rail:${asset.symbol}`,
+    existing as Record<string, unknown> | null,
+    {
+      reserveDomain: reserveDomain.toBase58(),
+      assetMint: asset.mint.toBase58(),
+      payoutPriority: asset.payoutPriority,
+      haircutBps: asset.haircutBps,
+      maxExposureBps: asset.maxExposureBps,
+      capacityEnabled: asset.capacityEnabled,
+      active: true,
+    },
+  );
   if (!existing) {
     await sendSignedTransaction(ctx, {
       label: `configure_reserve_asset_rail:${asset.symbol}`,
@@ -595,7 +842,9 @@ async function ensureReserveAssetRail(ctx: RehearsalContext, reserveDomain: Publ
         role: asset.role,
         payoutPriority: asset.payoutPriority,
         oracleSource: protocol.RESERVE_ORACLE_SOURCE_GOVERNANCE_ATTESTED,
-        oracleFeedIdHex: sha256Hex(`devnet-rehearsal-price-feed:${asset.symbol}`),
+        oracleFeedIdHex: sha256Hex(
+          `devnet-rehearsal-price-feed:${asset.symbol}`,
+        ),
         maxStalenessSeconds: 7n * 86_400n,
         haircutBps: asset.haircutBps,
         maxExposureBps: asset.maxExposureBps,
@@ -611,11 +860,14 @@ async function ensureReserveAssetRail(ctx: RehearsalContext, reserveDomain: Publ
     });
   }
   const refreshed = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const rail = refreshed.reserveAssetRails.find((row) => row.address === asset.reserveAssetRail.toBase58());
+  const rail = refreshed.reserveAssetRails.find(
+    (row) => row.address === asset.reserveAssetRail.toBase58(),
+  );
   const nowTs = Math.floor(Date.now() / 1000);
-  const needsPrice = !rail
-    || BigInt(String(rail.lastPriceUsd1e8 ?? 0)) !== asset.priceUsd1e8
-    || nowTs - Number(rail.lastPricePublishedAtTs ?? 0) > 86_400;
+  const needsPrice =
+    !rail ||
+    BigInt(String(rail.lastPriceUsd1e8 ?? 0)) !== asset.priceUsd1e8 ||
+    nowTs - Number(rail.lastPricePublishedAtTs ?? 0) > 86_400;
   if (needsPrice) {
     await sendSignedTransaction(ctx, {
       label: `publish_reserve_asset_rail_price:${asset.symbol}`,
@@ -624,9 +876,12 @@ async function ensureReserveAssetRail(ctx: RehearsalContext, reserveDomain: Publ
         reserveDomainAddress: reserveDomain,
         assetMint: asset.mint,
         priceUsd1e8: asset.priceUsd1e8,
-        confidenceBps: asset.symbol === "USDC" || asset.symbol === "PUSD" ? 5 : 250,
+        confidenceBps:
+          asset.symbol === "USDC" || asset.symbol === "PUSD" ? 5 : 250,
         publishedAtTs: BigInt(nowTs),
-        proofHashHex: sha256Hex(`devnet rehearsal price evidence:${asset.symbol}:${asset.priceUsd1e8}`),
+        proofHashHex: sha256Hex(
+          `devnet rehearsal price evidence:${asset.symbol}:${asset.priceUsd1e8}`,
+        ),
         recentBlockhash: "11111111111111111111111111111111",
       }),
       signer: ctx.governance,
@@ -644,15 +899,21 @@ async function ensureFundingLine(
 ): Promise<void> {
   const protocol = ctx.protocol;
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existing = snapshot.fundingLines.find((row) => row.address === asset.fundingLine.toBase58());
-  assertCanonicalAccountMatches(`funding_line:${asset.fundingLineId}`, existing as Record<string, unknown> | null, {
-    lineId: asset.fundingLineId,
-    reserveDomain: reserveDomain.toBase58(),
-    healthPlan: healthPlan.toBase58(),
-    policySeries: policySeries.toBase58(),
-    assetMint: asset.mint.toBase58(),
-    lineType: protocol.FUNDING_LINE_TYPE_PREMIUM_INCOME,
-  });
+  const existing = snapshot.fundingLines.find(
+    (row) => row.address === asset.fundingLine.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    `funding_line:${asset.fundingLineId}`,
+    existing as Record<string, unknown> | null,
+    {
+      lineId: asset.fundingLineId,
+      reserveDomain: reserveDomain.toBase58(),
+      healthPlan: healthPlan.toBase58(),
+      policySeries: policySeries.toBase58(),
+      assetMint: asset.mint.toBase58(),
+      lineType: protocol.FUNDING_LINE_TYPE_PREMIUM_INCOME,
+    },
+  );
   if (existing) return;
   await sendSignedTransaction(ctx, {
     label: `open_funding_line:${asset.symbol}`,
@@ -674,21 +935,34 @@ async function ensureFundingLine(
   });
 }
 
-async function ensureLiquidityPool(ctx: RehearsalContext, reserveDomain: PublicKey, usdc: AssetRuntime): Promise<void> {
+async function ensureLiquidityPool(
+  ctx: RehearsalContext,
+  reserveDomain: PublicKey,
+  usdc: AssetRuntime,
+): Promise<void> {
   const protocol = ctx.protocol;
   const pool = protocol.deriveLiquidityPoolPda({
     reserveDomain,
     poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
   });
   const classId = "founder-travel30-waterfall";
-  const capitalClass = protocol.deriveCapitalClassPda({ liquidityPool: pool, classId });
-  let snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existingPool = snapshot.liquidityPools.find((row) => row.address === pool.toBase58());
-  assertCanonicalAccountMatches("liquidity_pool:omega-health-income", existingPool as Record<string, unknown> | null, {
-    poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
-    reserveDomain: reserveDomain.toBase58(),
-    depositAssetMint: usdc.mint.toBase58(),
+  const capitalClass = protocol.deriveCapitalClassPda({
+    liquidityPool: pool,
+    classId,
   });
+  let snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
+  const existingPool = snapshot.liquidityPools.find(
+    (row) => row.address === pool.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    "liquidity_pool:omega-health-income",
+    existingPool as Record<string, unknown> | null,
+    {
+      poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
+      reserveDomain: reserveDomain.toBase58(),
+      depositAssetMint: usdc.mint.toBase58(),
+    },
+  );
   if (!existingPool) {
     await sendSignedTransaction(ctx, {
       label: `create_liquidity_pool:${CANONICAL_FOUNDER_REHEARSAL_IDS.poolId}`,
@@ -701,9 +975,15 @@ async function ensureLiquidityPool(ctx: RehearsalContext, reserveDomain: PublicK
         allocator: ctx.governance.publicKey,
         sentinel: ctx.governance.publicKey,
         depositAssetMint: usdc.mint,
-        strategyHashHex: sha256Hex("omega-health-income-founder-rehearsal-strategy"),
-        allowedExposureHashHex: sha256Hex("omega-health-income-founder-rehearsal-exposure"),
-        externalYieldAdapterHashHex: sha256Hex("omega-health-income-no-yield-adapter"),
+        strategyHashHex: sha256Hex(
+          "omega-health-income-founder-rehearsal-strategy",
+        ),
+        allowedExposureHashHex: sha256Hex(
+          "omega-health-income-founder-rehearsal-exposure",
+        ),
+        externalYieldAdapterHashHex: sha256Hex(
+          "omega-health-income-no-yield-adapter",
+        ),
         feeBps: 0,
         redemptionPolicy: protocol.REDEMPTION_POLICY_QUEUE_ONLY,
         pauseFlags: 0,
@@ -714,7 +994,9 @@ async function ensureLiquidityPool(ctx: RehearsalContext, reserveDomain: PublicK
     });
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existingClass = snapshot.capitalClasses.find((row) => row.address === capitalClass.toBase58());
+  const existingClass = snapshot.capitalClasses.find(
+    (row) => row.address === capitalClass.toBase58(),
+  );
   if (!existingClass) {
     await sendSignedTransaction(ctx, {
       label: `create_capital_class:${classId}`,
@@ -744,10 +1026,16 @@ async function ensureLiquidityPool(ctx: RehearsalContext, reserveDomain: PublicK
 
 async function ensureOracleAndSchema(ctx: RehearsalContext): Promise<void> {
   const protocol = ctx.protocol;
-  const schema = protocol.deriveOutcomeSchemaPda({ schemaKeyHashHex: STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX });
-  const oracleProfile = protocol.deriveOracleProfilePda({ oracle: ctx.oracle.publicKey });
+  const schema = protocol.deriveOutcomeSchemaPda({
+    schemaKeyHashHex: STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX,
+  });
+  const oracleProfile = protocol.deriveOracleProfilePda({
+    oracle: ctx.oracle.publicKey,
+  });
   let snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  if (!snapshot.outcomeSchemas.find((row) => row.address === schema.toBase58())) {
+  if (
+    !snapshot.outcomeSchemas.find((row) => row.address === schema.toBase58())
+  ) {
     await sendSignedTransaction(ctx, {
       label: "register_outcome_schema:standard-health-outcomes",
       tx: protocol.buildRegisterOutcomeSchemaTx({
@@ -758,7 +1046,8 @@ async function ensureOracleAndSchema(ctx: RehearsalContext): Promise<void> {
         schemaHashHex: sha256Hex("standard-health-outcomes-schema-v1"),
         schemaFamily: protocol.SCHEMA_FAMILY_KERNEL,
         visibility: protocol.SCHEMA_VISIBILITY_PUBLIC,
-        metadataUri: "https://protocol.omegax.health/schemas/standard-health-outcomes-v1.json",
+        metadataUri:
+          "https://protocol.omegax.health/schemas/standard-health-outcomes-v1.json",
         recentBlockhash: "11111111111111111111111111111111",
       }),
       signer: ctx.governance,
@@ -766,8 +1055,14 @@ async function ensureOracleAndSchema(ctx: RehearsalContext): Promise<void> {
     });
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const liveSchema = snapshot.outcomeSchemas.find((row) => row.address === schema.toBase58());
+  const liveSchema = snapshot.outcomeSchemas.find(
+    (row) => row.address === schema.toBase58(),
+  );
   if (!liveSchema?.verified) {
+    requireLocalProtocolGovernanceAuthority(
+      ctx,
+      "verify_outcome_schema:standard-health-outcomes",
+    );
     await sendSignedTransaction(ctx, {
       label: "verify_outcome_schema:standard-health-outcomes",
       tx: protocol.buildVerifyOutcomeSchemaTx({
@@ -781,11 +1076,15 @@ async function ensureOracleAndSchema(ctx: RehearsalContext): Promise<void> {
     });
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  if (!snapshot.oracleProfiles.find((row) => row.address === oracleProfile.toBase58())) {
+  if (
+    !snapshot.oracleProfiles.find(
+      (row) => row.address === oracleProfile.toBase58(),
+    )
+  ) {
     await sendSignedTransaction(ctx, {
       label: "register_oracle:founder-rehearsal",
       tx: protocol.buildRegisterOracleTx({
-        admin: ctx.governance.publicKey,
+        admin: ctx.oracle.publicKey,
         oracle: ctx.oracle.publicKey,
         oracleType: protocol.ORACLE_TYPE_HEALTH_APP,
         displayName: "OmegaX Founder Rehearsal Oracle",
@@ -793,16 +1092,19 @@ async function ensureOracleAndSchema(ctx: RehearsalContext): Promise<void> {
         websiteUrl: "https://protocol.omegax.health",
         appUrl: "https://protocol.omegax.health/oracles",
         logoUri: "https://protocol.omegax.health/icon.png",
-        webhookUrl: "https://protocol.omegax.health/api/oracles/founder-rehearsal",
+        webhookUrl:
+          "https://protocol.omegax.health/api/oracles/founder-rehearsal",
         supportedSchemaKeyHashesHex: [STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX],
         recentBlockhash: "11111111111111111111111111111111",
       }),
-      signer: ctx.governance,
-      signers: [ctx.governance],
+      signer: ctx.oracle,
+      signers: [ctx.oracle],
     });
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const liveOracle = snapshot.oracleProfiles.find((row) => row.address === oracleProfile.toBase58());
+  const liveOracle = snapshot.oracleProfiles.find(
+    (row) => row.address === oracleProfile.toBase58(),
+  );
   if (!liveOracle?.claimed) {
     await sendSignedTransaction(ctx, {
       label: "claim_oracle:founder-rehearsal",
@@ -830,16 +1132,22 @@ async function ensureCommitmentCampaign(
     campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
   });
   let snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existingCampaign = snapshot.commitmentCampaigns.find((row) => row.address === campaign.toBase58());
-  assertCanonicalAccountMatches("commitment_campaign:founder-travel30", existingCampaign as Record<string, unknown> | null, {
-    campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
-    reserveDomain: reserveDomain.toBase58(),
-    healthPlan: healthPlan.toBase58(),
-    paymentAssetMint: usdc.mint.toBase58(),
-    coverageAssetMint: usdc.mint.toBase58(),
-    coverageFundingLine: usdc.fundingLine.toBase58(),
-    mode: protocol.COMMITMENT_MODE_WATERFALL_RESERVE,
-  });
+  const existingCampaign = snapshot.commitmentCampaigns.find(
+    (row) => row.address === campaign.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    "commitment_campaign:founder-travel30",
+    existingCampaign as Record<string, unknown> | null,
+    {
+      campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
+      reserveDomain: reserveDomain.toBase58(),
+      healthPlan: healthPlan.toBase58(),
+      paymentAssetMint: usdc.mint.toBase58(),
+      coverageAssetMint: usdc.mint.toBase58(),
+      coverageFundingLine: usdc.fundingLine.toBase58(),
+      mode: protocol.COMMITMENT_MODE_WATERFALL_RESERVE,
+    },
+  );
   const nowTs = Math.floor(Date.now() / 1000);
   if (!existingCampaign) {
     await sendSignedTransaction(ctx, {
@@ -858,7 +1166,11 @@ async function ensureCommitmentCampaign(
         metadataUri: "https://protect.omegax.health/protect/founder",
         mode: protocol.COMMITMENT_MODE_WATERFALL_RESERVE,
         depositAmount: usdc.depositAmount,
-        coverageAmount: rawAmountForUsd({ usd: 3_000, decimals: usdc.decimals, priceUsd1e8: usdc.priceUsd1e8 }),
+        coverageAmount: rawAmountForUsd({
+          usd: 3_000,
+          decimals: usdc.decimals,
+          priceUsd1e8: usdc.priceUsd1e8,
+        }),
         hardCapAmount: usdc.depositAmount * 10_000n,
         startsAtTs: BigInt(nowTs - 3_600),
         refundAfterTs: BigInt(nowTs - 60),
@@ -872,17 +1184,26 @@ async function ensureCommitmentCampaign(
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
   for (const asset of assets) {
-    const rail = protocol.deriveCommitmentPaymentRailPda({ campaign, paymentAssetMint: asset.mint });
-    const existing = snapshot.commitmentPaymentRails.find((row) => row.address === rail.toBase58());
-    assertCanonicalAccountMatches(`commitment_payment_rail:${asset.symbol}`, existing as Record<string, unknown> | null, {
-      campaign: campaign.toBase58(),
-      reserveDomain: reserveDomain.toBase58(),
-      paymentAssetMint: asset.mint.toBase58(),
-      coverageAssetMint: asset.mint.toBase58(),
-      reserveAssetRail: asset.reserveAssetRail.toBase58(),
-      coverageFundingLine: asset.fundingLine.toBase58(),
-      mode: protocol.COMMITMENT_MODE_WATERFALL_RESERVE,
+    const rail = protocol.deriveCommitmentPaymentRailPda({
+      campaign,
+      paymentAssetMint: asset.mint,
     });
+    const existing = snapshot.commitmentPaymentRails.find(
+      (row) => row.address === rail.toBase58(),
+    );
+    assertCanonicalAccountMatches(
+      `commitment_payment_rail:${asset.symbol}`,
+      existing as Record<string, unknown> | null,
+      {
+        campaign: campaign.toBase58(),
+        reserveDomain: reserveDomain.toBase58(),
+        paymentAssetMint: asset.mint.toBase58(),
+        coverageAssetMint: asset.mint.toBase58(),
+        reserveAssetRail: asset.reserveAssetRail.toBase58(),
+        coverageFundingLine: asset.fundingLine.toBase58(),
+        mode: protocol.COMMITMENT_MODE_WATERFALL_RESERVE,
+      },
+    );
     if (existing) continue;
     if (asset.symbol === "USDC" && existingCampaign) continue;
     await sendSignedTransaction(ctx, {
@@ -898,7 +1219,11 @@ async function ensureCommitmentCampaign(
         reserveAssetRailAddress: asset.reserveAssetRail,
         mode: protocol.COMMITMENT_MODE_WATERFALL_RESERVE,
         depositAmount: asset.depositAmount,
-        coverageAmount: rawAmountForUsd({ usd: 3_000, decimals: asset.decimals, priceUsd1e8: asset.priceUsd1e8 }),
+        coverageAmount: rawAmountForUsd({
+          usd: 3_000,
+          decimals: asset.decimals,
+          priceUsd1e8: asset.priceUsd1e8,
+        }),
         hardCapAmount: asset.depositAmount * 10_000n,
         recentBlockhash: "11111111111111111111111111111111",
       }),
@@ -908,7 +1233,10 @@ async function ensureCommitmentCampaign(
   }
 }
 
-async function runCommitmentsAndClaims(ctx: RehearsalContext, assets: AssetRuntime[]): Promise<void> {
+async function runCommitmentsAndClaims(
+  ctx: RehearsalContext,
+  assets: AssetRuntime[],
+): Promise<void> {
   const protocol = ctx.protocol;
   const reserveDomain = protocol.deriveReserveDomainPda({
     domainId: CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId,
@@ -928,24 +1256,88 @@ async function runCommitmentsAndClaims(ctx: RehearsalContext, assets: AssetRunti
 
   for (const asset of assets) {
     const members = await memberSetForAsset(ctx, asset.symbol);
-    await ensureFeeBalance(ctx, members.pending.publicKey, `${asset.symbol}:pending`);
-    await ensureFeeBalance(ctx, members.refund.publicKey, `${asset.symbol}:refund`);
-    await ensureFeeBalance(ctx, members.activate.publicKey, `${asset.symbol}:activate`);
+    await ensureFeeBalance(
+      ctx,
+      members.pending.publicKey,
+      `${asset.symbol}:pending`,
+    );
+    await ensureFeeBalance(
+      ctx,
+      members.refund.publicKey,
+      `${asset.symbol}:refund`,
+    );
+    await ensureFeeBalance(
+      ctx,
+      members.activate.publicKey,
+      `${asset.symbol}:activate`,
+    );
 
-    await depositPosition(ctx, asset, campaign, reserveDomain, healthPlan, members.pending, "pending");
-    await depositPosition(ctx, asset, campaign, reserveDomain, healthPlan, members.refund, "refund");
+    await depositPosition(
+      ctx,
+      asset,
+      campaign,
+      reserveDomain,
+      healthPlan,
+      members.pending,
+      "pending",
+    );
+    await depositPosition(
+      ctx,
+      asset,
+      campaign,
+      reserveDomain,
+      healthPlan,
+      members.refund,
+      "refund",
+    );
     await refundPosition(ctx, asset, campaign, reserveDomain, members.refund);
-    await depositPosition(ctx, asset, campaign, reserveDomain, healthPlan, members.activate, "activate");
-    await activatePosition(ctx, asset, campaign, reserveDomain, healthPlan, policySeries, members.activate);
-    await claimAndSettle(ctx, asset, reserveDomain, healthPlan, policySeries, campaign, members.activate);
+    await depositPosition(
+      ctx,
+      asset,
+      campaign,
+      reserveDomain,
+      healthPlan,
+      members.activate,
+      "activate",
+    );
+    await activatePosition(
+      ctx,
+      asset,
+      campaign,
+      reserveDomain,
+      healthPlan,
+      policySeries,
+      members.activate,
+    );
+    await claimAndSettle(
+      ctx,
+      asset,
+      reserveDomain,
+      healthPlan,
+      policySeries,
+      campaign,
+      members.activate,
+    );
   }
 }
 
-async function memberSetForAsset(ctx: RehearsalContext, symbol: FounderAssetSymbol): Promise<MemberSet> {
+async function memberSetForAsset(
+  ctx: RehearsalContext,
+  symbol: FounderAssetSymbol,
+): Promise<MemberSet> {
   return {
-    pending: ensureLocalKeypair(`member-${symbol.toLowerCase()}-pending`, ctx.mode),
-    refund: ensureLocalKeypair(`member-${symbol.toLowerCase()}-refund`, ctx.mode),
-    activate: ensureLocalKeypair(`member-${symbol.toLowerCase()}-activate`, ctx.mode),
+    pending: ensureLocalKeypair(
+      `member-${symbol.toLowerCase()}-pending`,
+      ctx.mode,
+    ),
+    refund: ensureLocalKeypair(
+      `member-${symbol.toLowerCase()}-refund`,
+      ctx.mode,
+    ),
+    activate: ensureLocalKeypair(
+      `member-${symbol.toLowerCase()}-activate`,
+      ctx.mode,
+    ),
   };
 }
 
@@ -965,14 +1357,24 @@ async function depositPosition(
     beneficiary: member.publicKey,
   });
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existing = snapshot.commitmentPositions.find((row) => row.address === position.toBase58());
+  const existing = snapshot.commitmentPositions.find(
+    (row) => row.address === position.toBase58(),
+  );
   if (existing) {
     if (!ctx.resume) {
-      throw new Error(`Commitment position already exists for ${asset.symbol}:${kind}; rerun with --resume to continue.`);
+      throw new Error(
+        `Commitment position already exists for ${asset.symbol}:${kind}; rerun with --resume to continue.`,
+      );
     }
     return;
   }
-  const sourceAta = await mintOrWrapForMember(ctx, asset, member.publicKey, asset.depositAmount, `${kind}:deposit`);
+  const sourceAta = await mintOrWrapForMember(
+    ctx,
+    asset,
+    member.publicKey,
+    asset.depositAmount,
+    `${kind}:deposit`,
+  );
   await sendSignedTransaction(ctx, {
     label: `deposit_commitment:${asset.symbol}:${kind}`,
     tx: protocol.buildDepositCommitmentTx({
@@ -1007,9 +1409,16 @@ async function refundPosition(
     beneficiary: member.publicKey,
   });
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existing = snapshot.commitmentPositions.find((row) => row.address === position.toBase58());
+  const existing = snapshot.commitmentPositions.find(
+    (row) => row.address === position.toBase58(),
+  );
   if (existing?.state === protocol.COMMITMENT_POSITION_REFUNDED) return;
-  const recipientAta = await ensureAta(ctx, member.publicKey, asset.mint, `${asset.symbol}:refund-recipient`);
+  const recipientAta = await ensureAta(
+    ctx,
+    member.publicKey,
+    asset.mint,
+    `${asset.symbol}:refund-recipient`,
+  );
   await sendSignedTransaction(ctx, {
     label: `refund_commitment:${asset.symbol}`,
     tx: protocol.buildRefundCommitmentTx({
@@ -1020,7 +1429,9 @@ async function refundPosition(
       paymentAssetMint: asset.mint,
       recipientTokenAccountAddress: recipientAta,
       beneficiary: member.publicKey,
-      refundReasonHashHex: sha256Hex(`refund:${asset.symbol}:same-token-same-amount`),
+      refundReasonHashHex: sha256Hex(
+        `refund:${asset.symbol}:same-token-same-amount`,
+      ),
       tokenProgramId: TOKEN_PROGRAM_ID,
       recentBlockhash: "11111111111111111111111111111111",
     }),
@@ -1045,8 +1456,13 @@ async function activatePosition(
     beneficiary: member.publicKey,
   });
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const existing = snapshot.commitmentPositions.find((row) => row.address === position.toBase58());
-  if (existing?.state === protocol.COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED) return;
+  const existing = snapshot.commitmentPositions.find(
+    (row) => row.address === position.toBase58(),
+  );
+  if (
+    existing?.state === protocol.COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED
+  )
+    return;
   await sendSignedTransaction(ctx, {
     label: `activate_waterfall_commitment:${asset.symbol}`,
     tx: protocol.buildActivateWaterfallCommitmentTx({
@@ -1084,14 +1500,20 @@ async function claimAndSettle(
     seriesScope: policySeries,
   });
   let snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  if (!snapshot.memberPositions.find((row) => row.address === memberPosition.toBase58())) {
+  if (
+    !snapshot.memberPositions.find(
+      (row) => row.address === memberPosition.toBase58(),
+    )
+  ) {
     await sendSignedTransaction(ctx, {
       label: `open_member_position:${asset.symbol}`,
       tx: protocol.buildOpenMemberPositionTx({
         wallet: member.publicKey,
         healthPlanAddress: healthPlan,
         seriesScopeAddress: policySeries,
-        subjectCommitmentHashHex: sha256Hex(`member-position:${campaign.toBase58()}:${member.publicKey.toBase58()}`),
+        subjectCommitmentHashHex: sha256Hex(
+          `member-position:${campaign.toBase58()}:${member.publicKey.toBase58()}`,
+        ),
         eligibilityStatus: protocol.ELIGIBILITY_ELIGIBLE,
         delegatedRightsMask: 0,
         proofMode: protocol.MEMBERSHIP_PROOF_MODE_OPEN,
@@ -1107,9 +1529,14 @@ async function claimAndSettle(
   const claimId = `founder-${asset.symbol.toLowerCase()}-claim`;
   const obligationId = `founder-${asset.symbol.toLowerCase()}-obligation`;
   const claimCase = protocol.deriveClaimCasePda({ healthPlan, claimId });
-  const obligation = protocol.deriveObligationPda({ fundingLine: asset.fundingLine, obligationId });
+  const obligation = protocol.deriveObligationPda({
+    fundingLine: asset.fundingLine,
+    obligationId,
+  });
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  if (!snapshot.claimCases.find((row) => row.address === claimCase.toBase58())) {
+  if (
+    !snapshot.claimCases.find((row) => row.address === claimCase.toBase58())
+  ) {
     await sendSignedTransaction(ctx, {
       label: `open_claim_case:${asset.symbol}`,
       tx: protocol.buildOpenClaimCaseTx({
@@ -1120,17 +1547,27 @@ async function claimAndSettle(
         claimId,
         policySeriesAddress: policySeries,
         claimantAddress: member.publicKey,
-        evidenceRefHashHex: sha256Hex(`devnet-rehearsal-claim-evidence:${asset.symbol}`),
+        evidenceRefHashHex: sha256Hex(
+          `devnet-rehearsal-claim-evidence:${asset.symbol}`,
+        ),
         recentBlockhash: "11111111111111111111111111111111",
       }),
       signer: member,
       signers: [member],
     });
   }
-  await maybeSendClaimEvidenceAndAttestation(ctx, healthPlan, claimCase, policySeries, asset);
+  await maybeSendClaimEvidenceAndAttestation(
+    ctx,
+    healthPlan,
+    claimCase,
+    policySeries,
+    asset,
+  );
 
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  if (!snapshot.obligations.find((row) => row.address === obligation.toBase58())) {
+  if (
+    !snapshot.obligations.find((row) => row.address === obligation.toBase58())
+  ) {
     await sendSignedTransaction(ctx, {
       label: `create_obligation:${asset.symbol}`,
       tx: protocol.buildCreateObligationTx({
@@ -1154,11 +1591,15 @@ async function claimAndSettle(
     });
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const liveObligation = snapshot.obligations.find((row) => row.address === obligation.toBase58());
-  const liveClaim = snapshot.claimCases.find((row) => row.address === claimCase.toBase58());
+  const liveObligation = snapshot.obligations.find(
+    (row) => row.address === obligation.toBase58(),
+  );
+  const liveClaim = snapshot.claimCases.find(
+    (row) => row.address === claimCase.toBase58(),
+  );
   if (
-    liveClaim?.intakeStatus !== protocol.CLAIM_INTAKE_APPROVED
-    && liveClaim?.intakeStatus !== protocol.CLAIM_INTAKE_SETTLED
+    liveClaim?.intakeStatus !== protocol.CLAIM_INTAKE_APPROVED &&
+    liveClaim?.intakeStatus !== protocol.CLAIM_INTAKE_SETTLED
   ) {
     await sendSignedTransaction(ctx, {
       label: `adjudicate_claim_case:${asset.symbol}`,
@@ -1170,7 +1611,9 @@ async function claimAndSettle(
         approvedAmount: asset.claimAmount,
         deniedAmount: 0n,
         reserveAmount: asset.claimAmount,
-        decisionSupportHashHex: sha256Hex(`claim-decision-support:${asset.symbol}`),
+        decisionSupportHashHex: sha256Hex(
+          `claim-decision-support:${asset.symbol}`,
+        ),
         obligationAddress: obligation,
         recentBlockhash: "11111111111111111111111111111111",
       }),
@@ -1178,7 +1621,10 @@ async function claimAndSettle(
       signers: [ctx.governance],
     });
   }
-  if (!liveObligation || liveObligation.status === protocol.OBLIGATION_STATUS_PROPOSED) {
+  if (
+    !liveObligation ||
+    liveObligation.status === protocol.OBLIGATION_STATUS_PROPOSED
+  ) {
     await sendSignedTransaction(ctx, {
       label: `reserve_obligation:${asset.symbol}`,
       tx: protocol.buildReserveObligationTx({
@@ -1197,12 +1643,19 @@ async function claimAndSettle(
       signers: [ctx.governance],
     });
   }
-  const recipientAta = await ensureAta(ctx, member.publicKey, asset.mint, `${asset.symbol}:claim-recipient`);
+  const recipientAta = await ensureAta(
+    ctx,
+    member.publicKey,
+    asset.mint,
+    `${asset.symbol}:claim-recipient`,
+  );
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const refreshedObligation = snapshot.obligations.find((row) => row.address === obligation.toBase58());
+  const refreshedObligation = snapshot.obligations.find(
+    (row) => row.address === obligation.toBase58(),
+  );
   if (
-    refreshedObligation?.status === protocol.OBLIGATION_STATUS_RESERVED
-    || refreshedObligation?.status === protocol.OBLIGATION_STATUS_CLAIMABLE_PAYABLE
+    refreshedObligation?.status === protocol.OBLIGATION_STATUS_RESERVED ||
+    refreshedObligation?.status === protocol.OBLIGATION_STATUS_CLAIMABLE_PAYABLE
   ) {
     await sendSignedTransaction(ctx, {
       label: `settle_obligation:${asset.symbol}`,
@@ -1229,7 +1682,9 @@ async function claimAndSettle(
     });
   }
   snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const settledClaim = snapshot.claimCases.find((row) => row.address === claimCase.toBase58());
+  const settledClaim = snapshot.claimCases.find(
+    (row) => row.address === claimCase.toBase58(),
+  );
   if (settledClaim?.intakeStatus !== protocol.CLAIM_INTAKE_SETTLED) {
     await sendSignedTransaction(ctx, {
       label: `settle_claim_case:${asset.symbol}`,
@@ -1260,9 +1715,13 @@ async function maybeSendClaimEvidenceAndAttestation(
 ): Promise<void> {
   const protocol = ctx.protocol;
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  if (!snapshot.claimAttestations.find((row) =>
-    row.claimCase === claimCase.toBase58() && row.oracle === ctx.oracle.publicKey.toBase58()
-  )) {
+  if (
+    !snapshot.claimAttestations.find(
+      (row) =>
+        row.claimCase === claimCase.toBase58() &&
+        row.oracle === ctx.oracle.publicKey.toBase58(),
+    )
+  ) {
     await sendSignedTransaction(ctx, {
       label: `attach_claim_evidence_ref:${asset.symbol}`,
       tx: protocol.buildAttachClaimEvidenceRefTx({
@@ -1292,13 +1751,24 @@ async function maybeSendClaimEvidenceAndAttestation(
     });
   }
   const updated = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
-  const attestation = updated.claimAttestations.find((row) => row.claimCase === claimCase.toBase58());
-  if (attestation && attestation.policySeries !== null && attestation.policySeries !== policySeries.toBase58()) {
-    throw new Error(`Claim attestation policy series mismatch for ${asset.symbol}.`);
+  const attestation = updated.claimAttestations.find(
+    (row) => row.claimCase === claimCase.toBase58(),
+  );
+  if (
+    attestation &&
+    attestation.policySeries !== null &&
+    attestation.policySeries !== policySeries.toBase58()
+  ) {
+    throw new Error(
+      `Claim attestation policy series mismatch for ${asset.symbol}.`,
+    );
   }
 }
 
-async function runNegativeSimulations(ctx: RehearsalContext, assets: AssetRuntime[]): Promise<void> {
+async function runNegativeSimulations(
+  ctx: RehearsalContext,
+  assets: AssetRuntime[],
+): Promise<void> {
   const protocol = ctx.protocol;
   const reserveDomain = protocol.deriveReserveDomainPda({
     domainId: CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId,
@@ -1324,76 +1794,115 @@ async function runNegativeSimulations(ctx: RehearsalContext, assets: AssetRuntim
     depositor: member.publicKey,
     beneficiary: member.publicKey,
   });
-  const recipientAta = await ensureAta(ctx, member.publicKey, usdc.mint, "USDC:negative-recipient");
-  await simulateExpectedFailure(ctx, "double_refund", protocol.buildRefundCommitmentTx({
-    depositor: member.publicKey,
-    campaignAddress: campaign,
-    positionAddress: position,
-    reserveDomainAddress: reserveDomain,
-    paymentAssetMint: usdc.mint,
-    recipientTokenAccountAddress: recipientAta,
-    beneficiary: member.publicKey,
-    refundReasonHashHex: sha256Hex("negative:double-refund"),
-    tokenProgramId: TOKEN_PROGRAM_ID,
-    recentBlockhash: "11111111111111111111111111111111",
-  }), [member]);
-  await simulateExpectedFailure(ctx, "wrong_wallet_refund", protocol.buildRefundCommitmentTx({
-    depositor: wrong.publicKey,
-    campaignAddress: campaign,
-    positionAddress: position,
-    reserveDomainAddress: reserveDomain,
-    paymentAssetMint: usdc.mint,
-    recipientTokenAccountAddress: recipientAta,
-    beneficiary: member.publicKey,
-    refundReasonHashHex: sha256Hex("negative:wrong-wallet"),
-    tokenProgramId: TOKEN_PROGRAM_ID,
-    recentBlockhash: "11111111111111111111111111111111",
-  }), [wrong]);
-  await simulateExpectedFailure(ctx, "double_activation", protocol.buildActivateWaterfallCommitmentTx({
-    activationAuthority: ctx.governance.publicKey,
-    healthPlanAddress: healthPlan,
-    reserveDomainAddress: reserveDomain,
-    campaignAddress: campaign,
-    paymentAssetMint: usdc.mint,
-    coverageAssetMint: usdc.mint,
-    coverageFundingLineAddress: usdc.fundingLine,
-    reserveAssetRailAddress: usdc.reserveAssetRail,
-    policySeriesAddress: policySeries,
-    positionAddress: protocol.deriveCommitmentPositionPda({
-      campaign,
-      depositor: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
-      beneficiary: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
+  const recipientAta = await ensureAta(
+    ctx,
+    member.publicKey,
+    usdc.mint,
+    "USDC:negative-recipient",
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "double_refund",
+    protocol.buildRefundCommitmentTx({
+      depositor: member.publicKey,
+      campaignAddress: campaign,
+      positionAddress: position,
+      reserveDomainAddress: reserveDomain,
+      paymentAssetMint: usdc.mint,
+      recipientTokenAccountAddress: recipientAta,
+      beneficiary: member.publicKey,
+      refundReasonHashHex: sha256Hex("negative:double-refund"),
+      tokenProgramId: TOKEN_PROGRAM_ID,
+      recentBlockhash: "11111111111111111111111111111111",
     }),
-    activationReasonHashHex: sha256Hex("negative:double-activation"),
-    recentBlockhash: "11111111111111111111111111111111",
-  }), [ctx.governance]);
-  await simulateExpectedFailure(ctx, "duplicate_claim", protocol.buildOpenClaimCaseTx({
-    authority: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
-    healthPlanAddress: healthPlan,
-    memberPositionAddress: protocol.deriveMemberPositionPda({
-      healthPlan,
-      wallet: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
-      seriesScope: policySeries,
+    [member],
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "wrong_wallet_refund",
+    protocol.buildRefundCommitmentTx({
+      depositor: wrong.publicKey,
+      campaignAddress: campaign,
+      positionAddress: position,
+      reserveDomainAddress: reserveDomain,
+      paymentAssetMint: usdc.mint,
+      recipientTokenAccountAddress: recipientAta,
+      beneficiary: member.publicKey,
+      refundReasonHashHex: sha256Hex("negative:wrong-wallet"),
+      tokenProgramId: TOKEN_PROGRAM_ID,
+      recentBlockhash: "11111111111111111111111111111111",
     }),
-    fundingLineAddress: usdc.fundingLine,
-    claimId: "founder-usdc-claim",
-    policySeriesAddress: policySeries,
-    claimantAddress: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
-    evidenceRefHashHex: sha256Hex("negative:duplicate-claim"),
-    recentBlockhash: "11111111111111111111111111111111",
-  }), [ensureLocalKeypair("member-usdc-activate", ctx.mode)]);
-  await simulateExpectedFailure(ctx, "unauthorized_claim_operator", protocol.buildAdjudicateClaimCaseTx({
-    authority: wrong.publicKey,
-    healthPlanAddress: healthPlan,
-    claimCaseAddress: protocol.deriveClaimCasePda({ healthPlan, claimId: "founder-usdc-claim" }),
-    reviewState: protocol.CLAIM_INTAKE_APPROVED,
-    approvedAmount: usdc.claimAmount,
-    deniedAmount: 0n,
-    reserveAmount: usdc.claimAmount,
-    decisionSupportHashHex: sha256Hex("negative:unauthorized-claim-operator"),
-    obligationAddress: protocol.deriveObligationPda({ fundingLine: usdc.fundingLine, obligationId: "founder-usdc-obligation" }),
-    recentBlockhash: "11111111111111111111111111111111",
-  }), [wrong]);
+    [wrong],
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "double_activation",
+    protocol.buildActivateWaterfallCommitmentTx({
+      activationAuthority: ctx.governance.publicKey,
+      healthPlanAddress: healthPlan,
+      reserveDomainAddress: reserveDomain,
+      campaignAddress: campaign,
+      paymentAssetMint: usdc.mint,
+      coverageAssetMint: usdc.mint,
+      coverageFundingLineAddress: usdc.fundingLine,
+      reserveAssetRailAddress: usdc.reserveAssetRail,
+      policySeriesAddress: policySeries,
+      positionAddress: protocol.deriveCommitmentPositionPda({
+        campaign,
+        depositor: ensureLocalKeypair("member-usdc-activate", ctx.mode)
+          .publicKey,
+        beneficiary: ensureLocalKeypair("member-usdc-activate", ctx.mode)
+          .publicKey,
+      }),
+      activationReasonHashHex: sha256Hex("negative:double-activation"),
+      recentBlockhash: "11111111111111111111111111111111",
+    }),
+    [ctx.governance],
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "duplicate_claim",
+    protocol.buildOpenClaimCaseTx({
+      authority: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
+      healthPlanAddress: healthPlan,
+      memberPositionAddress: protocol.deriveMemberPositionPda({
+        healthPlan,
+        wallet: ensureLocalKeypair("member-usdc-activate", ctx.mode).publicKey,
+        seriesScope: policySeries,
+      }),
+      fundingLineAddress: usdc.fundingLine,
+      claimId: "founder-usdc-claim",
+      policySeriesAddress: policySeries,
+      claimantAddress: ensureLocalKeypair("member-usdc-activate", ctx.mode)
+        .publicKey,
+      evidenceRefHashHex: sha256Hex("negative:duplicate-claim"),
+      recentBlockhash: "11111111111111111111111111111111",
+    }),
+    [ensureLocalKeypair("member-usdc-activate", ctx.mode)],
+  );
+  await simulateExpectedFailure(
+    ctx,
+    "unauthorized_claim_operator",
+    protocol.buildAdjudicateClaimCaseTx({
+      authority: wrong.publicKey,
+      healthPlanAddress: healthPlan,
+      claimCaseAddress: protocol.deriveClaimCasePda({
+        healthPlan,
+        claimId: "founder-usdc-claim",
+      }),
+      reviewState: protocol.CLAIM_INTAKE_APPROVED,
+      approvedAmount: usdc.claimAmount,
+      deniedAmount: 0n,
+      reserveAmount: usdc.claimAmount,
+      decisionSupportHashHex: sha256Hex("negative:unauthorized-claim-operator"),
+      obligationAddress: protocol.deriveObligationPda({
+        fundingLine: usdc.fundingLine,
+        obligationId: "founder-usdc-obligation",
+      }),
+      recentBlockhash: "11111111111111111111111111111111",
+    }),
+    [wrong],
+  );
   try {
     requireClassicTokenProgramId("TokenzQdBNbLqP5VEhdkAS6EPFbkETHTc8KAh6AL7g");
     throw new Error("Token-2022 rejection guard did not throw.");
@@ -1407,7 +1916,12 @@ async function runNegativeSimulations(ctx: RehearsalContext, assets: AssetRuntim
   }
 }
 
-async function simulateExpectedFailure(ctx: RehearsalContext, label: string, tx: Transaction, signers: Keypair[]): Promise<void> {
+async function simulateExpectedFailure(
+  ctx: RehearsalContext,
+  label: string,
+  tx: Transaction,
+  signers: Keypair[],
+): Promise<void> {
   const latest = await ctx.connection.getLatestBlockhash("confirmed");
   tx.recentBlockhash = latest.blockhash;
   tx.sign(...uniqueKeypairs(signers));
@@ -1440,13 +1954,20 @@ async function runActuarial(ctx: RehearsalContext, assets: AssetRuntime[]) {
     obligations: snapshot.obligations,
     nowTs,
   });
-  const activatedTravel30Members = snapshot.commitmentPositions.filter((position) =>
-    position.campaign
-      === protocol.deriveCommitmentCampaignPda({
-        healthPlan: protocol.deriveHealthPlanPda({ reserveDomain, planId: CANONICAL_FOUNDER_REHEARSAL_IDS.planId }),
-        campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
-      }).toBase58()
-    && position.state === protocol.COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED
+  const activatedTravel30Members = snapshot.commitmentPositions.filter(
+    (position) =>
+      position.campaign ===
+        protocol
+          .deriveCommitmentCampaignPda({
+            healthPlan: protocol.deriveHealthPlanPda({
+              reserveDomain,
+              planId: CANONICAL_FOUNDER_REHEARSAL_IDS.planId,
+            }),
+            campaignId: CANONICAL_FOUNDER_REHEARSAL_IDS.campaignId,
+          })
+          .toBase58() &&
+      position.state ===
+        protocol.COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
   ).length;
   return evaluateChainActuarialGate({
     nowTs,
@@ -1465,13 +1986,19 @@ async function runActuarial(ctx: RehearsalContext, assets: AssetRuntime[]) {
   });
 }
 
-function requireAsset(assets: AssetRuntime[], symbol: FounderAssetSymbol): AssetRuntime {
+function requireAsset(
+  assets: AssetRuntime[],
+  symbol: FounderAssetSymbol,
+): AssetRuntime {
   const asset = assets.find((row) => row.symbol === symbol);
   if (!asset) throw new Error(`Missing asset ${symbol}.`);
   return asset;
 }
 
-function planSummary(protocol: ProtocolModule, assets: AssetRuntime[]): Record<string, unknown> {
+function planSummary(
+  protocol: ProtocolModule,
+  assets: AssetRuntime[],
+): Record<string, unknown> {
   const reserveDomain = protocol.deriveReserveDomainPda({
     domainId: CANONICAL_FOUNDER_REHEARSAL_IDS.reserveDomainId,
   });
@@ -1497,10 +2024,12 @@ function planSummary(protocol: ProtocolModule, assets: AssetRuntime[]): Record<s
       healthPlan: healthPlan.toBase58(),
       policySeries: policySeries.toBase58(),
       campaign: campaign.toBase58(),
-      pool: protocol.deriveLiquidityPoolPda({
-        reserveDomain,
-        poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
-      }).toBase58(),
+      pool: protocol
+        .deriveLiquidityPoolPda({
+          reserveDomain,
+          poolId: CANONICAL_FOUNDER_REHEARSAL_IDS.poolId,
+        })
+        .toBase58(),
     },
     assets: assets.map((asset) => ({
       symbol: asset.symbol,
@@ -1513,12 +2042,17 @@ function planSummary(protocol: ProtocolModule, assets: AssetRuntime[]): Record<s
       payoutPriority: asset.payoutPriority,
       haircutBps: asset.haircutBps,
       maxExposureBps: asset.maxExposureBps,
-      priceEvidence: "devnet rehearsal price evidence; not live Chainlink truth",
+      priceEvidence:
+        "devnet rehearsal price evidence; not live Chainlink truth",
     })),
   };
 }
 
-async function writeEvidence(ctx: RehearsalContext, assets: AssetRuntime[], actuarial: unknown): Promise<void> {
+async function writeEvidence(
+  ctx: RehearsalContext,
+  assets: AssetRuntime[],
+  actuarial: unknown,
+): Promise<void> {
   assertMaySend(ctx.mode);
   mkdirSync(ctx.evidenceDir, { recursive: true });
   const protocol = ctx.protocol;
@@ -1558,17 +2092,37 @@ async function writeEvidence(ctx: RehearsalContext, assets: AssetRuntime[], actu
       })),
     },
     reserveSnapshots: {
-      domainAssetLedgers: snapshot.domainAssetLedgers.filter((row) => row.reserveDomain === reserveDomain.toBase58()),
-      reserveAssetRails: snapshot.reserveAssetRails.filter((row) => row.reserveDomain === reserveDomain.toBase58()),
-      commitmentLedgers: snapshot.commitmentLedgers.filter((row) => row.campaign === campaign.toBase58()),
-      obligations: snapshot.obligations.filter((row) => row.healthPlan === healthPlan.toBase58()),
+      domainAssetLedgers: snapshot.domainAssetLedgers.filter(
+        (row) => row.reserveDomain === reserveDomain.toBase58(),
+      ),
+      reserveAssetRails: snapshot.reserveAssetRails.filter(
+        (row) => row.reserveDomain === reserveDomain.toBase58(),
+      ),
+      commitmentLedgers: snapshot.commitmentLedgers.filter(
+        (row) => row.campaign === campaign.toBase58(),
+      ),
+      obligations: snapshot.obligations.filter(
+        (row) => row.healthPlan === healthPlan.toBase58(),
+      ),
     },
     actuarial,
   });
-  writeFileSync(join(ctx.evidenceDir, "summary.json"), `${JSON.stringify(bundle, jsonReplacer, 2)}\n`);
-  writeFileSync(join(ctx.evidenceDir, "transactions.json"), `${JSON.stringify(redactEvidence(ctx.transactions), jsonReplacer, 2)}\n`);
-  writeFileSync(join(ctx.evidenceDir, "negative-simulations.json"), `${JSON.stringify(redactEvidence(ctx.negativeSimulations), jsonReplacer, 2)}\n`);
-  writeFileSync(join(ctx.evidenceDir, "actuarial-report.json"), `${JSON.stringify(redactEvidence(actuarial), jsonReplacer, 2)}\n`);
+  writeFileSync(
+    join(ctx.evidenceDir, "summary.json"),
+    `${JSON.stringify(bundle, jsonReplacer, 2)}\n`,
+  );
+  writeFileSync(
+    join(ctx.evidenceDir, "transactions.json"),
+    `${JSON.stringify(redactEvidence(ctx.transactions), jsonReplacer, 2)}\n`,
+  );
+  writeFileSync(
+    join(ctx.evidenceDir, "negative-simulations.json"),
+    `${JSON.stringify(redactEvidence(ctx.negativeSimulations), jsonReplacer, 2)}\n`,
+  );
+  writeFileSync(
+    join(ctx.evidenceDir, "actuarial-report.json"),
+    `${JSON.stringify(redactEvidence(actuarial), jsonReplacer, 2)}\n`,
+  );
 }
 
 async function main(): Promise<void> {
@@ -1576,21 +2130,28 @@ async function main(): Promise<void> {
   const args = parseRehearsalArgs(process.argv.slice(2));
   const protocol = await importFreshProtocol();
   if (protocol.getProgramId().toBase58() !== PROTOCOL_PROGRAM_ID) {
-    throw new Error(`Canonical program id mismatch: expected ${PROTOCOL_PROGRAM_ID}, got ${protocol.getProgramId().toBase58()}.`);
+    throw new Error(
+      `Canonical program id mismatch: expected ${PROTOCOL_PROGRAM_ID}, got ${protocol.getProgramId().toBase58()}.`,
+    );
   }
-  const rpcUrl = process.env.OMEGAX_DEVNET_RPC_URL
-    || process.env.SOLANA_RPC_URL
-    || process.env.NEXT_PUBLIC_SOLANA_RPC_URL
-    || process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL
-    || DEFAULT_RPC_URL;
-  const connection = wrapConnectionWithRpcRetry(new Connection(rpcUrl, "confirmed"), {
-    labelPrefix: "founder-rehearsal",
-    logPrefix: "founder-rehearsal",
-  });
+  const rpcUrl =
+    process.env.OMEGAX_DEVNET_RPC_URL ||
+    process.env.SOLANA_RPC_URL ||
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+    process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL ||
+    DEFAULT_RPC_URL;
+  const connection = wrapConnectionWithRpcRetry(
+    new Connection(rpcUrl, "confirmed"),
+    {
+      labelPrefix: "founder-rehearsal",
+      logPrefix: "founder-rehearsal",
+    },
+  );
   const governance = loadGovernanceKeypair(args.mode) ?? Keypair.generate();
-  const oracle = args.mode === "execute"
-    ? ensureLocalKeypair("oracle-operator", args.mode)
-    : Keypair.generate();
+  const oracle =
+    args.mode === "execute"
+      ? ensureLocalKeypair("oracle-operator", args.mode)
+      : Keypair.generate();
   const evidenceDir = resolve(
     process.cwd(),
     "artifacts",
@@ -1601,6 +2162,7 @@ async function main(): Promise<void> {
     connection,
     governance,
     oracle,
+    protocolGovernanceAuthority: null,
     mode: args.mode,
     resume: args.resume,
     evidenceDir,
@@ -1608,6 +2170,9 @@ async function main(): Promise<void> {
     negativeSimulations: [],
   };
 
+  if (args.mode === "execute") {
+    await preflightProtocolGovernance(ctx);
+  }
   const assets = await buildAssets(ctx);
   if (args.mode === "plan") {
     console.log(JSON.stringify(planSummary(protocol, assets), jsonReplacer, 2));
@@ -1628,6 +2193,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.stack ?? error.message : String(error));
+  console.error(
+    error instanceof Error ? (error.stack ?? error.message) : String(error),
+  );
   process.exitCode = 1;
 });
