@@ -57,7 +57,7 @@ The active public object model is:
 
 Restricted and wrapper-only capital classes now rely on managed `LPPosition` credentialing. Direct deposits do not carry a caller-supplied credential flag; access is granted on-chain through the canonical LP position for that class and owner.
 
-Founder commitment campaigns are a narrow pre-activation primitive. Pending USDC/PUSD and OMEGAX commitments sit in the existing `DomainAssetVault` custody lane, but they do not increase claims-paying reserve ledgers until an explicit activation instruction runs. `DIRECT_PREMIUM` activation books same-mint commitments into premium reserve accounting. `TREASURY_CREDIT` activation keeps OMEGAX PDA-held as treasury inventory and only locks separately posted stable capacity; v1 has no OMEGAX sale, oracle pricing, swap, reserve-credit, or treasury withdrawal instruction.
+Founder commitment campaigns are a narrow pre-activation primitive. Pending USDC, PUSD, WSOL, WBTC, WETH, and OMEGAX commitments sit in the existing `DomainAssetVault` custody lane, but they do not increase claims-paying reserve ledgers until an explicit activation instruction runs. `WATERFALL_RESERVE` activation books capacity through configured `ReserveAssetRail` controls: role, payout priority, oracle source, price freshness, haircut, and exposure cap. Stable rails pay first, volatile rails are discounted, and OMEGAX remains last in the waterfall. The v1 program does not sell, swap, or withdraw OMEGAX treasury inventory; if OMEGAX capacity is enabled, it must use an approved Chainlink/governance-attested price and conservative caps. Legacy `DIRECT_PREMIUM` and `TREASURY_CREDIT` modes remain for operator/backward workflows, not the new public Founder Travel30 path.
 
 ## Important reviewer rule
 

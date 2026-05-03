@@ -13,8 +13,8 @@
       "pauseFlags": 0
     },
     {
-      "address": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
-      "domainId": "wrapper-health-rwa",
+      "address": "4Z9SrPBzwRdNV1dLnHExo6JL3ehKq7TvEh6xSX9X1yT9",
+      "domainId": "wrapper-health-reserve",
       "displayName": "Wrapper-mediated reserve domain",
       "settlementMode": 1,
       "active": true,
@@ -31,8 +31,8 @@
       }
     },
     {
-      "address": "8K7CL5MVKi41uBYC5L5xTWj3KbvngSv1thULSro3ZsPr",
-      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "address": "X9SQt3Um2MRW2eQVykKT2P5wdiLiB79xG7JkgGPAm3R",
+      "reserveDomain": "4Z9SrPBzwRdNV1dLnHExo6JL3ehKq7TvEh6xSX9X1yT9",
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
         "funded": "400000",
@@ -55,8 +55,8 @@
       }
     },
     {
-      "address": "GEAqJGZ4j3yx2KYkwJxuQ1rNNHRgYMMwabJyXeAAqLWH",
-      "reserveDomain": "89h6odvg6DPzgS2djPMhsWZKSt9bcpnmRfwnFas6vPd6",
+      "address": "6ESkfqKaT2ZWqJ8iL7WXcWkQP3wDrfZkkHoRAQpizZ6A",
+      "reserveDomain": "4Z9SrPBzwRdNV1dLnHExo6JL3ehKq7TvEh6xSX9X1yT9",
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
         "funded": "400000",

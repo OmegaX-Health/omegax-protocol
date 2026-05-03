@@ -302,7 +302,7 @@ async function main() {
   );
   const wrapperReserveDomain = findRequired(
     fixtureState.reserveDomains,
-    (row) => row.domainId === "wrapper-health-rwa",
+    (row) => row.domainId === "wrapper-health-reserve",
     "wrapper reserve domain",
   );
   const seekerPlan = findRequired(

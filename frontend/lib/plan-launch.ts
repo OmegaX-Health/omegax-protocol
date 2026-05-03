@@ -24,6 +24,13 @@ export type PayoutAssetMode = "sol" | "spl";
 export type CoveragePathway = "" | "defi_native" | "rwa_policy";
 export type DefiSettlementMode = "" | "onchain_programmatic" | "hybrid_rails";
 
+export function isRwaPolicyLaunchEnabled(
+  env: { [key: string]: string | undefined } = process.env as { [key: string]: string | undefined },
+): boolean {
+  const value = String(env.NEXT_PUBLIC_ENABLE_RWA_POLICY ?? "").trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
 export type LaunchLaneBlueprint = {
   kind: LaneKind;
   key: string;

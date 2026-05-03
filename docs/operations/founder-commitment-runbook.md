@@ -30,6 +30,7 @@ Founder Travel30 commitments are a temporary launch flow for collecting intent a
 - These builders are public-safe primitives for operator surfaces and backend transaction preparation. They are not a buyer checkout in this repository.
 - The Genesis setup panel surfaces the Founder Travel30 campaign, payment rail count, pending custody, pending coverage, waterfall activation, legacy treasury inventory, and refunds separately from claims-paying reserve.
 - The operator console must continue to show pending commitment reserve impact as `0` until the activation authority executes a valid activation path.
+- RWA policy metadata and parsers remain in the repo for future legal/product work, but active launch UX and default devnet fixtures hide RWA pathways unless a deliberate future flag enables them.
 
 ## Governance
 

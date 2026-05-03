@@ -43,6 +43,7 @@ import {
   buildLaunchReviewLinks,
   deriveLaunchPreflightAccountAddresses,
   dedupeOracleOptions,
+  isRwaPolicyLaunchEnabled,
   requiresProtectionLane,
   requiresRewardLane,
   serializeProtectionPosture,
@@ -378,6 +379,7 @@ export function PlanCreationWizard() {
   const { connected, publicKey, sendTransaction } = useWallet();
   const { snapshot } = useProtocolConsoleSnapshot();
   const genesisTemplateMode = isGenesisProtectAcuteTemplate(searchParams.get("template"));
+  const rwaPolicyLaunchEnabled = isRwaPolicyLaunchEnabled();
   const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
   const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("hybrid");
@@ -541,6 +543,11 @@ export function PlanCreationWizard() {
       return current;
     });
   }, []);
+
+  useEffect(() => {
+    if (rwaPolicyLaunchEnabled || coveragePathway !== "rwa_policy") return;
+    handleCoveragePathwayChange("defi_native");
+  }, [coveragePathway, handleCoveragePathwayChange, rwaPolicyLaunchEnabled]);
 
   const closeActiveDetail = useCallback(() => {
     if (!activeDetail) return;
@@ -2398,13 +2405,15 @@ export function PlanCreationWizard() {
                         >
                           DEFI_NATIVE
                         </button>
-                        <button
-                          type="button"
-                          className={cn("plans-wizard-chip", coveragePathway === "rwa_policy" && "plans-wizard-chip-active")}
-                          onClick={() => handleCoveragePathwayChange("rwa_policy")}
-                        >
-                          RWA_POLICY
-                        </button>
+                        {rwaPolicyLaunchEnabled ? (
+                          <button
+                            type="button"
+                            className={cn("plans-wizard-chip", coveragePathway === "rwa_policy" && "plans-wizard-chip-active")}
+                            onClick={() => handleCoveragePathwayChange("rwa_policy")}
+                          >
+                            RWA_POLICY
+                          </button>
+                        ) : null}
                       </div>
                     </FieldGroup>
 
@@ -2450,7 +2459,7 @@ export function PlanCreationWizard() {
                       </>
                     ) : null}
 
-                    {coveragePathway === "rwa_policy" ? (
+                    {rwaPolicyLaunchEnabled && coveragePathway === "rwa_policy" ? (
                       <>
                         <div className="plans-wizard-row">
                           <FieldGroup label="Issuer Legal Name">
