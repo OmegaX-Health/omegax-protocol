@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { buildCanonicalPoolHref } from "@/lib/canonical-routes";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
@@ -130,6 +131,7 @@ export function OracleRegistryVerificationPanel() {
   const { connection } = useConnection();
   const { connected, publicKey, sendTransaction } = useWallet();
   const searchParams = useSearchParams();
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
   const [registrySearch, setRegistrySearch] = useState("");
   const [oracles, setOracles] = useState<OracleWithProfileSummary[]>([]);
@@ -421,6 +423,7 @@ export function OracleRegistryVerificationPanel() {
         sendTransaction,
         tx,
         label: "Claim oracle activation",
+        confirmReview,
         onConfirmed: async () => {
           await refreshData();
         },
@@ -433,7 +436,7 @@ export function OracleRegistryVerificationPanel() {
     } finally {
       setClaimBusy(false);
     }
-  }, [connected, connection, publicKey, refreshData, sendTransaction]);
+  }, [connected, confirmReview, connection, publicKey, refreshData, sendTransaction]);
 
   const runVerification = useCallback(async () => {
     if (!verificationOracleAddress || !verificationPoolAddress) return;
@@ -474,6 +477,7 @@ export function OracleRegistryVerificationPanel() {
 
   return (
     <div className="space-y-5">
+      {reviewPrompt}
       <section className="surface-card space-y-4">
         <div className="space-y-1">
           <p className="metric-label">Professional Oracle Registry</p>

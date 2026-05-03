@@ -68,6 +68,7 @@ export async function executeProtocolTransaction(params: {
   explorerCluster?: string | null;
   review?: ProtocolTransactionReviewMetadata;
   confirmReview?: ProtocolTransactionReviewConfirmation;
+  skipReview?: true;
   onLifecycle?: (event: ProtocolTransactionLifecycleEvent) => void;
 }): Promise<ProtocolActionResult> {
   let review: ProtocolTransactionReview | undefined;
@@ -88,7 +89,7 @@ export async function executeProtocolTransaction(params: {
         review,
       };
     }
-    if (params.review) {
+    if (!params.skipReview) {
       if (!params.confirmReview) {
         return {
           ok: false,

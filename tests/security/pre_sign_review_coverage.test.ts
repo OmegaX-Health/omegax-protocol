@@ -3,15 +3,13 @@
 // Pre-mainnet pen-test PoC — finding PT-2026-04-27-06.
 // Severity: MEDIUM.
 //
-// Hypothesis: the pre-sign review gate added in commit 3a09f95 is conditional
-// on the caller passing a `review:` field to `executeProtocolTransaction`.
-// Many callsites do not pass it. This test enumerates all callsites and
-// reports coverage. It is intentionally a coverage map, not a binary
-// pass/fail — it surfaces the audit data and asserts the absolute number of
-// gated callsites does not regress over time.
+// Hypothesis: the pre-sign review gate must be default-on. This test
+// enumerates mounted component callsites and fails if a callsite can reach the
+// wallet without either a confirmation prompt or an explicit skipReview hatch.
 //
 // Source trace:
-// - frontend/lib/protocol-action.ts:55-99 — gate is conditional on params.review.
+// - frontend/lib/protocol-action.ts — gate requires confirmReview unless
+//   params.skipReview is set.
 // - Mounted components that import executeProtocolTransaction are enumerated
 //   dynamically below so legacy cleanup does not leave stale fixture lists.
 
@@ -28,7 +26,7 @@ interface Callsite {
   file: string;
   startLine: number;
   endLine: number;
-  hasReview: boolean;
+  hasReviewGate: boolean;
 }
 
 function scanCallsites(): Callsite[] {
@@ -65,7 +63,7 @@ function scanCallsites(): Callsite[] {
         file,
         startLine: i + 1,
         endLine: endLine + 1,
-        hasReview: /\breview\s*:/.test(body),
+        hasReviewGate: /\bconfirmReview\b/.test(body) || /\bskipReview\s*:\s*true\b/.test(body),
       });
     }
   }
@@ -76,56 +74,42 @@ test("[PT-06] Pre-sign review coverage map across executeProtocolTransaction cal
   const callsites = scanCallsites();
   assert.ok(callsites.length >= 25, `expected ≥25 callsites; got ${callsites.length}`);
 
-  const withReview = callsites.filter((c) => c.hasReview);
-  const withoutReview = callsites.filter((c) => !c.hasReview);
+  const withReviewGate = callsites.filter((c) => c.hasReviewGate);
+  const withoutReviewGate = callsites.filter((c) => !c.hasReviewGate);
 
   // eslint-disable-next-line no-console
   console.log(
-    `[PT-06] coverage: ${withReview.length}/${callsites.length} callsites pass review metadata`,
+    `[PT-06] coverage: ${withReviewGate.length}/${callsites.length} callsites pass review gate`,
   );
   // eslint-disable-next-line no-console
   console.log(
-    `[PT-06] without review:\n${withoutReview
+    `[PT-06] without review gate:\n${withoutReviewGate
       .map((c) => `  - ${c.file}:${c.startLine}-${c.endLine}`)
       .join("\n")}`,
   );
 
-  // Assert that callsites in components likely to move money or change
-  // protocol authority CURRENTLY lack review (vulnerability present today).
-  // When the team wires review on these, this assertion should fail and be
-  // flipped into a defense assertion.
-  const sensitiveFilesWithoutReview = withoutReview.filter((c) =>
-    /^(governance-operator-drawer|governance-console|governance-proposal-detail-panel|pool-treasury-panel|pool-claims-panel|pool-oracles-panel|pool-oracles-console|oracle-registry-verification-panel)\.tsx$/.test(
-      c.file,
-    ),
-  );
-  assert.ok(
-    sensitiveFilesWithoutReview.length > 0,
-    "Finding PT-06 expects ≥1 sensitive callsite without review; if zero, the gap was remediated and this test should be flipped.",
+  assert.equal(
+    withoutReviewGate.length,
+    0,
+    `All mounted protocol transaction callsites must pass confirmReview or explicit skipReview; missing:\n${withoutReviewGate
+      .map((c) => `${c.file}:${c.startLine}-${c.endLine}`)
+      .join("\n")}`,
   );
 });
 
-test("[PT-06] Frontend gate logic is a pure conditional on `params.review`", () => {
+test("[PT-06] Frontend gate logic is default-on unless explicit skipReview is provided", () => {
   const actionSrc = readFileSync(
     new URL("../../frontend/lib/protocol-action.ts", import.meta.url),
     "utf8",
   );
 
-  // The gate is conditional, not enforced — callers can opt out by omitting
-  // `review`. Confirm the conditional-gate pattern directly in the source.
-  // The exact shape (per protocol-action.ts on main, near lines 83-99) is:
-  //   if (params.review) {
-  //     if (!params.confirmReview) { return { ok: false, ... } }
-  //     const approved = await params.confirmReview(review);
-  //     if (!approved) { return { ok: false, ... } }
-  //   }
   assert.ok(
-    /if\s*\(\s*params\.review\s*\)/.test(actionSrc),
-    "[PT-06 evidence] gate must be `if (params.review) { ... }` — caller-opt-in pattern",
+    /if\s*\(\s*!\s*params\.skipReview\s*\)/.test(actionSrc),
+    "[PT-06 evidence] gate must be default-on unless params.skipReview is true",
   );
   assert.ok(
     /if\s*\(\s*!params\.confirmReview\s*\)/.test(actionSrc),
-    "[PT-06 evidence] inner branch rejects reviewed-but-no-callback case",
+    "[PT-06 evidence] gate rejects missing confirmation callbacks",
   );
   assert.ok(
     /params\.confirmReview\s*\(\s*review\s*\)/.test(actionSrc),

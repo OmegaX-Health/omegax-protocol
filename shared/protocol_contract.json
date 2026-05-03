@@ -2010,6 +2010,76 @@
           "optional": false
         },
         {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "health_plan",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  97,
+                  108,
+                  116,
+                  104,
+                  95,
+                  112,
+                  108,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan.reserve_domain",
+                "account": "HealthPlan"
+              },
+              {
+                "kind": "account",
+                "path": "health_plan.health_plan_id",
+                "account": "HealthPlan"
+              }
+            ]
+          }
+        },
+        {
           "name": "oracle_profile",
           "writable": false,
           "signer": false,
@@ -2045,7 +2115,7 @@
         },
         {
           "name": "claim_case",
-          "writable": false,
+          "writable": true,
           "signer": false,
           "optional": false,
           "pda": {
@@ -2074,6 +2144,42 @@
                 "kind": "account",
                 "path": "claim_case.claim_id",
                 "account": "ClaimCase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funding_line",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  108,
+                  105,
+                  110,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "funding_line.line_id",
+                "account": "FundingLine"
               }
             ]
           }
@@ -2110,6 +2216,42 @@
               }
             ]
           }
+        },
+        {
+          "name": "liquidity_pool",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "capital_class",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "allocation_position",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_approval",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_permission_set",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_policy",
+          "writable": false,
+          "signer": false,
+          "optional": true
         },
         {
           "name": "claim_attestation",
@@ -7717,6 +7859,40 @@
           "writable": true,
           "signer": true,
           "optional": false
+        },
+        {
+          "name": "protocol_governance",
+          "writable": false,
+          "signer": false,
+          "optional": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "health_plan",
@@ -15379,9 +15555,35 @@
       "<reserve_domain>",
       "<asset_mint>"
     ],
+    "domain_asset_vault_token": [
+      "domain_asset_vault_token",
+      "<reserve_domain>",
+      "<asset_mint>"
+    ],
     "domain_asset_ledger": [
       "domain_asset_ledger",
       "<reserve_domain>",
+      "<asset_mint>"
+    ],
+    "reserve_asset_rail": [
+      "reserve_asset_rail",
+      "<reserve_domain>",
+      "<asset_mint>"
+    ],
+    "protocol_fee_vault": [
+      "protocol_fee_vault",
+      "<reserve_domain>",
+      "<asset_mint>"
+    ],
+    "pool_treasury_vault": [
+      "pool_treasury_vault",
+      "<liquidity_pool>",
+      "<asset_mint>"
+    ],
+    "pool_oracle_fee_vault": [
+      "pool_oracle_fee_vault",
+      "<liquidity_pool>",
+      "<oracle>",
       "<asset_mint>"
     ],
     "health_plan": [
@@ -15424,6 +15626,27 @@
       "funding_line_ledger",
       "<funding_line>",
       "<asset_mint>"
+    ],
+    "commitment_campaign": [
+      "commitment_campaign",
+      "<health_plan>",
+      "<campaign_id>"
+    ],
+    "commitment_payment_rail": [
+      "commitment_payment_rail",
+      "<campaign>",
+      "<payment_asset_mint>"
+    ],
+    "commitment_ledger": [
+      "commitment_ledger",
+      "<campaign>",
+      "<payment_asset_mint>"
+    ],
+    "commitment_position": [
+      "commitment_position",
+      "<campaign>",
+      "<depositor>",
+      "<beneficiary>"
     ],
     "claim_case": [
       "claim_case",

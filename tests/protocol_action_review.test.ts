@@ -160,6 +160,60 @@ test("executeProtocolTransaction refuses reviewed transactions without a pre-sig
   assert.match(result.ok ? "" : result.error, /pre-sign review/i);
 });
 
+test("executeProtocolTransaction refuses default transactions without a pre-sign confirmation", async () => {
+  const tx = createTransferTx();
+  let sent = false;
+  const result = await executeProtocolTransaction({
+    connection: {
+      rpcEndpoint: "https://rpc.test",
+      getLatestBlockhash: async () => ({
+        blockhash: Keypair.generate().publicKey.toBase58(),
+        lastValidBlockHeight: 123,
+      }),
+      getFeeForMessage: async () => ({ context: { slot: 1 }, value: 5000 }),
+      simulateTransaction: async () => ({ value: { err: null, logs: ["ok"] } }),
+      confirmTransaction: async () => ({ context: { slot: 2 }, value: { err: null } }),
+    } as never,
+    sendTransaction: async () => {
+      sent = true;
+      return "5EYqLmmG6rFZQ7kQK4s1Qk6S7NQjnNnsf7vYd1nEJtDN2ZJJv6i31mucPZQ9hkTgN7K1VwvHZQqjQkR3mR4z9m2v";
+    },
+    tx,
+    label: "Unsigned default transfer",
+  });
+
+  assert.equal(sent, false);
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? "" : result.error, /pre-sign review/i);
+});
+
+test("executeProtocolTransaction permits explicit skipReview transactions", async () => {
+  const tx = createTransferTx();
+  let sent = false;
+  const result = await executeProtocolTransaction({
+    connection: {
+      rpcEndpoint: "https://rpc.test",
+      getLatestBlockhash: async () => ({
+        blockhash: Keypair.generate().publicKey.toBase58(),
+        lastValidBlockHeight: 123,
+      }),
+      getFeeForMessage: async () => ({ context: { slot: 1 }, value: 5000 }),
+      simulateTransaction: async () => ({ value: { err: null, logs: ["ok"] } }),
+      confirmTransaction: async () => ({ context: { slot: 2 }, value: { err: null } }),
+    } as never,
+    sendTransaction: async () => {
+      sent = true;
+      return "5EYqLmmG6rFZQ7kQK4s1Qk6S7NQjnNnsf7vYd1nEJtDN2ZJJv6i31mucPZQ9hkTgN7K1VwvHZQqjQkR3mR4z9m2v";
+    },
+    tx,
+    label: "Explicit skip review transfer",
+    skipReview: true,
+  });
+
+  assert.equal(sent, true);
+  assert.equal(result.ok, true);
+});
+
 test("executeProtocolTransaction cancels before wallet signing when review is rejected", async () => {
   const tx = createTransferTx();
   let sent = false;

@@ -126,6 +126,8 @@ pub enum OmegaXProtocolError {
     TooManyOracleSupportedSchemas,
     #[msg("Pool oracle approval is required before permissions can be granted")]
     PoolOracleApprovalRequired,
+    #[msg("Pool oracle permission is required for this claim attestation")]
+    PoolOraclePermissionRequired,
     #[msg("Oracle profile is inactive")]
     OracleProfileInactive,
     #[msg("Oracle profile has not been claimed by its signing key")]
@@ -136,6 +138,16 @@ pub enum OmegaXProtocolError {
     ClaimAttestationSchemaRequired,
     #[msg("Oracle profile does not advertise support for the selected claim-attestation schema")]
     ClaimAttestationSchemaUnsupported,
+    #[msg("Claim attestation schema must be governance verified")]
+    OutcomeSchemaUnverified,
+    #[msg("Claim attestation requires a locked evidence reference")]
+    ClaimEvidenceRequired,
+    #[msg("Claim attestation evidence reference does not match the claim case")]
+    ClaimEvidenceMismatch,
+    #[msg("Claim evidence cannot be changed after attestations begin")]
+    ClaimEvidenceLocked,
+    #[msg("Health plan has paused oracle finality")]
+    OracleFinalityHeld,
     #[msg("Too many schema dependency addresses were provided")]
     TooManySchemaDependencies,
     #[msg("Fee vault initialization requires the matching domain asset vault to exist")]

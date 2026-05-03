@@ -13,6 +13,7 @@ const run = (cmd, args) => {
 const trackedFiles = [
   'shared/protocol_contract.json',
   'frontend/lib/generated/protocol-contract.ts',
+  'frontend/lib/generated/protocol-contract.js',
 ];
 
 const before = new Map(

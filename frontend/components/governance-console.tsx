@@ -12,6 +12,7 @@ import { Amount } from "@/components/amount";
 import { GovernanceProposalDetailPanel } from "@/components/governance-proposal-detail-panel";
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { RealmsActionsPanel } from "@/components/realms-actions-panel";
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildDepositGoverningTokensTx,
@@ -85,6 +86,7 @@ export function GovernanceConsole({
   const { publicKey, sendTransaction } = useWallet();
   const router = useRouter();
   const runtime = useMemo(() => getGovernanceRuntimeConfig(), []);
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
   const [dashboard, setDashboard] = useState<GovernanceDashboardSummary | null>(null);
   const [protocolConfig, setProtocolConfig] = useState<ProtocolConfigSummary | null>(initialProtocolConfig);
   const [schemas, setSchemas] = useState<SchemaSummary[]>([]);
@@ -241,6 +243,7 @@ export function GovernanceConsole({
         sendTransaction,
         tx,
         label: "Deposit governance tokens",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -276,6 +279,7 @@ export function GovernanceConsole({
         sendTransaction,
         tx,
         label: "Withdraw governance tokens",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -310,6 +314,7 @@ export function GovernanceConsole({
           sendTransaction,
           tx: step.tx,
           label: step.label,
+          confirmReview,
           onRetry: () => {
             void submitPlan(label, planBuilder);
           },
@@ -352,6 +357,7 @@ export function GovernanceConsole({
         sendTransaction,
         tx,
         label: emergencyPaused ? "Enable protocol pause" : "Resume protocol",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -430,6 +436,7 @@ export function GovernanceConsole({
 
   return (
     <div className="space-y-5">
+      {reviewPrompt}
       <section className="surface-card space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">

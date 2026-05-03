@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { Transaction } from "@solana/web3.js";
 
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { WizardDetailSheet } from "@/components/wizard-detail-sheet";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
@@ -74,6 +75,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
   const { publicKey, sendTransaction } = useWallet();
   const canAct = Boolean(publicKey);
   const governanceReady = Boolean(props.snapshot.protocolGovernance);
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
   const [section, setSection] = useState<GovernanceOperatorSection>(
     props.initialSection ?? "governance",
@@ -149,6 +151,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
         sendTransaction,
         tx,
         label,
+        confirmReview,
         onConfirmed: async () => {
           await props.onRefresh?.();
         },
@@ -189,6 +192,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
       meta={sheetMeta}
       size="wide"
     >
+      {reviewPrompt}
       <div className="operator-drawer">
         <nav className="operator-drawer-nav" aria-label="Governance operator action sections">
           {SECTIONS.map((item) => (

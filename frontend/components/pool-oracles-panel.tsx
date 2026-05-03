@@ -8,6 +8,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { ExternalLink, RefreshCw, ShieldCheck } from "lucide-react";
 
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { SearchableSelect } from "@/components/searchable-select";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
@@ -54,6 +55,7 @@ function normalize(value: string): string {
 export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: PoolOraclesPanelProps) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
   const embedded = sectionMode === "embedded";
   const canAct = Boolean(publicKey && sendTransaction);
 
@@ -274,6 +276,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         sendTransaction,
         tx,
         label: approvalActive ? "Approve oracle" : "Disable oracle approval",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -310,6 +313,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         sendTransaction,
         tx,
         label: "Set oracle permissions",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -350,6 +354,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         sendTransaction,
         tx,
         label: "Set oracle policy",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -369,6 +374,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
 
   return (
     <section className={embedded ? "space-y-4" : "surface-card space-y-4"}>
+      {reviewPrompt}
       {!embedded ? (
         <div className="space-y-1">
           <h2 className="hero-title">Oracle Network</h2>

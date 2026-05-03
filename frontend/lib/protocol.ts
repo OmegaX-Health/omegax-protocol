@@ -91,6 +91,7 @@ export const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE = 0;
 export const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY = 1;
 export const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW = 2;
 export const CLAIM_ATTESTATION_DECISION_ABSTAIN = 3;
+export const POOL_ORACLE_PERMISSION_ATTEST_CLAIM = 1 << 0;
 
 export const MEMBERSHIP_MODE_OPEN = 0;
 export const MEMBERSHIP_MODE_TOKEN_GATE = 1;
@@ -483,6 +484,7 @@ export type ClaimCaseSnapshot = {
   deniedAmount?: BigNumberish;
   paidAmount?: BigNumberish;
   reservedAmount?: BigNumberish;
+  attestationCount?: number;
   linkedObligation?: string | null;
 };
 
@@ -697,7 +699,13 @@ export type ClaimAttestationSnapshot = {
   decision: number;
   attestationHashHex: string;
   attestationRefHashHex: string;
+  evidenceRefHashHex?: string;
+  decisionSupportHashHex?: string;
   schemaKeyHashHex: string;
+  schemaHashHex?: string;
+  schemaVersion?: number;
+  liquidityPool?: string | null;
+  allocationPosition?: string | null;
   createdAtTs: number;
   updatedAtTs: number;
   bump: number;
@@ -2611,6 +2619,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           deniedAmount: bigintFromAnchorValue(decodedField(decoded, "deniedAmount")),
           paidAmount: bigintFromAnchorValue(decodedField(decoded, "paidAmount")),
           reservedAmount: bigintFromAnchorValue(decodedField(decoded, "reservedAmount")),
+          attestationCount: Number(decodedField(decoded, "attestationCount", "attestation_count") ?? 0),
           linkedObligation: asOptionalAddress(decodedField(decoded, "linkedObligation")),
         });
         break;
@@ -2874,7 +2883,15 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           attestationRefHashHex: bytesToHex(
             decodedField(decoded, "attestationRefHash", "attestation_ref_hash"),
           ),
+          evidenceRefHashHex: bytesToHex(decodedField(decoded, "evidenceRefHash", "evidence_ref_hash")),
+          decisionSupportHashHex: bytesToHex(
+            decodedField(decoded, "decisionSupportHash", "decision_support_hash"),
+          ),
           schemaKeyHashHex: bytesToHex(decodedField(decoded, "schemaKeyHash", "schema_key_hash")),
+          schemaHashHex: bytesToHex(decodedField(decoded, "schemaHash", "schema_hash")),
+          schemaVersion: Number(decodedField(decoded, "schemaVersion", "schema_version") ?? 0),
+          liquidityPool: asOptionalAddress(decodedField(decoded, "liquidityPool", "liquidity_pool")),
+          allocationPosition: asOptionalAddress(decodedField(decoded, "allocationPosition", "allocation_position")),
           createdAtTs: numberFromAnchorValue(decodedField(decoded, "createdAtTs", "created_at_ts")),
           updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs", "updated_at_ts")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
@@ -5362,6 +5379,7 @@ export function buildOpenClaimCaseTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.memberPositionAddress },
       { pubkey: params.fundingLineAddress },
@@ -5399,16 +5417,53 @@ export function buildAttachClaimEvidenceRefTx(params: {
 
 export function buildAttestClaimCaseTx(params: {
   oracle: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
   claimCaseAddress: PublicKeyish;
+  fundingLineAddress: PublicKeyish;
   recentBlockhash: string;
   decision: number;
   attestationHashHex: string;
   attestationRefHashHex?: string | null;
   schemaKeyHashHex: string;
+  liquidityPoolAddress?: PublicKeyish | null;
+  capitalClassAddress?: PublicKeyish | null;
+  allocationPositionAddress?: PublicKeyish | null;
+  poolOracleApprovalAddress?: PublicKeyish | null;
+  poolOraclePermissionSetAddress?: PublicKeyish | null;
+  poolOraclePolicyAddress?: PublicKeyish | null;
 }): Transaction {
   const oracle = toPublicKey(params.oracle);
   assertValidClaimAttestationDecision(params.decision);
   const oracleProfile = deriveOracleProfilePda({ oracle });
+  const liquidityPool = params.liquidityPoolAddress
+    ? toPublicKey(params.liquidityPoolAddress)
+    : null;
+  const capitalClass = params.capitalClassAddress
+    ? toPublicKey(params.capitalClassAddress)
+    : null;
+  const allocationPosition = params.allocationPositionAddress
+    ? toPublicKey(params.allocationPositionAddress)
+    : capitalClass
+      ? deriveAllocationPositionPda({
+        capitalClass,
+        fundingLine: params.fundingLineAddress,
+      })
+      : null;
+  const poolOracleApproval = params.poolOracleApprovalAddress
+    ? toPublicKey(params.poolOracleApprovalAddress)
+    : liquidityPool
+      ? derivePoolOracleApprovalPda({ liquidityPool, oracle })
+      : null;
+  const poolOraclePermissionSet = params.poolOraclePermissionSetAddress
+    ? toPublicKey(params.poolOraclePermissionSetAddress)
+    : liquidityPool
+      ? derivePoolOraclePermissionSetPda({ liquidityPool, oracle })
+      : null;
+  const poolOraclePolicy = params.poolOraclePolicyAddress
+    ? toPublicKey(params.poolOraclePolicyAddress)
+    : liquidityPool
+      ? derivePoolOraclePolicyPda({ liquidityPool })
+      : null;
   const normalizedSchemaKeyHashHex = normalizeHex32(params.schemaKeyHashHex);
   const claimAttestation = deriveClaimAttestationPda({
     claimCase: params.claimCaseAddress,
@@ -5433,9 +5488,18 @@ export function buildAttestClaimCaseTx(params: {
     },
     accounts: [
       { pubkey: oracle, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
       { pubkey: oracleProfile },
-      { pubkey: params.claimCaseAddress },
+      { pubkey: params.claimCaseAddress, isWritable: true },
+      { pubkey: params.fundingLineAddress },
       { pubkey: outcomeSchema },
+      optionalProtocolAccount(liquidityPool),
+      optionalProtocolAccount(capitalClass),
+      optionalProtocolAccount(allocationPosition),
+      optionalProtocolAccount(poolOracleApproval),
+      optionalProtocolAccount(poolOraclePermissionSet),
+      optionalProtocolAccount(poolOraclePolicy),
       { pubkey: claimAttestation, isWritable: true },
       { pubkey: SystemProgram.programId },
     ],

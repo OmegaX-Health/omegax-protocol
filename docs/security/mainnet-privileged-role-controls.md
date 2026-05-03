@@ -6,7 +6,7 @@
 
 ## Why this exists
 
-The on-chain program enforces role checks (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_pool_control`, `require_curator_control`, `require_allocator`), but the safety story for any of those checks is **only as strong as the wallet behind the role**. Pre-pen-test, the Genesis live bootstrap defaulted every privileged role to the governance signer if the role-specific environment variable was unset — a single key compromise drained the whole protocol. PT-05 closed the silent collapse via the opt-in `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` guard. This doc closes the rest of the gap: matrix, multisig requirement, break-glass exception, and rotation/recovery posture.
+The on-chain program enforces role checks (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_pool_control`, `require_curator_control`, `require_allocator`) plus pool-scoped oracle approval/permission checks for LP-backed claim attestations. The safety story for any of those checks is **only as strong as the wallet behind the role**. Pre-pen-test, the Genesis live bootstrap defaulted every privileged role to the governance signer if the role-specific environment variable was unset — a single key compromise drained the whole protocol. PT-05 closed the silent collapse via the opt-in `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` guard. This doc closes the rest of the gap: matrix, multisig requirement, break-glass exception, and rotation/recovery posture.
 
 ## 1. Privileged roles
 
@@ -18,8 +18,8 @@ Every entry below maps to a `require_*` check in the onchain program source (`pr
 | **Reserve domain admin** | `require_governance` (domain ops) | reserve-domain pause flags, vault wiring | Same as governance for v1; can split later | Multisig PDA | `governanceAuthority` |
 | **Plan admin / Sponsor** | `require_plan_control` | `update_health_plan`, sponsor-budget funding, plan pause flags | Sponsor entity | Distinct wallet (multisig recommended for >$10k exposure) | `governanceAuthority` |
 | **Sponsor operator** | `require_plan_control` (sponsor lane) | premium recording, sponsor-budget operations | Operations team | Distinct wallet | `governanceAuthority` |
-| **Claims operator** | `require_claim_operator` | `attest_claim_case`, `adjudicate_claim_case`, `settle_claim_case` | Claims operations team | Distinct hot wallet (rotated quarterly), backed by ≥2-of-N multisig for high-value claims | `governanceAuthority` |
-| **Oracle authority** | `require_claim_operator` (oracle lane) | `register_oracle`, `attest_claim_case` from oracle profile | Oracle operator (OmegaX Health for v1) | Distinct hot wallet, rotated quarterly | (none — must be set explicitly) |
+| **Claims operator** | `require_claim_operator` | `attach_claim_evidence_ref`, `adjudicate_claim_case`, `settle_claim_case` | Claims operations team | Distinct hot wallet (rotated quarterly), backed by ≥2-of-N multisig for high-value claims | `governanceAuthority` |
+| **Oracle authority** | `OracleProfile` signer + verified-schema gate; LP-backed claims also require active `PoolOracleApproval` and `POOL_ORACLE_PERMISSION_ATTEST_CLAIM` | `register_oracle`, `claim_oracle`, `attest_claim_case` from oracle profile | Oracle operator (OmegaX Health for v1) | Distinct hot wallet, rotated quarterly | (none — must be set explicitly) |
 | **Pool curator** | `require_curator_control` | `create_capital_class`, capital-class restriction updates, manager credentialing | LP product team | Distinct wallet, multisig for production | `governanceAuthority` |
 | **Pool allocator** | `require_allocator` | `create_allocation_position`, allocation cap & weight updates | Capital management team | Distinct wallet | `governanceAuthority` |
 | **Pool sentinel** | `require_pool_control` (sentinel lane) | pool-level pause flags, redemption-queue throttle | On-call sentinel | Distinct hot wallet (low blast radius — short-lived rotation OK) | `governanceAuthority` |
@@ -78,7 +78,7 @@ Each role has a defined rotation cadence and method. Rotation does not require a
 | Protocol governance | On-demand only (post-incident or member change) | `rotate_protocol_governance_authority` instruction (already on-chain); behind the multisig signing flow | ≥2-of-N multisig + DCO-signed release-candidate evidence |
 | Plan admin / Sponsor | On-demand (sponsor change, contract end) | governance-authorized plan-config update | ≥1 governance multisig signer + sponsor signature |
 | Claims operator | Quarterly | governance-authorized plan-config update; old key remains valid for a 7-day overlap before being removed | ≥1 governance multisig signer |
-| Oracle authority | Quarterly | `register_oracle` from new authority + governance-authorized profile retirement of old | Oracle operator + ≥1 governance multisig signer |
+| Oracle authority | Quarterly | `register_oracle` / `claim_oracle` from new authority, then pool approval/permission updates for LP-backed claim products | Oracle operator + ≥1 governance multisig signer |
 | Pool curator / allocator / sentinel | Quarterly (or on personnel change) | governance-authorized pool-config update | ≥1 governance multisig signer |
 
 Rotation runbooks should be added to `docs/operations/genesis-live-bootstrap.md` as the live procedure stabilises post-launch.

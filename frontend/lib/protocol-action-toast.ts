@@ -39,13 +39,12 @@ export type ProtocolActionToastParams = {
   signers?: Signer[];
   explorerCluster?: string | null;
   review?: ProtocolTransactionReviewMetadata;
+  skipReview?: true;
   /**
-   * Pre-sign review confirmation. Required whenever `review` is supplied —
-   * `executeProtocolTransaction` rejects the call (`requires a pre-sign
-   * review before wallet signing`) when review metadata is provided without
-   * a confirmation handler. The toast wrapper forwards this verbatim; it is
-   * the operator drawer's responsibility to provide the prompt
-   * (`useProtocolTransactionReviewPrompt`).
+   * Pre-sign review confirmation. Required by default for protocol
+   * transactions; `skipReview: true` is the explicit escape hatch for
+   * non-wallet or test-only callers. The toast wrapper forwards this
+   * verbatim; UI surfaces should provide `useProtocolTransactionReviewPrompt`.
    */
   confirmReview?: ProtocolTransactionReviewConfirmation;
   onConfirmed?: (result: ProtocolActionSuccess) => void | Promise<void>;
@@ -70,6 +69,7 @@ export async function executeProtocolTransactionWithToast(
       explorerCluster: params.explorerCluster ?? null,
       review: params.review,
       confirmReview: params.confirmReview,
+      skipReview: params.skipReview,
       onLifecycle: (event) => {
         if (event.phase !== "submitted") return;
         toast.loading(`${params.label} submitted`, {

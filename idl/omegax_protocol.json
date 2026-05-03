@@ -1883,6 +1883,70 @@
           "signer": true
         },
         {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "health_plan",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  97,
+                  108,
+                  116,
+                  104,
+                  95,
+                  112,
+                  108,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan.reserve_domain",
+                "account": "HealthPlan"
+              },
+              {
+                "kind": "account",
+                "path": "health_plan.health_plan_id",
+                "account": "HealthPlan"
+              }
+            ]
+          }
+        },
+        {
           "name": "oracle_profile",
           "pda": {
             "seeds": [
@@ -1915,6 +1979,7 @@
         },
         {
           "name": "claim_case",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1941,6 +2006,39 @@
                 "kind": "account",
                 "path": "claim_case.claim_id",
                 "account": "ClaimCase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funding_line",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  108,
+                  105,
+                  110,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "health_plan"
+              },
+              {
+                "kind": "account",
+                "path": "funding_line.line_id",
+                "account": "FundingLine"
               }
             ]
           }
@@ -1974,6 +2072,30 @@
               }
             ]
           }
+        },
+        {
+          "name": "liquidity_pool",
+          "optional": true
+        },
+        {
+          "name": "capital_class",
+          "optional": true
+        },
+        {
+          "name": "allocation_position",
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_approval",
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_permission_set",
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_policy",
+          "optional": true
         },
         {
           "name": "claim_attestation",
@@ -7183,6 +7305,37 @@
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "health_plan",
@@ -15244,186 +15397,216 @@
     },
     {
       "code": 6060,
+      "name": "PoolOraclePermissionRequired",
+      "msg": "Pool oracle permission is required for this claim attestation"
+    },
+    {
+      "code": 6061,
       "name": "OracleProfileInactive",
       "msg": "Oracle profile is inactive"
     },
     {
-      "code": 6061,
+      "code": 6062,
       "name": "OracleProfileUnclaimed",
       "msg": "Oracle profile has not been claimed by its signing key"
     },
     {
-      "code": 6062,
+      "code": 6063,
       "name": "InvalidClaimAttestationDecision",
       "msg": "Claim attestation decision is not a recognized value"
     },
     {
-      "code": 6063,
+      "code": 6064,
       "name": "ClaimAttestationSchemaRequired",
       "msg": "Claim attestation must reference a registered schema key hash"
     },
     {
-      "code": 6064,
+      "code": 6065,
       "name": "ClaimAttestationSchemaUnsupported",
       "msg": "Oracle profile does not advertise support for the selected claim-attestation schema"
     },
     {
-      "code": 6065,
+      "code": 6066,
+      "name": "OutcomeSchemaUnverified",
+      "msg": "Claim attestation schema must be governance verified"
+    },
+    {
+      "code": 6067,
+      "name": "ClaimEvidenceRequired",
+      "msg": "Claim attestation requires a locked evidence reference"
+    },
+    {
+      "code": 6068,
+      "name": "ClaimEvidenceMismatch",
+      "msg": "Claim attestation evidence reference does not match the claim case"
+    },
+    {
+      "code": 6069,
+      "name": "ClaimEvidenceLocked",
+      "msg": "Claim evidence cannot be changed after attestations begin"
+    },
+    {
+      "code": 6070,
+      "name": "OracleFinalityHeld",
+      "msg": "Health plan has paused oracle finality"
+    },
+    {
+      "code": 6071,
       "name": "TooManySchemaDependencies",
       "msg": "Too many schema dependency addresses were provided"
     },
     {
-      "code": 6066,
+      "code": 6072,
       "name": "DomainAssetVaultRequired",
       "msg": "Fee vault initialization requires the matching domain asset vault to exist"
     },
     {
-      "code": 6067,
+      "code": 6073,
       "name": "LiquidityPoolMismatch",
       "msg": "Liquidity pool reference does not match the supplied account"
     },
     {
-      "code": 6068,
+      "code": 6074,
       "name": "OracleProfileMismatch",
       "msg": "Oracle profile reference does not match the supplied account"
     },
     {
-      "code": 6069,
+      "code": 6075,
       "name": "FeeVaultMismatch",
       "msg": "Fee vault account does not match the expected scope"
     },
     {
-      "code": 6070,
+      "code": 6076,
       "name": "FeeVaultInsufficientBalance",
       "msg": "Fee vault has insufficient accrued balance for this withdrawal"
     },
     {
-      "code": 6071,
+      "code": 6077,
       "name": "FeeVaultRentExemptionBreach",
       "msg": "Fee vault withdrawal would breach the rent-exempt minimum balance"
     },
     {
-      "code": 6072,
+      "code": 6078,
       "name": "FeeVaultRailMismatch",
       "msg": "Fee vault rail and asset mint disagree (SOL vault used on SPL path or vice versa)"
     },
     {
-      "code": 6073,
+      "code": 6079,
       "name": "FeeVaultBpsMisconfigured",
       "msg": "Fee vault basis-points configuration is out of range"
     },
     {
-      "code": 6074,
+      "code": 6080,
       "name": "SettlementOutflowAccountsRequired",
       "msg": "Linked claim settlement requires the member, mint, vault token, recipient token, and token program accounts"
     },
     {
-      "code": 6075,
+      "code": 6081,
       "name": "FeeVaultRequiredForConfiguredFee",
       "msg": "Configured fee basis points require the matching fee vault account"
     },
     {
-      "code": 6076,
+      "code": 6082,
       "name": "InvalidCommitmentCampaignMode",
       "msg": "Commitment campaign mode is invalid"
     },
     {
-      "code": 6077,
+      "code": 6083,
       "name": "InvalidCommitmentCampaignStatus",
       "msg": "Commitment campaign status is invalid"
     },
     {
-      "code": 6078,
+      "code": 6084,
       "name": "CommitmentCampaignInactive",
       "msg": "Commitment campaign is not active"
     },
     {
-      "code": 6079,
+      "code": 6085,
       "name": "CommitmentNotRefundable",
       "msg": "Commitment campaign is not refundable yet"
     },
     {
-      "code": 6080,
+      "code": 6086,
       "name": "CommitmentPositionNotPending",
       "msg": "Commitment position is not pending"
     },
     {
-      "code": 6081,
+      "code": 6087,
       "name": "CommitmentTermsMismatch",
       "msg": "Commitment terms hash mismatch"
     },
     {
-      "code": 6082,
+      "code": 6088,
       "name": "CommitmentCapExceeded",
       "msg": "Commitment cap exceeded"
     },
     {
-      "code": 6083,
+      "code": 6089,
       "name": "CommitmentActivationAuthorityMismatch",
       "msg": "Commitment activation authority mismatch"
     },
     {
-      "code": 6084,
+      "code": 6090,
       "name": "InsufficientStableCoverageCapacity",
       "msg": "Stable coverage capacity is insufficient"
     },
     {
-      "code": 6085,
+      "code": 6091,
       "name": "TreasuryCreditAssetMismatch",
       "msg": "Treasury-credit commitments require distinct payment and coverage assets"
     },
     {
-      "code": 6086,
+      "code": 6092,
       "name": "InvalidReserveAssetRole",
       "msg": "Reserve asset role is invalid"
     },
     {
-      "code": 6087,
+      "code": 6093,
       "name": "InvalidReserveOracleSource",
       "msg": "Reserve asset oracle source is invalid"
     },
     {
-      "code": 6088,
+      "code": 6094,
       "name": "ReserveAssetRailMismatch",
       "msg": "Reserve asset rail mismatch"
     },
     {
-      "code": 6089,
+      "code": 6095,
       "name": "ReserveAssetRailInactive",
       "msg": "Reserve asset rail is inactive"
     },
     {
-      "code": 6090,
+      "code": 6096,
       "name": "ReserveAssetRailDepositDisabled",
       "msg": "Reserve asset rail does not allow deposits"
     },
     {
-      "code": 6091,
+      "code": 6097,
       "name": "ReserveAssetRailPayoutDisabled",
       "msg": "Reserve asset rail does not allow claims payout"
     },
     {
-      "code": 6092,
+      "code": 6098,
       "name": "ReserveAssetRailCapacityDisabled",
       "msg": "Reserve asset rail cannot count toward claims capacity"
     },
     {
-      "code": 6093,
+      "code": 6099,
       "name": "ReserveAssetPriceStale",
       "msg": "Reserve asset oracle price is stale or missing"
     },
     {
-      "code": 6094,
+      "code": 6100,
       "name": "ReserveAssetPriceInvalid",
       "msg": "Reserve asset oracle price is invalid"
     },
     {
-      "code": 6095,
+      "code": 6101,
       "name": "CommitmentPaymentRailMismatch",
       "msg": "Commitment payment rail mismatch"
     },
     {
-      "code": 6096,
+      "code": 6102,
       "name": "CommitmentPaymentRailInactive",
       "msg": "Commitment payment rail is inactive"
     }
@@ -15909,6 +16092,24 @@
             }
           },
           {
+            "name": "evidence_ref_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "decision_support_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "schema_key_hash",
             "type": {
               "array": [
@@ -15916,6 +16117,27 @@
                 32
               ]
             }
+          },
+          {
+            "name": "schema_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "allocation_position",
+            "type": "pubkey"
           },
           {
             "name": "created_at_ts",
@@ -16025,6 +16247,10 @@
           },
           {
             "name": "appeal_count",
+            "type": "u16"
+          },
+          {
+            "name": "attestation_count",
             "type": "u16"
           },
           {

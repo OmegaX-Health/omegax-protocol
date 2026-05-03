@@ -70,7 +70,7 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `release_reserve` | release reserved liability back to free capital and mirror linked protection-claim reserve state |
 | `open_claim_case` | open an explicit claim lifecycle from the enrolled member wallet or a plan claim/operator path |
 | `attach_claim_evidence_ref` | attach evidence and decision-support references |
-| `attest_claim_case` | anchor a schema-bound oracle attestation against a live claim case |
+| `attest_claim_case` | anchor a verified-schema oracle attestation against the claim's locked evidence hash; LP-allocation claims also require pool oracle approval and `ATTEST_CLAIM` permission |
 | `adjudicate_claim_case` | approve or deny a claim case and optionally bind it to the matching `Obligation` |
 | `settle_claim_case` | settle approved claim payouts through the reserve kernel only when no linked `Obligation` exists |
 | `mark_impairment` | record impairment against the affected ledgers and optional obligation |
