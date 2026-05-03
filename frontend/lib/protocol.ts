@@ -5465,6 +5465,8 @@ export function buildAttestClaimCaseTx(params: {
 }): Transaction {
   const oracle = toPublicKey(params.oracle);
   assertValidClaimAttestationDecision(params.decision);
+  const healthPlan = toPublicKey(params.healthPlanAddress);
+  const fundingLine = toPublicKey(params.fundingLineAddress);
   const oracleProfile = deriveOracleProfilePda({ oracle });
   const liquidityPool = params.liquidityPoolAddress
     ? toPublicKey(params.liquidityPoolAddress)
@@ -5477,7 +5479,7 @@ export function buildAttestClaimCaseTx(params: {
     : capitalClass
       ? deriveAllocationPositionPda({
         capitalClass,
-        fundingLine: params.fundingLineAddress,
+        fundingLine,
       })
       : null;
   const poolOracleApproval = params.poolOracleApprovalAddress
@@ -5520,10 +5522,10 @@ export function buildAttestClaimCaseTx(params: {
     accounts: [
       { pubkey: oracle, isSigner: true, isWritable: true },
       { pubkey: deriveProtocolGovernancePda() },
-      { pubkey: params.healthPlanAddress },
+      { pubkey: healthPlan },
       { pubkey: oracleProfile },
       { pubkey: params.claimCaseAddress, isWritable: true },
-      { pubkey: params.fundingLineAddress },
+      { pubkey: fundingLine },
       { pubkey: outcomeSchema },
       optionalProtocolAccount(liquidityPool),
       optionalProtocolAccount(capitalClass),

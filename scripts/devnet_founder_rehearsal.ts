@@ -1779,7 +1779,9 @@ async function maybeSendClaimEvidenceAndAttestation(
       label: `attest_claim_case:${asset.symbol}`,
       tx: protocol.buildAttestClaimCaseTx({
         oracle: ctx.oracle.publicKey,
+        healthPlanAddress: healthPlan,
         claimCaseAddress: claimCase,
+        fundingLineAddress: asset.fundingLine,
         decision: protocol.CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
         attestationHashHex: sha256Hex(`attestation:${asset.symbol}:approve`),
         attestationRefHashHex: sha256Hex(`attestation-ref:${asset.symbol}`),
