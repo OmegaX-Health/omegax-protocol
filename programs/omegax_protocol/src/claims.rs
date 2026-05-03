@@ -498,10 +498,14 @@ pub(crate) struct ClaimAttestationPoolScope<'a> {
     pub liquidity_pool: &'a LiquidityPool,
     pub capital_class_key: Pubkey,
     pub capital_class: &'a CapitalClass,
+    pub allocation_position_key: Pubkey,
     pub allocation_position: &'a AllocationPosition,
     pub funding_line_key: Pubkey,
+    pub pool_oracle_approval_key: Pubkey,
     pub pool_oracle_approval: &'a PoolOracleApproval,
+    pub pool_oracle_permission_set_key: Pubkey,
     pub pool_oracle_permission_set: &'a PoolOraclePermissionSet,
+    pub pool_oracle_policy_key: Pubkey,
     pub pool_oracle_policy: &'a PoolOraclePolicy,
 }
 
@@ -512,6 +516,19 @@ pub(crate) fn validate_lp_claim_attestation_scope(
     oracle_profile: &OracleProfile,
     scope: ClaimAttestationPoolScope<'_>,
 ) -> Result<()> {
+    let (expected_liquidity_pool, _) = Pubkey::find_program_address(
+        &[
+            SEED_LIQUIDITY_POOL,
+            scope.liquidity_pool.reserve_domain.as_ref(),
+            scope.liquidity_pool.pool_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.liquidity_pool_key,
+        expected_liquidity_pool,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
     require_keys_eq!(
         scope.liquidity_pool.reserve_domain,
         health_plan.reserve_domain,
@@ -521,6 +538,19 @@ pub(crate) fn validate_lp_claim_attestation_scope(
         scope.liquidity_pool.deposit_asset_mint,
         funding_line.asset_mint,
         OmegaXProtocolError::AssetMintMismatch
+    );
+    let (expected_capital_class, _) = Pubkey::find_program_address(
+        &[
+            SEED_CAPITAL_CLASS,
+            scope.liquidity_pool_key.as_ref(),
+            scope.capital_class.class_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.capital_class_key,
+        expected_capital_class,
+        OmegaXProtocolError::CapitalClassMismatch
     );
     require_keys_eq!(
         scope.capital_class.reserve_domain,
@@ -547,6 +577,19 @@ pub(crate) fn validate_lp_claim_attestation_scope(
         scope.capital_class_key,
         OmegaXProtocolError::AllocationPositionMismatch
     );
+    let (expected_allocation_position, _) = Pubkey::find_program_address(
+        &[
+            SEED_ALLOCATION_POSITION,
+            scope.capital_class_key.as_ref(),
+            scope.funding_line_key.as_ref(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.allocation_position_key,
+        expected_allocation_position,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
     require_keys_eq!(
         scope.allocation_position.health_plan,
         claim_case.health_plan,
@@ -566,6 +609,19 @@ pub(crate) fn validate_lp_claim_attestation_scope(
         scope.allocation_position.active,
         OmegaXProtocolError::AllocationPositionMismatch
     );
+    let (expected_pool_oracle_approval, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_APPROVAL,
+            scope.liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.pool_oracle_approval_key,
+        expected_pool_oracle_approval,
+        OmegaXProtocolError::PoolOracleApprovalRequired
+    );
     require_keys_eq!(
         scope.pool_oracle_approval.liquidity_pool,
         scope.liquidity_pool_key,
@@ -580,6 +636,19 @@ pub(crate) fn validate_lp_claim_attestation_scope(
         scope.pool_oracle_approval.active,
         OmegaXProtocolError::PoolOracleApprovalRequired
     );
+    let (expected_pool_oracle_permission_set, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_PERMISSION_SET,
+            scope.liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.pool_oracle_permission_set_key,
+        expected_pool_oracle_permission_set,
+        OmegaXProtocolError::PoolOraclePermissionRequired
+    );
     require_keys_eq!(
         scope.pool_oracle_permission_set.liquidity_pool,
         scope.liquidity_pool_key,
@@ -593,6 +662,15 @@ pub(crate) fn validate_lp_claim_attestation_scope(
     require!(
         scope.pool_oracle_permission_set.permissions & POOL_ORACLE_PERMISSION_ATTEST_CLAIM != 0,
         OmegaXProtocolError::PoolOraclePermissionRequired
+    );
+    let (expected_pool_oracle_policy, _) = Pubkey::find_program_address(
+        &[SEED_POOL_ORACLE_POLICY, scope.liquidity_pool_key.as_ref()],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.pool_oracle_policy_key,
+        expected_pool_oracle_policy,
+        OmegaXProtocolError::PoolOracleApprovalRequired
     );
     require_keys_eq!(
         scope.pool_oracle_policy.liquidity_pool,
@@ -649,10 +727,14 @@ fn validate_claim_attestation_pool_scope(
             liquidity_pool,
             capital_class_key: capital_class.key(),
             capital_class,
+            allocation_position_key,
             allocation_position,
             funding_line_key: accounts.funding_line.key(),
+            pool_oracle_approval_key: pool_oracle_approval.key(),
             pool_oracle_approval,
+            pool_oracle_permission_set_key: pool_oracle_permission_set.key(),
             pool_oracle_permission_set,
+            pool_oracle_policy_key: pool_oracle_policy.key(),
             pool_oracle_policy,
         },
     )?;

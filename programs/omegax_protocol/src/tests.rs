@@ -1616,9 +1616,6 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
 fn lp_claim_attestation_scope_requires_pool_permission() {
     let reserve_domain = Pubkey::new_unique();
     let health_plan_key = Pubkey::new_unique();
-    let funding_line_key = Pubkey::new_unique();
-    let liquidity_pool_key = Pubkey::new_unique();
-    let capital_class_key = Pubkey::new_unique();
     let policy_series = Pubkey::new_unique();
     let asset_mint = Pubkey::new_unique();
     let mut health_plan = sample_health_plan_roles(
@@ -1635,11 +1632,35 @@ fn lp_claim_attestation_scope_requires_pool_permission() {
         asset_mint,
         FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
     );
+    let (funding_line_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_FUNDING_LINE,
+            health_plan_key.as_ref(),
+            funding_line.line_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
     let claim_case =
         sample_claim_case(health_plan_key, policy_series, funding_line_key, asset_mint);
     let oracle_profile = oracle_profile_with_supported_schemas(&[]);
     let liquidity_pool = sample_liquidity_pool(reserve_domain, asset_mint);
+    let (liquidity_pool_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_LIQUIDITY_POOL,
+            reserve_domain.as_ref(),
+            liquidity_pool.pool_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
     let capital_class = sample_capital_class(reserve_domain, liquidity_pool_key);
+    let (capital_class_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_CAPITAL_CLASS,
+            liquidity_pool_key.as_ref(),
+            capital_class.class_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
     let allocation_position = sample_allocation_position(
         reserve_domain,
         liquidity_pool_key,
@@ -1648,6 +1669,22 @@ fn lp_claim_attestation_scope_requires_pool_permission() {
         policy_series,
         funding_line_key,
     );
+    let (allocation_position_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_ALLOCATION_POSITION,
+            capital_class_key.as_ref(),
+            funding_line_key.as_ref(),
+        ],
+        &crate::ID,
+    );
+    let (pool_oracle_approval_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_APPROVAL,
+            liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
     let approval = PoolOracleApproval {
         liquidity_pool: liquidity_pool_key,
         oracle: oracle_profile.oracle,
@@ -1655,6 +1692,14 @@ fn lp_claim_attestation_scope_requires_pool_permission() {
         updated_at_ts: 0,
         bump: 1,
     };
+    let (pool_oracle_permission_set_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_PERMISSION_SET,
+            liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
     let mut permission_set = PoolOraclePermissionSet {
         liquidity_pool: liquidity_pool_key,
         oracle: oracle_profile.oracle,
@@ -1662,6 +1707,10 @@ fn lp_claim_attestation_scope_requires_pool_permission() {
         updated_at_ts: 0,
         bump: 1,
     };
+    let (pool_oracle_policy_key, _) = Pubkey::find_program_address(
+        &[SEED_POOL_ORACLE_POLICY, liquidity_pool_key.as_ref()],
+        &crate::ID,
+    );
     let policy = PoolOraclePolicy {
         liquidity_pool: liquidity_pool_key,
         quorum_m: 1,
@@ -1684,10 +1733,14 @@ fn lp_claim_attestation_scope_requires_pool_permission() {
             liquidity_pool: &liquidity_pool,
             capital_class_key,
             capital_class: &capital_class,
+            allocation_position_key,
             allocation_position: &allocation_position,
             funding_line_key,
+            pool_oracle_approval_key,
             pool_oracle_approval: &approval,
+            pool_oracle_permission_set_key,
             pool_oracle_permission_set: &permission_set,
+            pool_oracle_policy_key,
             pool_oracle_policy: &policy,
         },
     )
@@ -1707,10 +1760,14 @@ fn lp_claim_attestation_scope_requires_pool_permission() {
             liquidity_pool: &liquidity_pool,
             capital_class_key,
             capital_class: &capital_class,
+            allocation_position_key,
             allocation_position: &allocation_position,
             funding_line_key,
+            pool_oracle_approval_key,
             pool_oracle_approval: &approval,
+            pool_oracle_permission_set_key,
             pool_oracle_permission_set: &permission_set,
+            pool_oracle_policy_key,
             pool_oracle_policy: &policy,
         },
     )
