@@ -305,7 +305,7 @@ pub(crate) fn oracle_profile_supports_schema(
     let supported_count =
         usize::from(oracle_profile.supported_schema_count).min(MAX_ORACLE_SUPPORTED_SCHEMAS);
     if supported_count == 0 {
-        return true;
+        return false;
     }
 
     oracle_profile
@@ -313,6 +313,23 @@ pub(crate) fn oracle_profile_supports_schema(
         .iter()
         .take(supported_count)
         .any(|supported_hash| *supported_hash == schema_key_hash)
+}
+
+pub(crate) fn require_claim_attestation_oracle_authority(
+    health_plan: &HealthPlan,
+    funding_line: &FundingLine,
+    oracle_profile: &OracleProfile,
+) -> Result<()> {
+    if funding_line.line_type == FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
+        return Ok(());
+    }
+
+    require_keys_eq!(
+        oracle_profile.oracle,
+        health_plan.oracle_authority,
+        OmegaXProtocolError::Unauthorized
+    );
+    Ok(())
 }
 
 pub(crate) fn require_pool_control(

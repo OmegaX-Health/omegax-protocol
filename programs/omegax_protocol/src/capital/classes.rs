@@ -14,6 +14,10 @@ pub(crate) fn create_capital_class(
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,
     )?;
+    require!(
+        args.fee_bps <= MAX_CONFIGURED_FEE_BPS,
+        OmegaXProtocolError::InvalidBps
+    );
 
     let capital_class = &mut ctx.accounts.capital_class;
     capital_class.reserve_domain = ctx.accounts.liquidity_pool.reserve_domain;

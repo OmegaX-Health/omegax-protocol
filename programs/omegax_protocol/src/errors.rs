@@ -170,6 +170,8 @@ pub enum OmegaXProtocolError {
     SettlementOutflowAccountsRequired,
     #[msg("Configured fee basis points require the matching fee vault account")]
     FeeVaultRequiredForConfiguredFee,
+    #[msg("Oracle fee accrual requires a matching claim attestation account")]
+    ClaimAttestationRequiredForOracleFee,
     #[msg("Commitment campaign mode is invalid")]
     InvalidCommitmentCampaignMode,
     #[msg("Commitment campaign status is invalid")]

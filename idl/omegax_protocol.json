@@ -5373,6 +5373,37 @@
           "signer": true
         },
         {
+          "name": "protocol_governance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  103,
+                  111,
+                  118,
+                  101,
+                  114,
+                  110,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "campaign",
           "writable": true,
           "pda": {
@@ -11459,13 +11490,10 @@
         {
           "name": "pool_oracle_fee_vault",
           "docs": [
-            "Phase 1.6 — optional pool-oracle fee vault for adjudicator revshare.",
-            "When supplied alongside `pool_oracle_policy`, the bps from policy is",
-            "applied to the gross amount and credited to the supplied oracle vault.",
-            "Asset mint must match funding_line.asset_mint; pool ref must match",
-            "pool_oracle_policy.liquidity_pool. Single-attester scope: callers",
-            "credit the adjudicator (not all M attesters) — multi-attester revshare",
-            "is a follow-up beyond PR1 (documented in plan)."
+            "Phase 1.6 — optional pool-oracle fee vault for attesting-oracle revshare.",
+            "When supplied alongside `pool_oracle_policy` and `oracle_fee_attestation`,",
+            "the bps from policy is applied to the gross amount and credited to the",
+            "oracle that signed the supplied attestation."
           ],
           "writable": true,
           "optional": true
@@ -11476,6 +11504,14 @@
             "Phase 1.6 — pairs with pool_oracle_fee_vault. The handler reads",
             "`oracle_fee_bps` from policy. Required when pool_oracle_fee_vault is Some;",
             "ignored otherwise. Validated at runtime."
+          ],
+          "optional": true
+        },
+        {
+          "name": "oracle_fee_attestation",
+          "docs": [
+            "Phase 1.6 — matching claim attestation for the oracle fee recipient.",
+            "Required when pool_oracle_fee_vault and pool_oracle_policy are supplied."
           ],
           "optional": true
         },
@@ -15681,106 +15717,111 @@
     },
     {
       "code": 6082,
+      "name": "ClaimAttestationRequiredForOracleFee",
+      "msg": "Oracle fee accrual requires a matching claim attestation account"
+    },
+    {
+      "code": 6083,
       "name": "InvalidCommitmentCampaignMode",
       "msg": "Commitment campaign mode is invalid"
     },
     {
-      "code": 6083,
+      "code": 6084,
       "name": "InvalidCommitmentCampaignStatus",
       "msg": "Commitment campaign status is invalid"
     },
     {
-      "code": 6084,
+      "code": 6085,
       "name": "CommitmentCampaignInactive",
       "msg": "Commitment campaign is not active"
     },
     {
-      "code": 6085,
+      "code": 6086,
       "name": "CommitmentNotRefundable",
       "msg": "Commitment campaign is not refundable yet"
     },
     {
-      "code": 6086,
+      "code": 6087,
       "name": "CommitmentPositionNotPending",
       "msg": "Commitment position is not pending"
     },
     {
-      "code": 6087,
+      "code": 6088,
       "name": "CommitmentTermsMismatch",
       "msg": "Commitment terms hash mismatch"
     },
     {
-      "code": 6088,
+      "code": 6089,
       "name": "CommitmentCapExceeded",
       "msg": "Commitment cap exceeded"
     },
     {
-      "code": 6089,
+      "code": 6090,
       "name": "CommitmentActivationAuthorityMismatch",
       "msg": "Commitment activation authority mismatch"
     },
     {
-      "code": 6090,
+      "code": 6091,
       "name": "InsufficientStableCoverageCapacity",
       "msg": "Stable coverage capacity is insufficient"
     },
     {
-      "code": 6091,
+      "code": 6092,
       "name": "TreasuryCreditAssetMismatch",
       "msg": "Treasury-credit commitments require distinct payment and coverage assets"
     },
     {
-      "code": 6092,
+      "code": 6093,
       "name": "InvalidReserveAssetRole",
       "msg": "Reserve asset role is invalid"
     },
     {
-      "code": 6093,
+      "code": 6094,
       "name": "InvalidReserveOracleSource",
       "msg": "Reserve asset oracle source is invalid"
     },
     {
-      "code": 6094,
+      "code": 6095,
       "name": "ReserveAssetRailMismatch",
       "msg": "Reserve asset rail mismatch"
     },
     {
-      "code": 6095,
+      "code": 6096,
       "name": "ReserveAssetRailInactive",
       "msg": "Reserve asset rail is inactive"
     },
     {
-      "code": 6096,
+      "code": 6097,
       "name": "ReserveAssetRailDepositDisabled",
       "msg": "Reserve asset rail does not allow deposits"
     },
     {
-      "code": 6097,
+      "code": 6098,
       "name": "ReserveAssetRailPayoutDisabled",
       "msg": "Reserve asset rail does not allow claims payout"
     },
     {
-      "code": 6098,
+      "code": 6099,
       "name": "ReserveAssetRailCapacityDisabled",
       "msg": "Reserve asset rail cannot count toward claims capacity"
     },
     {
-      "code": 6099,
+      "code": 6100,
       "name": "ReserveAssetPriceStale",
       "msg": "Reserve asset oracle price is stale or missing"
     },
     {
-      "code": 6100,
+      "code": 6101,
       "name": "ReserveAssetPriceInvalid",
       "msg": "Reserve asset oracle price is invalid"
     },
     {
-      "code": 6101,
+      "code": 6102,
       "name": "CommitmentPaymentRailMismatch",
       "msg": "Commitment payment rail mismatch"
     },
     {
-      "code": 6102,
+      "code": 6103,
       "name": "CommitmentPaymentRailInactive",
       "msg": "Commitment payment rail is inactive"
     }

@@ -12,6 +12,8 @@ pub const MAX_ORG_REF_LEN: usize = 64;
 pub const MAX_ORACLE_SUPPORTED_SCHEMAS: usize = 16;
 pub const MAX_SCHEMA_KEY_LEN: usize = 96;
 pub const MAX_SCHEMA_DEPENDENCY_RULES: usize = 32;
+pub const BASIS_POINTS_DENOMINATOR: u16 = 10_000;
+pub const MAX_CONFIGURED_FEE_BPS: u16 = BASIS_POINTS_DENOMINATOR - 1;
 
 pub const SEED_PROTOCOL_GOVERNANCE: &[u8] = b"protocol_governance";
 pub const SEED_RESERVE_DOMAIN: &[u8] = b"reserve_domain";

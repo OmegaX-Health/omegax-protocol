@@ -18,6 +18,10 @@ pub(crate) fn create_liquidity_pool(
         ctx.accounts.domain_asset_vault.asset_mint == args.deposit_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
     );
+    require!(
+        args.fee_bps <= MAX_CONFIGURED_FEE_BPS,
+        OmegaXProtocolError::InvalidBps
+    );
 
     let pool = &mut ctx.accounts.liquidity_pool;
     pool.reserve_domain = ctx.accounts.reserve_domain.key();

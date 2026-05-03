@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 import fixturesModule from "../../frontend/lib/devnet-fixtures.ts";
 import protocolModule from "../../frontend/lib/protocol.ts";
-import { extractRustFunctionBody } from "./program_source.ts";
+import { extractRustFunctionBody, programSource } from "./program_source.ts";
 
 const {
   DEVNET_PROTOCOL_FIXTURE_STATE,
@@ -50,8 +50,40 @@ test("[CSO-2026-04-29] claim settlement removed fee-vault omission compatibility
   assert.doesNotMatch(body, /protocol_fee_bps\s*==\s*0/);
   assert.doesNotMatch(body, /policy\.oracle_fee_bps\s*==\s*0/);
   assert.match(body, /let protocol_fee_vault = &ctx\.accounts\.protocol_fee_vault/);
-  assert.match(body, /vault\.oracle[\s\S]+ctx\.accounts\.claim_case\.adjudicator/);
-  assert.match(body, /\(None, Some\(_\)\)[\s\S]+FeeVaultRequiredForConfiguredFee/);
+  assert.match(body, /oracle_fee_attestation\.as_deref\(\)/);
+  assert.match(body, /vault\.oracle[\s\S]+attestation\.oracle/);
+  assert.doesNotMatch(body, /vault\.oracle[\s\S]+ctx\.accounts\.claim_case\.adjudicator/);
+  assert.match(body, /ClaimAttestationRequiredForOracleFee/);
+  assert.match(body, /\(None, Some\(_\), _\)[\s\S]+FeeVaultRequiredForConfiguredFee/);
+});
+
+test("[CSO-2026-05-04] claim settlement rejects zero-net fee outcomes", () => {
+  const body = extractInstructionBody("settle_claim_case");
+
+  assert.match(body, /let total_fee = checked_add\(protocol_fee, oracle_fee\)\?/);
+  assert.match(body, /total_fee < amount[\s\S]+FeeVaultBpsMisconfigured/);
+  assert.match(body, /let net_to_recipient = checked_sub\(amount, total_fee\)\?/);
+  assert.match(body, /require_positive_amount\(net_to_recipient\)\?/);
+});
+
+test("[CSO-2026-05-04] redemption settlement rejects zero-net LP payouts", () => {
+  const body = extractInstructionBody("process_redemption_queue");
+
+  assert.match(body, /let exit_fee = fee_share_from_bps\(asset_amount, class_fee_bps\)\?/);
+  assert.match(body, /exit_fee < asset_amount[\s\S]+FeeVaultBpsMisconfigured/);
+  assert.match(body, /let net_to_lp = checked_sub\(asset_amount, exit_fee\)\?/);
+  assert.match(body, /require_positive_amount\(net_to_lp\)\?/);
+});
+
+test("[CSO-2026-05-04] configured fee bps cannot be 100 percent", () => {
+  assert.match(programSource, /pub const MAX_CONFIGURED_FEE_BPS: u16 = BASIS_POINTS_DENOMINATOR - 1;/);
+  assert.match(
+    extractInstructionBody("initialize_protocol_governance"),
+    /args\.protocol_fee_bps <= MAX_CONFIGURED_FEE_BPS/,
+  );
+  assert.match(extractInstructionBody("set_pool_oracle_policy"), /args\.oracle_fee_bps <= MAX_CONFIGURED_FEE_BPS/);
+  assert.match(extractInstructionBody("create_liquidity_pool"), /args\.fee_bps <= MAX_CONFIGURED_FEE_BPS/);
+  assert.match(extractInstructionBody("create_capital_class"), /args\.fee_bps <= MAX_CONFIGURED_FEE_BPS/);
 });
 
 test("[CSO-2026-04-29] settlement builders preserve fee and outflow account slots", () => {
@@ -93,9 +125,9 @@ test("[CSO-2026-04-29] settlement builders preserve fee and outflow account slot
       assetMint: fundingLine.assetMint,
     }).toBase58(),
   );
-  assert.equal(settleClaim.instructions[0]!.keys[17]!.pubkey.toBase58(), claim.memberPosition);
-  assert.equal(settleClaim.instructions[0]!.keys[19]!.pubkey.toBase58(), vaultTokenAccount);
-  assert.equal(settleClaim.instructions[0]!.keys[20]!.pubkey.toBase58(), recipientTokenAccount);
+  assert.equal(settleClaim.instructions[0]!.keys[18]!.pubkey.toBase58(), claim.memberPosition);
+  assert.equal(settleClaim.instructions[0]!.keys[20]!.pubkey.toBase58(), vaultTokenAccount);
+  assert.equal(settleClaim.instructions[0]!.keys[21]!.pubkey.toBase58(), recipientTokenAccount);
 
   const settleObligation = buildSettleObligationTx({
     authority: DEVNET_PROTOCOL_FIXTURE_STATE.wallets[0]!.address,

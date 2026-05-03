@@ -1444,11 +1444,11 @@ fn oracle_profile_with_supported_schemas(
 }
 
 #[test]
-fn oracle_profile_schema_support_allows_unrestricted_profiles() {
+fn oracle_profile_schema_support_rejects_empty_schema_set() {
     let schema_key_hash = [7; 32];
     let oracle_profile = oracle_profile_with_supported_schemas(&[]);
 
-    assert!(oracle_profile_supports_schema(
+    assert!(!oracle_profile_supports_schema(
         &oracle_profile,
         schema_key_hash
     ));
@@ -1524,6 +1524,7 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
     let schema_key_hash = [6; 32];
     let schema = sample_outcome_schema(schema_key_hash, true);
     let oracle_profile = oracle_profile_with_supported_schemas(&[schema_key_hash]);
+    health_plan.oracle_authority = oracle_profile.oracle;
     let args = AttestClaimCaseArgs {
         decision: CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
         attestation_hash: [7; 32],
@@ -1610,6 +1611,22 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
     .unwrap_err()
     .to_string()
     .contains("schema must be governance verified"));
+
+    let unapproved_oracle_profile = oracle_profile_with_supported_schemas(&[schema_key_hash]);
+    assert!(claims::validate_claim_attestation_common(
+        &governance,
+        health_plan_key,
+        &health_plan,
+        funding_line_key,
+        &funding_line,
+        &claim_case,
+        &schema,
+        &unapproved_oracle_profile,
+        &args,
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("Caller is not authorized"));
 }
 
 #[test]

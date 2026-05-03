@@ -215,20 +215,38 @@ pub(crate) fn settle_claim_case(
     );
     let protocol_fee = fee_share_from_bps(amount, protocol_fee_bps)?;
 
-    // Adjudicator oracle fee: requires BOTH pool_oracle_fee_vault and
-    // pool_oracle_policy to be supplied. The vault fixes the recipient
-    // oracle's revshare destination; the policy supplies oracle_fee_bps.
-    // PR1 single-attester model: caller credits the adjudicator only;
-    // multi-attester revshare is a follow-up.
+    // Oracle fee: requires the fee vault, policy, and a matching attestation.
+    // The attestation binds the revshare recipient to the oracle that actually
+    // attested this claim case.
     let oracle_fee = match (
         ctx.accounts.pool_oracle_fee_vault.as_deref(),
         ctx.accounts.pool_oracle_policy.as_deref(),
+        ctx.accounts.oracle_fee_attestation.as_deref(),
     ) {
-        (Some(vault), Some(policy)) => {
+        (Some(vault), Some(policy), Some(attestation)) => {
             require_keys_eq!(
                 vault.oracle,
-                ctx.accounts.claim_case.adjudicator,
+                attestation.oracle,
+                OmegaXProtocolError::OracleProfileMismatch
+            );
+            require_keys_eq!(
+                attestation.claim_case,
+                ctx.accounts.claim_case.key(),
                 OmegaXProtocolError::Unauthorized
+            );
+            require_keys_eq!(
+                attestation.health_plan,
+                ctx.accounts.health_plan.key(),
+                OmegaXProtocolError::HealthPlanMismatch
+            );
+            require_keys_eq!(
+                attestation.policy_series,
+                ctx.accounts.claim_case.policy_series,
+                OmegaXProtocolError::PolicySeriesMismatch
+            );
+            require!(
+                attestation.evidence_ref_hash == ctx.accounts.claim_case.evidence_ref_hash,
+                OmegaXProtocolError::ClaimEvidenceMismatch
             );
             require_keys_eq!(
                 vault.asset_mint,
@@ -240,13 +258,21 @@ pub(crate) fn settle_claim_case(
                 policy.liquidity_pool,
                 OmegaXProtocolError::LiquidityPoolMismatch
             );
+            require_keys_eq!(
+                attestation.liquidity_pool,
+                policy.liquidity_pool,
+                OmegaXProtocolError::LiquidityPoolMismatch
+            );
             fee_share_from_bps(amount, policy.oracle_fee_bps)?
         }
-        (None, Some(_)) => {
+        (Some(_), Some(_), None) => {
+            return Err(OmegaXProtocolError::ClaimAttestationRequiredForOracleFee.into());
+        }
+        (None, Some(_), _) => {
             return Err(OmegaXProtocolError::FeeVaultRequiredForConfiguredFee.into());
         }
-        (None, None) => 0,
-        (Some(_), None) => {
+        (None, None, None) => 0,
+        (Some(_), None, _) | (None, None, Some(_)) => {
             // Vault provided without policy is a configuration error;
             // refuse to silently zero the bps.
             return Err(OmegaXProtocolError::FeeVaultBpsMisconfigured.into());
@@ -254,7 +280,12 @@ pub(crate) fn settle_claim_case(
     };
 
     let total_fee = checked_add(protocol_fee, oracle_fee)?;
+    require!(
+        total_fee < amount,
+        OmegaXProtocolError::FeeVaultBpsMisconfigured
+    );
     let net_to_recipient = checked_sub(amount, total_fee)?;
+    require_positive_amount(net_to_recipient)?;
 
     let claim_case = &mut ctx.accounts.claim_case;
     claim_case.paid_amount = checked_add(claim_case.paid_amount, amount)?;
@@ -490,6 +521,7 @@ pub(crate) fn validate_claim_attestation_common(
         funding_line.status == FUNDING_LINE_STATUS_OPEN,
         OmegaXProtocolError::FundingLineMismatch
     );
+    require_claim_attestation_oracle_authority(health_plan, funding_line, oracle_profile)?;
     Ok(())
 }
 
@@ -866,19 +898,19 @@ pub struct SettleClaimCase<'info> {
         constraint = protocol_fee_vault.asset_mint == funding_line.asset_mint @ OmegaXProtocolError::FeeVaultMismatch,
     )]
     pub protocol_fee_vault: Box<Account<'info, ProtocolFeeVault>>,
-    /// Phase 1.6 — optional pool-oracle fee vault for adjudicator revshare.
-    /// When supplied alongside `pool_oracle_policy`, the bps from policy is
-    /// applied to the gross amount and credited to the supplied oracle vault.
-    /// Asset mint must match funding_line.asset_mint; pool ref must match
-    /// pool_oracle_policy.liquidity_pool. Single-attester scope: callers
-    /// credit the adjudicator (not all M attesters) — multi-attester revshare
-    /// is a follow-up beyond PR1 (documented in plan).
+    /// Phase 1.6 — optional pool-oracle fee vault for attesting-oracle revshare.
+    /// When supplied alongside `pool_oracle_policy` and `oracle_fee_attestation`,
+    /// the bps from policy is applied to the gross amount and credited to the
+    /// oracle that signed the supplied attestation.
     #[account(mut)]
     pub pool_oracle_fee_vault: Option<Box<Account<'info, PoolOracleFeeVault>>>,
     /// Phase 1.6 — pairs with pool_oracle_fee_vault. The handler reads
     /// `oracle_fee_bps` from policy. Required when pool_oracle_fee_vault is Some;
     /// ignored otherwise. Validated at runtime.
     pub pool_oracle_policy: Option<Box<Account<'info, PoolOraclePolicy>>>,
+    /// Phase 1.6 — matching claim attestation for the oracle fee recipient.
+    /// Required when pool_oracle_fee_vault and pool_oracle_policy are supplied.
+    pub oracle_fee_attestation: Option<Box<Account<'info, ClaimAttestation>>>,
     // PT-2026-04-27-01/02 fix: outflow CPI accounts. The handler resolves the
     // settlement recipient as `claim_case.delegate_recipient` if non-zero,
     // else `member_position.wallet`, and asserts

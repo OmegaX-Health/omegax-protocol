@@ -24,11 +24,14 @@ pub(crate) fn fee_share_from_bps(amount: u64, bps: u16) -> Result<u64> {
     if bps == 0 || amount == 0 {
         return Ok(0);
     }
-    require!(bps <= 10_000, OmegaXProtocolError::FeeVaultBpsMisconfigured);
+    require!(
+        bps <= BASIS_POINTS_DENOMINATOR,
+        OmegaXProtocolError::FeeVaultBpsMisconfigured
+    );
     let scaled = (amount as u128)
         .checked_mul(bps as u128)
         .ok_or(OmegaXProtocolError::ArithmeticError)?
-        .checked_div(10_000u128)
+        .checked_div(BASIS_POINTS_DENOMINATOR as u128)
         .ok_or(OmegaXProtocolError::ArithmeticError)?;
     let fee = checked_u128_to_u64(scaled)?;
     // Defensive: fee can never exceed amount.
