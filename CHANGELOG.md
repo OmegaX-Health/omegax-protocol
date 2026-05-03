@@ -7,7 +7,7 @@
 - Extended emergency-pause enforcement to payout, claim, redemption, allocation, and impairment paths that can move reserve balances.
 - Restricted redemption queue processing to curator/governance control and kept sentinel authority out of payout execution.
 - Added binding checks for optional mutable reserve ledgers so treasury mutations cannot corrupt unrelated series, class, allocation, or funding-line accounts.
-- Regenerated IDL, shared protocol contract artifacts, frontend generated bindings, and Android protocol contract bindings for the new public surface.
+- Regenerated IDL, shared protocol contract artifacts, and frontend generated bindings for the new public surface.
 
 ## 0.3.0 - 2026-04-03
 

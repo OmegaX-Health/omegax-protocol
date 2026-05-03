@@ -43,8 +43,6 @@ This directory contains the repository's command-line helpers.
 - `devnet_operator_drawer_sim.ts` simulates the mounted operator drawer transactions against devnet and fails on real builder/wiring mismatches such as membership proof-mode or gate-configuration errors
 - `deploy_devnet_beta.ts` runs the checked build, artifact parity, and canonical manifest/bootstrap preparation for the hard-break migration
 - `governance_schema_state_update.ts` updates governance-controlled schema state, including historical schema-dependency backfills when older accounts must be retired safely
-- `upload_schema_to_ipfs.ts` publishes schema content to IPFS
-
 ## Usage guidance
 
 - Prefer package scripts from the repository root when they exist.

@@ -1,12 +1,12 @@
 # OmegaX Protocol — Codex Adversarial Challenge
 
 - **Date:** 2026-04-29
-- **Reviewer:** OpenAI Codex (gpt-5.5, codex-cli 0.125.0, `model_reasoning_effort="high"`)
-- **Driver:** Claude Code via `/gstack-codex challenge`
+- **Reviewer:** OpenAI Codex defensive audit pass
+- **Driver:** Internal defensive challenge workflow
 - **Scope:** Holistic safety-property audit of `programs/omegax_protocol/src/lib.rs` (~9000 LOC) and `programs/omegax_protocol/src/core_accounts.rs`. Frontend (`frontend/lib/protocol.ts`) in scope only as it affects on-chain instruction construction.
 - **Mode:** Defensive pre-mainnet hardening review, framed as 10 safety properties to verify.
 - **Companion to:** [`docs/security/pre-mainnet-pen-test-2026-04-27.md`](pre-mainnet-pen-test-2026-04-27.md) (PT-01 .. PT-13 already remediated; this run is fresh ground).
-- **Codex run cost:** 1,038,311 tokens, ~4 minutes wall clock.
+- **Run metadata:** omitted from the public record.
 
 > Historical note: this report reflects the pre-refactor file layout. The later audit-readability cleanup kept the protocol surface intact, moved implementation into audit-domain modules, and removed `src/core_accounts.rs` from live program source.
 
@@ -463,19 +463,7 @@ PROPERTY-7: HOLDS — defense is checked `withdrawn + requested <= accrued` at p
 
 ## How this report was generated
 
-```bash
-# v0.125.0 codex CLI; defensive-audit framing (offensive framing was filtered by OpenAI safety)
-codex exec - \
-  -C /Users/dr_sabijan/Documents/GitHub/omegax-protocol \
-  -s read-only \
-  -c 'model_reasoning_effort="high"' \
-  --json \
-  < /tmp/codex-prompt.txt
-```
-
-Prompt source: this conversation's `gstack-codex` skill invocation, reframed as a defensive pre-mainnet audit of 10 named safety properties. Each finding includes file:line evidence and a concrete remediation sketch.
-
-**Tokens:** 1,038,311. **Wall clock:** ~4 min. **Exit:** 0.
+This report was produced from a defensive pre-mainnet audit prompt against the public repository. Machine-local command paths, temporary prompt locations, and token/run metadata are intentionally omitted from this public record.
 
 ## Cross-reference
 

@@ -1,7 +1,7 @@
 # Pre-Mainnet Penetration Test — OmegaX Protocol
 
 **Date:** 2026-04-27 (original) · **Last updated:** 2026-04-29 (post-Phase 1.7 PR4)  
-**Reviewer:** Adversarial review pass, complementing CSO infrastructure audit ([2026-04-27](../../.superstack/security-reports/omegax-protocol-2026-04-27.md))  
+**Reviewer:** Adversarial review pass, complementing the internal CSO infrastructure audit from 2026-04-27
 **Scope:** On-chain program, frontend pre-sign review gate, oracle/operator trust boundaries, Genesis launch configuration  
 **Methodology:** Static-source pen-test with PoC tests in `tests/security/`. Each finding has a runnable test that confirms or refutes the claim against the live source tree. PoCs ran via `npm run test:node` on 2026-04-27, all 18 assertions green.
 

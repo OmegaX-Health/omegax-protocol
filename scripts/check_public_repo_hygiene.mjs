@@ -9,6 +9,11 @@ const forbiddenPathMatchers = [
   { matcher: /^\.anchor(?:\/|$)/, reason: 'Anchor local state must not be published.' },
   { matcher: /^\.firebaserc$/, reason: 'Firebase project aliases must stay local in the public repo.' },
   { matcher: /^\.firebase(?:\/|$)/, reason: 'Firebase local state must not be published.' },
+  { matcher: /^\.claude(?:\/|$)/, reason: 'Local agent launch/config state must not be published.' },
+  { matcher: /^frontend\/\.claude(?:\/|$)/, reason: 'Local frontend agent launch/config state must not be published.' },
+  { matcher: /^\.gstack(?:\/|$)/, reason: 'Local agent report state must not be published.' },
+  { matcher: /^\.superstack(?:\/|$)/, reason: 'Local agent report state must not be published.' },
+  { matcher: /^\.playwright-cli(?:\/|$)/, reason: 'Local browser automation output must not be published.' },
   { matcher: /^test-ledger(?:\/|$)/, reason: 'Local ledger artifacts must not be published.' },
   { matcher: /^tmp(?:\/|$)/, reason: 'Temporary local files must not be published.' },
   { matcher: /^output(?:\/|$)/, reason: 'Generated local output must not be published.' },
@@ -18,8 +23,10 @@ const forbiddenPathMatchers = [
   { matcher: /^frontend\/apphosting(?:\.[^.]+)*\.local\.ya?ml$/, reason: 'Local App Hosting overrides must stay out of git.' },
   { matcher: /^frontend\/\.env\.local$/, reason: 'Local frontend env files must stay out of git.' },
   { matcher: /^\.keys(?:\/|$)/, reason: 'Local key material must stay out of git.' },
+  { matcher: /^strategy(?:\/|$)/, reason: 'Local strategy scratch material must stay out of git unless explicitly promoted into docs.' },
   { matcher: /\.(?:pem|key|crt|p12)$/i, reason: 'Certificate and key files must stay out of git.' },
   { matcher: /\.log$/i, reason: 'Log files must stay out of git.' },
+  { matcher: /(?:^|\/)\.DS_Store$/i, reason: 'macOS metadata must not be published.' },
 ];
 
 const forbiddenContentMatchers = [
@@ -34,6 +41,26 @@ const forbiddenContentMatchers = [
   {
     matcher: /omegaxhealth_services/g,
     reason: 'Private sibling service reference found.',
+  },
+  {
+    matcher: /https:\/\/www\.notion\.so\//g,
+    reason: 'Direct Notion workspace URL found.',
+  },
+  {
+    matcher: /(?:^|[\s"'`(])\/Users\//g,
+    reason: 'Machine-local macOS path found.',
+  },
+  {
+    matcher: /\bdr_sabijan\b/g,
+    reason: 'Machine-local username found.',
+  },
+  {
+    matcher: /(?:^|[/(])\.(?:claude|gstack|superstack|playwright-cli)(?:\/|$)/g,
+    reason: 'Local agent/tool folder reference found.',
+  },
+  {
+    matcher: /\b(?:Mock CID|mockCid|placeholder format)\b/g,
+    reason: 'Mock IPFS CID placeholder found.',
   },
   {
     matcher: /\.\.\/omegax-sdk/g,

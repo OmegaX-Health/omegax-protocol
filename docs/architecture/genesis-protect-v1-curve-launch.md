@@ -3,7 +3,7 @@
 Status: accepted launch recommendation
 Date: 2026-05-03
 Audience: founders, product, protocol, claims operators, reserve operators, app/backend implementers
-Notion record: https://www.notion.so/355e7028cbb981a6b001fcb6b755ee91
+Source-of-truth record: internal decision log; public repo copy intentionally omits workspace URLs.
 
 ## Decision
 
