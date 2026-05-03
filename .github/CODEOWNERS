@@ -6,7 +6,6 @@
 /idl/ @marinosabijan
 /shared/ @marinosabijan
 /frontend/lib/generated/ @marinosabijan
-/android-native/protocol/ @marinosabijan
 
 /frontend/ @marinosabijan
 /scripts/ @marinosabijan

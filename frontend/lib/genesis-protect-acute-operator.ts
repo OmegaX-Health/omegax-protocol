@@ -25,6 +25,13 @@ import {
   REDEMPTION_POLICY_QUEUE_ONLY,
   SERIES_MODE_PROTECTION,
   SERIES_STATUS_ACTIVE,
+  COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+  COMMITMENT_MODE_DIRECT_PREMIUM,
+  COMMITMENT_MODE_TREASURY_CREDIT,
+  COMMITMENT_MODE_WATERFALL_RESERVE,
+  COMMITMENT_POSITION_PENDING,
+  COMMITMENT_POSITION_TREASURY_LOCKED,
+  COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
   ZERO_PUBKEY,
   bpsRatio,
   deriveAllocationPositionPda,
@@ -35,8 +42,13 @@ import {
   derivePolicySeriesPda,
   hasObligationImpairment,
   recomputeReserveBalanceSheet,
+  toBigIntAmount,
   type AllocationPositionSnapshot,
   type CapitalClassSnapshot,
+  type CommitmentCampaignSnapshot,
+  type CommitmentLedgerSnapshot,
+  type CommitmentPaymentRailSnapshot,
+  type CommitmentPositionSnapshot,
   type FundingLineSnapshot,
   type HealthPlanSnapshot,
   type LiquidityPoolSnapshot,
@@ -49,6 +61,7 @@ export const GENESIS_PROTECT_ACUTE_TEMPLATE_KEY = "genesis-protect-acute";
 export const GENESIS_PROTECT_ACUTE_PRIMARY_SKU = GENESIS_PROTECT_ACUTE_SKUS.travel30;
 export const GENESIS_PROTECT_ACUTE_FAST_DEMO_SKU = GENESIS_PROTECT_ACUTE_SKUS.event7;
 export const GENESIS_PROTECT_ACUTE_CLASS_MIN_LOCKUP_SECONDS = 2_592_000n;
+export const GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID = "founder-travel30";
 
 export type GenesisProtectAcuteBootstrapFundingLine = {
   key: string;
@@ -144,6 +157,41 @@ export type GenesisProtectAcuteSetupChecklistState = {
   poolOraclePolicyReady: boolean;
 };
 
+export type GenesisProtectAcuteCommitmentCampaignRow = {
+  address: string;
+  campaignId: string;
+  displayName: string;
+  mode: number;
+  status: number;
+  paymentAssetMint: string;
+  coverageAssetMint: string;
+  paymentRailCount: number;
+  paymentAssetMints: string[];
+  waterfallRailCount: number;
+  pendingAmount: bigint;
+  activatedAmount: bigint;
+  treasuryLockedAmount: bigint;
+  refundedAmount: bigint;
+  pendingPositions: number;
+};
+
+export type GenesisProtectAcuteCommitmentPosture = {
+  campaignCount: number;
+  activeCampaignCount: number;
+  paymentRailCount: number;
+  waterfallRailCount: number;
+  positionCount: number;
+  pendingPositionCount: number;
+  pendingCustodyAmount: bigint;
+  pendingCoverageAmount: bigint;
+  directPremiumActivatedAmount: bigint;
+  treasuryInventoryAmount: bigint;
+  refundedAmount: bigint;
+  claimsPayingReserveImpact: bigint;
+  rows: GenesisProtectAcuteCommitmentCampaignRow[];
+  warnings: string[];
+};
+
 export type GenesisProtectAcuteSetupModel = {
   plan: HealthPlanSnapshot | null;
   pool: LiquidityPoolSnapshot | null;
@@ -164,6 +212,7 @@ export type GenesisProtectAcuteSetupModel = {
   };
   readinessPhase: GenesisProtectAcuteReadinessPhase;
   readinessPhaseCopy: GenesisProtectAcuteReadinessPhaseCopy;
+  founderCommitments: GenesisProtectAcuteCommitmentPosture;
   claimCount: number;
   reservedAmount: bigint;
   pendingPayoutAmount: bigint;
@@ -397,6 +446,146 @@ function sumFundingLineAmounts(
   };
 }
 
+function commitmentCampaignMatchesFounderTravel30(params: {
+  campaign: CommitmentCampaignSnapshot;
+  plan: HealthPlanSnapshot | null;
+  travel30Series: PolicySeriesSnapshot | null;
+  travel30PremiumLine: FundingLineSnapshot | null;
+}): boolean {
+  if (!params.plan || params.campaign.healthPlan !== params.plan.address) return false;
+  return (
+    params.campaign.campaignId === GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID
+    || params.campaign.policySeries === params.travel30Series?.address
+    || params.campaign.coverageFundingLine === params.travel30PremiumLine?.address
+  );
+}
+
+function buildGenesisProtectAcuteCommitmentPosture(params: {
+  plan: HealthPlanSnapshot | null;
+  travel30Series: PolicySeriesSnapshot | null;
+  travel30PremiumLine: FundingLineSnapshot | null;
+  campaigns: CommitmentCampaignSnapshot[];
+  paymentRails: CommitmentPaymentRailSnapshot[];
+  ledgers: CommitmentLedgerSnapshot[];
+  positions: CommitmentPositionSnapshot[];
+}): GenesisProtectAcuteCommitmentPosture {
+  const campaigns = params.campaigns.filter((campaign) =>
+    commitmentCampaignMatchesFounderTravel30({
+      campaign,
+      plan: params.plan,
+      travel30Series: params.travel30Series,
+      travel30PremiumLine: params.travel30PremiumLine,
+    }),
+  );
+  const campaignAddresses = new Set(campaigns.map((campaign) => campaign.address));
+  const paymentRails = params.paymentRails.filter((rail) => campaignAddresses.has(rail.campaign));
+  const ledgers = params.ledgers.filter((ledger) => campaignAddresses.has(ledger.campaign));
+  const positions = params.positions.filter((position) => campaignAddresses.has(position.campaign));
+  const railsByCampaign = new Map<string, CommitmentPaymentRailSnapshot[]>();
+  for (const rail of paymentRails) {
+    const current = railsByCampaign.get(rail.campaign) ?? [];
+    current.push(rail);
+    railsByCampaign.set(rail.campaign, current);
+  }
+  const positionsByCampaign = new Map<string, CommitmentPositionSnapshot[]>();
+  for (const position of positions) {
+    const current = positionsByCampaign.get(position.campaign) ?? [];
+    current.push(position);
+    positionsByCampaign.set(position.campaign, current);
+  }
+  const ledgersByCampaign = new Map<string, CommitmentLedgerSnapshot[]>();
+  for (const ledger of ledgers) {
+    const current = ledgersByCampaign.get(ledger.campaign) ?? [];
+    current.push(ledger);
+    ledgersByCampaign.set(ledger.campaign, current);
+  }
+
+  const rows = campaigns.map((campaign) => {
+    const campaignRails = railsByCampaign.get(campaign.address) ?? [];
+    const campaignLedgers = ledgersByCampaign.get(campaign.address) ?? [];
+    const campaignPositions = positionsByCampaign.get(campaign.address) ?? [];
+    const paymentAssetMints = Array.from(new Set([
+      campaign.paymentAssetMint,
+      ...campaignRails.map((rail) => rail.paymentAssetMint),
+    ])).sort();
+    const waterfallRailCount = campaignRails.filter((rail) => rail.mode === COMMITMENT_MODE_WATERFALL_RESERVE).length
+      + (campaign.mode === COMMITMENT_MODE_WATERFALL_RESERVE && !campaignRails.some((rail) => rail.paymentAssetMint === campaign.paymentAssetMint) ? 1 : 0);
+    return {
+      address: campaign.address,
+      campaignId: campaign.campaignId,
+      displayName: campaign.displayName || campaign.campaignId,
+      mode: campaign.mode,
+      status: campaign.status,
+      paymentAssetMint: campaign.paymentAssetMint,
+      coverageAssetMint: campaign.coverageAssetMint,
+      paymentRailCount: paymentAssetMints.length,
+      paymentAssetMints,
+      waterfallRailCount,
+      pendingAmount: campaignLedgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.pendingAmount), 0n),
+      activatedAmount: campaignLedgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.activatedAmount), 0n),
+      treasuryLockedAmount: campaignLedgers.reduce(
+        (sum, ledger) => sum + toBigIntAmount(ledger.treasuryLockedAmount),
+        0n,
+      ),
+      refundedAmount: campaignLedgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.refundedAmount), 0n),
+      pendingPositions: campaignPositions.filter((position) => position.state === COMMITMENT_POSITION_PENDING).length,
+    } satisfies GenesisProtectAcuteCommitmentCampaignRow;
+  });
+
+  const pendingPositions = positions.filter((position) => position.state === COMMITMENT_POSITION_PENDING);
+  const directPremiumActivatedAmount = ledgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.activatedAmount), 0n);
+  const treasuryInventoryAmount = ledgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.treasuryLockedAmount), 0n);
+  const refundedAmount = ledgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.refundedAmount), 0n);
+  const pendingCustodyAmount = ledgers.reduce((sum, ledger) => sum + toBigIntAmount(ledger.pendingAmount), 0n);
+  const pendingCoverageAmount = pendingPositions.reduce(
+    (sum, position) => sum + toBigIntAmount(position.coverageAmount),
+    0n,
+  );
+
+  const warnings: string[] = [];
+  if (pendingCustodyAmount > 0n || pendingPositions.length > 0) {
+    warnings.push("Pending Founder commitments are custody-only and do not count as claims-paying reserve.");
+  }
+  if (
+    campaigns.some((campaign) => campaign.mode === COMMITMENT_MODE_TREASURY_CREDIT)
+    || paymentRails.some((rail) => rail.mode === COMMITMENT_MODE_TREASURY_CREDIT)
+    || positions.some((position) => position.state === COMMITMENT_POSITION_TREASURY_LOCKED)
+    || treasuryInventoryAmount > 0n
+  ) {
+    warnings.push("Legacy treasury-credit inventory stays PDA-held and does not become active coverage by itself.");
+  }
+  if (
+    campaigns.some((campaign) => campaign.mode === COMMITMENT_MODE_WATERFALL_RESERVE)
+    || paymentRails.some((rail) => rail.mode === COMMITMENT_MODE_WATERFALL_RESERVE)
+    || positions.some((position) => position.state === COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED)
+  ) {
+    warnings.push("Waterfall reserve commitments activate only after rail pricing, freshness, haircut, and exposure controls pass; stable rails pay first and OMEGAX-style rails remain last.");
+  }
+  if (
+    campaigns.some((campaign) => campaign.mode === COMMITMENT_MODE_DIRECT_PREMIUM)
+    || paymentRails.some((rail) => rail.mode === COMMITMENT_MODE_DIRECT_PREMIUM)
+  ) {
+    warnings.push("Direct-premium commitments activate into reserve accounting only after the activation authority executes the campaign transition.");
+  }
+
+  return {
+    campaignCount: campaigns.length,
+    activeCampaignCount: campaigns.filter((campaign) => campaign.status === COMMITMENT_CAMPAIGN_STATUS_ACTIVE).length,
+    paymentRailCount: paymentRails.length,
+    waterfallRailCount: paymentRails.filter((rail) => rail.mode === COMMITMENT_MODE_WATERFALL_RESERVE).length,
+    positionCount: positions.length,
+    pendingPositionCount: pendingPositions.length,
+    pendingCustodyAmount,
+    pendingCoverageAmount,
+    directPremiumActivatedAmount,
+    treasuryInventoryAmount,
+    refundedAmount,
+    claimsPayingReserveImpact: 0n,
+    rows,
+    warnings,
+  };
+}
+
 export function buildGenesisProtectAcuteWizardDefaults(_reserveDomainAddress = ""): GenesisProtectAcuteWizardDefaults {
   return {
     templateKey: GENESIS_PROTECT_ACUTE_TEMPLATE_KEY,
@@ -568,6 +757,15 @@ export function buildGenesisProtectAcuteSetupModel(
     && hasConfiguredAuthority(plan?.claimsOperator)
     && hasConfiguredAuthority(plan?.oracleAuthority),
   );
+  const founderCommitments = buildGenesisProtectAcuteCommitmentPosture({
+    plan,
+    travel30Series: seriesBySku.travel30,
+    travel30PremiumLine: fundingLinesById[GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium],
+    campaigns: input.snapshot.commitmentCampaigns ?? [],
+    paymentRails: input.snapshot.commitmentPaymentRails ?? [],
+    ledgers: input.snapshot.commitmentLedgers ?? [],
+    positions: input.snapshot.commitmentPositions ?? [],
+  });
 
   const perSkuPosture = ([
     GENESIS_PROTECT_ACUTE_SKUS.event7,
@@ -703,6 +901,7 @@ export function buildGenesisProtectAcuteSetupModel(
     },
     readinessPhase,
     readinessPhaseCopy: describeGenesisProtectAcuteReadinessPhase(readinessPhase),
+    founderCommitments,
     claimCount,
     reservedAmount,
     pendingPayoutAmount,

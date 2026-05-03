@@ -6,6 +6,7 @@ export const SCENARIO_ORDER = [
   "schema_registry_and_binding_lifecycle",
   "reserve_domain_and_vault_setup",
   "bootstrap_to_self_serve_plan_journey",
+  "founder_commitment_waterfall_lifecycle",
   "sponsor_funded_plan_lifecycle",
   "reward_obligation_lifecycle",
   "protection_claim_lifecycle",
@@ -72,12 +73,30 @@ export const SCENARIO_DEFINITIONS: Record<ScenarioName, ScenarioDefinition> = {
       "Fresh bootstrap state, canonical launch rails, oracle onboarding, member enrollment, claim intake, and LP capital all stay connected as one end-to-end operating path.",
     instructions: [],
   },
+  founder_commitment_waterfall_lifecycle: {
+    title: "Founder Commitment Waterfall Lifecycle",
+    focus:
+      "Founder Travel30 stays one public campaign with multiple payment rails, pending custody outside claims-paying reserve, waterfall activation only after rail pricing/freshness controls, and explicit refund/pause controls.",
+    instructions: [
+      "configure_reserve_asset_rail",
+      "publish_reserve_asset_rail_price",
+      "create_commitment_campaign",
+      "create_commitment_payment_rail",
+      "deposit_commitment",
+      "activate_direct_premium_commitment",
+      "activate_treasury_credit_commitment",
+      "activate_waterfall_commitment",
+      "refund_commitment",
+      "pause_commitment_campaign",
+    ],
+  },
   sponsor_funded_plan_lifecycle: {
     title: "Sponsor-Funded Plan Lifecycle",
     focus: "Sponsors create plans, version product lanes, enroll members, and fund plan-side lines without minting LP exposure.",
     instructions: [
       "create_health_plan",
       "create_policy_series",
+      "initialize_series_reserve_ledger",
       "version_policy_series",
       "open_member_position",
       "update_member_eligibility",

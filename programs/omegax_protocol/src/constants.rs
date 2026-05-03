@@ -18,6 +18,7 @@ pub const SEED_RESERVE_DOMAIN: &[u8] = b"reserve_domain";
 pub const SEED_DOMAIN_ASSET_VAULT: &[u8] = b"domain_asset_vault";
 pub const SEED_DOMAIN_ASSET_VAULT_TOKEN: &[u8] = b"domain_asset_vault_token";
 pub const SEED_DOMAIN_ASSET_LEDGER: &[u8] = b"domain_asset_ledger";
+pub const SEED_RESERVE_ASSET_RAIL: &[u8] = b"reserve_asset_rail";
 pub const SEED_PROTOCOL_FEE_VAULT: &[u8] = b"protocol_fee_vault";
 pub const SEED_POOL_TREASURY_VAULT: &[u8] = b"pool_treasury_vault";
 pub const SEED_POOL_ORACLE_FEE_VAULT: &[u8] = b"pool_oracle_fee_vault";
@@ -29,6 +30,10 @@ pub const SEED_MEMBER_POSITION: &[u8] = b"member_position";
 pub const SEED_MEMBERSHIP_ANCHOR_SEAT: &[u8] = b"membership_anchor_seat";
 pub const SEED_FUNDING_LINE: &[u8] = b"funding_line";
 pub const SEED_FUNDING_LINE_LEDGER: &[u8] = b"funding_line_ledger";
+pub const SEED_COMMITMENT_CAMPAIGN: &[u8] = b"commitment_campaign";
+pub const SEED_COMMITMENT_PAYMENT_RAIL: &[u8] = b"commitment_payment_rail";
+pub const SEED_COMMITMENT_LEDGER: &[u8] = b"commitment_ledger";
+pub const SEED_COMMITMENT_POSITION: &[u8] = b"commitment_position";
 pub const SEED_CLAIM_CASE: &[u8] = b"claim_case";
 pub const SEED_OBLIGATION: &[u8] = b"obligation";
 pub const SEED_LIQUIDITY_POOL: &[u8] = b"liquidity_pool";
@@ -66,6 +71,32 @@ pub const FUNDING_LINE_STATUS_OPEN: u8 = 0;
 pub const FUNDING_LINE_STATUS_PAUSED: u8 = 1;
 pub const FUNDING_LINE_STATUS_CLOSED: u8 = 2;
 
+pub const COMMITMENT_MODE_DIRECT_PREMIUM: u8 = 0;
+pub const COMMITMENT_MODE_TREASURY_CREDIT: u8 = 1;
+pub const COMMITMENT_MODE_WATERFALL_RESERVE: u8 = 2;
+
+pub const COMMITMENT_CAMPAIGN_STATUS_DRAFT: u8 = 0;
+pub const COMMITMENT_CAMPAIGN_STATUS_ACTIVE: u8 = 1;
+pub const COMMITMENT_CAMPAIGN_STATUS_PAUSED: u8 = 2;
+pub const COMMITMENT_CAMPAIGN_STATUS_CANCELED: u8 = 3;
+pub const COMMITMENT_CAMPAIGN_STATUS_CLOSED: u8 = 4;
+
+pub const COMMITMENT_POSITION_PENDING: u8 = 0;
+pub const COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED: u8 = 1;
+pub const COMMITMENT_POSITION_TREASURY_LOCKED: u8 = 2;
+pub const COMMITMENT_POSITION_REFUNDED: u8 = 3;
+pub const COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED: u8 = 4;
+
+pub const RESERVE_ASSET_ROLE_PRIMARY_STABLE: u8 = 0;
+pub const RESERVE_ASSET_ROLE_SECONDARY_STABLE: u8 = 1;
+pub const RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL: u8 = 2;
+pub const RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT: u8 = 3;
+
+pub const RESERVE_ORACLE_SOURCE_NONE: u8 = 0;
+pub const RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM: u8 = 1;
+pub const RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_FEED: u8 = 2;
+pub const RESERVE_ORACLE_SOURCE_GOVERNANCE_ATTESTED: u8 = 3;
+
 pub const ELIGIBILITY_PENDING: u8 = 0;
 pub const ELIGIBILITY_ELIGIBLE: u8 = 1;
 pub const ELIGIBILITY_PAUSED: u8 = 2;
@@ -96,6 +127,8 @@ pub const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE: u8 = 0;
 pub const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY: u8 = 1;
 pub const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW: u8 = 2;
 pub const CLAIM_ATTESTATION_DECISION_ABSTAIN: u8 = 3;
+
+pub const POOL_ORACLE_PERMISSION_ATTEST_CLAIM: u32 = 1 << 0;
 
 pub const OBLIGATION_STATUS_PROPOSED: u8 = 0;
 pub const OBLIGATION_STATUS_RESERVED: u8 = 1;

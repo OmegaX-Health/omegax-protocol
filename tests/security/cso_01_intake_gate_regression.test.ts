@@ -3,7 +3,7 @@
 // Pre-mainnet pen-test PoC — finding PT-2026-04-27-11 (regression).
 // Severity: LOW (verifies CSO-2026-04-27-01 fix holds).
 //
-// Hypothesis: the CSO audit dated 2026-04-27 (.superstack/security-reports/)
+// Hypothesis: the internal CSO audit dated 2026-04-27
 // flagged `open_claim_case` as missing on-chain submitter authorization. Code
 // inspection shows the fix is wired in: `require_claim_intake_submitter` is
 // called at lib.rs:1236 and defined at lib.rs:5166. The Anchor context at

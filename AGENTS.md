@@ -14,7 +14,7 @@ Public repository. Keep instructions and changes public-safe.
 - `frontend/` contains the public Next.js protocol console.
 - `tests/` contains the fast Node-based verification suite; `e2e/` contains the heavier localnet protocol-surface matrix.
 - `scripts/` contains verification, generation, and operator tooling. Prefer the root `npm run ...` wrappers when they exist.
-- `idl/`, `shared/`, and `android-native/protocol/` contain checked-in generated artifacts.
+- `idl/`, `shared/`, and `frontend/lib/generated/` contain checked-in generated artifacts.
 
 ## Working Notes
 
@@ -22,7 +22,7 @@ Public repository. Keep instructions and changes public-safe.
 - Commits intended for this repository must include a DCO sign-off trailer (`Signed-off-by:`). Use `git commit -s` so `Public CI` does not fail at the `Enforce DCO sign-off` step.
 - Update the nearest README or operations doc when commands, responsibilities, or reviewer read paths change.
 - Add or update tests, docs, and checked-in artifacts when behavior changes.
-- Do not hand-edit generated outputs in `idl/`, `shared/`, `frontend/lib/generated/`, or `android-native/protocol/` unless a documented maintenance workflow explicitly requires it.
+- Do not hand-edit generated outputs in `idl/`, `shared/`, or `frontend/lib/generated/` unless a documented maintenance workflow explicitly requires it.
 - If you change the protocol surface or shared protocol builders, regenerate artifacts with `npm run anchor:idl` and `npm run protocol:contract`.
 
 ## Genesis Protect Launch Keys

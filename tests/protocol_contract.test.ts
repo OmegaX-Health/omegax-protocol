@@ -25,12 +25,15 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   const initPoolOracleFeeVaultArgs = idl.types.find((entry) => entry.name === "InitPoolOracleFeeVaultArgs");
   const requestRedemptionArgs = idl.types.find((entry) => entry.name === "RequestRedemptionArgs");
   const processRedemptionArgs = idl.types.find((entry) => entry.name === "ProcessRedemptionQueueArgs");
+  const claimCaseAccount = idl.types.find((entry) => entry.name === "ClaimCase");
+  const claimAttestationAccount = idl.types.find((entry) => entry.name === "ClaimAttestation");
 
   assert(instructionNames.includes("initialize_protocol_governance"));
   assert(instructionNames.includes("rotate_protocol_governance_authority"));
   assert(instructionNames.includes("create_reserve_domain"));
   assert(instructionNames.includes("create_health_plan"));
   assert(instructionNames.includes("create_policy_series"));
+  assert(instructionNames.includes("initialize_series_reserve_ledger"));
   assert(instructionNames.includes("open_funding_line"));
   assert(instructionNames.includes("create_liquidity_pool"));
   assert(instructionNames.includes("create_capital_class"));
@@ -111,6 +114,23 @@ test("canonical contract exposes the health-capital-markets surface", () => {
       (account) => account.name === "pool_oracle_policy",
     ),
   );
+  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.open_claim_case.some((account) => account.name === "protocol_governance"));
+  for (const accountName of [
+    "protocol_governance",
+    "health_plan",
+    "funding_line",
+    "liquidity_pool",
+    "capital_class",
+    "allocation_position",
+    "pool_oracle_approval",
+    "pool_oracle_permission_set",
+    "pool_oracle_policy",
+  ]) {
+    assert(
+      PROTOCOL_INSTRUCTION_ACCOUNTS.attest_claim_case.some((account) => account.name === accountName),
+      `attest_claim_case missing ${accountName}`,
+    );
+  }
 
   // Phase 1.7 — withdraw ix account lists encode per-rail authority and
   // physical-custody routing.
@@ -199,4 +219,18 @@ test("canonical contract exposes the health-capital-markets surface", () => {
     processRedemptionArgs?.type.fields?.map((field) => field.name),
     ["shares"],
   );
+  assert(claimCaseAccount?.type.fields?.some((field) => field.name === "attestation_count"));
+  for (const fieldName of [
+    "evidence_ref_hash",
+    "decision_support_hash",
+    "schema_hash",
+    "schema_version",
+    "liquidity_pool",
+    "allocation_position",
+  ]) {
+    assert(
+      claimAttestationAccount?.type.fields?.some((field) => field.name === fieldName),
+      `ClaimAttestation missing ${fieldName}`,
+    );
+  }
 });

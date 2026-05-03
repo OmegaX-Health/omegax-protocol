@@ -177,7 +177,7 @@ const wrapperSettlementMint = envPreferred(
 );
 
 const openDomainId = "open-health-usdc";
-const wrapperDomainId = "wrapper-health-rwa";
+const wrapperDomainId = "wrapper-health-reserve";
 
 const openReserveDomain = deriveReserveDomainPda({ domainId: openDomainId }).toBase58();
 const wrapperReserveDomain = deriveReserveDomainPda({ domainId: wrapperDomainId }).toBase58();

@@ -44,6 +44,34 @@ pub struct DomainAssetVault {
     pub bump: u8,
 }
 
+#[account]
+#[derive(InitSpace)]
+pub struct ReserveAssetRail {
+    pub reserve_domain: Pubkey,
+    pub asset_mint: Pubkey,
+    pub oracle_authority: Pubkey,
+    #[max_len(MAX_ID_LEN)]
+    pub asset_symbol: String,
+    pub role: u8,
+    pub payout_priority: u8,
+    pub oracle_source: u8,
+    pub oracle_feed_id: [u8; 32],
+    pub max_staleness_seconds: i64,
+    pub haircut_bps: u16,
+    pub max_exposure_bps: u16,
+    pub deposit_enabled: bool,
+    pub payout_enabled: bool,
+    pub capacity_enabled: bool,
+    pub active: bool,
+    pub last_price_usd_1e8: u64,
+    pub last_price_confidence_bps: u16,
+    pub last_price_published_at_ts: i64,
+    pub last_price_slot: u64,
+    pub last_price_proof_hash: [u8; 32],
+    pub audit_nonce: u64,
+    pub bump: u8,
+}
+
 // Fee accounting account types. SPL tokens for fees physically reside in the
 // matching DomainAssetVault.vault_token_account; these accounts track each
 // rail's claim against that pool. Withdrawals decrement `withdrawn_fees` and
@@ -233,10 +261,92 @@ pub struct ClaimCase {
     pub reserved_amount: u64,
     pub recovered_amount: u64,
     pub appeal_count: u16,
+    pub attestation_count: u16,
     pub linked_obligation: Pubkey,
     pub opened_at: i64,
     pub updated_at: i64,
     pub closed_at: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentCampaign {
+    pub reserve_domain: Pubkey,
+    pub health_plan: Pubkey,
+    pub policy_series: Pubkey,
+    pub coverage_funding_line: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub activation_authority: Pubkey,
+    #[max_len(MAX_ID_LEN)]
+    pub campaign_id: String,
+    #[max_len(MAX_NAME_LEN)]
+    pub display_name: String,
+    #[max_len(MAX_URI_LEN)]
+    pub metadata_uri: String,
+    pub mode: u8,
+    pub status: u8,
+    pub deposit_amount: u64,
+    pub coverage_amount: u64,
+    pub hard_cap_amount: u64,
+    pub starts_at_ts: i64,
+    pub refund_after_ts: i64,
+    pub expires_at_ts: i64,
+    pub terms_hash: [u8; 32],
+    pub audit_nonce: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentPaymentRail {
+    pub campaign: Pubkey,
+    pub reserve_domain: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub reserve_asset_rail: Pubkey,
+    pub coverage_funding_line: Pubkey,
+    pub mode: u8,
+    pub status: u8,
+    pub deposit_amount: u64,
+    pub coverage_amount: u64,
+    pub hard_cap_amount: u64,
+    pub audit_nonce: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentLedger {
+    pub campaign: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub pending_amount: u64,
+    pub activated_amount: u64,
+    pub treasury_locked_amount: u64,
+    pub refunded_amount: u64,
+    pub canceled_amount: u64,
+    pub next_queue_index: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CommitmentPosition {
+    pub campaign: Pubkey,
+    pub ledger: Pubkey,
+    pub depositor: Pubkey,
+    pub beneficiary: Pubkey,
+    pub payment_asset_mint: Pubkey,
+    pub coverage_asset_mint: Pubkey,
+    pub amount: u64,
+    pub coverage_amount: u64,
+    pub queue_index: u64,
+    pub state: u8,
+    pub accepted_terms_hash: [u8; 32],
+    pub paid_at: i64,
+    pub activated_at: i64,
+    pub refunded_at: i64,
     pub bump: u8,
 }
 
@@ -518,7 +628,13 @@ pub struct ClaimAttestation {
     pub decision: u8,
     pub attestation_hash: [u8; 32],
     pub attestation_ref_hash: [u8; 32],
+    pub evidence_ref_hash: [u8; 32],
+    pub decision_support_hash: [u8; 32],
     pub schema_key_hash: [u8; 32],
+    pub schema_hash: [u8; 32],
+    pub schema_version: u16,
+    pub liquidity_pool: Pubkey,
+    pub allocation_position: Pubkey,
     pub created_at_ts: i64,
     pub updated_at_ts: i64,
     pub bump: u8,

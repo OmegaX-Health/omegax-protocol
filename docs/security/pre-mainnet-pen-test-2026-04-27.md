@@ -1,7 +1,7 @@
 # Pre-Mainnet Penetration Test — OmegaX Protocol
 
 **Date:** 2026-04-27 (original) · **Last updated:** 2026-04-29 (post-Phase 1.7 PR4)  
-**Reviewer:** Adversarial review pass, complementing CSO infrastructure audit ([2026-04-27](../../.superstack/security-reports/omegax-protocol-2026-04-27.md))  
+**Reviewer:** Adversarial review pass, complementing the internal CSO infrastructure audit from 2026-04-27
 **Scope:** On-chain program, frontend pre-sign review gate, oracle/operator trust boundaries, Genesis launch configuration  
 **Methodology:** Static-source pen-test with PoC tests in `tests/security/`. Each finding has a runnable test that confirms or refutes the claim against the live source tree. PoCs ran via `npm run test:node` on 2026-04-27, all 18 assertions green.
 
@@ -12,6 +12,8 @@
 **Verdict (2026-04-29): READY-WITH-FIXES.** All CRITICAL and HIGH on-chain findings remediated; PT-03 fully closed by Phase 1.6/1.7 PR1–PR4. Remaining items: multisig recommendation doc for governance authority, optional cleanup of dead UI components quarantined in tsconfig, and the LOW/INFO items (PT-09, PT-10, PT-12).
 
 **Original verdict (2026-04-27): NOT READY FOR MAINNET.** Two CRITICAL findings blocked launch as-is.
+
+**Cleanup note (2026-05-03):** Several retired workspace components named in the historical PT-06 coverage map were removed after the original review. The historical counts below are preserved as audit evidence; the runnable PoC now enumerates mounted components dynamically.
 
 The OmegaX program in `programs/omegax_protocol/` accepts SPL token deposits but has **no on-chain instruction that releases tokens back out**. Every "settle / process / release" handler updates ledger state and decrements the vault's `total_assets` counter, but **no `transfer_checked` CPI is called**. The IDL contains no `withdraw_*`, `sweep_*`, or fee-collection instruction. The frontend ships a treasury-panel UI whose imports point to nonexistent builders — `pool-treasury-panel.tsx:14-19` imports six `buildWithdraw*Tx` names from `@/lib/protocol`, none of which is exported by that file (49 builders enumerated; zero match).
 

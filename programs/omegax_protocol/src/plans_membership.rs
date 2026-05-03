@@ -161,6 +161,36 @@ pub(crate) fn create_policy_series(
     Ok(())
 }
 
+pub(crate) fn initialize_series_reserve_ledger(
+    ctx: Context<InitializeSeriesReserveLedger>,
+    args: InitializeSeriesReserveLedgerArgs,
+) -> Result<()> {
+    require_plan_control(
+        &ctx.accounts.authority.key(),
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+    require_keys_eq!(
+        ctx.accounts.policy_series.health_plan,
+        ctx.accounts.health_plan.key(),
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+
+    let ledger = &mut ctx.accounts.series_reserve_ledger;
+    ledger.policy_series = ctx.accounts.policy_series.key();
+    ledger.asset_mint = args.asset_mint;
+    ledger.sheet = ReserveBalanceSheet::default();
+    ledger.bump = ctx.bumps.series_reserve_ledger;
+
+    emit!(LedgerInitializedEvent {
+        scope_kind: ScopeKind::PolicySeries as u8,
+        scope: ctx.accounts.policy_series.key(),
+        asset_mint: args.asset_mint,
+    });
+
+    Ok(())
+}
+
 pub(crate) fn version_policy_series(
     ctx: Context<VersionPolicySeries>,
     args: VersionPolicySeriesArgs,
@@ -386,6 +416,28 @@ pub struct CreatePolicySeries<'info> {
         bump
     )]
     pub series_reserve_ledger: Account<'info, SeriesReserveLedger>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(args: InitializeSeriesReserveLedgerArgs)]
+pub struct InitializeSeriesReserveLedger<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: Box<Account<'info, HealthPlan>>,
+    #[account(seeds = [SEED_POLICY_SERIES, health_plan.key().as_ref(), policy_series.series_id.as_bytes()], bump = policy_series.bump)]
+    pub policy_series: Box<Account<'info, PolicySeries>>,
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + SeriesReserveLedger::INIT_SPACE,
+        seeds = [SEED_SERIES_RESERVE_LEDGER, policy_series.key().as_ref(), args.asset_mint.as_ref()],
+        bump
+    )]
+    pub series_reserve_ledger: Box<Account<'info, SeriesReserveLedger>>,
     pub system_program: Program<'info, System>,
 }
 

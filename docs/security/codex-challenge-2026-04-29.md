@@ -1,12 +1,12 @@
 # OmegaX Protocol — Codex Adversarial Challenge
 
 - **Date:** 2026-04-29
-- **Reviewer:** OpenAI Codex (gpt-5.5, codex-cli 0.125.0, `model_reasoning_effort="high"`)
-- **Driver:** Claude Code via `/gstack-codex challenge`
+- **Reviewer:** OpenAI Codex defensive audit pass
+- **Driver:** Internal defensive challenge workflow
 - **Scope:** Holistic safety-property audit of `programs/omegax_protocol/src/lib.rs` (~9000 LOC) and `programs/omegax_protocol/src/core_accounts.rs`. Frontend (`frontend/lib/protocol.ts`) in scope only as it affects on-chain instruction construction.
 - **Mode:** Defensive pre-mainnet hardening review, framed as 10 safety properties to verify.
 - **Companion to:** [`docs/security/pre-mainnet-pen-test-2026-04-27.md`](pre-mainnet-pen-test-2026-04-27.md) (PT-01 .. PT-13 already remediated; this run is fresh ground).
-- **Codex run cost:** 1,038,311 tokens, ~4 minutes wall clock.
+- **Run metadata:** omitted from the public record.
 
 > Historical note: this report reflects the pre-refactor file layout. The later audit-readability cleanup kept the protocol surface intact, moved implementation into audit-domain modules, and removed `src/core_accounts.rs` from live program source.
 
@@ -189,16 +189,16 @@ PROPERTY-4 holds. Init handlers (`init_protocol_fee_vault` line 340, `init_pool_
 
 ---
 
-### FINDING-6 — Token-2022 accepted without extension safety checks (CRITICAL for asset choice)
+### FINDING-6 — Historical: Token-2022 accepted without extension safety checks (CRITICAL for asset choice)
 
 - **Severity:** P1 (CRITICAL if the team plans to accept Token-2022 mints)
-- **Status:** DOES_NOT_HOLD
+- **Status:** REMEDIATED after this report. Current v1 custody rails reject Token-2022 mint/program ownership and require the classic SPL Token program.
 - **Files:**
   - [`programs/omegax_protocol/src/lib.rs:6`](../../programs/omegax_protocol/src/lib.rs#L6) — `use anchor_spl::token_interface::{...};`
   - [`programs/omegax_protocol/Cargo.toml`](../../programs/omegax_protocol/Cargo.toml) — `anchor-spl = "0.32.1"`
   - All `vault_token_account: InterfaceAccount<'info, TokenAccount>` and `asset_mint: InterfaceAccount<'info, Mint>` fields throughout
 - **Pre-conditions:** Any operator initializes a `domain_asset_vault` with a Token-2022 mint that has the transfer-fee or transfer-hook extension enabled.
-- **Concrete evidence:** The program imports `token_interface` (the Token-2022-compatible interface), declares all token accounts and mints as `InterfaceAccount<...>`, and uses `Interface<TokenInterface>` for the token program. There is **no constraint excluding Token-2022 mints**, no `asset_mint.to_account_info().owner == &anchor_spl::token::ID` check, and no inspection of mint extensions.
+- **Historical concrete evidence:** At the time of this report, the program imported `token_interface` (the Token-2022-compatible interface), declared all token accounts and mints as `InterfaceAccount<...>`, and used `Interface<TokenInterface>` for the token program without constraints excluding Token-2022 mints.
 - **Concrete impact paths:**
   - **Transfer-fee extension:** `transfer_to_domain_vault` deducts `args.amount` from source but the vault receives `amount - transfer_fee`. The protocol then books `total_assets += amount` — **NAV is overstated** by exactly the transfer fee on every deposit.
   - **Transfer-hook extension:** A hook program runs on every transfer. A malicious hook can re-enter the OmegaX program through any other instruction (Solana CPI is single-call but the hook is called BEFORE return), arbitrarily mutating state if the hook author calls the program back. CEI (checks-effects-interactions) is not enforced — `deposit_into_capital_class` does the SPL transfer (line 1957) BEFORE state mutation (line 2008+), and `withdraw_*_fee_*` does the transfer (line 2287) BEFORE bumping `withdrawn_fees` (line 2288).
@@ -417,11 +417,11 @@ PROPERTY-4: HOLDS — defense is governance-only handlers plus canonical `init` 
 - **Recommended fix:** Add queue ordering/timelock or multisig policy for `process_redemption_queue`, and constrain pool-treasury recipient ownership or configured treasury recipient.
 
 ### PROPERTY-6: Token program / mint extension safety
-- **Status:** DOES_NOT_HOLD
+- **Status:** REMEDIATED after this report; v1 launch rails are classic SPL only.
 - **Severity (if not HOLDS):** P1 (fee leakage / mis-routing)
 - **File:line(s):** programs/omegax_protocol/src/lib.rs:6, 3518-3521, 3837-3848, 3965-3968, 4023-4024, 6784-6788, 6941-6945
 - **Pre-conditions:** A Token-2022 mint or token account is used for an asset rail.
-- **Concrete evidence:** The program uses `anchor_spl::token_interface` with `InterfaceAccount<Mint>`, `InterfaceAccount<TokenAccount>`, and `Interface<TokenInterface>`, so both SPL Token and Token-2022 are accepted. There is no mint owner constraint excluding Token-2022 or extension inspection. Several flows perform CPI before final accounting, including deposits at 1957-1965 before state updates and fee withdrawals at 2277-2287 before `withdrawn_fees` is updated.
+- **Historical concrete evidence:** At report time, `anchor_spl::token_interface` accounts did not yet have the classic SPL owner/program constraints later added by the remediation patch.
 - **Impact:** Token-2022 transfer fees/hooks can break exact accounting assumptions or create reentrancy-sensitive windows.
 - **Recommended fix:** For mainnet launch, either require classic SPL Token with `constraint = asset_mint.to_account_info().owner == &anchor_spl::token::ID` and `constraint = token_program.key() == anchor_spl::token::ID`, or explicitly inspect and forbid unsafe Token-2022 extensions and move all state updates before CPI with a reentrancy guard.
 
@@ -463,19 +463,7 @@ PROPERTY-7: HOLDS — defense is checked `withdrawn + requested <= accrued` at p
 
 ## How this report was generated
 
-```bash
-# v0.125.0 codex CLI; defensive-audit framing (offensive framing was filtered by OpenAI safety)
-codex exec - \
-  -C /Users/dr_sabijan/Documents/GitHub/omegax-protocol \
-  -s read-only \
-  -c 'model_reasoning_effort="high"' \
-  --json \
-  < /tmp/codex-prompt.txt
-```
-
-Prompt source: this conversation's `gstack-codex` skill invocation, reframed as a defensive pre-mainnet audit of 10 named safety properties. Each finding includes file:line evidence and a concrete remediation sketch.
-
-**Tokens:** 1,038,311. **Wall clock:** ~4 min. **Exit:** 0.
+This report was produced from a defensive pre-mainnet audit prompt against the public repository. Machine-local command paths, temporary prompt locations, and token/run metadata are intentionally omitted from this public record.
 
 ## Cross-reference
 

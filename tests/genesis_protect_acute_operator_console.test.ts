@@ -9,6 +9,10 @@ import protocolModule from "../frontend/lib/protocol.ts";
 import type {
   ClaimAttestationSnapshot,
   ClaimCaseSnapshot,
+  CommitmentCampaignSnapshot,
+  CommitmentLedgerSnapshot,
+  CommitmentPaymentRailSnapshot,
+  CommitmentPositionSnapshot,
   ObligationSnapshot,
   ProtocolConsoleSnapshot,
 } from "../frontend/lib/protocol.ts";
@@ -23,21 +27,34 @@ const {
 } = genesisConsoleModule as typeof import("../frontend/lib/genesis-protect-acute-console.ts");
 const { buildGenesisProtectAcuteSetupModel } =
   genesisOperatorModule as typeof import("../frontend/lib/genesis-protect-acute-operator.ts");
+const { GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID } =
+  genesisOperatorModule as typeof import("../frontend/lib/genesis-protect-acute-operator.ts");
 const {
   CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW,
   CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
   CLAIM_INTAKE_APPROVED,
   CLAIM_INTAKE_OPEN,
   CLAIM_INTAKE_SETTLED,
+  COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+  COMMITMENT_MODE_WATERFALL_RESERVE,
+  COMMITMENT_POSITION_PENDING,
+  COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
   OBLIGATION_DELIVERY_MODE_CLAIMABLE,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   OBLIGATION_STATUS_SETTLED,
+  deriveCommitmentCampaignPda,
+  deriveCommitmentLedgerPda,
+  deriveCommitmentPaymentRailPda,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
 
 function cloneFixtureSnapshot(): ProtocolConsoleSnapshot {
   const snapshot = structuredClone(DEVNET_PROTOCOL_FIXTURE_STATE) as unknown as ProtocolConsoleSnapshot;
   snapshot.claimAttestations = [];
+  snapshot.commitmentCampaigns = [];
+  snapshot.commitmentPaymentRails = [];
+  snapshot.commitmentLedgers = [];
+  snapshot.commitmentPositions = [];
   return snapshot;
 }
 
@@ -418,4 +435,185 @@ test("Genesis reserve console summarizes lanes by funding path and flags degrade
   });
   assert.equal(premiumOnly.visibleLanes.length, 2);
   assert.ok(premiumOnly.visibleLanes.every((lane) => lane.laneType === "premium"));
+});
+
+test("Genesis setup surfaces Founder commitments separately from claims-paying reserve", () => {
+  const snapshot = cloneFixtureSnapshot();
+  const baselineModel = buildSetupModel(snapshot);
+  const genesisPlan = baselineModel.plan;
+  const travel30Series = baselineModel.seriesBySku.travel30;
+  const travel30PremiumLine = baselineModel.fundingLinesById[GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.premium];
+
+  assert(genesisPlan, "expected Genesis health plan");
+  assert(travel30Series, "expected Genesis Travel 30 series");
+  assert(travel30PremiumLine, "expected Genesis Travel 30 premium line");
+
+  const campaign = deriveCommitmentCampaignPda({
+    healthPlan: genesisPlan.address,
+    campaignId: GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID,
+  }).toBase58();
+  const usdcLedger = deriveCommitmentLedgerPda({
+    campaign,
+    paymentAssetMint: travel30PremiumLine.assetMint,
+  }).toBase58();
+  const omegaxPaymentMint = snapshot.rewardMint;
+  const omegaxLedger = deriveCommitmentLedgerPda({
+    campaign,
+    paymentAssetMint: omegaxPaymentMint,
+  }).toBase58();
+  const usdcRail = deriveCommitmentPaymentRailPda({
+    campaign,
+    paymentAssetMint: travel30PremiumLine.assetMint,
+  }).toBase58();
+  const omegaxRail = deriveCommitmentPaymentRailPda({
+    campaign,
+    paymentAssetMint: omegaxPaymentMint,
+  }).toBase58();
+
+  const baseCampaign = {
+    reserveDomain: genesisPlan.reserveDomain,
+    healthPlan: genesisPlan.address,
+    policySeries: travel30Series.address,
+    coverageFundingLine: travel30PremiumLine.address,
+    coverageAssetMint: travel30PremiumLine.assetMint,
+    activationAuthority: "oxhocTdPyENqy9RS13iaq2upoNAovMJHu9PMaBxrK8h",
+    status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+    depositAmount: 159n,
+    coverageAmount: 1_000n,
+    hardCapAmount: 159_000n,
+    startsAtTs: 1_770_000_000,
+    refundAfterTs: 1_777_776_000,
+    expiresAtTs: 1_780_000_000,
+    termsHashHex: "11".repeat(32),
+    auditNonce: 0n,
+    bump: 1,
+  } satisfies Omit<CommitmentCampaignSnapshot, "address" | "campaignId" | "displayName" | "metadataUri" | "mode" | "paymentAssetMint">;
+
+  snapshot.commitmentCampaigns = [
+    {
+      ...baseCampaign,
+      address: campaign,
+      campaignId: GENESIS_PROTECT_ACUTE_FOUNDER_COMMITMENT_CAMPAIGN_ID,
+      displayName: "Founder Travel30",
+      metadataUri: "ipfs://founder-travel30",
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+      paymentAssetMint: travel30PremiumLine.assetMint,
+    },
+  ] satisfies CommitmentCampaignSnapshot[];
+  snapshot.commitmentPaymentRails = [
+    {
+      address: usdcRail,
+      campaign,
+      reserveDomain: genesisPlan.reserveDomain,
+      paymentAssetMint: travel30PremiumLine.assetMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      reserveAssetRail: "FounderUsdcReserveRail111111111111111111111",
+      coverageFundingLine: travel30PremiumLine.address,
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+      status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+      depositAmount: 159n,
+      coverageAmount: 1_000n,
+      hardCapAmount: 159_000n,
+      auditNonce: 0n,
+      bump: 1,
+    },
+    {
+      address: omegaxRail,
+      campaign,
+      reserveDomain: genesisPlan.reserveDomain,
+      paymentAssetMint: omegaxPaymentMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      reserveAssetRail: "FounderOmegaxReserveRail1111111111111111111",
+      coverageFundingLine: travel30PremiumLine.address,
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+      status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
+      depositAmount: 5_000n,
+      coverageAmount: 1_000n,
+      hardCapAmount: 5_000_000n,
+      auditNonce: 0n,
+      bump: 1,
+    },
+  ] satisfies CommitmentPaymentRailSnapshot[];
+  snapshot.commitmentLedgers = [
+    {
+      address: usdcLedger,
+      campaign,
+      paymentAssetMint: travel30PremiumLine.assetMint,
+      pendingAmount: 159n,
+      activatedAmount: 0n,
+      treasuryLockedAmount: 0n,
+      refundedAmount: 0n,
+      canceledAmount: 0n,
+      nextQueueIndex: 1n,
+      bump: 1,
+    },
+    {
+      address: omegaxLedger,
+      campaign,
+      paymentAssetMint: omegaxPaymentMint,
+      pendingAmount: 0n,
+      activatedAmount: 5_000n,
+      treasuryLockedAmount: 0n,
+      refundedAmount: 0n,
+      canceledAmount: 0n,
+      nextQueueIndex: 1n,
+      bump: 1,
+    },
+  ] satisfies CommitmentLedgerSnapshot[];
+  snapshot.commitmentPositions = [
+    {
+      address: "FounderCommitmentPosition111111111111111111111",
+      campaign,
+      ledger: usdcLedger,
+      depositor: "FounderDepositor111111111111111111111111111",
+      beneficiary: "FounderBeneficiary111111111111111111111111",
+      paymentAssetMint: travel30PremiumLine.assetMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      amount: 159n,
+      coverageAmount: 1_000n,
+      queueIndex: 0n,
+      state: COMMITMENT_POSITION_PENDING,
+      acceptedTermsHashHex: "11".repeat(32),
+      paidAt: 1_770_000_001,
+      activatedAt: 0,
+      refundedAt: 0,
+      bump: 1,
+    },
+    {
+      address: "FounderOmegaxPosition111111111111111111111111",
+      campaign,
+      ledger: omegaxLedger,
+      depositor: "FounderTreasuryDepositor1111111111111111111",
+      beneficiary: "FounderTreasuryBeneficiary1111111111111111",
+      paymentAssetMint: omegaxPaymentMint,
+      coverageAssetMint: travel30PremiumLine.assetMint,
+      amount: 5_000n,
+      coverageAmount: 1_000n,
+      queueIndex: 0n,
+      state: COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
+      acceptedTermsHashHex: "11".repeat(32),
+      paidAt: 1_770_000_002,
+      activatedAt: 1_770_000_102,
+      refundedAt: 0,
+      bump: 1,
+    },
+  ] satisfies CommitmentPositionSnapshot[];
+
+  const model = buildSetupModel(snapshot);
+
+  assert.equal(model.claimsPayingCapital, baselineModel.claimsPayingCapital);
+  assert.equal(model.founderCommitments.campaignCount, 1);
+  assert.equal(model.founderCommitments.paymentRailCount, 2);
+  assert.equal(model.founderCommitments.waterfallRailCount, 2);
+  assert.equal(model.founderCommitments.pendingPositionCount, 1);
+  assert.equal(model.founderCommitments.pendingCustodyAmount, 159n);
+  assert.equal(model.founderCommitments.pendingCoverageAmount, 1_000n);
+  assert.equal(model.founderCommitments.treasuryInventoryAmount, 0n);
+  assert.equal(model.founderCommitments.claimsPayingReserveImpact, 0n);
+  assert.ok(
+    model.founderCommitments.warnings.some((warning) => /do not count as claims-paying reserve/i.test(warning)),
+  );
+  assert.ok(
+    model.founderCommitments.warnings.some((warning) => /stable rails pay first and OMEGAX-style rails remain last/i.test(warning)),
+  );
 });

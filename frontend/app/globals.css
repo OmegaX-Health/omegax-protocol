@@ -1111,9 +1111,7 @@
   .surface-card-soft,
   .protocol-link-card,
   .protocol-list-card,
-  .protocol-metric-card,
-  .protocol-signal-card,
-  .protocol-summary-card {
+  .protocol-metric-card {
     position: relative;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -1186,51 +1184,6 @@
     gap: 0.72rem;
   }
 
-  .protocol-signal-stack,
-  .protocol-rail-stack {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .protocol-summary-rail {
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    gap: 0.72rem;
-    padding: 0.72rem;
-    border: 1px solid color-mix(in oklab, var(--border) 82%, var(--accent) 18%);
-    border-radius: 1.12rem;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(239, 242, 244, 0.82)),
-      rgba(255, 255, 255, 0.16);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.62),
-      0 18px 38px rgba(10, 21, 37, 0.05);
-    backdrop-filter: blur(18px);
-  }
-
-  .dark .protocol-summary-rail {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(14, 24, 39, 0.82)),
-      rgba(255, 255, 255, 0.02);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 20px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  .protocol-summary-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .protocol-summary-grid {
-    display: grid;
-    gap: 0.58rem;
-    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  }
-
   /*
    * Prefer these semantic panel classes for new protocol UI work so the layout
    * stays shell-first and register-first instead of devolving into nested cards.
@@ -1254,73 +1207,6 @@
       linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
       rgba(15, 24, 39, 0.88);
     box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
-  }
-
-  .protocol-summary-card,
-  .protocol-signal-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.28rem;
-    min-height: 0;
-    padding: 0.82rem 0.88rem;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(242, 244, 246, 0.94)),
-      var(--panel-heavy);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      0 14px 28px rgba(10, 21, 37, 0.04);
-  }
-
-  .dark .protocol-summary-card,
-  .dark .protocol-signal-card {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 42%),
-      rgba(15, 24, 39, 0.9);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 16px 32px rgba(0, 0, 0, 0.18);
-  }
-
-  .protocol-summary-card::after,
-  .protocol-signal-card::after {
-    content: none;
-  }
-
-  .protocol-summary-card .protocol-meta,
-  .protocol-signal-card .protocol-meta {
-    color: var(--muted-foreground);
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .protocol-summary-card strong,
-  .protocol-signal-card strong {
-    color: var(--foreground);
-    display: block;
-    margin-top: 0.04rem;
-    font-family: var(--font-sans), "Space Grotesk", system-ui, sans-serif;
-    font-size: clamp(1rem, 1.8vw, 1.28rem);
-    font-style: normal;
-    font-weight: 600;
-    line-height: 1.12;
-    letter-spacing: -0.03em;
-    text-wrap: balance;
-    word-break: break-word;
-  }
-
-  .protocol-summary-card .protocol-section-copy,
-  .protocol-signal-card .protocol-section-copy {
-    color: var(--muted-foreground);
-    font-size: 0.82rem;
-    line-height: 1.45;
-  }
-
-  .protocol-summary-note {
-    margin: 0;
-    color: var(--muted-foreground);
-    font-size: 0.82rem;
-    line-height: 1.48;
   }
 
   .protocol-metric-value {
@@ -2259,12 +2145,9 @@
     .protocol-hero,
     .surface-card,
     .surface-card-soft,
-    .protocol-summary-rail,
-    .protocol-summary-card,
     .protocol-link-card,
     .protocol-list-card,
     .protocol-metric-card,
-    .protocol-signal-card,
     .workspace-header-band,
     .workspace-next-action-card {
       border-radius: 1.15rem;

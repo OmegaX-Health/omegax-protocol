@@ -126,6 +126,8 @@ pub enum OmegaXProtocolError {
     TooManyOracleSupportedSchemas,
     #[msg("Pool oracle approval is required before permissions can be granted")]
     PoolOracleApprovalRequired,
+    #[msg("Pool oracle permission is required for this claim attestation")]
+    PoolOraclePermissionRequired,
     #[msg("Oracle profile is inactive")]
     OracleProfileInactive,
     #[msg("Oracle profile has not been claimed by its signing key")]
@@ -136,6 +138,16 @@ pub enum OmegaXProtocolError {
     ClaimAttestationSchemaRequired,
     #[msg("Oracle profile does not advertise support for the selected claim-attestation schema")]
     ClaimAttestationSchemaUnsupported,
+    #[msg("Claim attestation schema must be governance verified")]
+    OutcomeSchemaUnverified,
+    #[msg("Claim attestation requires a locked evidence reference")]
+    ClaimEvidenceRequired,
+    #[msg("Claim attestation evidence reference does not match the claim case")]
+    ClaimEvidenceMismatch,
+    #[msg("Claim evidence cannot be changed after attestations begin")]
+    ClaimEvidenceLocked,
+    #[msg("Health plan has paused oracle finality")]
+    OracleFinalityHeld,
     #[msg("Too many schema dependency addresses were provided")]
     TooManySchemaDependencies,
     #[msg("Fee vault initialization requires the matching domain asset vault to exist")]
@@ -158,4 +170,46 @@ pub enum OmegaXProtocolError {
     SettlementOutflowAccountsRequired,
     #[msg("Configured fee basis points require the matching fee vault account")]
     FeeVaultRequiredForConfiguredFee,
+    #[msg("Commitment campaign mode is invalid")]
+    InvalidCommitmentCampaignMode,
+    #[msg("Commitment campaign status is invalid")]
+    InvalidCommitmentCampaignStatus,
+    #[msg("Commitment campaign is not active")]
+    CommitmentCampaignInactive,
+    #[msg("Commitment campaign is not refundable yet")]
+    CommitmentNotRefundable,
+    #[msg("Commitment position is not pending")]
+    CommitmentPositionNotPending,
+    #[msg("Commitment terms hash mismatch")]
+    CommitmentTermsMismatch,
+    #[msg("Commitment cap exceeded")]
+    CommitmentCapExceeded,
+    #[msg("Commitment activation authority mismatch")]
+    CommitmentActivationAuthorityMismatch,
+    #[msg("Stable coverage capacity is insufficient")]
+    InsufficientStableCoverageCapacity,
+    #[msg("Treasury-credit commitments require distinct payment and coverage assets")]
+    TreasuryCreditAssetMismatch,
+    #[msg("Reserve asset role is invalid")]
+    InvalidReserveAssetRole,
+    #[msg("Reserve asset oracle source is invalid")]
+    InvalidReserveOracleSource,
+    #[msg("Reserve asset rail mismatch")]
+    ReserveAssetRailMismatch,
+    #[msg("Reserve asset rail is inactive")]
+    ReserveAssetRailInactive,
+    #[msg("Reserve asset rail does not allow deposits")]
+    ReserveAssetRailDepositDisabled,
+    #[msg("Reserve asset rail does not allow claims payout")]
+    ReserveAssetRailPayoutDisabled,
+    #[msg("Reserve asset rail cannot count toward claims capacity")]
+    ReserveAssetRailCapacityDisabled,
+    #[msg("Reserve asset oracle price is stale or missing")]
+    ReserveAssetPriceStale,
+    #[msg("Reserve asset oracle price is invalid")]
+    ReserveAssetPriceInvalid,
+    #[msg("Commitment payment rail mismatch")]
+    CommitmentPaymentRailMismatch,
+    #[msg("Commitment payment rail is inactive")]
+    CommitmentPaymentRailInactive,
 }

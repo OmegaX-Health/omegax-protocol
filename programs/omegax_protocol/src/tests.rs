@@ -207,6 +207,186 @@ fn sponsor_budget_reserve_and_settlement_walks_the_kernel() {
     assert_eq!(sheet.owed, 0);
 }
 
+fn sample_commitment_ledger(campaign: Pubkey, payment_asset_mint: Pubkey) -> CommitmentLedger {
+    CommitmentLedger {
+        campaign,
+        payment_asset_mint,
+        pending_amount: 0,
+        activated_amount: 0,
+        treasury_locked_amount: 0,
+        refunded_amount: 0,
+        canceled_amount: 0,
+        next_queue_index: 0,
+        bump: 1,
+    }
+}
+
+fn sample_commitment_position(
+    campaign: Pubkey,
+    ledger: Pubkey,
+    payment_asset_mint: Pubkey,
+    coverage_asset_mint: Pubkey,
+    amount: u64,
+    coverage_amount: u64,
+) -> CommitmentPosition {
+    CommitmentPosition {
+        campaign,
+        ledger,
+        depositor: Pubkey::new_unique(),
+        beneficiary: Pubkey::new_unique(),
+        payment_asset_mint,
+        coverage_asset_mint,
+        amount,
+        coverage_amount,
+        queue_index: 0,
+        state: COMMITMENT_POSITION_PENDING,
+        accepted_terms_hash: [1u8; 32],
+        paid_at: 100,
+        activated_at: 0,
+        refunded_at: 0,
+        bump: 1,
+    }
+}
+
+#[test]
+fn pending_commitment_deposit_stays_out_of_reserve_sheets() {
+    let mut vault_total_assets = 0;
+    let mut domain_sheet = ReserveBalanceSheet::default();
+    let mut plan_sheet = ReserveBalanceSheet::default();
+    let mut funding_line_sheet = ReserveBalanceSheet::default();
+
+    book_inflow(&mut vault_total_assets, 159_000_000).unwrap();
+
+    assert_eq!(vault_total_assets, 159_000_000);
+    assert_eq!(domain_sheet, ReserveBalanceSheet::default());
+    assert_eq!(plan_sheet, ReserveBalanceSheet::default());
+    assert_eq!(funding_line_sheet, ReserveBalanceSheet::default());
+
+    book_inflow_sheet(&mut domain_sheet, 159_000_000).unwrap();
+    book_inflow_sheet(&mut plan_sheet, 159_000_000).unwrap();
+    book_inflow_sheet(&mut funding_line_sheet, 159_000_000).unwrap();
+
+    assert_eq!(domain_sheet.funded, 159_000_000);
+    assert_eq!(plan_sheet.funded, 159_000_000);
+    assert_eq!(funding_line_sheet.funded, 159_000_000);
+}
+
+#[test]
+fn commitment_activation_and_refund_are_one_way_states() {
+    let campaign = Pubkey::new_unique();
+    let ledger_key = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut ledger = sample_commitment_ledger(campaign, asset_mint);
+    ledger.pending_amount = 159_000_000;
+    let mut position =
+        sample_commitment_position(campaign, ledger_key, asset_mint, asset_mint, 159_000_000, 0);
+
+    commitments::require_pending_commitment_position(&position).unwrap();
+    commitments::activate_commitment_position_at(
+        &mut ledger,
+        &mut position,
+        COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED,
+        159_000_000,
+        200,
+    )
+    .unwrap();
+
+    assert_eq!(ledger.pending_amount, 0);
+    assert_eq!(ledger.activated_amount, 159_000_000);
+    assert_eq!(position.state, COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED);
+    assert!(commitments::require_pending_commitment_position(&position).is_err());
+
+    position.state = COMMITMENT_POSITION_REFUNDED;
+    assert!(commitments::require_pending_commitment_position(&position).is_err());
+}
+
+#[test]
+fn treasury_credit_locks_only_existing_stable_capacity() {
+    let mut stable_sheet = ReserveBalanceSheet::default();
+    assert!(book_restricted_sheet(&mut stable_sheet, 159_000_000).is_err());
+    assert_eq!(stable_sheet, ReserveBalanceSheet::default());
+
+    book_inflow_sheet(&mut stable_sheet, 250_000_000).unwrap();
+    book_restricted_sheet(&mut stable_sheet, 159_000_000).unwrap();
+
+    assert_eq!(stable_sheet.funded, 250_000_000);
+    assert_eq!(stable_sheet.restricted, 159_000_000);
+    assert_eq!(stable_sheet.free, 91_000_000);
+}
+
+#[test]
+fn treasury_credit_commitment_never_counts_omegax_as_stable_reserve() {
+    let omegax_mint = Pubkey::new_unique();
+    let stable_mint = Pubkey::new_unique();
+    let campaign = Pubkey::new_unique();
+    let ledger_key = Pubkey::new_unique();
+    let mut omegax_vault_total_assets = 0;
+    let mut stable_sheet = ReserveBalanceSheet::default();
+    let mut ledger = sample_commitment_ledger(campaign, omegax_mint);
+    let mut position = sample_commitment_position(
+        campaign,
+        ledger_key,
+        omegax_mint,
+        stable_mint,
+        10_000_000_000,
+        159_000_000,
+    );
+
+    book_inflow(&mut omegax_vault_total_assets, position.amount).unwrap();
+    ledger.pending_amount = position.amount;
+    assert_eq!(stable_sheet.funded, 0);
+
+    book_inflow_sheet(&mut stable_sheet, 159_000_000).unwrap();
+    book_restricted_sheet(&mut stable_sheet, position.coverage_amount).unwrap();
+    commitments::activate_commitment_position_at(
+        &mut ledger,
+        &mut position,
+        COMMITMENT_POSITION_TREASURY_LOCKED,
+        10_000_000_000,
+        200,
+    )
+    .unwrap();
+
+    assert_eq!(omegax_vault_total_assets, 10_000_000_000);
+    assert_eq!(stable_sheet.funded, 159_000_000);
+    assert_eq!(stable_sheet.restricted, 159_000_000);
+    assert_eq!(ledger.treasury_locked_amount, 10_000_000_000);
+    assert_eq!(ledger.activated_amount, 0);
+}
+
+#[test]
+fn reserve_asset_capacity_requires_published_price() {
+    let mut rail = ReserveAssetRail {
+        reserve_domain: Pubkey::new_unique(),
+        asset_mint: Pubkey::new_unique(),
+        oracle_authority: Pubkey::new_unique(),
+        asset_symbol: "OMEGAX".to_string(),
+        role: RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
+        payout_priority: 4,
+        oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+        oracle_feed_id: [7u8; 32],
+        max_staleness_seconds: 0,
+        haircut_bps: 5_000,
+        max_exposure_bps: 1_000,
+        deposit_enabled: true,
+        payout_enabled: true,
+        capacity_enabled: true,
+        active: true,
+        last_price_usd_1e8: 0,
+        last_price_confidence_bps: 0,
+        last_price_published_at_ts: 0,
+        last_price_slot: 0,
+        last_price_proof_hash: [0u8; 32],
+        audit_nonce: 0,
+        bump: 1,
+    };
+
+    assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_err());
+
+    rail.last_price_usd_1e8 = 42_000_000;
+    assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_ok());
+}
+
 #[test]
 fn allocation_and_impairment_reduce_redeemable_before_free_hits_zero() {
     let mut sheet = ReserveBalanceSheet::default();
@@ -290,6 +470,7 @@ fn sample_claim_case(
         reserved_amount: 60,
         recovered_amount: 0,
         appeal_count: 0,
+        attestation_count: 0,
         linked_obligation: ZERO_PUBKEY,
         opened_at: 0,
         updated_at: 0,
@@ -688,6 +869,138 @@ fn sample_open_claim_case_args(claimant: Pubkey, policy_series: Pubkey) -> OpenC
         policy_series,
         claimant,
         evidence_ref_hash: [1u8; 32],
+    }
+}
+
+#[allow(dead_code)]
+fn sample_funding_line(
+    reserve_domain: Pubkey,
+    health_plan: Pubkey,
+    policy_series: Pubkey,
+    asset_mint: Pubkey,
+    line_type: u8,
+) -> FundingLine {
+    FundingLine {
+        reserve_domain,
+        health_plan,
+        policy_series,
+        asset_mint,
+        line_id: "claim-line".to_string(),
+        line_type,
+        funding_priority: 0,
+        committed_amount: 100,
+        funded_amount: 100,
+        reserved_amount: 0,
+        spent_amount: 0,
+        released_amount: 0,
+        returned_amount: 0,
+        status: FUNDING_LINE_STATUS_OPEN,
+        caps_hash: [0; 32],
+        bump: 1,
+    }
+}
+
+#[allow(dead_code)]
+fn sample_outcome_schema(schema_key_hash: [u8; 32], verified: bool) -> OutcomeSchema {
+    OutcomeSchema {
+        publisher: Pubkey::new_unique(),
+        schema_key_hash,
+        schema_key: "claims.schema.v1".to_string(),
+        version: 1,
+        schema_hash: [4; 32],
+        schema_family: SCHEMA_FAMILY_CLAIMS_CODING,
+        visibility: SCHEMA_VISIBILITY_PUBLIC,
+        metadata_uri: String::new(),
+        verified,
+        created_at_ts: 0,
+        updated_at_ts: 0,
+        bump: 1,
+    }
+}
+
+#[allow(dead_code)]
+fn sample_liquidity_pool(reserve_domain: Pubkey, asset_mint: Pubkey) -> LiquidityPool {
+    LiquidityPool {
+        reserve_domain,
+        curator: Pubkey::new_unique(),
+        allocator: Pubkey::new_unique(),
+        sentinel: Pubkey::new_unique(),
+        pool_id: "pool-001".to_string(),
+        display_name: "Protection pool".to_string(),
+        deposit_asset_mint: asset_mint,
+        strategy_hash: [0; 32],
+        allowed_exposure_hash: [0; 32],
+        external_yield_adapter_hash: [0; 32],
+        fee_bps: 0,
+        redemption_policy: REDEMPTION_POLICY_OPEN,
+        pause_flags: 0,
+        total_value_locked: 0,
+        total_allocated: 0,
+        total_reserved: 0,
+        total_impaired: 0,
+        total_pending_redemptions: 0,
+        active: true,
+        audit_nonce: 0,
+        bump: 1,
+    }
+}
+
+#[allow(dead_code)]
+fn sample_capital_class(reserve_domain: Pubkey, liquidity_pool: Pubkey) -> CapitalClass {
+    CapitalClass {
+        reserve_domain,
+        liquidity_pool,
+        share_mint: Pubkey::new_unique(),
+        class_id: "open-class".to_string(),
+        display_name: "Open class".to_string(),
+        priority: 0,
+        impairment_rank: 0,
+        restriction_mode: CAPITAL_CLASS_RESTRICTION_OPEN,
+        redemption_terms_mode: REDEMPTION_POLICY_OPEN,
+        wrapper_metadata_hash: [0; 32],
+        permissioning_hash: [0; 32],
+        fee_bps: 0,
+        min_lockup_seconds: 0,
+        pause_flags: 0,
+        queue_only_redemptions: false,
+        total_shares: 0,
+        nav_assets: 0,
+        allocated_assets: 0,
+        reserved_assets: 0,
+        impaired_assets: 0,
+        pending_redemptions: 0,
+        active: true,
+        bump: 1,
+    }
+}
+
+#[allow(dead_code)]
+fn sample_allocation_position(
+    reserve_domain: Pubkey,
+    liquidity_pool: Pubkey,
+    capital_class: Pubkey,
+    health_plan: Pubkey,
+    policy_series: Pubkey,
+    funding_line: Pubkey,
+) -> AllocationPosition {
+    AllocationPosition {
+        reserve_domain,
+        liquidity_pool,
+        capital_class,
+        health_plan,
+        policy_series,
+        funding_line,
+        cap_amount: 100,
+        weight_bps: 10_000,
+        allocation_mode: 0,
+        allocated_amount: 100,
+        utilized_amount: 0,
+        reserved_capacity: 0,
+        realized_pnl: 0,
+        impaired_amount: 0,
+        deallocation_only: false,
+        active: true,
+        bump: 1,
     }
 }
 
@@ -1164,6 +1477,301 @@ fn zero_claim_attestation_schema_hash_is_rejected() {
         &oracle_profile_with_supported_schemas(&[]),
         [0; 32]
     ));
+}
+
+#[test]
+fn claim_evidence_locks_after_first_attestation() {
+    let mut claim_case = sample_claim_case(
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+    );
+    assert!(claims::require_claim_evidence_mutable(&claim_case).is_ok());
+
+    claim_case.attestation_count = 1;
+    let error = claims::require_claim_evidence_mutable(&claim_case).unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Claim evidence cannot be changed after attestations begin"));
+}
+
+#[test]
+fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() {
+    let health_plan_key = Pubkey::new_unique();
+    let funding_line_key = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let governance_authority = Pubkey::new_unique();
+    let mut governance = sample_governance(governance_authority);
+    let mut health_plan = sample_health_plan_roles(
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+    );
+    health_plan.reserve_domain = Pubkey::new_unique();
+    let funding_line = sample_funding_line(
+        health_plan.reserve_domain,
+        health_plan_key,
+        policy_series,
+        asset_mint,
+        FUNDING_LINE_TYPE_PREMIUM_INCOME,
+    );
+    let mut claim_case =
+        sample_claim_case(health_plan_key, policy_series, funding_line_key, asset_mint);
+    claim_case.evidence_ref_hash = [5; 32];
+    let schema_key_hash = [6; 32];
+    let schema = sample_outcome_schema(schema_key_hash, true);
+    let oracle_profile = oracle_profile_with_supported_schemas(&[schema_key_hash]);
+    let args = AttestClaimCaseArgs {
+        decision: CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
+        attestation_hash: [7; 32],
+        attestation_ref_hash: [5; 32],
+        schema_key_hash,
+    };
+
+    assert!(claims::validate_claim_attestation_common(
+        &governance,
+        health_plan_key,
+        &health_plan,
+        funding_line_key,
+        &funding_line,
+        &claim_case,
+        &schema,
+        &oracle_profile,
+        &args,
+    )
+    .is_ok());
+
+    governance.emergency_pause = true;
+    assert!(claims::validate_claim_attestation_common(
+        &governance,
+        health_plan_key,
+        &health_plan,
+        funding_line_key,
+        &funding_line,
+        &claim_case,
+        &schema,
+        &oracle_profile,
+        &args,
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("Protocol governance is emergency paused"));
+
+    governance.emergency_pause = false;
+    health_plan.pause_flags = PAUSE_FLAG_ORACLE_FINALITY_HOLD;
+    assert!(claims::validate_claim_attestation_common(
+        &governance,
+        health_plan_key,
+        &health_plan,
+        funding_line_key,
+        &funding_line,
+        &claim_case,
+        &schema,
+        &oracle_profile,
+        &args,
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("paused oracle finality"));
+
+    health_plan.pause_flags = 0;
+    let mut mismatched_args = args.clone();
+    mismatched_args.attestation_ref_hash = [9; 32];
+    assert!(claims::validate_claim_attestation_common(
+        &governance,
+        health_plan_key,
+        &health_plan,
+        funding_line_key,
+        &funding_line,
+        &claim_case,
+        &schema,
+        &oracle_profile,
+        &mismatched_args,
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("evidence reference does not match"));
+
+    let draft_schema = sample_outcome_schema(schema_key_hash, false);
+    assert!(claims::validate_claim_attestation_common(
+        &governance,
+        health_plan_key,
+        &health_plan,
+        funding_line_key,
+        &funding_line,
+        &claim_case,
+        &draft_schema,
+        &oracle_profile,
+        &args,
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("schema must be governance verified"));
+}
+
+#[test]
+fn lp_claim_attestation_scope_requires_pool_permission() {
+    let reserve_domain = Pubkey::new_unique();
+    let health_plan_key = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut health_plan = sample_health_plan_roles(
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+    );
+    health_plan.reserve_domain = reserve_domain;
+    let funding_line = sample_funding_line(
+        reserve_domain,
+        health_plan_key,
+        policy_series,
+        asset_mint,
+        FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
+    );
+    let (funding_line_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_FUNDING_LINE,
+            health_plan_key.as_ref(),
+            funding_line.line_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    let claim_case =
+        sample_claim_case(health_plan_key, policy_series, funding_line_key, asset_mint);
+    let oracle_profile = oracle_profile_with_supported_schemas(&[]);
+    let liquidity_pool = sample_liquidity_pool(reserve_domain, asset_mint);
+    let (liquidity_pool_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_LIQUIDITY_POOL,
+            reserve_domain.as_ref(),
+            liquidity_pool.pool_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    let capital_class = sample_capital_class(reserve_domain, liquidity_pool_key);
+    let (capital_class_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_CAPITAL_CLASS,
+            liquidity_pool_key.as_ref(),
+            capital_class.class_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    let allocation_position = sample_allocation_position(
+        reserve_domain,
+        liquidity_pool_key,
+        capital_class_key,
+        health_plan_key,
+        policy_series,
+        funding_line_key,
+    );
+    let (allocation_position_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_ALLOCATION_POSITION,
+            capital_class_key.as_ref(),
+            funding_line_key.as_ref(),
+        ],
+        &crate::ID,
+    );
+    let (pool_oracle_approval_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_APPROVAL,
+            liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
+    let approval = PoolOracleApproval {
+        liquidity_pool: liquidity_pool_key,
+        oracle: oracle_profile.oracle,
+        active: true,
+        updated_at_ts: 0,
+        bump: 1,
+    };
+    let (pool_oracle_permission_set_key, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_PERMISSION_SET,
+            liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
+    let mut permission_set = PoolOraclePermissionSet {
+        liquidity_pool: liquidity_pool_key,
+        oracle: oracle_profile.oracle,
+        permissions: 0,
+        updated_at_ts: 0,
+        bump: 1,
+    };
+    let (pool_oracle_policy_key, _) = Pubkey::find_program_address(
+        &[SEED_POOL_ORACLE_POLICY, liquidity_pool_key.as_ref()],
+        &crate::ID,
+    );
+    let policy = PoolOraclePolicy {
+        liquidity_pool: liquidity_pool_key,
+        quorum_m: 1,
+        quorum_n: 1,
+        require_verified_schema: true,
+        oracle_fee_bps: 0,
+        allow_delegate_claim: false,
+        challenge_window_secs: 0,
+        updated_at_ts: 0,
+        bump: 1,
+    };
+
+    let error = claims::validate_lp_claim_attestation_scope(
+        &health_plan,
+        &funding_line,
+        &claim_case,
+        &oracle_profile,
+        claims::ClaimAttestationPoolScope {
+            liquidity_pool_key,
+            liquidity_pool: &liquidity_pool,
+            capital_class_key,
+            capital_class: &capital_class,
+            allocation_position_key,
+            allocation_position: &allocation_position,
+            funding_line_key,
+            pool_oracle_approval_key,
+            pool_oracle_approval: &approval,
+            pool_oracle_permission_set_key,
+            pool_oracle_permission_set: &permission_set,
+            pool_oracle_policy_key,
+            pool_oracle_policy: &policy,
+        },
+    )
+    .unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Pool oracle permission is required"));
+
+    permission_set.permissions = POOL_ORACLE_PERMISSION_ATTEST_CLAIM;
+    assert!(claims::validate_lp_claim_attestation_scope(
+        &health_plan,
+        &funding_line,
+        &claim_case,
+        &oracle_profile,
+        claims::ClaimAttestationPoolScope {
+            liquidity_pool_key,
+            liquidity_pool: &liquidity_pool,
+            capital_class_key,
+            capital_class: &capital_class,
+            allocation_position_key,
+            allocation_position: &allocation_position,
+            funding_line_key,
+            pool_oracle_approval_key,
+            pool_oracle_approval: &approval,
+            pool_oracle_permission_set_key,
+            pool_oracle_permission_set: &permission_set,
+            pool_oracle_policy_key,
+            pool_oracle_policy: &policy,
+        },
+    )
+    .is_ok());
 }
 
 // -------- Phase 1.6 fee-vault helper tests --------

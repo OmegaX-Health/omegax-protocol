@@ -37,6 +37,15 @@ pub(crate) fn book_inflow_sheet(sheet: &mut ReserveBalanceSheet, amount: u64) ->
     recompute_sheet(sheet)
 }
 
+pub(crate) fn book_restricted_sheet(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {
+    require!(
+        sheet.free >= amount,
+        OmegaXProtocolError::InsufficientStableCoverageCapacity
+    );
+    sheet.restricted = checked_add(sheet.restricted, amount)?;
+    recompute_sheet(sheet)
+}
+
 pub(crate) fn book_fee_withdrawal(
     domain_assets: &mut u64,
     domain_sheet: &mut ReserveBalanceSheet,

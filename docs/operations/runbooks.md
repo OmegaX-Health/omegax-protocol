@@ -16,6 +16,7 @@ This page does not replace the individual runbooks — they remain the canonical
 | Devnet operator | Drawer simulation (no state mutation) | `npm run devnet:operator:drawer:sim` | [devnet-beta-runbook.md](./devnet-beta-runbook.md#operator-drawer-simulation) |
 | Mainnet operator | Genesis live bootstrap (preview) | `npm run protocol:bootstrap:genesis-live -- --plan` | [genesis-live-bootstrap.md](./genesis-live-bootstrap.md) |
 | Mainnet operator | Genesis live bootstrap (apply) | `npm run protocol:bootstrap:genesis-live` (with `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1`) | [genesis-live-bootstrap.md](./genesis-live-bootstrap.md) |
+| Launch operator | Founder Travel30 commitment mode | create campaign, route public CTAs, monitor pending commitments | [founder-commitment-runbook.md](./founder-commitment-runbook.md) |
 | Hosting operator | Firebase App Hosting cutover | follow the cutover checklist | [firebase-app-hosting-cutover.md](./firebase-app-hosting-cutover.md) |
 | Release manager | Public-tag promotion | walk the gate, then publish notes | [public-release-gate.md](./public-release-gate.md) + [release-v0.3.1.md](./release-v0.3.1.md) |
 | Anyone touching the on-chain surface | Local | `npm run anchor:idl` then `npm run protocol:contract` then `npm run idl:freshness:check` | [public-release-gate.md](./public-release-gate.md#generated-artifacts) |

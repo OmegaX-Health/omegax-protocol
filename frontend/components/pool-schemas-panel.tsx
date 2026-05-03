@@ -8,6 +8,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
+import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { SearchableSelect } from "@/components/searchable-select";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
@@ -68,6 +69,7 @@ function schemaVisibilityLabel(value: number): string {
 export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelProps) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
+  const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
   const [schemas, setSchemas] = useState<SchemaSummary[]>([]);
   const [rules, setRules] = useState<RuleSummary[]>([]);
   const [dependencies, setDependencies] = useState<SchemaDependencyLedgerSummary[]>([]);
@@ -165,6 +167,7 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         sendTransaction,
         tx,
         label: "Register schema",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -200,6 +203,7 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         sendTransaction,
         tx,
         label: verifyState ? "Verify schema" : "Unverify schema",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -240,6 +244,7 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         sendTransaction,
         tx,
         label: "Backfill schema dependency ledger",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -279,6 +284,7 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
         sendTransaction,
         tx,
         label: "Close schema",
+        confirmReview,
         onConfirmed: async () => {
           await refresh();
         },
@@ -301,6 +307,7 @@ export function PoolSchemasPanel({ poolAddress, onRefresh }: PoolSchemasPanelPro
 
   return (
     <div className="space-y-4">
+      {reviewPrompt}
       <section className="surface-card-soft space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>

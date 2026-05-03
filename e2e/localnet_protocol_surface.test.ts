@@ -17,7 +17,7 @@ import {
   scenarioNames,
   type ScenarioName,
 } from "./support/surface_manifest.ts";
-import { instructionSurface } from "./support/surface.ts";
+import { instructionNameByDiscriminatorHex, instructionSurface } from "./support/surface.ts";
 
 const { buildCanonicalConsoleState } = consoleModelModule as typeof import("../frontend/lib/console-model.ts");
 const { DEVNET_PROTOCOL_FIXTURE_STATE } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
@@ -25,17 +25,33 @@ const {
   CAPITAL_CLASS_RESTRICTION_WRAPPER_ONLY,
   CLAIM_INTAKE_APPROVED,
   CLAIM_INTAKE_SETTLED,
+  COMMITMENT_CAMPAIGN_STATUS_PAUSED,
+  COMMITMENT_MODE_DIRECT_PREMIUM,
+  COMMITMENT_MODE_TREASURY_CREDIT,
+  COMMITMENT_MODE_WATERFALL_RESERVE,
   ELIGIBILITY_ELIGIBLE,
   FUNDING_LINE_TYPE_PREMIUM_INCOME,
   FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+  NATIVE_SOL_MINT,
   OBLIGATION_STATUS_CANCELED,
   OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   OBLIGATION_STATUS_RESERVED,
   OBLIGATION_STATUS_SETTLED,
+  RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+  RESERVE_ASSET_ROLE_SECONDARY_STABLE,
+  RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
+  RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
+  RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
   SERIES_MODE_PROTECTION,
   SERIES_MODE_REWARD,
+  buildActivateDirectPremiumCommitmentTx,
+  buildActivateTreasuryCreditCommitmentTx,
+  buildActivateWaterfallCommitmentTx,
   buildAdjudicateClaimCaseTx,
   buildAttestClaimCaseTx,
+  buildConfigureReserveAssetRailTx,
+  buildCreateCommitmentCampaignTx,
+  buildCreateCommitmentPaymentRailTx,
   buildCreateObligationTx,
   buildBackfillSchemaDependencyLedgerTx,
   buildClaimOracleTx,
@@ -43,6 +59,7 @@ const {
   buildCreateDomainAssetVaultTx,
   buildCreatePolicySeriesTx,
   buildCreateReserveDomainTx,
+  buildDepositCommitmentTx,
   buildInitializeProtocolGovernanceTx,
   buildMarkImpairmentTx,
   buildOpenClaimCaseTx,
@@ -50,8 +67,11 @@ const {
   buildOpenMemberPositionTx,
   buildRegisterOracleTx,
   buildReleaseReserveTx,
+  buildRefundCommitmentTx,
   buildReserveObligationTx,
   buildRegisterOutcomeSchemaTx,
+  buildPauseCommitmentCampaignTx,
+  buildPublishReserveAssetRailPriceTx,
   buildSetPoolOraclePermissionsTx,
   buildSetPoolOraclePolicyTx,
   buildSetPoolOracleTx,
@@ -60,8 +80,13 @@ const {
   buildUpdateOracleProfileTx,
   buildVerifyOutcomeSchemaTx,
   deriveClaimAttestationPda,
+  deriveCommitmentCampaignPda,
+  deriveCommitmentLedgerPda,
+  deriveCommitmentPaymentRailPda,
+  deriveCommitmentPositionPda,
   deriveDomainAssetLedgerPda,
   deriveDomainAssetVaultPda,
+  deriveDomainAssetVaultTokenAccountPda,
   deriveFundingLineLedgerPda,
   deriveFundingLinePda,
   deriveLpPositionPda,
@@ -73,6 +98,7 @@ const {
   derivePoolOracleApprovalPda,
   derivePoolOraclePermissionSetPda,
   derivePoolOraclePolicyPda,
+  deriveReserveAssetRailPda,
   deriveReserveDomainPda,
   deriveSchemaDependencyLedgerPda,
   deriveSeriesReserveLedgerPda,
@@ -100,6 +126,7 @@ function stableSorted(values: Iterable<string>): string[] {
 }
 
 const liveInstructionNames = stableSorted(instructionSurface().map((instruction) => instruction.name));
+const instructionNamesByDiscriminator = instructionNameByDiscriminatorHex();
 const ownedInstructionNames = stableSorted([
   ...orderedScenarios.flatMap((name) => SCENARIO_DEFINITIONS[name].instructions),
   ...Object.keys(INSTRUCTION_EXCEPTION_REASONS),
@@ -151,6 +178,26 @@ function writeSummary() {
 }
 
 writeSummary();
+
+function assertProtocolTxInstruction(
+  tx: {
+    instructions: ReadonlyArray<{
+      programId: { toBase58(): string };
+      data: Buffer | Uint8Array;
+      keys: ReadonlyArray<{ pubkey: { toBase58(): string }; isSigner: boolean; isWritable: boolean }>;
+    }>;
+  },
+  expectedName: string,
+) {
+  assert.equal(tx.instructions.length, 1, `${expectedName} should produce exactly one instruction`);
+  const ix = tx.instructions[0]!;
+  assert.equal(ix.programId.toBase58(), getProgramId().toBase58());
+  assert.equal(
+    instructionNamesByDiscriminator.get(Buffer.from(ix.data.subarray(0, 8)).toString("hex")),
+    expectedName,
+  );
+  return ix;
+}
 
 test("localnet surface audit: canonical instruction ownership matches the live surface", () => {
   assert.deepEqual(duplicateAssignments, []);
@@ -309,6 +356,10 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     const wrapperDomainSheet = recomputeReserveBalanceSheet(DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetLedgers[1]!.sheet);
 
     assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.length, 2);
+    assert.equal(
+      DEVNET_PROTOCOL_FIXTURE_STATE.reserveDomains.some((domain) => /rwa/i.test(domain.domainId)),
+      false,
+    );
     assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetVaults.length, 2);
     assert.equal(DEVNET_PROTOCOL_FIXTURE_STATE.domainAssetLedgers.length, 2);
     assert.equal(
@@ -481,12 +532,17 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     });
     const attestClaimCaseTx = buildAttestClaimCaseTx({
       oracle: oracleWallet.address,
+      healthPlanAddress: plan.address,
       claimCaseAddress: protectionClaim.address,
+      fundingLineAddress: protectionLine.address,
       recentBlockhash: STATIC_BLOCKHASH,
       decision: 0,
       attestationHashHex: SAMPLE_REASON_HASH_HEX,
       attestationRefHashHex: SAMPLE_EVIDENCE_HASH_HEX,
       schemaKeyHashHex: SAMPLE_SCHEMA_KEY_HASH_HEX,
+      liquidityPoolAddress: pool.address,
+      capitalClassAddress: openClass.address,
+      allocationPositionAddress: impairedAllocation.address,
     });
     const createObligationTx = buildCreateObligationTx({
       authority: claimsOperatorWallet.address,
@@ -657,10 +713,10 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
       assetMint: protectionLine.assetMint,
     }).toBase58());
     assert.equal(openMemberPositionTx.instructions[0]!.keys[3]!.pubkey.toBase58(), protectionMember.address);
-    assert.equal(openClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(), protectionClaim.address);
-    assert.equal(attestClaimCaseTx.instructions[0]!.keys[2]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(openClaimCaseTx.instructions[0]!.keys[5]!.pubkey.toBase58(), protectionClaim.address);
+    assert.equal(attestClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(), protectionClaim.address);
     assert.equal(
-      attestClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(),
+      attestClaimCaseTx.instructions[0]!.keys[13]!.pubkey.toBase58(),
       deriveClaimAttestationPda({
         claimCase: protectionClaim.address,
         oracle: oracleWallet.address,
@@ -724,6 +780,330 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     assert(openClassModel.reservedLiabilities > 0n);
     assert.equal(credentialedLp.credentialed, true);
     assert(impairedAllocation.impairedAmount > 0n);
+  },
+  founder_commitment_waterfall_lifecycle: () => {
+    const governanceWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "protocol_governance")!;
+    const memberWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "member")!;
+    const delegateWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "member_delegate")!;
+    const lpProviderWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "lp_provider")!;
+    const wrapperProviderWallet = DEVNET_PROTOCOL_FIXTURE_STATE.wallets.find((wallet) => wallet.role === "wrapper_provider")!;
+    const genesisPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) => plan.planId === "genesis-protect-acute-v1")!;
+    const travel30Series = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
+      (series) => series.healthPlan === genesisPlan.address && series.seriesId === "genesis-travel-30-v1",
+    )!;
+    const travel30PremiumLine = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.find(
+      (line) => line.healthPlan === genesisPlan.address && line.lineId === "genesis-travel30-premiums",
+    )!;
+    const coverageMint = travel30PremiumLine.assetMint;
+    const campaignId = "founder-travel30";
+    const campaign = deriveCommitmentCampaignPda({
+      healthPlan: genesisPlan.address,
+      campaignId,
+    }).toBase58();
+    const termsHashHex = "12".repeat(32);
+    const reasonHashHex = "34".repeat(32);
+
+    const derivedAddress = (domainId: string) => deriveReserveDomainPda({ domainId }).toBase58();
+    const rails = [
+      {
+        symbol: "USDC",
+        mint: coverageMint,
+        role: RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+        priority: 1,
+        priceUsd1e8: 100_000_000n,
+        haircutBps: 0,
+        maxExposureBps: 10_000,
+      },
+      {
+        symbol: "PUSD",
+        mint: derivedAddress("founder-pusd-mint"),
+        role: RESERVE_ASSET_ROLE_SECONDARY_STABLE,
+        priority: 2,
+        priceUsd1e8: 100_000_000n,
+        haircutBps: 50,
+        maxExposureBps: 9_000,
+      },
+      {
+        symbol: "WSOL",
+        mint: NATIVE_SOL_MINT,
+        role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
+        priority: 3,
+        priceUsd1e8: 15_000_000_000n,
+        haircutBps: 2_000,
+        maxExposureBps: 5_000,
+      },
+      {
+        symbol: "WBTC",
+        mint: derivedAddress("founder-wbtc-mint"),
+        role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
+        priority: 4,
+        priceUsd1e8: 9_000_000_000_000n,
+        haircutBps: 2_500,
+        maxExposureBps: 4_000,
+      },
+      {
+        symbol: "WETH",
+        mint: derivedAddress("founder-weth-mint"),
+        role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
+        priority: 5,
+        priceUsd1e8: 300_000_000_000n,
+        haircutBps: 2_500,
+        maxExposureBps: 4_000,
+      },
+      {
+        symbol: "OMEGAX",
+        mint: DEVNET_PROTOCOL_FIXTURE_STATE.rewardMint,
+        role: RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
+        priority: 99,
+        priceUsd1e8: 1_000_000n,
+        haircutBps: 7_500,
+        maxExposureBps: 2_000,
+      },
+    ] as const;
+
+    assert.equal(rails.length, 6);
+    assert.deepEqual(rails.map((rail) => rail.symbol), ["USDC", "PUSD", "WSOL", "WBTC", "WETH", "OMEGAX"]);
+    assert.equal(rails[0]!.role, RESERVE_ASSET_ROLE_PRIMARY_STABLE);
+    assert.equal(rails.at(-1)!.role, RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT);
+
+    for (const rail of rails) {
+      const vaultTx = buildCreateDomainAssetVaultTx({
+        authority: governanceWallet.address,
+        reserveDomainAddress: genesisPlan.reserveDomain,
+        assetMint: rail.mint,
+        vaultTokenAccountAddress: deriveDomainAssetVaultTokenAccountPda({
+          reserveDomain: genesisPlan.reserveDomain,
+          assetMint: rail.mint,
+        }).toBase58(),
+        recentBlockhash: STATIC_BLOCKHASH,
+      });
+      const vaultIx = assertProtocolTxInstruction(vaultTx, "create_domain_asset_vault");
+      assert.equal(vaultIx.keys[3]!.pubkey.toBase58(), deriveDomainAssetVaultPda({
+        reserveDomain: genesisPlan.reserveDomain,
+        assetMint: rail.mint,
+      }).toBase58());
+
+      const configureTx = buildConfigureReserveAssetRailTx({
+        authority: governanceWallet.address,
+        reserveDomainAddress: genesisPlan.reserveDomain,
+        assetMint: rail.mint,
+        assetSymbol: rail.symbol,
+        role: rail.role,
+        payoutPriority: rail.priority,
+        oracleSource: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+        oracleFeedIdHex: "56".repeat(32),
+        maxStalenessSeconds: 300n,
+        haircutBps: rail.haircutBps,
+        maxExposureBps: rail.maxExposureBps,
+        depositEnabled: true,
+        payoutEnabled: true,
+        capacityEnabled: true,
+        active: true,
+        reasonHashHex,
+        recentBlockhash: STATIC_BLOCKHASH,
+      });
+      const configureIx = assertProtocolTxInstruction(configureTx, "configure_reserve_asset_rail");
+      assert.equal(configureIx.keys[3]!.pubkey.toBase58(), deriveReserveAssetRailPda({
+        reserveDomain: genesisPlan.reserveDomain,
+        assetMint: rail.mint,
+      }).toBase58());
+
+      const priceTx = buildPublishReserveAssetRailPriceTx({
+        authority: governanceWallet.address,
+        reserveDomainAddress: genesisPlan.reserveDomain,
+        assetMint: rail.mint,
+        priceUsd1e8: rail.priceUsd1e8,
+        confidenceBps: rail.symbol === "USDC" || rail.symbol === "PUSD" ? 5 : 100,
+        publishedAtTs: 1_770_000_000n,
+        proofHashHex: "78".repeat(32),
+        recentBlockhash: STATIC_BLOCKHASH,
+      });
+      const priceIx = assertProtocolTxInstruction(priceTx, "publish_reserve_asset_rail_price");
+      assert.equal(priceIx.keys[2]!.pubkey.toBase58(), deriveReserveAssetRailPda({
+        reserveDomain: genesisPlan.reserveDomain,
+        assetMint: rail.mint,
+      }).toBase58());
+    }
+
+    const usdcRail = rails[0]!;
+    const createCampaignTx = buildCreateCommitmentCampaignTx({
+      authority: governanceWallet.address,
+      healthPlanAddress: genesisPlan.address,
+      reserveDomainAddress: genesisPlan.reserveDomain,
+      coverageFundingLineAddress: travel30PremiumLine.address,
+      paymentAssetMint: usdcRail.mint,
+      coverageAssetMint: coverageMint,
+      activationAuthority: governanceWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      campaignId,
+      displayName: "Founder Travel30",
+      metadataUri: "ipfs://founder-travel30",
+      mode: COMMITMENT_MODE_WATERFALL_RESERVE,
+      depositAmount: 159_000_000n,
+      coverageAmount: 1_000_000_000n,
+      hardCapAmount: 159_000_000_000n,
+      startsAtTs: 1_770_000_000n,
+      refundAfterTs: 1_777_776_000n,
+      expiresAtTs: 1_780_000_000n,
+      termsHashHex,
+    });
+    const createCampaignIx = assertProtocolTxInstruction(createCampaignTx, "create_commitment_campaign");
+    assert.equal(createCampaignIx.keys[9]!.pubkey.toBase58(), campaign);
+    assert.equal(createCampaignIx.keys[10]!.pubkey.toBase58(), deriveCommitmentPaymentRailPda({
+      campaign,
+      paymentAssetMint: usdcRail.mint,
+    }).toBase58());
+    assert.equal(createCampaignIx.keys[11]!.pubkey.toBase58(), deriveCommitmentLedgerPda({
+      campaign,
+      paymentAssetMint: usdcRail.mint,
+    }).toBase58());
+
+    for (const rail of rails.slice(1)) {
+      const paymentRailTx = buildCreateCommitmentPaymentRailTx({
+        authority: governanceWallet.address,
+        healthPlanAddress: genesisPlan.address,
+        reserveDomainAddress: genesisPlan.reserveDomain,
+        campaignAddress: campaign,
+        coverageFundingLineAddress: travel30PremiumLine.address,
+        paymentAssetMint: rail.mint,
+        coverageAssetMint: coverageMint,
+        recentBlockhash: STATIC_BLOCKHASH,
+        mode: rail.symbol === "OMEGAX" ? COMMITMENT_MODE_WATERFALL_RESERVE : COMMITMENT_MODE_WATERFALL_RESERVE,
+        depositAmount: rail.symbol === "OMEGAX" ? 5_000_000n : 159_000_000n,
+        coverageAmount: 1_000_000_000n,
+        hardCapAmount: rail.symbol === "OMEGAX" ? 5_000_000_000n : 159_000_000_000n,
+      });
+      const paymentRailIx = assertProtocolTxInstruction(paymentRailTx, "create_commitment_payment_rail");
+      assert.equal(paymentRailIx.keys[3]!.pubkey.toBase58(), campaign);
+      assert.equal(paymentRailIx.keys[7]!.pubkey.toBase58(), deriveCommitmentPaymentRailPda({
+        campaign,
+        paymentAssetMint: rail.mint,
+      }).toBase58());
+      assert.equal(paymentRailIx.keys[8]!.pubkey.toBase58(), deriveCommitmentLedgerPda({
+        campaign,
+        paymentAssetMint: rail.mint,
+      }).toBase58());
+    }
+
+    const pendingPosition = deriveCommitmentPositionPda({
+      campaign,
+      depositor: memberWallet.address,
+      beneficiary: memberWallet.address,
+    }).toBase58();
+    const depositTx = buildDepositCommitmentTx({
+      depositor: memberWallet.address,
+      healthPlanAddress: genesisPlan.address,
+      campaignId,
+      reserveDomainAddress: genesisPlan.reserveDomain,
+      paymentAssetMint: usdcRail.mint,
+      sourceTokenAccountAddress: derivedAddress("founder-usdc-source"),
+      beneficiary: memberWallet.address,
+      recentBlockhash: STATIC_BLOCKHASH,
+      acceptedTermsHashHex: termsHashHex,
+    });
+    const depositIx = assertProtocolTxInstruction(depositTx, "deposit_commitment");
+    assert.equal(depositIx.keys[5]!.pubkey.toBase58(), pendingPosition);
+    assert.equal(depositIx.keys[6]!.pubkey.toBase58(), deriveDomainAssetVaultPda({
+      reserveDomain: genesisPlan.reserveDomain,
+      assetMint: usdcRail.mint,
+    }).toBase58());
+    const depositKeySet = new Set(depositIx.keys.map((key) => key.pubkey.toBase58()));
+    assert.equal(depositKeySet.has(deriveFundingLineLedgerPda({
+      fundingLine: travel30PremiumLine.address,
+      assetMint: coverageMint,
+    }).toBase58()), false);
+    assert.equal(depositKeySet.has(derivePlanReserveLedgerPda({
+      healthPlan: genesisPlan.address,
+      assetMint: coverageMint,
+    }).toBase58()), false);
+    assert.equal(depositKeySet.has(deriveSeriesReserveLedgerPda({
+      policySeries: travel30Series.address,
+      assetMint: coverageMint,
+    }).toBase58()), false);
+
+    const pusdRail = rails.find((rail) => rail.symbol === "PUSD")!;
+    const refundedPosition = deriveCommitmentPositionPda({
+      campaign,
+      depositor: delegateWallet.address,
+      beneficiary: delegateWallet.address,
+    }).toBase58();
+    const refundTx = buildRefundCommitmentTx({
+      depositor: delegateWallet.address,
+      campaignAddress: campaign,
+      ledgerAddress: deriveCommitmentLedgerPda({ campaign, paymentAssetMint: pusdRail.mint }).toBase58(),
+      positionAddress: refundedPosition,
+      beneficiary: delegateWallet.address,
+      reserveDomainAddress: genesisPlan.reserveDomain,
+      paymentAssetMint: pusdRail.mint,
+      recipientTokenAccountAddress: derivedAddress("founder-pusd-recipient"),
+      recentBlockhash: STATIC_BLOCKHASH,
+      refundReasonHashHex: reasonHashHex,
+    });
+    const refundIx = assertProtocolTxInstruction(refundTx, "refund_commitment");
+    assert.equal(refundIx.keys[4]!.pubkey.toBase58(), refundedPosition);
+
+    const omegaxRail = rails.find((rail) => rail.symbol === "OMEGAX")!;
+    const activatedPosition = deriveCommitmentPositionPda({
+      campaign,
+      depositor: lpProviderWallet.address,
+      beneficiary: wrapperProviderWallet.address,
+    }).toBase58();
+    const activationBase = {
+      activationAuthority: governanceWallet.address,
+      healthPlanAddress: genesisPlan.address,
+      reserveDomainAddress: genesisPlan.reserveDomain,
+      campaignAddress: campaign,
+      coverageFundingLineAddress: travel30PremiumLine.address,
+      paymentAssetMint: omegaxRail.mint,
+      coverageAssetMint: coverageMint,
+      policySeriesAddress: travel30Series.address,
+      positionAddress: activatedPosition,
+      recentBlockhash: STATIC_BLOCKHASH,
+      activationReasonHashHex: reasonHashHex,
+    };
+
+    const directTx = buildActivateDirectPremiumCommitmentTx({
+      ...activationBase,
+      paymentAssetMint: usdcRail.mint,
+      ledgerAddress: deriveCommitmentLedgerPda({ campaign, paymentAssetMint: usdcRail.mint }).toBase58(),
+    });
+    assertProtocolTxInstruction(directTx, "activate_direct_premium_commitment");
+    assert.equal(COMMITMENT_MODE_DIRECT_PREMIUM, 0);
+
+    const treasuryTx = buildActivateTreasuryCreditCommitmentTx({
+      ...activationBase,
+      ledgerAddress: deriveCommitmentLedgerPda({ campaign, paymentAssetMint: omegaxRail.mint }).toBase58(),
+    });
+    const treasuryIx = assertProtocolTxInstruction(treasuryTx, "activate_treasury_credit_commitment");
+    assert.equal(
+      treasuryIx.keys.some((key) => key.pubkey.toBase58() === deriveReserveAssetRailPda({
+        reserveDomain: genesisPlan.reserveDomain,
+        assetMint: omegaxRail.mint,
+      }).toBase58()),
+      false,
+    );
+    assert.equal(COMMITMENT_MODE_TREASURY_CREDIT, 1);
+
+    const waterfallTx = buildActivateWaterfallCommitmentTx({
+      ...activationBase,
+      ledgerAddress: deriveCommitmentLedgerPda({ campaign, paymentAssetMint: omegaxRail.mint }).toBase58(),
+    });
+    const waterfallIx = assertProtocolTxInstruction(waterfallTx, "activate_waterfall_commitment");
+    assert.equal(waterfallIx.keys[5]!.pubkey.toBase58(), deriveReserveAssetRailPda({
+      reserveDomain: genesisPlan.reserveDomain,
+      assetMint: omegaxRail.mint,
+    }).toBase58());
+
+    const pauseTx = buildPauseCommitmentCampaignTx({
+      authority: governanceWallet.address,
+      healthPlanAddress: genesisPlan.address,
+      campaignId,
+      recentBlockhash: STATIC_BLOCKHASH,
+      status: COMMITMENT_CAMPAIGN_STATUS_PAUSED,
+      reasonHashHex,
+    });
+    const pauseIx = assertProtocolTxInstruction(pauseTx, "pause_commitment_campaign");
+    assert.equal(pauseIx.keys[3]!.pubkey.toBase58(), campaign);
   },
   sponsor_funded_plan_lifecycle: () => {
     const seekerPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) => plan.planId === "nexus-seeker-rewards")!;

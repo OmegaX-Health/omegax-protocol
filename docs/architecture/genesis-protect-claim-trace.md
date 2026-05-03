@@ -32,7 +32,7 @@ Member: `M_wallet`. Member opened a `MemberPosition` against the Travel 30 serie
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Member (or claims operator if member-incapacitated) | `args.claimant == member_position.wallet` (member self-submit) **or** `(authority == plan.claims_operator || authority == plan.plan_admin) && args.claimant == member_position.wallet` (operator submit on behalf of member) | New `ClaimCase` PDA materialized with `state = proposed`, `claimant = M_wallet`, `policy_series = travel30`, `funding_line = travel30_premium` |
+| Member (or claims operator if member-incapacitated) | Protocol emergency pause is clear; `args.claimant == member_position.wallet` (member self-submit) **or** `(authority == plan.claims_operator || authority == plan.plan_admin) && args.claimant == member_position.wallet` (operator submit on behalf of member) | New `ClaimCase` PDA materialized with `state = proposed`, `claimant = M_wallet`, `policy_series = travel30`, `funding_line = travel30_premium`, `attestation_count = 0` |
 
 **Member-visible**: the claim shows up in the member's claim list with `state = proposed`. No money has moved.
 
@@ -50,21 +50,21 @@ The default recipient is the member's own wallet. This step lets the member rout
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Claims operator | `require_claim_operator` | `claim_case.evidence_ref_hash` and `claim_case.decision_support_hash` are updated in place; raw evidence stays offchain |
+| Claims operator | Protocol emergency pause is clear; `require_claim_operator`; `claim_case.attestation_count == 0` | `claim_case.evidence_ref_hash` and `claim_case.decision_support_hash` are updated in place; raw evidence stays offchain |
 
 **Member-visible**: the claim shows `evidence attached` with a reference URI (which resolves to OmegaX Health's evidence portal, NOT to a public link — raw medical content is never on-chain or in public docs).
 
-**Truth chain**: the chain now has a tamper-evident hash of the evidence packet. If the offchain packet is later edited, the on-chain hash no longer matches and any downstream attestation is invalidated.
+**Truth chain**: the chain now has a tamper-evident hash of the evidence packet. Once any `ClaimAttestation` exists, evidence is locked; later edits require a new claim case rather than silently replacing the packet under an existing attestation.
 
 ### Step 4 — `attest_claim_case`
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Oracle authority | `register_oracle` signer matches; oracle profile is the configured one | New `ClaimAttestation` PDA; `attestation_hash` and `attestation_ref_hash` recorded; PoolOracle permissions verified |
+| Oracle authority | Protocol emergency pause is clear; plan oracle-finality hold is clear; oracle profile is active/claimed and supports a governance-verified schema; `attestation_ref_hash == claim_case.evidence_ref_hash`; LP-allocation claims require active `PoolOracleApproval` plus `POOL_ORACLE_PERMISSION_ATTEST_CLAIM` on the pool | New `ClaimAttestation` PDA; attestation hash, evidence hash, decision-support hash, schema hash/version, and LP pool/allocation reference are snapshotted |
 
 **Member-visible**: the claim shows `attested by oracle <name>` with the attestation's reference URI.
 
-**Truth chain**: an oracle the protocol trusts has signed off on the evidence. PT-07 closed the spoof-oracle gap (`register_oracle` requires `signer == args.oracle`).
+**Truth chain**: an oracle the protocol trusts has signed off on the exact evidence hash attached to the claim. PT-07 closed the spoof-oracle gap (`register_oracle` requires `signer == args.oracle`). The Phase 0 attestation gate enforces verified schema and pool oracle approval/permission for LP-backed claims; pool quorum remains policy metadata until the later multi-attestation finality gate ships.
 
 ### Step 5 — `adjudicate_claim_case`
 
@@ -122,7 +122,8 @@ The Notion task explicitly calls out **incomplete evidence / more-info-needed / 
 | Messy state | Where it lives | What an external reviewer sees |
 |-------------|----------------|----|
 | **Incomplete evidence** | Off-chain (operator review queue) — no on-chain state. The claim sits in `state = proposed` with no `attach_claim_evidence_ref` yet | Claim shows `awaiting evidence` in the public timeline; no funding-line reserve change |
-| **More-info-needed** | Off-chain. Operator declines to attest; the claim stays in `proposed` until the member supplies more evidence (a new `attach_claim_evidence_ref` is recorded with a different evidence hash) | Each evidence-ref attempt is a new on-chain entry; reviewer sees the trail of attempts |
+| **More-info-needed before attestation** | Off-chain. Operator declines to attest; the claim stays in `proposed` until the member supplies more evidence (a new `attach_claim_evidence_ref` is recorded with a different evidence hash) | Each pre-attestation evidence-ref attempt is a new on-chain entry; reviewer sees the trail of attempts |
+| **More-info-needed after attestation** | Off-chain plus new on-chain claim case. Evidence is immutable once `attestation_count > 0`, so a materially revised packet must be opened as a new claim case | Reviewer sees the old attested claim and the new claim case rather than a mutable evidence overwrite |
 | **Partial approval** | On-chain via the tier system. `adjudicate_claim_case` records the approved tier; tier amount is the cap; reimbursement top-up requires a separate adjudication round | Claim shows `tier 2 approved, top-up review pending` |
 | **Denial over cap** | On-chain. Adjudication records the requested amount and the approved amount separately; `obligation.amount` is the approved cap, never the requested amount | Claim shows `requested $X, approved $cap (over-cap)` |
 | **Final denial** | On-chain. `adjudicate_claim_case` transitions `proposed → denied`; no obligation is ever booked | Claim timeline ends at `denied with reason hash`; no money moves |
@@ -141,8 +142,8 @@ In **Phase 1** (post-launch), `protocol-oracle-service` adds dispute-case state 
 For each Genesis claim, a reviewer should be able to answer:
 
 1. **Who opened it?** → `claim_case.claimant` and the opening transaction's signer
-2. **What evidence was attached?** → `ClaimEvidenceRef` entries; hash chain
-3. **Who attested?** → `ClaimAttestation` entries; oracle profile
+2. **What evidence was attached?** → `claim_case.evidence_ref_hash`; once attested, matching `claim_attestation.evidence_ref_hash`
+3. **Who attested?** → `ClaimAttestation` entries; oracle profile; LP-backed claims also expose pool/allocation references
 4. **Who adjudicated?** → adjudication transaction signer (must be `claims_operator`)
 5. **What was the decision and why?** → `claim_case.state` + reason hash
 6. **What was reserved and from where?** → `obligation` + `funding_line.reserved` deltas
@@ -153,6 +154,6 @@ If any of these can't be answered from on-chain state alone for a real claim, th
 
 ## Mapping to existing tests
 
-The deterministic happy-path of this trace is mechanically exercised by the `protection_claim_lifecycle` scenario in [`e2e/localnet_protocol_surface.test.ts`](../../e2e/localnet_protocol_surface.test.ts) (instructions: `record_premium_payment`, `open_claim_case`, `authorize_claim_recipient`, `attach_claim_evidence_ref`, `attest_claim_case`, `adjudicate_claim_case`, `settle_claim_case`). PT-04 / PT-07 / PT-01 / PT-02 defenses cover the spoof-claimant, spoof-oracle, missing-money-out-CPI, and PDA-custody constraints respectively.
+The deterministic happy-path of this trace is mechanically exercised by the `protection_claim_lifecycle` scenario in [`e2e/localnet_protocol_surface.test.ts`](../../e2e/localnet_protocol_surface.test.ts) (instructions: `record_premium_payment`, `open_claim_case`, `authorize_claim_recipient`, `attach_claim_evidence_ref`, `attest_claim_case`, `adjudicate_claim_case`, `settle_claim_case`). PT-04 / PT-07 / PT-01 / PT-02 defenses cover the spoof-claimant, spoof-oracle, missing-money-out-CPI, and PDA-custody constraints respectively. The claim/oracle security hardening is covered by Rust unit tests for pause, evidence-lock, schema-verification, evidence-match, and pool-permission gates plus frontend transaction-builder and pre-sign-review tests.
 
 The unhappy paths above currently rely on operator workflow rather than first-class on-chain state for the soft cases (incomplete evidence, more-info-needed, deferred settlement). When `protocol-oracle-service` adds dispute-case state, this trace should be updated to point at the new on-chain entries.

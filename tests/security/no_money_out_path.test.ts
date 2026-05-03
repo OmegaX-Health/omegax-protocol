@@ -92,7 +92,7 @@ test("[PT-02] The only token CPI lives in transfer_to_domain_vault and is inflow
   );
 
   // Locate every callsite of transfer_to_domain_vault. Expect they live only in
-  // inflow handlers: fund_sponsor_budget, record_premium_payment, deposit_into_capital_class.
+  // inflow handlers, including the Founder commitment deposit path.
   const callsiteLines = programSource
     .split("\n")
     .map((line, idx) => ({ line, lineno: idx + 1 }))
@@ -105,6 +105,7 @@ test("[PT-02] The only token CPI lives in transfer_to_domain_vault and is inflow
     "fund_sponsor_budget",
     "record_premium_payment",
     "deposit_into_capital_class",
+    "deposit_commitment",
   ]);
   const lines = programSource.split("\n");
   const violations: Array<{ lineno: number; handler: string }> = [];

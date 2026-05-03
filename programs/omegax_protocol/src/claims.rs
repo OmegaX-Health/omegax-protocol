@@ -13,6 +13,7 @@ use crate::kernel::*;
 use crate::state::*;
 
 pub(crate) fn open_claim_case(ctx: Context<OpenClaimCase>, args: OpenClaimCaseArgs) -> Result<()> {
+    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_id(&args.claim_id)?;
     require!(
         ctx.accounts.health_plan.pause_flags & PAUSE_FLAG_CLAIM_INTAKE == 0,
@@ -46,6 +47,7 @@ pub(crate) fn open_claim_case(ctx: Context<OpenClaimCase>, args: OpenClaimCaseAr
     claim_case.reserved_amount = 0;
     claim_case.recovered_amount = 0;
     claim_case.appeal_count = 0;
+    claim_case.attestation_count = 0;
     claim_case.linked_obligation = ZERO_PUBKEY;
     claim_case.opened_at = Clock::get()?.unix_timestamp;
     claim_case.updated_at = claim_case.opened_at;
@@ -79,6 +81,7 @@ pub(crate) fn attach_claim_evidence_ref(
     ctx: Context<AttachClaimEvidenceRef>,
     args: AttachClaimEvidenceRefArgs,
 ) -> Result<()> {
+    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_claim_operator(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
@@ -86,6 +89,7 @@ pub(crate) fn attach_claim_evidence_ref(
     )?;
 
     let claim_case = &mut ctx.accounts.claim_case;
+    require_claim_evidence_mutable(claim_case)?;
     claim_case.evidence_ref_hash = args.evidence_ref_hash;
     claim_case.decision_support_hash = args.decision_support_hash;
     claim_case.updated_at = Clock::get()?.unix_timestamp;
@@ -355,31 +359,54 @@ pub(crate) fn attest_claim_case(
 
     let now_ts = Clock::get()?.unix_timestamp;
     let oracle_profile = &ctx.accounts.oracle_profile;
-    let claim_case = &ctx.accounts.claim_case;
     let outcome_schema = &ctx.accounts.outcome_schema;
+    let claim_case_key = ctx.accounts.claim_case.key();
 
-    require!(
-        oracle_profile_supports_schema(oracle_profile, outcome_schema.schema_key_hash),
-        OmegaXProtocolError::ClaimAttestationSchemaUnsupported
-    );
+    validate_claim_attestation_common(
+        &ctx.accounts.protocol_governance,
+        ctx.accounts.health_plan.key(),
+        &ctx.accounts.health_plan,
+        ctx.accounts.funding_line.key(),
+        &ctx.accounts.funding_line,
+        &ctx.accounts.claim_case,
+        outcome_schema,
+        oracle_profile,
+        &args,
+    )?;
+
+    let (liquidity_pool, allocation_position) =
+        validate_claim_attestation_pool_scope(ctx.accounts)?;
 
     let attestation = &mut ctx.accounts.claim_attestation;
     attestation.oracle = oracle_profile.oracle;
     attestation.oracle_profile = oracle_profile.key();
-    attestation.claim_case = claim_case.key();
-    attestation.health_plan = claim_case.health_plan;
-    attestation.policy_series = claim_case.policy_series;
+    attestation.claim_case = claim_case_key;
+    attestation.health_plan = ctx.accounts.claim_case.health_plan;
+    attestation.policy_series = ctx.accounts.claim_case.policy_series;
     attestation.decision = args.decision;
     attestation.attestation_hash = args.attestation_hash;
     attestation.attestation_ref_hash = args.attestation_ref_hash;
+    attestation.evidence_ref_hash = ctx.accounts.claim_case.evidence_ref_hash;
+    attestation.decision_support_hash = ctx.accounts.claim_case.decision_support_hash;
     attestation.schema_key_hash = outcome_schema.schema_key_hash;
+    attestation.schema_hash = outcome_schema.schema_hash;
+    attestation.schema_version = outcome_schema.version;
+    attestation.liquidity_pool = liquidity_pool;
+    attestation.allocation_position = allocation_position;
     attestation.created_at_ts = now_ts;
     attestation.updated_at_ts = now_ts;
     attestation.bump = ctx.bumps.claim_attestation;
 
+    let claim_case = &mut ctx.accounts.claim_case;
+    claim_case.attestation_count = claim_case
+        .attestation_count
+        .checked_add(1)
+        .ok_or(OmegaXProtocolError::ArithmeticError)?;
+    claim_case.updated_at = now_ts;
+
     emit!(ClaimCaseAttestedEvent {
         claim_attestation: attestation.key(),
-        claim_case: claim_case.key(),
+        claim_case: claim_case_key,
         oracle_profile: oracle_profile.key(),
         oracle: oracle_profile.oracle,
         decision: attestation.decision,
@@ -389,11 +416,339 @@ pub(crate) fn attest_claim_case(
     Ok(())
 }
 
+pub(crate) fn require_claim_evidence_mutable(claim_case: &ClaimCase) -> Result<()> {
+    require!(
+        claim_case.attestation_count == 0,
+        OmegaXProtocolError::ClaimEvidenceLocked
+    );
+    Ok(())
+}
+
+pub(crate) fn validate_claim_attestation_common(
+    protocol_governance: &ProtocolGovernance,
+    health_plan_key: Pubkey,
+    health_plan: &HealthPlan,
+    funding_line_key: Pubkey,
+    funding_line: &FundingLine,
+    claim_case: &ClaimCase,
+    outcome_schema: &OutcomeSchema,
+    oracle_profile: &OracleProfile,
+    args: &AttestClaimCaseArgs,
+) -> Result<()> {
+    require_protocol_not_paused(protocol_governance)?;
+    require!(
+        health_plan.pause_flags & PAUSE_FLAG_ORACLE_FINALITY_HOLD == 0,
+        OmegaXProtocolError::OracleFinalityHeld
+    );
+    require!(
+        !is_zero_hash(&claim_case.evidence_ref_hash),
+        OmegaXProtocolError::ClaimEvidenceRequired
+    );
+    require!(
+        args.attestation_ref_hash == claim_case.evidence_ref_hash,
+        OmegaXProtocolError::ClaimEvidenceMismatch
+    );
+    require!(
+        outcome_schema.verified,
+        OmegaXProtocolError::OutcomeSchemaUnverified
+    );
+    require!(
+        oracle_profile_supports_schema(oracle_profile, outcome_schema.schema_key_hash),
+        OmegaXProtocolError::ClaimAttestationSchemaUnsupported
+    );
+    require_keys_eq!(
+        claim_case.health_plan,
+        funding_line.health_plan,
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+    require_keys_eq!(
+        health_plan.reserve_domain,
+        funding_line.reserve_domain,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require_keys_eq!(
+        health_plan_key,
+        claim_case.health_plan,
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+    require_keys_eq!(
+        funding_line_key,
+        claim_case.funding_line,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require_keys_eq!(
+        funding_line.policy_series,
+        claim_case.policy_series,
+        OmegaXProtocolError::PolicySeriesMismatch
+    );
+    require_keys_eq!(
+        funding_line.asset_mint,
+        claim_case.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require!(
+        funding_line.status == FUNDING_LINE_STATUS_OPEN,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    Ok(())
+}
+
+pub(crate) struct ClaimAttestationPoolScope<'a> {
+    pub liquidity_pool_key: Pubkey,
+    pub liquidity_pool: &'a LiquidityPool,
+    pub capital_class_key: Pubkey,
+    pub capital_class: &'a CapitalClass,
+    pub allocation_position_key: Pubkey,
+    pub allocation_position: &'a AllocationPosition,
+    pub funding_line_key: Pubkey,
+    pub pool_oracle_approval_key: Pubkey,
+    pub pool_oracle_approval: &'a PoolOracleApproval,
+    pub pool_oracle_permission_set_key: Pubkey,
+    pub pool_oracle_permission_set: &'a PoolOraclePermissionSet,
+    pub pool_oracle_policy_key: Pubkey,
+    pub pool_oracle_policy: &'a PoolOraclePolicy,
+}
+
+pub(crate) fn validate_lp_claim_attestation_scope(
+    health_plan: &HealthPlan,
+    funding_line: &FundingLine,
+    claim_case: &ClaimCase,
+    oracle_profile: &OracleProfile,
+    scope: ClaimAttestationPoolScope<'_>,
+) -> Result<()> {
+    let (expected_liquidity_pool, _) = Pubkey::find_program_address(
+        &[
+            SEED_LIQUIDITY_POOL,
+            scope.liquidity_pool.reserve_domain.as_ref(),
+            scope.liquidity_pool.pool_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.liquidity_pool_key,
+        expected_liquidity_pool,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+    require_keys_eq!(
+        scope.liquidity_pool.reserve_domain,
+        health_plan.reserve_domain,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+    require_keys_eq!(
+        scope.liquidity_pool.deposit_asset_mint,
+        funding_line.asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    let (expected_capital_class, _) = Pubkey::find_program_address(
+        &[
+            SEED_CAPITAL_CLASS,
+            scope.liquidity_pool_key.as_ref(),
+            scope.capital_class.class_id.as_bytes(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.capital_class_key,
+        expected_capital_class,
+        OmegaXProtocolError::CapitalClassMismatch
+    );
+    require_keys_eq!(
+        scope.capital_class.reserve_domain,
+        health_plan.reserve_domain,
+        OmegaXProtocolError::CapitalClassMismatch
+    );
+    require_keys_eq!(
+        scope.capital_class.liquidity_pool,
+        scope.liquidity_pool_key,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+    require_keys_eq!(
+        scope.allocation_position.reserve_domain,
+        health_plan.reserve_domain,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    require_keys_eq!(
+        scope.allocation_position.liquidity_pool,
+        scope.liquidity_pool_key,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    require_keys_eq!(
+        scope.allocation_position.capital_class,
+        scope.capital_class_key,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    let (expected_allocation_position, _) = Pubkey::find_program_address(
+        &[
+            SEED_ALLOCATION_POSITION,
+            scope.capital_class_key.as_ref(),
+            scope.funding_line_key.as_ref(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.allocation_position_key,
+        expected_allocation_position,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    require_keys_eq!(
+        scope.allocation_position.health_plan,
+        claim_case.health_plan,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    require_keys_eq!(
+        scope.allocation_position.policy_series,
+        claim_case.policy_series,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    require_keys_eq!(
+        scope.allocation_position.funding_line,
+        scope.funding_line_key,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    require!(
+        scope.allocation_position.active,
+        OmegaXProtocolError::AllocationPositionMismatch
+    );
+    let (expected_pool_oracle_approval, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_APPROVAL,
+            scope.liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.pool_oracle_approval_key,
+        expected_pool_oracle_approval,
+        OmegaXProtocolError::PoolOracleApprovalRequired
+    );
+    require_keys_eq!(
+        scope.pool_oracle_approval.liquidity_pool,
+        scope.liquidity_pool_key,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+    require_keys_eq!(
+        scope.pool_oracle_approval.oracle,
+        oracle_profile.oracle,
+        OmegaXProtocolError::OracleProfileMismatch
+    );
+    require!(
+        scope.pool_oracle_approval.active,
+        OmegaXProtocolError::PoolOracleApprovalRequired
+    );
+    let (expected_pool_oracle_permission_set, _) = Pubkey::find_program_address(
+        &[
+            SEED_POOL_ORACLE_PERMISSION_SET,
+            scope.liquidity_pool_key.as_ref(),
+            oracle_profile.oracle.as_ref(),
+        ],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.pool_oracle_permission_set_key,
+        expected_pool_oracle_permission_set,
+        OmegaXProtocolError::PoolOraclePermissionRequired
+    );
+    require_keys_eq!(
+        scope.pool_oracle_permission_set.liquidity_pool,
+        scope.liquidity_pool_key,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+    require_keys_eq!(
+        scope.pool_oracle_permission_set.oracle,
+        oracle_profile.oracle,
+        OmegaXProtocolError::OracleProfileMismatch
+    );
+    require!(
+        scope.pool_oracle_permission_set.permissions & POOL_ORACLE_PERMISSION_ATTEST_CLAIM != 0,
+        OmegaXProtocolError::PoolOraclePermissionRequired
+    );
+    let (expected_pool_oracle_policy, _) = Pubkey::find_program_address(
+        &[SEED_POOL_ORACLE_POLICY, scope.liquidity_pool_key.as_ref()],
+        &crate::ID,
+    );
+    require_keys_eq!(
+        scope.pool_oracle_policy_key,
+        expected_pool_oracle_policy,
+        OmegaXProtocolError::PoolOracleApprovalRequired
+    );
+    require_keys_eq!(
+        scope.pool_oracle_policy.liquidity_pool,
+        scope.liquidity_pool_key,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+    Ok(())
+}
+
+fn validate_claim_attestation_pool_scope(
+    accounts: &AttestClaimCase<'_>,
+) -> Result<(Pubkey, Pubkey)> {
+    if accounts.funding_line.line_type != FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
+        require!(
+            accounts.liquidity_pool.is_none()
+                && accounts.capital_class.is_none()
+                && accounts.allocation_position.is_none()
+                && accounts.pool_oracle_approval.is_none()
+                && accounts.pool_oracle_permission_set.is_none()
+                && accounts.pool_oracle_policy.is_none(),
+            OmegaXProtocolError::FundingLineTypeMismatch
+        );
+        return Ok((ZERO_PUBKEY, ZERO_PUBKEY));
+    }
+
+    let Some(liquidity_pool) = accounts.liquidity_pool.as_deref() else {
+        return err!(OmegaXProtocolError::LiquidityPoolMismatch);
+    };
+    let Some(capital_class) = accounts.capital_class.as_deref() else {
+        return err!(OmegaXProtocolError::CapitalClassMismatch);
+    };
+    let Some(allocation_position) = accounts.allocation_position.as_deref() else {
+        return err!(OmegaXProtocolError::AllocationPositionMismatch);
+    };
+    let Some(pool_oracle_approval) = accounts.pool_oracle_approval.as_deref() else {
+        return err!(OmegaXProtocolError::PoolOracleApprovalRequired);
+    };
+    let Some(pool_oracle_permission_set) = accounts.pool_oracle_permission_set.as_deref() else {
+        return err!(OmegaXProtocolError::PoolOraclePermissionRequired);
+    };
+    let Some(pool_oracle_policy) = accounts.pool_oracle_policy.as_deref() else {
+        return err!(OmegaXProtocolError::PoolOracleApprovalRequired);
+    };
+
+    let liquidity_pool_key = liquidity_pool.key();
+    let allocation_position_key = allocation_position.key();
+    validate_lp_claim_attestation_scope(
+        &accounts.health_plan,
+        &accounts.funding_line,
+        &accounts.claim_case,
+        &accounts.oracle_profile,
+        ClaimAttestationPoolScope {
+            liquidity_pool_key,
+            liquidity_pool,
+            capital_class_key: capital_class.key(),
+            capital_class,
+            allocation_position_key,
+            allocation_position,
+            funding_line_key: accounts.funding_line.key(),
+            pool_oracle_approval_key: pool_oracle_approval.key(),
+            pool_oracle_approval,
+            pool_oracle_permission_set_key: pool_oracle_permission_set.key(),
+            pool_oracle_permission_set,
+            pool_oracle_policy_key: pool_oracle_policy.key(),
+            pool_oracle_policy,
+        },
+    )?;
+
+    Ok((liquidity_pool_key, allocation_position_key))
+}
+
 #[derive(Accounts)]
 #[instruction(args: OpenClaimCaseArgs)]
 pub struct OpenClaimCase<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Account<'info, ProtocolGovernance>,
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
     #[account(
@@ -552,6 +907,14 @@ pub struct SettleClaimCase<'info> {
 pub struct AttestClaimCase<'info> {
     #[account(mut)]
     pub oracle: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[account(
+        seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()],
+        bump = health_plan.bump,
+        constraint = health_plan.active @ OmegaXProtocolError::HealthPlanPaused,
+    )]
+    pub health_plan: Box<Account<'info, HealthPlan>>,
     #[account(
         seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
         bump = oracle_profile.bump,
@@ -561,15 +924,32 @@ pub struct AttestClaimCase<'info> {
     )]
     pub oracle_profile: Box<Account<'info, OracleProfile>>,
     #[account(
+        mut,
         seeds = [SEED_CLAIM_CASE, claim_case.health_plan.as_ref(), claim_case.claim_id.as_bytes()],
         bump = claim_case.bump,
+        constraint = claim_case.health_plan == health_plan.key() @ OmegaXProtocolError::HealthPlanMismatch,
     )]
     pub claim_case: Box<Account<'info, ClaimCase>>,
+    #[account(
+        seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), funding_line.line_id.as_bytes()],
+        bump = funding_line.bump,
+        constraint = funding_line.key() == claim_case.funding_line @ OmegaXProtocolError::FundingLineMismatch,
+        constraint = funding_line.health_plan == health_plan.key() @ OmegaXProtocolError::HealthPlanMismatch,
+        constraint = funding_line.policy_series == claim_case.policy_series @ OmegaXProtocolError::PolicySeriesMismatch,
+        constraint = funding_line.asset_mint == claim_case.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub funding_line: Box<Account<'info, FundingLine>>,
     #[account(
         seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
         bump = outcome_schema.bump,
     )]
     pub outcome_schema: Box<Account<'info, OutcomeSchema>>,
+    pub liquidity_pool: Option<Box<Account<'info, LiquidityPool>>>,
+    pub capital_class: Option<Box<Account<'info, CapitalClass>>>,
+    pub allocation_position: Option<Box<Account<'info, AllocationPosition>>>,
+    pub pool_oracle_approval: Option<Box<Account<'info, PoolOracleApproval>>>,
+    pub pool_oracle_permission_set: Option<Box<Account<'info, PoolOraclePermissionSet>>>,
+    pub pool_oracle_policy: Option<Box<Account<'info, PoolOraclePolicy>>>,
     #[account(
         init,
         payer = oracle,

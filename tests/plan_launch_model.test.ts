@@ -14,6 +14,7 @@ import type {
 const {
   buildLaunchReviewLinks,
   deriveLaunchPreflightAccountAddresses,
+  isRwaPolicyLaunchEnabled,
   parseProtectionPosture,
   requiresProtectionLane,
   requiresRewardLane,
@@ -24,6 +25,14 @@ const {
   validateProtectionLane,
   validateRewardLane,
 } = planLaunchModule as typeof import("../frontend/lib/plan-launch.ts");
+
+test("RWA policy launch controls stay future-gated by default", () => {
+  assert.equal(isRwaPolicyLaunchEnabled({}), false);
+  assert.equal(isRwaPolicyLaunchEnabled({ NEXT_PUBLIC_ENABLE_RWA_POLICY: "" }), false);
+  assert.equal(isRwaPolicyLaunchEnabled({ NEXT_PUBLIC_ENABLE_RWA_POLICY: "false" }), false);
+  assert.equal(isRwaPolicyLaunchEnabled({ NEXT_PUBLIC_ENABLE_RWA_POLICY: "1" }), true);
+  assert.equal(isRwaPolicyLaunchEnabled({ NEXT_PUBLIC_ENABLE_RWA_POLICY: "true" }), true);
+});
 
 function createValidBasics(intent: LaunchBasicsValidationInput["launchIntent"]): LaunchBasicsValidationInput {
   return {

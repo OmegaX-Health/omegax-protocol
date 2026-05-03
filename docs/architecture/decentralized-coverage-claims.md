@@ -74,6 +74,14 @@ enrolled `MemberPosition.wallet` opening a claim for itself, or the plan's claim
 opening the case through an operator workflow. The provided member position and funding line must
 belong to the selected plan and policy series, and the funding line must still be open.
 
+Evidence references are mutable only until the first attestation. `attest_claim_case` must reference
+the current `claim_case.evidence_ref_hash`, use a governance-verified schema supported by the oracle
+profile, and run while protocol emergency pause and plan oracle-finality hold are clear. For
+LP-allocation-backed claims, attestation also requires active pool oracle approval plus the
+`POOL_ORACLE_PERMISSION_ATTEST_CLAIM` permission bit. Pool quorum is still policy metadata in Phase 0;
+multi-attestation finality is a later adjudication/finality layer, not something this instruction
+pretends to enforce.
+
 - proposed
 - reserved
 - claimable or payable
