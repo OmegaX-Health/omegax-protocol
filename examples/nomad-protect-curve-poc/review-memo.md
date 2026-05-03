@@ -35,11 +35,15 @@ Generated: 2026-05-01T00:00:00.000Z
 | Model | Verdict | Gate | Members | Avg Premium | Avg Cap | Expected Loss Ratio | p99.5 Claims | Reserve |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Separated Backstop Curve | ship_candidate | healthy | 500 | 65.88 | 1001 | 37.94% | 22626 | 114646 |
-| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 63.32 | 809 | 36.93% | 36087 | 201991.6 |
-| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 59.84 | 723 | 34.27% | 44438 | 285782.15 |
-| Parametric Fast-Cash Overlay | ship_candidate | healthy | 1200 | 15 | 250 | 99.72% | 23250 | 91200 |
-| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 67.17 | 925 | 34.82% | 30344 | 158361.68 |
-| Pure Pay-Anything Pool | reject | pause | 500 | 29.5 | 3000 | 155.59% | 40431 | 63273.2 |
+| Calibrated Pay-Anything Curve | ship_candidate | healthy | 650 | 63.48 | 925 | 38.22% | 26964 | 132137.6 |
+| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 62.33 | 799 | 37.4% | 35774 | 201095.2 |
+| Underwriting Prediction Tranche | needs_wrapper | healthy | 1000 | 60.46 | 798 | 36.07% | 33874 | 216986.4 |
+| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 61.48 | 737 | 33.7% | 44874 | 287997.15 |
+| Parametric Fast-Cash Overlay | ship_candidate | healthy | 1200 | 15 | 250 | 99.62% | 23250 | 91200 |
+| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 64.28 | 894 | 35.8% | 29598 | 156278 |
+| Member Health Bond | ship_candidate | healthy | 850 | 64.52 | 885 | 32.7% | 29161 | 154360.55 |
+| Full Stack Market Mutual | needs_wrapper | healthy | 1500 | 58.36 | 695 | 30.93% | 40023 | 333786 |
+| Flat-Promise Pay-Anything Failure Case | reject | pause | 500 | 28.92 | 3000 | 158.66% | 40494 | 63014 |
 
 See `hybrid-model-report.md` for the full first-principles model comparison, scale checks, and plain-language explanation.
 

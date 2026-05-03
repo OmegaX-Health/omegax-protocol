@@ -118,6 +118,10 @@ type HybridModelKind =
   | "collateralized_sidecar"
   | "parametric_fast_cash"
   | "member_mutual_rebate"
+  | "calibrated_pay_anything_curve"
+  | "underwriting_prediction_tranche"
+  | "member_health_bond"
+  | "full_stack_market_mutual"
   | "pure_pay_anything_pool";
 
 type HybridScaleAssumptions = {
@@ -159,6 +163,24 @@ type HybridModelAssumptions = {
     memberSurplusSharePct: number;
     backerSurplusSharePct: number;
     protocolSurplusSharePct: number;
+  };
+  underwritingMarket?: {
+    predictorCount: number;
+    averageStakeUsd: number;
+    claimsTrancheSharePct: number;
+    signalAccuracyPct: number;
+    wrongStakePenaltyPct: number;
+    yieldAprPct: number;
+    pricingFeePct: number;
+    rewardSurplusSharePct: number;
+    eventThresholdLossRatio: number;
+  };
+  healthBond?: {
+    adoptionRate: number;
+    averageStakeUsd: number;
+    claimForfeiturePct: number;
+    moralHazardFrequencyReductionPct: number;
+    noClaimRewardSharePct: number;
   };
   purePool?: {
     promisedCapUsd: number;
@@ -591,21 +613,34 @@ function simulateClaimsDistribution(params: {
   severityMultiplier: number;
   reserveUsd: number;
   seedOffset: number;
+  healthBondMitigation?: {
+    adoptionRate: number;
+    perClaimForfeitureUsd: number;
+    frequencyReductionPct: number;
+  };
 }): ClaimDistribution {
   const rng = createRng((params.assumptions.monteCarlo.seed + params.seedOffset) >>> 0);
   const groups = groupedCaps(params.portfolio.memberQuotes);
   const claims: number[] = [];
-  const probability = params.assumptions.baselineClaimFrequency * params.frequencyMultiplier;
+  const mitigation = params.healthBondMitigation;
+  const frequencyReduction = mitigation ? clamp(mitigation.frequencyReductionPct, 0, 0.8) : 0;
+  const probability = params.assumptions.baselineClaimFrequency
+    * params.frequencyMultiplier
+    * (1 - frequencyReduction);
 
   for (let trial = 0; trial < params.assumptions.monteCarlo.trials; trial += 1) {
     let total = 0;
     for (const group of groups) {
       const count = claimCount(group.count, probability, rng);
       for (let i = 0; i < count; i += 1) {
-        total += Math.min(
+        const grossClaimUsd = Math.min(
           group.capUsd,
           sampleSeverity(params.assumptions.severityModel, params.severityMultiplier, rng),
         );
+        const netClaimUsd = mitigation && rng() < mitigation.adoptionRate
+          ? Math.max(0, grossClaimUsd - mitigation.perClaimForfeitureUsd)
+          : grossClaimUsd;
+        total += netClaimUsd;
       }
     }
     claims.push(total);
@@ -1149,6 +1184,42 @@ function buildFlatPromisePortfolio(params: {
   };
 }
 
+function underwritingCollateral(model: HybridModelAssumptions): {
+  totalPredictionCollateralUsd: number;
+  claimsTrancheCapitalUsd: number;
+  traderPayoutLiabilityUsd: number;
+} {
+  const market = model.underwritingMarket;
+  if (!market) {
+    return {
+      totalPredictionCollateralUsd: 0,
+      claimsTrancheCapitalUsd: 0,
+      traderPayoutLiabilityUsd: 0,
+    };
+  }
+  const totalPredictionCollateralUsd = roundMoney(market.predictorCount * market.averageStakeUsd);
+  const claimsTrancheCapitalUsd = roundMoney(totalPredictionCollateralUsd * (market.claimsTrancheSharePct / 100));
+  return {
+    totalPredictionCollateralUsd,
+    claimsTrancheCapitalUsd,
+    traderPayoutLiabilityUsd: roundMoney(totalPredictionCollateralUsd - claimsTrancheCapitalUsd),
+  };
+}
+
+function healthBondMitigation(model: HybridModelAssumptions): {
+  adoptionRate: number;
+  perClaimForfeitureUsd: number;
+  frequencyReductionPct: number;
+} | undefined {
+  if (!model.healthBond) return undefined;
+  return {
+    adoptionRate: model.healthBond.adoptionRate,
+    perClaimForfeitureUsd: roundMoney(model.healthBond.averageStakeUsd * (model.healthBond.claimForfeiturePct / 100)),
+    frequencyReductionPct: model.healthBond.adoptionRate
+      * (model.healthBond.moralHazardFrequencyReductionPct / 100),
+  };
+}
+
 function evaluateHybridIndemnity(params: {
   assumptions: Assumptions;
   model: HybridModelAssumptions;
@@ -1164,6 +1235,8 @@ function evaluateHybridIndemnity(params: {
   expectedSurplusUsd: number;
 } {
   const { assumptions, model, scale, seedOffset } = params;
+  const collateral = underwritingCollateral(model);
+  const effectiveRiskBackerCapitalUsd = roundMoney(scale.riskBackerCapitalUsd + collateral.claimsTrancheCapitalUsd);
   const portfolio = model.kind === "pure_pay_anything_pool"
     ? buildFlatPromisePortfolio({
       assumptions,
@@ -1177,12 +1250,12 @@ function evaluateHybridIndemnity(params: {
       members: scale.members,
       budgetMix: scale.budgetMix,
       riskMultiplier: scale.riskMultiplier,
-      riskBackerCapitalUsd: scale.riskBackerCapitalUsd,
+      riskBackerCapitalUsd: effectiveRiskBackerCapitalUsd,
       seedOffset,
     });
   const claimsPayingReserveUsd = roundMoney(
     assumptions.openingProtocolReserveUsd
-    + scale.riskBackerCapitalUsd
+    + effectiveRiskBackerCapitalUsd
     + portfolio.claimsReserveFromPremiumUsd,
   );
   const distribution = simulateClaimsDistribution({
@@ -1192,6 +1265,7 @@ function evaluateHybridIndemnity(params: {
     severityMultiplier: scale.severityMultiplier,
     reserveUsd: claimsPayingReserveUsd,
     seedOffset: seedOffset + 457,
+    healthBondMitigation: healthBondMitigation(model),
   });
   const solvencyGate = evaluateGate({
     reserveUsd: claimsPayingReserveUsd,
@@ -1337,7 +1411,7 @@ function buildScaleCheck(params: {
   return {
     label: params.label,
     members: scale.members,
-    riskBackerCapitalUsd: scale.riskBackerCapitalUsd,
+    riskBackerCapitalUsd: roundMoney(scale.riskBackerCapitalUsd + underwritingCollateral(params.model).claimsTrancheCapitalUsd),
     grossPremiumUsd: result.portfolio.grossPremiumUsd,
     activeCoverageLimitUsd: result.portfolio.activeCoverageLimitUsd,
     claimsPayingReserveUsd: result.claimsPayingReserveUsd,
@@ -1377,21 +1451,49 @@ function trancheExpectedLosses(
 function hybridFirstPrinciples(model: HybridModelAssumptions): string[] {
   const shared = [
     "A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.",
-    "Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.",
+    "Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.",
     "Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.",
   ];
   if (model.kind === "pure_pay_anything_pool") {
     return [
-      "If every budget receives the same liability, low-budget demand dominates and premium no longer tracks risk.",
+      "This failure case is a bad curve: every budget receives the same liability, so premium no longer tracks risk.",
       "A viral pool is not the same thing as a solvent insurance product.",
-      "The failure is structural, not a tuning problem.",
+      "Pay-anything can work only when the amount paid maps to a fixed, reserve-gated cap before activation.",
+    ];
+  }
+  if (model.kind === "calibrated_pay_anything_curve") {
+    return [
+      ...shared,
+      "Pay-anything is viable when the curve converts every dollar into an exact cap using current reserve depth.",
+      "The member budget is flexible, but the coverage promise is not flexible after purchase.",
     ];
   }
   if (model.kind === "loss_ratio_event_market") {
     return [
       ...shared,
-      "A prediction market is useful as an aggregate signal only if it cannot alter individual claim outcomes.",
+      "A prediction market is useful when it predicts aggregate pool risk instead of individual claim validity.",
       "The event must be objective: for example, pool loss ratio above a published threshold after claim close.",
+    ];
+  }
+  if (model.kind === "underwriting_prediction_tranche") {
+    return [
+      ...shared,
+      "Prediction collateral can count as claims capital only for the slice explicitly locked into the claims waterfall.",
+      "Correct predictors should earn from yield, fees, surplus, and wrong-side penalties only after claims reserves clear.",
+    ];
+  }
+  if (model.kind === "member_health_bond") {
+    return [
+      ...shared,
+      "A member can back themselves to avoid claims through a no-claim bond without profiting from being sick.",
+      "The bond should reduce net claim cost through forfeiture or deductible mechanics, not replace the coverage promise.",
+    ];
+  }
+  if (model.kind === "full_stack_market_mutual") {
+    return [
+      ...shared,
+      "The strongest architecture combines flexible member pricing, explicit junior capital, predictor scoring, and no-claim incentives.",
+      "The UI can stay simple while the protocol separately accounts for reserve, market collateral, and member bond economics.",
     ];
   }
   if (model.kind === "collateralized_sidecar") {
@@ -1421,16 +1523,44 @@ function hybridFirstPrinciples(model: HybridModelAssumptions): string[] {
 function hybridPolicyDesign(model: HybridModelAssumptions): string[] {
   if (model.kind === "pure_pay_anything_pool") {
     return [
-      "Do not ship.",
-      "If used as an onboarding metaphor, immediately convert payment into a capped quote before activation.",
-      "Never represent arbitrary payment as broad, uncapped health insurance.",
+      "Do not ship this flat-promise version.",
+      "Use it only as a red-team case proving that the curve must bind budget to cap.",
+      "Never represent arbitrary payment as broad 3000 USD cover unless that cap is actually priced and reserved.",
+    ];
+  }
+  if (model.kind === "calibrated_pay_anything_curve") {
+    return [
+      "Member policy: pay any amount above the floor and receive a signed, fixed cap from the curve.",
+      "Pricing rule: the same 15 USD buys less cover when reserve depth is thin or cohort risk is higher.",
+      "Issuance rule: no entitlement mints unless p99.5 and reserve-floor gates pass after the quote.",
     ];
   }
   if (model.kind === "loss_ratio_event_market") {
     return [
       "Member policy: fixed 30-day acute emergency entitlement with signed quote receipt.",
       "Market contract: aggregate pool loss ratio above threshold, settled after claim runout.",
-      "Firewall: market traders cannot approve, deny, delay, or see raw member medical evidence.",
+      "Claims boundary: AI processors and operators handle claims offchain; market data is aggregate only.",
+    ];
+  }
+  if (model.kind === "underwriting_prediction_tranche") {
+    return [
+      "Member policy: same capped acute cover.",
+      "Market policy: predictors stake on aggregate loss-ratio bands; a fixed share of stake is posted as junior claims capital.",
+      "Reward rule: correct predictors earn only after claims, reserve margin, and capital replenishment are satisfied.",
+    ];
+  }
+  if (model.kind === "member_health_bond") {
+    return [
+      "Member policy: capped cover plus optional no-claim bond.",
+      "Bond rule: no claim returns bond plus rebate; a covered claim forfeits the agreed amount into the pool.",
+      "Safety rule: members cannot buy uncapped upside from becoming sick.",
+    ];
+  }
+  if (model.kind === "full_stack_market_mutual") {
+    return [
+      "Member policy: pay-anything quote curve plus optional no-claim bond.",
+      "Capital policy: sidecar and prediction collateral form explicit junior reserve layers.",
+      "Settlement policy: claims first, reserve margin second, capital replenishment third, predictor/member rewards fourth.",
     ];
   }
   if (model.kind === "collateralized_sidecar") {
@@ -1464,7 +1594,12 @@ function hybridPolicyDesign(model: HybridModelAssumptions): string[] {
 function verdictFor(model: HybridModelAssumptions, launchGate: Gate): HybridModelResult["verdict"] {
   if (model.kind === "pure_pay_anything_pool") return "reject";
   if (launchGate === "pause") return "research_only";
-  if (model.kind === "loss_ratio_event_market" || model.kind === "collateralized_sidecar") return "needs_wrapper";
+  if (
+    model.kind === "loss_ratio_event_market"
+    || model.kind === "collateralized_sidecar"
+    || model.kind === "underwriting_prediction_tranche"
+    || model.kind === "full_stack_market_mutual"
+  ) return "needs_wrapper";
   return "ship_candidate";
 }
 
@@ -1491,8 +1626,10 @@ function buildHybridModelResult(
   const expectedLossRatioPct = portfolio.grossPremiumUsd > 0
     ? roundPercent(distribution.averageClaimsUsd / portfolio.grossPremiumUsd)
     : 0;
+  const collateral = underwritingCollateral(model);
   const market: Record<string, number | string | null> = {
-    riskBackerCapitalUsd: model.scale.riskBackerCapitalUsd,
+    baseRiskBackerCapitalUsd: model.scale.riskBackerCapitalUsd,
+    effectiveClaimsCapitalUsd: roundMoney(model.scale.riskBackerCapitalUsd + collateral.claimsTrancheCapitalUsd),
   };
   const notes: string[] = [];
 
@@ -1507,7 +1644,39 @@ function buildHybridModelResult(
     market.yesPriceCents = roundMoney(marketProbability * 100);
     market.liquidityUsd = model.market.liquidityUsd;
     market.quoteAdjustmentPct = roundPercent((marketProbability - fairProbability) * model.market.quoteAdjustmentSensitivity);
-    notes.push("Prediction market is modeled as a pricing and monitoring signal, not as claims-paying capital.");
+    notes.push("Prediction market is modeled as a pricing and monitoring signal unless collateral is explicitly locked into a claims tranche.");
+  }
+
+  if (model.underwritingMarket) {
+    const underwriting = model.underwritingMarket;
+    const grossRewardPoolUsd = roundMoney(
+      collateral.claimsTrancheCapitalUsd * (underwriting.yieldAprPct / 100) * (assumptions.product.coverWindowDays / 365)
+      + portfolio.grossPremiumUsd * (underwriting.pricingFeePct / 100)
+      + Math.max(0, evaluated.expectedSurplusUsd) * (underwriting.rewardSurplusSharePct / 100),
+    );
+    const wrongStakePenaltyUsd = roundMoney(
+      collateral.totalPredictionCollateralUsd
+      * (1 - underwriting.signalAccuracyPct / 100)
+      * (underwriting.wrongStakePenaltyPct / 100),
+    );
+    const correctStakeUsd = Math.max(1, collateral.totalPredictionCollateralUsd * (underwriting.signalAccuracyPct / 100));
+    const thresholdClaimsUsd = roundMoney(portfolio.grossPremiumUsd * underwriting.eventThresholdLossRatio);
+    const fairProbability = distribution.claims.filter((claim) => claim > thresholdClaimsUsd).length / distribution.claims.length;
+    market.totalPredictionCollateralUsd = collateral.totalPredictionCollateralUsd;
+    market.predictionClaimsTrancheUsd = collateral.claimsTrancheCapitalUsd;
+    market.traderPayoutLiabilityUsd = collateral.traderPayoutLiabilityUsd;
+    market.eventThresholdLossRatioPct = roundPercent(underwriting.eventThresholdLossRatio);
+    market.fairThresholdProbabilityPct = roundPercent(fairProbability);
+    market.signalAccuracyPct = underwriting.signalAccuracyPct;
+    market.rewardPoolBeforeWrongStakeUsd = grossRewardPoolUsd;
+    market.wrongStakePenaltyPoolUsd = wrongStakePenaltyUsd;
+    market.expectedCorrectPredictorRoiPct = roundPercent((grossRewardPoolUsd + wrongStakePenaltyUsd) / correctStakeUsd);
+    market.expectedWrongPredictorPenaltyPct = underwriting.wrongStakePenaltyPct;
+    market.rewardFunding = "reserve_yield_plus_pricing_fees_plus_surplus_plus_wrong_stake_penalties_after_claims";
+    notes.push(
+      `${collateral.claimsTrancheCapitalUsd} USD of predictor collateral is treated as junior claims capital; ${collateral.traderPayoutLiabilityUsd} USD remains trader payout liability.`,
+    );
+    notes.push("Correct predictors are paid only after claims, reserve margin, and capital replenishment gates clear.");
   }
 
   if (model.tranches) {
@@ -1537,6 +1706,32 @@ function buildHybridModelResult(
     market.expectedRebatePerMemberUsd = roundMoney(memberRebatePoolUsd / model.scale.members);
     market.backerSurplusSharePct = model.rebate.backerSurplusSharePct;
     notes.push("Rebate is modeled only from expected surplus; production would pay it after claim runout and reserve lock.");
+  }
+
+  if (model.healthBond) {
+    const adoptedMembers = Math.round(model.scale.members * model.healthBond.adoptionRate);
+    const lockedHealthBondUsd = roundMoney(adoptedMembers * model.healthBond.averageStakeUsd);
+    const mitigatedFrequency = assumptions.baselineClaimFrequency
+      * model.scale.frequencyMultiplier
+      * (1 - model.healthBond.adoptionRate * (model.healthBond.moralHazardFrequencyReductionPct / 100));
+    const expectedBondClaims = model.scale.members * mitigatedFrequency * model.healthBond.adoptionRate;
+    const expectedForfeitureUsd = roundMoney(
+      expectedBondClaims
+      * model.healthBond.averageStakeUsd
+      * (model.healthBond.claimForfeiturePct / 100),
+    );
+    const noClaimRewardPoolUsd = roundMoney(
+      Math.max(0, evaluated.expectedSurplusUsd) * (model.healthBond.noClaimRewardSharePct / 100),
+    );
+    const expectedHealthyStakers = Math.max(1, adoptedMembers - expectedBondClaims);
+    market.healthBondAdoptedMembers = adoptedMembers;
+    market.lockedHealthBondUsd = lockedHealthBondUsd;
+    market.perClaimForfeitureUsd = roundMoney(model.healthBond.averageStakeUsd * (model.healthBond.claimForfeiturePct / 100));
+    market.modeledFrequencyReductionPct = roundPercent(model.healthBond.adoptionRate * (model.healthBond.moralHazardFrequencyReductionPct / 100));
+    market.expectedBondForfeitureUsd = expectedForfeitureUsd;
+    market.noClaimRewardPoolUsd = noClaimRewardPoolUsd;
+    market.expectedNoClaimRewardPerHealthyStakerUsd = roundMoney(noClaimRewardPoolUsd / expectedHealthyStakers);
+    notes.push("Health bonds are modeled as claim-cost mitigation and no-claim rebates, not as a way to profit from illness.");
   }
 
   if (model.kind === "pure_pay_anything_pool") {
@@ -1791,7 +1986,7 @@ Generated: ${output.generatedAt}
 A mix is viable, but not as one undifferentiated pool. The first-principles split is:
 
 - Member side: insurance-grade coverage promise with a signed quote, fixed cap, defined window, waiting periods, exclusions, and claims adjudication.
-- Market side: prediction/capital mechanism that prices aggregate risk, supplies backstop capital, or distributes surplus, without deciding individual claims.
+- Market side: prediction/capital mechanism that prices aggregate risk, supplies backstop capital, or distributes surplus, separate from individual claim adjudication.
 - Protocol side: reserve gates, p99.5 stress checks, capital release rules, fraud controls, and regulatory wrapper boundaries.
 
 The best product shape is not "prediction market replaces insurance." It is "insurance entitlement plus market-priced risk capital."
@@ -1812,12 +2007,12 @@ ${modelSections}
 
 ## Simple Language Summary
 
-1. The cleanest viable version is: users buy capped cover; backers can deposit any amount; the curve adjusts how much cover a budget buys.
-2. A prediction market can help if it predicts aggregate pool losses, reserve stress, or backer pricing. It should not vote on whether Josip's hospital bill gets paid.
-3. The sidecar vault is the most finance-native model. It can scale capital, but it needs the strongest legal wrapper.
-4. Parametric fast cash is the simplest consumer product: 15 USD buys a small fixed payout if a clear trigger happens. It is fast, but not full health insurance.
-5. Mutual rebates are friendlier than speculation: members get upside when the month is healthy, after reserves are safe.
-6. The pure pay-anything pool fails. It grows fast in a pitch, then breaks because the same 3000 USD promise is sold for 15 USD and 159 USD.
+1. Pay-anything can work if the curve converts every budget into an exact cap before purchase.
+2. The bad version is not "pay anything." The bad version is "pay anything and receive the same 3000 USD promise."
+3. Predictor collateral can support claims when a defined slice is locked into the junior claims tranche.
+4. Correct predictors can be paid from reserve yield, pricing fees, surplus, and wrong-side penalties after claims and reserve gates clear.
+5. A member can back themselves through a no-claim health bond. That should reward staying healthy, not create uncapped upside from being sick.
+6. The full-stack model is the most powerful, but the production accounting must separate claims reserve, trader payout liability, predictor rewards, and member rebates.
 
 ## Source Notes
 

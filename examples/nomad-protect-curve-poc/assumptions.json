@@ -108,6 +108,30 @@
       }
     },
     {
+      "id": "calibrated-pay-anything-curve",
+      "name": "Calibrated Pay-Anything Curve",
+      "kind": "calibrated_pay_anything_curve",
+      "oneLine": "Members can enter with any amount, but the curve converts that amount into an exact capped entitlement.",
+      "memberOffering": "30-day acute emergency cover; any budget above 15 USD is accepted and converted into a fixed cap before purchase.",
+      "marketMechanism": "The bonding-curve output is coverage capacity, not a token; thin reserves or higher risk quote less cover per dollar.",
+      "productionBoundary": "This is the good pay-anything version: flexible budget, fixed cap, reserve-gated issuance.",
+      "scale": {
+        "members": 650,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.22 },
+          { "budgetUsd": 23, "weight": 0.17 },
+          { "budgetUsd": 47, "weight": 0.18 },
+          { "budgetUsd": 82, "weight": 0.18 },
+          { "budgetUsd": 126, "weight": 0.15 },
+          { "budgetUsd": 159, "weight": 0.1 }
+        ],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 1,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 70000
+      }
+    },
+    {
       "id": "loss-ratio-signal-market",
       "name": "Loss-Ratio Signal Market",
       "kind": "loss_ratio_event_market",
@@ -133,6 +157,39 @@
         "liquidityUsd": 75000,
         "marketProbabilityBiasPct": 3.5,
         "quoteAdjustmentSensitivity": 0.2
+      }
+    },
+    {
+      "id": "underwriting-prediction-tranche",
+      "name": "Underwriting Prediction Tranche",
+      "kind": "underwriting_prediction_tranche",
+      "oneLine": "Predictors stake on aggregate pool risk, and a defined share of that stake becomes junior claims capital.",
+      "memberOffering": "Same 30-day acute cover from the quote curve; members never interact with individual claim markets.",
+      "marketMechanism": "Predictors forecast whether cohort loss ratio breaches a threshold; correct predictors earn yield, fees, surplus, and wrong-side penalties after claims gates.",
+      "productionBoundary": "Prediction collateral counts as reserve only for the explicitly locked claims tranche.",
+      "scale": {
+        "members": 1000,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.32 },
+          { "budgetUsd": 39, "weight": 0.28 },
+          { "budgetUsd": 99, "weight": 0.25 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1.02,
+        "frequencyMultiplier": 1,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 65000
+      },
+      "underwritingMarket": {
+        "predictorCount": 240,
+        "averageStakeUsd": 420,
+        "claimsTrancheSharePct": 72,
+        "signalAccuracyPct": 61,
+        "wrongStakePenaltyPct": 28,
+        "yieldAprPct": 5.5,
+        "pricingFeePct": 4,
+        "rewardSurplusSharePct": 18,
+        "eventThresholdLossRatio": 0.6
       }
     },
     {
@@ -212,13 +269,83 @@
       }
     },
     {
+      "id": "member-health-bond",
+      "name": "Member Health Bond",
+      "kind": "member_health_bond",
+      "oneLine": "Members can back themselves to avoid claims through an optional no-claim bond and rebate.",
+      "memberOffering": "30-day capped acute cover plus optional health bond; no claim returns the bond and can earn a small rebate.",
+      "marketMechanism": "The member is not betting to become sick; the bond reduces moral hazard and claim cost if a claim occurs.",
+      "productionBoundary": "The bond is a member-aligned deductible/rebate layer, not a speculative market on individual sickness.",
+      "scale": {
+        "members": 850,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.28 },
+          { "budgetUsd": 39, "weight": 0.34 },
+          { "budgetUsd": 99, "weight": 0.23 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1,
+        "frequencyMultiplier": 0.98,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 80000
+      },
+      "healthBond": {
+        "adoptionRate": 0.42,
+        "averageStakeUsd": 100,
+        "claimForfeiturePct": 70,
+        "moralHazardFrequencyReductionPct": 10,
+        "noClaimRewardSharePct": 18
+      }
+    },
+    {
+      "id": "full-stack-market-mutual",
+      "name": "Full Stack Market Mutual",
+      "kind": "full_stack_market_mutual",
+      "oneLine": "Combines pay-anything coverage, sidecar reserve, predictor collateral, and optional member health bonds.",
+      "memberOffering": "Any budget above 15 USD quotes capped acute cover; members can optionally stake a no-claim bond.",
+      "marketMechanism": "Backers and predictors supply junior claims capital; correct predictors are paid from yield, fees, surplus, and wrong-side penalties after reserves clear.",
+      "productionBoundary": "Best long-term design, but only production-safe if reward and reserve waterfalls are separated in accounting.",
+      "scale": {
+        "members": 1500,
+        "budgetMix": [
+          { "budgetUsd": 15, "weight": 0.3 },
+          { "budgetUsd": 27, "weight": 0.15 },
+          { "budgetUsd": 39, "weight": 0.2 },
+          { "budgetUsd": 99, "weight": 0.2 },
+          { "budgetUsd": 159, "weight": 0.15 }
+        ],
+        "riskMultiplier": 1.03,
+        "frequencyMultiplier": 1,
+        "severityMultiplier": 1,
+        "riskBackerCapitalUsd": 90000
+      },
+      "underwritingMarket": {
+        "predictorCount": 400,
+        "averageStakeUsd": 500,
+        "claimsTrancheSharePct": 70,
+        "signalAccuracyPct": 63,
+        "wrongStakePenaltyPct": 30,
+        "yieldAprPct": 5.5,
+        "pricingFeePct": 4,
+        "rewardSurplusSharePct": 16,
+        "eventThresholdLossRatio": 0.58
+      },
+      "healthBond": {
+        "adoptionRate": 0.38,
+        "averageStakeUsd": 100,
+        "claimForfeiturePct": 70,
+        "moralHazardFrequencyReductionPct": 9,
+        "noClaimRewardSharePct": 14
+      }
+    },
+    {
       "id": "pure-pay-anything-pool",
-      "name": "Pure Pay-Anything Pool",
+      "name": "Flat-Promise Pay-Anything Failure Case",
       "kind": "pure_pay_anything_pool",
-      "oneLine": "Everyone pays any amount and receives the same broad cover promise.",
+      "oneLine": "Bad curve red-team case: everyone pays any amount and receives the same broad cover promise.",
       "memberOffering": "Any payment from 15 USD upward is treated as full 3000 USD acute cover.",
       "marketMechanism": "Feels viral but collapses pricing: low-budget members buy the same liability as high-budget members.",
-      "productionBoundary": "Use only as a red-team failure case; do not ship this as insurance.",
+      "productionBoundary": "Use only as a red-team failure case; pay-anything must be calibrated into a fixed cap.",
       "scale": {
         "members": 500,
         "budgetMix": [

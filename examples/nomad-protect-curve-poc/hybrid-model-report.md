@@ -7,7 +7,7 @@ Generated: 2026-05-01T00:00:00.000Z
 A mix is viable, but not as one undifferentiated pool. The first-principles split is:
 
 - Member side: insurance-grade coverage promise with a signed quote, fixed cap, defined window, waiting periods, exclusions, and claims adjudication.
-- Market side: prediction/capital mechanism that prices aggregate risk, supplies backstop capital, or distributes surplus, without deciding individual claims.
+- Market side: prediction/capital mechanism that prices aggregate risk, supplies backstop capital, or distributes surplus, separate from individual claim adjudication.
 - Protocol side: reserve gates, p99.5 stress checks, capital release rules, fraud controls, and regulatory wrapper boundaries.
 
 The best product shape is not "prediction market replaces insurance." It is "insurance entitlement plus market-priced risk capital."
@@ -17,11 +17,15 @@ The best product shape is not "prediction market replaces insurance." It is "ins
 | Model | Verdict | Gate | Members | Avg Premium | Avg Cap | Expected Loss Ratio | p99.5 Claims | Reserve |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Separated Backstop Curve | ship_candidate | healthy | 500 | 65.88 | 1001 | 37.94% | 22626 | 114646 |
-| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 63.32 | 809 | 36.93% | 36087 | 201991.6 |
-| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 59.84 | 723 | 34.27% | 44438 | 285782.15 |
-| Parametric Fast-Cash Overlay | ship_candidate | healthy | 1200 | 15 | 250 | 99.72% | 23250 | 91200 |
-| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 67.17 | 925 | 34.82% | 30344 | 158361.68 |
-| Pure Pay-Anything Pool | reject | pause | 500 | 29.5 | 3000 | 155.59% | 40431 | 63273.2 |
+| Calibrated Pay-Anything Curve | ship_candidate | healthy | 650 | 63.48 | 925 | 38.22% | 26964 | 132137.6 |
+| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 62.33 | 799 | 37.4% | 35774 | 201095.2 |
+| Underwriting Prediction Tranche | needs_wrapper | healthy | 1000 | 60.46 | 798 | 36.07% | 33874 | 216986.4 |
+| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 61.48 | 737 | 33.7% | 44874 | 287997.15 |
+| Parametric Fast-Cash Overlay | ship_candidate | healthy | 1200 | 15 | 250 | 99.62% | 23250 | 91200 |
+| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 64.28 | 894 | 35.8% | 29598 | 156278 |
+| Member Health Bond | ship_candidate | healthy | 850 | 64.52 | 885 | 32.7% | 29161 | 154360.55 |
+| Full Stack Market Mutual | needs_wrapper | healthy | 1500 | 58.36 | 695 | 30.93% | 40023 | 333786 |
+| Flat-Promise Pay-Anything Failure Case | reject | pause | 500 | 28.92 | 3000 | 158.66% | 40494 | 63014 |
 
 ## Scale Checks
 
@@ -30,21 +34,33 @@ The best product shape is not "prediction market replaces insurance." It is "ins
 | Separated Backstop Curve | launch scale | healthy | 500 | 60000 | 472397 | 21950 | 112647.99 | 23.85% |
 | Separated Backstop Curve | 3x demand with matching capital | healthy | 1500 | 180000 | 1095641 | 44670 | 286939.08 | 26.19% |
 | Separated Backstop Curve | 3x demand with launch capital | healthy | 1500 | 60000 | 1073115 | 44487 | 164595.37 | 15.34% |
-| Loss-Ratio Signal Market | launch scale | healthy | 1000 | 120000 | 828965 | 36352 | 203881.6 | 24.59% |
-| Loss-Ratio Signal Market | 3x demand with matching capital | healthy | 3000 | 360000 | 1764929 | 74750 | 558836.8 | 31.66% |
-| Loss-Ratio Signal Market | 3x demand with launch capital | healthy | 3000 | 120000 | 1783717 | 75276 | 321731.2 | 18.04% |
-| Collateralized Sidecar Vault | launch scale | healthy | 1500 | 180000 | 1094107 | 44381 | 286777.6 | 26.21% |
-| Collateralized Sidecar Vault | 3x demand with matching capital | healthy | 4500 | 540000 | 2261817 | 90635 | 811260.16 | 35.87% |
-| Collateralized Sidecar Vault | 3x demand with launch capital | healthy | 4500 | 180000 | 2278342 | 90781 | 454231.01 | 19.94% |
+| Calibrated Pay-Anything Curve | launch scale | healthy | 650 | 70000 | 630849 | 27523 | 134439.8 | 21.31% |
+| Calibrated Pay-Anything Curve | 3x demand with matching capital | healthy | 1950 | 210000 | 1383567 | 55640 | 349531.57 | 25.26% |
+| Calibrated Pay-Anything Curve | 3x demand with launch capital | healthy | 1950 | 70000 | 1391349 | 56289 | 210483.72 | 15.13% |
+| Loss-Ratio Signal Market | launch scale | healthy | 1000 | 120000 | 834249 | 36328 | 204378.4 | 24.5% |
+| Loss-Ratio Signal Market | 3x demand with matching capital | healthy | 3000 | 360000 | 1756582 | 74431 | 557562.4 | 31.74% |
+| Loss-Ratio Signal Market | 3x demand with launch capital | healthy | 3000 | 120000 | 1793141 | 75491 | 323189.2 | 18.02% |
+| Underwriting Prediction Tranche | launch scale | healthy | 1000 | 137576 | 847998 | 35200 | 221522.4 | 26.12% |
+| Underwriting Prediction Tranche | 3x demand with matching capital | healthy | 3000 | 267576 | 1815057 | 72126 | 468994 | 25.84% |
+| Underwriting Prediction Tranche | 3x demand with launch capital | healthy | 3000 | 137576 | 1819797 | 72696 | 339717.6 | 18.67% |
+| Collateralized Sidecar Vault | launch scale | healthy | 1500 | 180000 | 1074163 | 44373 | 284703.2 | 26.5% |
+| Collateralized Sidecar Vault | 3x demand with matching capital | healthy | 4500 | 540000 | 2285509 | 91284 | 815526.46 | 35.68% |
+| Collateralized Sidecar Vault | 3x demand with launch capital | healthy | 4500 | 180000 | 2245022 | 89363 | 448259.07 | 19.97% |
 | Parametric Fast-Cash Overlay | launch scale | healthy | 1200 | 50000 | 300000 | 23250 | 91200 | 30.4% |
 | Parametric Fast-Cash Overlay | 3x demand with matching capital | healthy | 3600 | 150000 | 900000 | 63000 | 223600 | 24.84% |
 | Parametric Fast-Cash Overlay | 3x demand with launch capital | caution | 3600 | 50000 | 900000 | 63000 | 123600 | 13.73% |
-| Member Mutual Rebate Pool | launch scale | healthy | 800 | 85000 | 714600 | 29795 | 156212.4 | 21.86% |
-| Member Mutual Rebate Pool | 3x demand with matching capital | healthy | 2400 | 255000 | 1610653 | 61594 | 423811.66 | 26.31% |
-| Member Mutual Rebate Pool | 3x demand with launch capital | healthy | 2400 | 85000 | 1600204 | 61547 | 252398 | 15.77% |
-| Pure Pay-Anything Pool | launch scale | pause | 500 | 25000 | 1500000 | 40270 | 62711.6 | 4.18% |
-| Pure Pay-Anything Pool | 3x demand with matching capital | pause | 1500 | 75000 | 4500000 | 98617 | 140867.2 | 3.13% |
-| Pure Pay-Anything Pool | 3x demand with launch capital | pause | 1500 | 25000 | 4500000 | 97810 | 91191.2 | 2.03% |
+| Member Mutual Rebate Pool | launch scale | healthy | 800 | 85000 | 749913 | 30585 | 159182.09 | 21.23% |
+| Member Mutual Rebate Pool | 3x demand with matching capital | healthy | 2400 | 255000 | 1604487 | 61651 | 422970.4 | 26.36% |
+| Member Mutual Rebate Pool | 3x demand with launch capital | healthy | 2400 | 85000 | 1620473 | 61800 | 255150.86 | 15.75% |
+| Member Health Bond | launch scale | healthy | 850 | 80000 | 735949 | 28646 | 152999.85 | 20.79% |
+| Member Health Bond | 3x demand with matching capital | healthy | 2550 | 240000 | 1642699 | 59164 | 413201.99 | 25.15% |
+| Member Health Bond | 3x demand with launch capital | healthy | 2550 | 80000 | 1648551 | 58605 | 254010.85 | 15.41% |
+| Full Stack Market Mutual | launch scale | healthy | 1500 | 230000 | 1072411 | 40677 | 336907.2 | 31.42% |
+| Full Stack Market Mutual | 3x demand with matching capital | healthy | 4500 | 410000 | 2221443 | 81038 | 681250.8 | 30.67% |
+| Full Stack Market Mutual | 3x demand with launch capital | healthy | 4500 | 230000 | 2233384 | 81426 | 503421.6 | 22.54% |
+| Flat-Promise Pay-Anything Failure Case | launch scale | pause | 500 | 25000 | 1500000 | 40611 | 62927.6 | 4.2% |
+| Flat-Promise Pay-Anything Failure Case | 3x demand with matching capital | pause | 1500 | 75000 | 4500000 | 98361 | 140186.8 | 3.12% |
+| Flat-Promise Pay-Anything Failure Case | 3x demand with launch capital | pause | 1500 | 25000 | 4500000 | 98304 | 89582 | 1.99% |
 
 ## Model 1: Separated Backstop Curve
 
@@ -69,7 +85,8 @@ Production boundary: Insurance-grade member entitlement; market-grade capital su
 
 | Market Field | Value |
 | --- | ---: |
-| riskBackerCapitalUsd | 60000 |
+| baseRiskBackerCapitalUsd | 60000 |
+| effectiveClaimsCapitalUsd | 60000 |
 
 ### Actuarial Output
 
@@ -90,7 +107,7 @@ Production boundary: Insurance-grade member entitlement; market-grade capital su
 ### First Principles
 
 - A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
-- Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
 - Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
 
 ### Policy Design
@@ -100,7 +117,64 @@ Production boundary: Insurance-grade member entitlement; market-grade capital su
 - Issuance rule: pause or reprice when reserve depth falls below target.
 
 
-## Model 2: Loss-Ratio Signal Market
+## Model 2: Calibrated Pay-Anything Curve
+
+**Verdict:** ship_candidate. **Launch gate:** healthy.
+
+Members can enter with any amount, but the curve converts that amount into an exact capped entitlement.
+
+### Offering
+
+- 30-day acute emergency cover; any budget above 15 USD is accepted and converted into a fixed cap before purchase.
+- Members modeled: 650.
+- Average premium: 63.48 USD.
+- Average coverage cap: 925 USD.
+- Active coverage limit: 601270 USD.
+- Budget range: 15-159 USD.
+
+### Market Design
+
+The bonding-curve output is coverage capacity, not a token; thin reserves or higher risk quote less cover per dollar.
+
+Production boundary: This is the good pay-anything version: flexible budget, fixed cap, reserve-gated issuance.
+
+| Market Field | Value |
+| --- | ---: |
+| baseRiskBackerCapitalUsd | 70000 |
+| effectiveClaimsCapitalUsd | 70000 |
+
+### Actuarial Output
+
+| Metric | Value |
+| --- | ---: |
+| Gross premium | 41264 |
+| Expected claims | 15772 |
+| Expected loss ratio | 38.22% |
+| p95 claims | 22401 |
+| p99 claims | 25589 |
+| p99.5 claims | 26964 |
+| Claims-paying reserve | 132137.6 |
+| Reserve breach probability | 0 |
+| Extra p99.5 reserve needed | 0 |
+| Extra reserve-floor capital needed | 0 |
+| Expected surplus | 25492 |
+
+### First Principles
+
+- A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
+- Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
+- Pay-anything is viable when the curve converts every dollar into an exact cap using current reserve depth.
+- The member budget is flexible, but the coverage promise is not flexible after purchase.
+
+### Policy Design
+
+- Member policy: pay any amount above the floor and receive a signed, fixed cap from the curve.
+- Pricing rule: the same 15 USD buys less cover when reserve depth is thin or cohort risk is higher.
+- Issuance rule: no entitlement mints unless p99.5 and reserve-floor gates pass after the quote.
+
+
+## Model 3: Loss-Ratio Signal Market
 
 **Verdict:** needs_wrapper. **Launch gate:** healthy.
 
@@ -110,9 +184,9 @@ Members still buy capped insurance; traders separately price whether the pool lo
 
 - Same 30-day acute cover, with the pool quote curve nudged by a public aggregate-loss signal.
 - Members modeled: 1000.
-- Average premium: 63.32 USD.
-- Average coverage cap: 809 USD.
-- Active coverage limit: 808718 USD.
+- Average premium: 62.33 USD.
+- Average coverage cap: 799 USD.
+- Active coverage limit: 798998 USD.
 - Budget range: 15-159 USD.
 
 ### Market Design
@@ -123,12 +197,13 @@ Production boundary: The event market must settle on aggregate pool data only an
 
 | Market Field | Value |
 | --- | ---: |
-| riskBackerCapitalUsd | 120000 |
+| baseRiskBackerCapitalUsd | 120000 |
+| effectiveClaimsCapitalUsd | 120000 |
 | eventThresholdLossRatioPct | 65 |
-| thresholdClaimsUsd | 41160.6 |
-| fairProbabilityPct | 0.01 |
-| marketProbabilityPct | 3.51 |
-| yesPriceCents | 3.51 |
+| thresholdClaimsUsd | 40513.2 |
+| fairProbabilityPct | 0.02 |
+| marketProbabilityPct | 3.52 |
+| yesPriceCents | 3.52 |
 | liquidityUsd | 75000 |
 | quoteAdjustmentPct | 0.7 |
 
@@ -136,37 +211,109 @@ Production boundary: The event market must settle on aggregate pool data only an
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 63324 |
-| Expected claims | 23386 |
-| Expected loss ratio | 36.93% |
-| p95 claims | 30944 |
-| p99 claims | 34650 |
-| p99.5 claims | 36087 |
-| Claims-paying reserve | 201991.6 |
+| Gross premium | 62328 |
+| Expected claims | 23313 |
+| Expected loss ratio | 37.4% |
+| p95 claims | 30777 |
+| p99 claims | 34260 |
+| p99.5 claims | 35774 |
+| Claims-paying reserve | 201095.2 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 39938 |
+| Expected surplus | 39015 |
 
 ### First Principles
 
 - A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
-- Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
 - Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
-- A prediction market is useful as an aggregate signal only if it cannot alter individual claim outcomes.
+- A prediction market is useful when it predicts aggregate pool risk instead of individual claim validity.
 - The event must be objective: for example, pool loss ratio above a published threshold after claim close.
 
 ### Policy Design
 
 - Member policy: fixed 30-day acute emergency entitlement with signed quote receipt.
 - Market contract: aggregate pool loss ratio above threshold, settled after claim runout.
-- Firewall: market traders cannot approve, deny, delay, or see raw member medical evidence.
+- Claims boundary: AI processors and operators handle claims offchain; market data is aggregate only.
 
 ### Notes
 
-- Prediction market is modeled as a pricing and monitoring signal, not as claims-paying capital.
+- Prediction market is modeled as a pricing and monitoring signal unless collateral is explicitly locked into a claims tranche.
 
-## Model 3: Collateralized Sidecar Vault
+## Model 4: Underwriting Prediction Tranche
+
+**Verdict:** needs_wrapper. **Launch gate:** healthy.
+
+Predictors stake on aggregate pool risk, and a defined share of that stake becomes junior claims capital.
+
+### Offering
+
+- Same 30-day acute cover from the quote curve; members never interact with individual claim markets.
+- Members modeled: 1000.
+- Average premium: 60.46 USD.
+- Average coverage cap: 798 USD.
+- Active coverage limit: 798094 USD.
+- Budget range: 15-159 USD.
+
+### Market Design
+
+Predictors forecast whether cohort loss ratio breaches a threshold; correct predictors earn yield, fees, surplus, and wrong-side penalties after claims gates.
+
+Production boundary: Prediction collateral counts as reserve only for the explicitly locked claims tranche.
+
+| Market Field | Value |
+| --- | ---: |
+| baseRiskBackerCapitalUsd | 65000 |
+| effectiveClaimsCapitalUsd | 137576 |
+| totalPredictionCollateralUsd | 100800 |
+| predictionClaimsTrancheUsd | 72576 |
+| traderPayoutLiabilityUsd | 28224 |
+| eventThresholdLossRatioPct | 60 |
+| fairThresholdProbabilityPct | 0.15 |
+| signalAccuracyPct | 61 |
+| rewardPoolBeforeWrongStakeUsd | 9702.78 |
+| wrongStakePenaltyPoolUsd | 11007.36 |
+| expectedCorrectPredictorRoiPct | 33.68 |
+| expectedWrongPredictorPenaltyPct | 28 |
+| rewardFunding | reserve_yield_plus_pricing_fees_plus_surplus_plus_wrong_stake_penalties_after_claims |
+
+### Actuarial Output
+
+| Metric | Value |
+| --- | ---: |
+| Gross premium | 60456 |
+| Expected claims | 21809 |
+| Expected loss ratio | 36.07% |
+| p95 claims | 29116 |
+| p99 claims | 32551 |
+| p99.5 claims | 33874 |
+| Claims-paying reserve | 216986.4 |
+| Reserve breach probability | 0 |
+| Extra p99.5 reserve needed | 0 |
+| Extra reserve-floor capital needed | 0 |
+| Expected surplus | 38647 |
+
+### First Principles
+
+- A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
+- Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
+- Prediction collateral can count as claims capital only for the slice explicitly locked into the claims waterfall.
+- Correct predictors should earn from yield, fees, surplus, and wrong-side penalties only after claims reserves clear.
+
+### Policy Design
+
+- Member policy: same capped acute cover.
+- Market policy: predictors stake on aggregate loss-ratio bands; a fixed share of stake is posted as junior claims capital.
+- Reward rule: correct predictors earn only after claims, reserve margin, and capital replenishment are satisfied.
+
+### Notes
+
+- 72576 USD of predictor collateral is treated as junior claims capital; 28224 USD remains trader payout liability.
+- Correct predictors are paid only after claims, reserve margin, and capital replenishment gates clear.
+
+## Model 5: Collateralized Sidecar Vault
 
 **Verdict:** needs_wrapper. **Launch gate:** healthy.
 
@@ -176,9 +323,9 @@ Backers buy tranche-like risk shares that absorb pool losses in a transparent wa
 
 - 30-day acute cover sold through the same quote curve; capacity expands when tranche capital clears.
 - Members modeled: 1500.
-- Average premium: 59.84 USD.
-- Average coverage cap: 723 USD.
-- Active coverage limit: 1084538 USD.
+- Average premium: 61.48 USD.
+- Average coverage cap: 737 USD.
+- Active coverage limit: 1105717 USD.
 - Budget range: 15-159 USD.
 
 ### Market Design
@@ -189,9 +336,10 @@ Production boundary: Closest to insurance-linked securities or collateralized re
 
 | Market Field | Value |
 | --- | ---: |
-| riskBackerCapitalUsd | 180000 |
+| baseRiskBackerCapitalUsd | 180000 |
+| effectiveClaimsCapitalUsd | 180000 |
 | trancheCount | 3 |
-| juniorExpectedLossPct | 0.9 |
+| juniorExpectedLossPct | 1.01 |
 | seniorExpectedLossPct | 0 |
 | maxTrancheP995LossPct | 100 |
 
@@ -199,22 +347,22 @@ Production boundary: Closest to insurance-linked securities or collateralized re
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 89757.94 |
-| Expected claims | 30758 |
-| Expected loss ratio | 34.27% |
-| p95 claims | 39266 |
-| p99 claims | 42891 |
-| p99.5 claims | 44438 |
-| Claims-paying reserve | 285782.15 |
+| Gross premium | 92219.06 |
+| Expected claims | 31079 |
+| Expected loss ratio | 33.7% |
+| p95 claims | 39580 |
+| p99 claims | 43512 |
+| p99.5 claims | 44874 |
+| Claims-paying reserve | 287997.15 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 59000 |
+| Expected surplus | 61140 |
 
 ### First Principles
 
 - A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
-- Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
 - Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
 - Backers should know exactly which layer of loss they absorb and when their capital can be released.
 - This is a capital-markets wrapper around insurance risk, not consumer gambling.
@@ -227,11 +375,11 @@ Production boundary: Closest to insurance-linked securities or collateralized re
 
 ### Notes
 
-- Sponsor first loss: attaches at 0 USD, expected loss 86.21%, p99.5 impairment 100%.
-- Junior sidecar: attaches at 35000 USD, expected loss 0.9%, p99.5 impairment 14.52%.
+- Sponsor first loss: attaches at 0 USD, expected loss 86.92%, p99.5 impairment 100%.
+- Junior sidecar: attaches at 35000 USD, expected loss 1.01%, p99.5 impairment 15.19%.
 - Senior sidecar: attaches at 100000 USD, expected loss 0%, p99.5 impairment 0%.
 
-## Model 4: Parametric Fast-Cash Overlay
+## Model 6: Parametric Fast-Cash Overlay
 
 **Verdict:** ship_candidate. **Launch gate:** healthy.
 
@@ -254,7 +402,8 @@ Production boundary: Can sit beside indemnity cover; trigger design must be expl
 
 | Market Field | Value |
 | --- | ---: |
-| riskBackerCapitalUsd | 50000 |
+| baseRiskBackerCapitalUsd | 50000 |
+| effectiveClaimsCapitalUsd | 50000 |
 | triggerFrequencyPct | 5.98 |
 | benefitUsd | 250 |
 | premiumPerMemberUsd | 15 |
@@ -264,8 +413,8 @@ Production boundary: Can sit beside indemnity cover; trigger design must be expl
 | Metric | Value |
 | --- | ---: |
 | Gross premium | 18000 |
-| Expected claims | 17949 |
-| Expected loss ratio | 99.72% |
+| Expected claims | 17932 |
+| Expected loss ratio | 99.62% |
 | p95 claims | 21250 |
 | p99 claims | 22750 |
 | p99.5 claims | 23250 |
@@ -273,12 +422,12 @@ Production boundary: Can sit beside indemnity cover; trigger design must be expl
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 51 |
+| Expected surplus | 68 |
 
 ### First Principles
 
 - A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
-- Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
 - Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
 - A fixed benefit is easier to price than open-ended reimbursement, but creates basis risk for members.
 - The trigger must be independently verifiable and hard to manipulate.
@@ -293,7 +442,7 @@ Production boundary: Can sit beside indemnity cover; trigger design must be expl
 
 - Parametric benefit pays fast, but may underpay or overpay relative to the actual medical bill.
 
-## Model 5: Member Mutual Rebate Pool
+## Model 7: Member Mutual Rebate Pool
 
 **Verdict:** ship_candidate. **Launch gate:** healthy.
 
@@ -303,9 +452,9 @@ Members buy capped cover and receive surplus rebates when the cohort has a good 
 
 - 30-day capped cover with visible cohort economics; expected surplus funds member rebates and backer yield.
 - Members modeled: 800.
-- Average premium: 67.17 USD.
-- Average coverage cap: 925 USD.
-- Active coverage limit: 740235 USD.
+- Average premium: 64.28 USD.
+- Average coverage cap: 894 USD.
+- Active coverage limit: 715395 USD.
 - Budget range: 15-159 USD.
 
 ### Market Design
@@ -316,31 +465,32 @@ Production boundary: More consumer-friendly than a prediction market; still need
 
 | Market Field | Value |
 | --- | ---: |
-| riskBackerCapitalUsd | 85000 |
-| memberRebatePoolUsd | 12259.45 |
-| expectedRebatePerMemberUsd | 15.32 |
+| baseRiskBackerCapitalUsd | 85000 |
+| effectiveClaimsCapitalUsd | 85000 |
+| memberRebatePoolUsd | 11554.9 |
+| expectedRebatePerMemberUsd | 14.44 |
 | backerSurplusSharePct | 45 |
 
 ### Actuarial Output
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 53735.2 |
-| Expected claims | 18708 |
-| Expected loss ratio | 34.82% |
-| p95 claims | 25677 |
-| p99 claims | 29168 |
-| p99.5 claims | 30344 |
-| Claims-paying reserve | 158361.68 |
+| Gross premium | 51420 |
+| Expected claims | 18406 |
+| Expected loss ratio | 35.8% |
+| p95 claims | 25320 |
+| p99 claims | 28502 |
+| p99.5 claims | 29598 |
+| Claims-paying reserve | 156278 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 35027 |
+| Expected surplus | 33014 |
 
 ### First Principles
 
 - A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
-- Risk capital can be market-priced, but claims cannot be crowdsourced popularity contests.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
 - Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
 - Members can share upside from good claims experience without betting against sick members.
 - Rebates should be discretionary surplus distributions after reserves are satisfied.
@@ -355,17 +505,164 @@ Production boundary: More consumer-friendly than a prediction market; still need
 
 - Rebate is modeled only from expected surplus; production would pay it after claim runout and reserve lock.
 
-## Model 6: Pure Pay-Anything Pool
+## Model 8: Member Health Bond
+
+**Verdict:** ship_candidate. **Launch gate:** healthy.
+
+Members can back themselves to avoid claims through an optional no-claim bond and rebate.
+
+### Offering
+
+- 30-day capped acute cover plus optional health bond; no claim returns the bond and can earn a small rebate.
+- Members modeled: 850.
+- Average premium: 64.52 USD.
+- Average coverage cap: 885 USD.
+- Active coverage limit: 752022 USD.
+- Budget range: 15-159 USD.
+
+### Market Design
+
+The member is not betting to become sick; the bond reduces moral hazard and claim cost if a claim occurs.
+
+Production boundary: The bond is a member-aligned deductible/rebate layer, not a speculative market on individual sickness.
+
+| Market Field | Value |
+| --- | ---: |
+| baseRiskBackerCapitalUsd | 80000 |
+| effectiveClaimsCapitalUsd | 80000 |
+| healthBondAdoptedMembers | 357 |
+| lockedHealthBondUsd | 35700 |
+| perClaimForfeitureUsd | 70 |
+| modeledFrequencyReductionPct | 4.2 |
+| expectedBondForfeitureUsd | 938.46 |
+| noClaimRewardPoolUsd | 6643.62 |
+| expectedNoClaimRewardPerHealthyStakerUsd | 19.34 |
+
+### Actuarial Output
+
+| Metric | Value |
+| --- | ---: |
+| Gross premium | 54845.06 |
+| Expected claims | 17936 |
+| Expected loss ratio | 32.7% |
+| p95 claims | 24735 |
+| p99 claims | 27956 |
+| p99.5 claims | 29161 |
+| Claims-paying reserve | 154360.55 |
+| Reserve breach probability | 0 |
+| Extra p99.5 reserve needed | 0 |
+| Extra reserve-floor capital needed | 0 |
+| Expected surplus | 36909 |
+
+### First Principles
+
+- A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
+- Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
+- A member can back themselves to avoid claims through a no-claim bond without profiting from being sick.
+- The bond should reduce net claim cost through forfeiture or deductible mechanics, not replace the coverage promise.
+
+### Policy Design
+
+- Member policy: capped cover plus optional no-claim bond.
+- Bond rule: no claim returns bond plus rebate; a covered claim forfeits the agreed amount into the pool.
+- Safety rule: members cannot buy uncapped upside from becoming sick.
+
+### Notes
+
+- Health bonds are modeled as claim-cost mitigation and no-claim rebates, not as a way to profit from illness.
+
+## Model 9: Full Stack Market Mutual
+
+**Verdict:** needs_wrapper. **Launch gate:** healthy.
+
+Combines pay-anything coverage, sidecar reserve, predictor collateral, and optional member health bonds.
+
+### Offering
+
+- Any budget above 15 USD quotes capped acute cover; members can optionally stake a no-claim bond.
+- Members modeled: 1500.
+- Average premium: 58.36 USD.
+- Average coverage cap: 695 USD.
+- Active coverage limit: 1042798 USD.
+- Budget range: 15-159 USD.
+
+### Market Design
+
+Backers and predictors supply junior claims capital; correct predictors are paid from yield, fees, surplus, and wrong-side penalties after reserves clear.
+
+Production boundary: Best long-term design, but only production-safe if reward and reserve waterfalls are separated in accounting.
+
+| Market Field | Value |
+| --- | ---: |
+| baseRiskBackerCapitalUsd | 90000 |
+| effectiveClaimsCapitalUsd | 230000 |
+| totalPredictionCollateralUsd | 200000 |
+| predictionClaimsTrancheUsd | 140000 |
+| traderPayoutLiabilityUsd | 60000 |
+| eventThresholdLossRatioPct | 58 |
+| fairThresholdProbabilityPct | 0 |
+| signalAccuracyPct | 63 |
+| rewardPoolBeforeWrongStakeUsd | 13809.36 |
+| wrongStakePenaltyPoolUsd | 22200 |
+| expectedCorrectPredictorRoiPct | 28.58 |
+| expectedWrongPredictorPenaltyPct | 30 |
+| rewardFunding | reserve_yield_plus_pricing_fees_plus_surplus_plus_wrong_stake_penalties_after_claims |
+| healthBondAdoptedMembers | 570 |
+| lockedHealthBondUsd | 57000 |
+| perClaimForfeitureUsd | 70 |
+| modeledFrequencyReductionPct | 3.42 |
+| expectedBondForfeitureUsd | 1541.42 |
+| noClaimRewardPoolUsd | 8465.52 |
+| expectedNoClaimRewardPerHealthyStakerUsd | 15.45 |
+
+### Actuarial Output
+
+| Metric | Value |
+| --- | ---: |
+| Gross premium | 87540 |
+| Expected claims | 27072 |
+| Expected loss ratio | 30.93% |
+| p95 claims | 35007 |
+| p99 claims | 38508 |
+| p99.5 claims | 40023 |
+| Claims-paying reserve | 333786 |
+| Reserve breach probability | 0 |
+| Extra p99.5 reserve needed | 0 |
+| Extra reserve-floor capital needed | 0 |
+| Expected surplus | 60468 |
+
+### First Principles
+
+- A member promise must be fixed before the loss happens: named scope, window, cap, waits, and exclusions.
+- Claims stay in the AI/operator evidence workflow; markets price aggregate pool risk and reserve capacity.
+- Capacity is sold only while claims-paying reserve clears both stochastic loss and reserve-floor gates.
+- The strongest architecture combines flexible member pricing, explicit junior capital, predictor scoring, and no-claim incentives.
+- The UI can stay simple while the protocol separately accounts for reserve, market collateral, and member bond economics.
+
+### Policy Design
+
+- Member policy: pay-anything quote curve plus optional no-claim bond.
+- Capital policy: sidecar and prediction collateral form explicit junior reserve layers.
+- Settlement policy: claims first, reserve margin second, capital replenishment third, predictor/member rewards fourth.
+
+### Notes
+
+- 140000 USD of predictor collateral is treated as junior claims capital; 60000 USD remains trader payout liability.
+- Correct predictors are paid only after claims, reserve margin, and capital replenishment gates clear.
+- Health bonds are modeled as claim-cost mitigation and no-claim rebates, not as a way to profit from illness.
+
+## Model 10: Flat-Promise Pay-Anything Failure Case
 
 **Verdict:** reject. **Launch gate:** pause.
 
-Everyone pays any amount and receives the same broad cover promise.
+Bad curve red-team case: everyone pays any amount and receives the same broad cover promise.
 
 ### Offering
 
 - Any payment from 15 USD upward is treated as full 3000 USD acute cover.
 - Members modeled: 500.
-- Average premium: 29.5 USD.
+- Average premium: 28.92 USD.
 - Average coverage cap: 3000 USD.
 - Active coverage limit: 1500000 USD.
 - Budget range: 15-159 USD.
@@ -374,41 +671,42 @@ Everyone pays any amount and receives the same broad cover promise.
 
 Feels viral but collapses pricing: low-budget members buy the same liability as high-budget members.
 
-Production boundary: Use only as a red-team failure case; do not ship this as insurance.
+Production boundary: Use only as a red-team failure case; pay-anything must be calibrated into a fixed cap.
 
 | Market Field | Value |
 | --- | ---: |
-| riskBackerCapitalUsd | 25000 |
+| baseRiskBackerCapitalUsd | 25000 |
+| effectiveClaimsCapitalUsd | 25000 |
 | promisedCapUsd | 3000 |
-| averagePremiumRatePct | 0.98 |
+| averagePremiumRatePct | 0.96 |
 
 ### Actuarial Output
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 14748 |
-| Expected claims | 22946 |
-| Expected loss ratio | 155.59% |
-| p95 claims | 33601 |
-| p99 claims | 38502 |
-| p99.5 claims | 40431 |
-| Claims-paying reserve | 63273.2 |
+| Gross premium | 14460 |
+| Expected claims | 22942 |
+| Expected loss ratio | 158.66% |
+| p95 claims | 33551 |
+| p99 claims | 38437 |
+| p99.5 claims | 40494 |
+| Claims-paying reserve | 63014 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
-| Extra reserve-floor capital needed | 161727 |
-| Expected surplus | -8198 |
+| Extra reserve-floor capital needed | 161986 |
+| Expected surplus | -8482 |
 
 ### First Principles
 
-- If every budget receives the same liability, low-budget demand dominates and premium no longer tracks risk.
+- This failure case is a bad curve: every budget receives the same liability, so premium no longer tracks risk.
 - A viral pool is not the same thing as a solvent insurance product.
-- The failure is structural, not a tuning problem.
+- Pay-anything can work only when the amount paid maps to a fixed, reserve-gated cap before activation.
 
 ### Policy Design
 
-- Do not ship.
-- If used as an onboarding metaphor, immediately convert payment into a capped quote before activation.
-- Never represent arbitrary payment as broad, uncapped health insurance.
+- Do not ship this flat-promise version.
+- Use it only as a red-team case proving that the curve must bind budget to cap.
+- Never represent arbitrary payment as broad 3000 USD cover unless that cap is actually priced and reserved.
 
 ### Notes
 
@@ -417,12 +715,12 @@ Production boundary: Use only as a red-team failure case; do not ship this as in
 
 ## Simple Language Summary
 
-1. The cleanest viable version is: users buy capped cover; backers can deposit any amount; the curve adjusts how much cover a budget buys.
-2. A prediction market can help if it predicts aggregate pool losses, reserve stress, or backer pricing. It should not vote on whether Josip's hospital bill gets paid.
-3. The sidecar vault is the most finance-native model. It can scale capital, but it needs the strongest legal wrapper.
-4. Parametric fast cash is the simplest consumer product: 15 USD buys a small fixed payout if a clear trigger happens. It is fast, but not full health insurance.
-5. Mutual rebates are friendlier than speculation: members get upside when the month is healthy, after reserves are safe.
-6. The pure pay-anything pool fails. It grows fast in a pitch, then breaks because the same 3000 USD promise is sold for 15 USD and 159 USD.
+1. Pay-anything can work if the curve converts every budget into an exact cap before purchase.
+2. The bad version is not "pay anything." The bad version is "pay anything and receive the same 3000 USD promise."
+3. Predictor collateral can support claims when a defined slice is locked into the junior claims tranche.
+4. Correct predictors can be paid from reserve yield, pricing fees, surplus, and wrong-side penalties after claims and reserve gates clear.
+5. A member can back themselves through a no-claim health bond. That should reward staying healthy, not create uncapped upside from being sick.
+6. The full-stack model is the most powerful, but the production accounting must separate claims reserve, trader payout liability, predictor rewards, and member rebates.
 
 ## Source Notes
 

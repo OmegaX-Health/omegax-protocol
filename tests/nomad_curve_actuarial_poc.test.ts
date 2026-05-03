@@ -117,14 +117,23 @@ test("Nomad hybrid model report compares viable market-insurance mixes", () => {
   const report = readFileSync(join(REVIEW_DIR, "hybrid-model-report.md"), "utf8");
   const byId = Object.fromEntries(output.hybridModelResults.map((model: any) => [model.id, model]));
 
-  assert.equal(output.hybridModelResults.length, 6);
+  assert.equal(output.hybridModelResults.length, 10);
   assert.equal(byId["separated-backstop-curve"].verdict, "ship_candidate");
   assert.equal(byId["separated-backstop-curve"].launchGate, "healthy");
+  assert.equal(byId["calibrated-pay-anything-curve"].verdict, "ship_candidate");
+  assert.equal(byId["calibrated-pay-anything-curve"].launchGate, "healthy");
   assert.equal(byId["loss-ratio-signal-market"].verdict, "needs_wrapper");
   assert(byId["loss-ratio-signal-market"].market.marketProbabilityPct > 0);
+  assert.equal(byId["underwriting-prediction-tranche"].verdict, "needs_wrapper");
+  assert(byId["underwriting-prediction-tranche"].market.predictionClaimsTrancheUsd > 0);
+  assert(byId["underwriting-prediction-tranche"].market.expectedCorrectPredictorRoiPct > 0);
   assert.equal(byId["collateralized-sidecar-vault"].market.trancheCount, 3);
   assert.equal(byId["parametric-fast-cash-overlay"].market.benefitUsd, 250);
   assert(byId["member-mutual-rebate-pool"].market.expectedRebatePerMemberUsd >= 0);
+  assert.equal(byId["member-health-bond"].verdict, "ship_candidate");
+  assert(byId["member-health-bond"].market.lockedHealthBondUsd > 0);
+  assert.equal(byId["full-stack-market-mutual"].verdict, "needs_wrapper");
+  assert(byId["full-stack-market-mutual"].market.expectedNoClaimRewardPerHealthyStakerUsd >= 0);
   assert.equal(byId["pure-pay-anything-pool"].verdict, "reject");
   assert.equal(byId["pure-pay-anything-pool"].launchGate, "pause");
   assert(report.includes("## Simple Language Summary"));
