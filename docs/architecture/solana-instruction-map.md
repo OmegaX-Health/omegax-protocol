@@ -85,6 +85,28 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `allocate_capital` | allocate class capital into a funding line |
 | `deallocate_capital` | release unneeded allocated capital back to the pool |
 
+## Planned Reserve Productivity Surface
+
+These instructions are not part of the live IDL yet. They are the planned
+surface from
+[`ADR 0002`](../adr/0002-reserve-productivity-and-strategy-adapters.md) for
+making reserve productive without turning the claims kernel into a general DeFi
+router.
+
+| Planned instruction | Primary purpose |
+| --- | --- |
+| `register_yield_strategy` | governance-register a strategy profile for one reserve domain, asset mint, adapter program, and exposure policy |
+| `update_yield_strategy_controls` | update strategy caps, pause flags, active status, and policy hashes |
+| `open_strategy_position` | bind one attributable reserve scope to one registered strategy |
+| `deploy_free_reserve` | move only eligible free reserve into a registered adapter while booking restricted capacity |
+| `harvest_strategy_yield` | reconcile realized, same-mint yield back into the domain vault and scoped ledgers |
+| `recall_strategy_principal` | pull principal back from a strategy and release restricted capacity only after vault reconciliation |
+| `mark_strategy_impairment` | record strategy loss against the correct reserve, allocation, and capital-class waterfall |
+| `release_premium_surplus` | recognize underwriting surplus only after risk windows, claim runoff, and reserve floors are satisfied |
+
+Hard boundary: deployed principal, unrealized APY, and adapter-reported rewards
+do not count as free claims-paying reserve.
+
 ## Reviewer Notes
 
 - The retired pre-rearchitecture program-root creation flow does not exist in the live surface.

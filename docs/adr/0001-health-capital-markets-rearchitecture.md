@@ -279,9 +279,13 @@ Costs accepted:
 
 ## Open Questions
 
-Only two deliberately deferred items remain:
+Only two deliberately deferred items remain from this ADR:
 
 1. which external yield adapters will become first-class after public adapter review
 2. whether secondary distribution of capital-class interests should ship through direct transfer, wrapper, or auction pathways first
 
 Neither question changes the canonical nouns or reserve kernel adopted here.
+
+The yield-adapter question is resolved at the protocol-surface level by
+[`ADR 0002: Reserve Productivity and Strategy Adapter Surface`](./0002-reserve-productivity-and-strategy-adapters.md).
+Specific adapters still require their own public review before production use.

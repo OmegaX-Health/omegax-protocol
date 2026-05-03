@@ -324,6 +324,25 @@ Required page sections:
 | `Process queue` | Primary operator action | Advance eligible queue items when an operator is authorized to do so. | Must show impacted positions before signature. |
 | Impairment / pause banner | Alert | Explain when queue processing is blocked by impairment, pause, or governance controls. | Required when route-level blocking state exists. |
 
+#### Planned `/capital` panel: Reserve productivity
+
+This panel should ship only after the protocol implements the reserve
+productivity surface described in
+[`ADR 0002`](../adr/0002-reserve-productivity-and-strategy-adapters.md).
+Until then, strategy APY may appear as metadata, but no UI should imply that
+external yield deployment is active protocol behavior.
+
+| Element | Type | Required functionality | Required states / rules |
+| --- | --- | --- | --- |
+| Strategy registry table | Register | Show registered strategy profile, adapter program, asset mint, caps, liquidity floor, and active/pause state. | Read-only until strategy registration instructions exist. |
+| Reserve liquidity card | Summary card | Show free reserve, restricted/deployed reserve, encumbered reserve, and emergency floor. | Must state that deployed reserve is not free claims-paying reserve. |
+| Strategy position table | Register | Show principal deployed, principal recalled, realized yield, realized loss, pending recall, and impairment status. | One row per strategy position. |
+| `Deploy free reserve` | Operator action | Move eligible free reserve into a registered adapter. | Disabled until live protocol instructions, adapter review, cap checks, and liquidity-floor checks all pass. |
+| `Harvest yield` | Operator action | Reconcile realized same-mint yield back into the domain vault and ledgers. | Must verify vault reconciliation before showing success. |
+| `Recall principal` | Operator action | Pull strategy principal back to the domain vault. | Must remain available during strategy pause or emergency recall mode. |
+| `Mark impairment` | Operator action | Record strategy loss against the correct reserve, allocation, and class waterfall. | Must show affected ledgers and reason hash before signature. |
+| Premium surplus release drawer | Operator action | Recognize underwriting surplus after risk window and claim runoff. | Must be visually separate from strategy yield. |
+
 ### 3.4 `/claims`
 
 Purpose:

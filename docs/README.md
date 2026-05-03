@@ -22,6 +22,7 @@ If you are an external builder, start with the public docs site before diving in
 - [Solana Instruction Map](./architecture/solana-instruction-map.md)
 - [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) — abstract claim model
 - [Genesis Protect Claim Trace](./architecture/genesis-protect-claim-trace.md) — deterministic end-to-end walkthrough + messy-path map
+- [Genesis Protect V1 Curve Launch Plan](./architecture/genesis-protect-v1-curve-launch.md) — accepted V1 launch recommendation for curve-priced Travel 30, reserve gating, and Phase 0 claims
 - [Frontend Information Architecture](./architecture/frontend-information-architecture.md)
 - [Protocol Console Functional Specification](./architecture/protocol-console-functional-spec.md)
 
@@ -81,6 +82,7 @@ If you are an external builder, start with the public docs site before diving in
 - Use [Solana Program Architecture](./architecture/solana-program-architecture.md) to understand the on-chain program layout and reviewer read order.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
 - Use [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) when you need the signer model, claim roles, and payout-path rules for reviewed coverage claims.
+- Use [Genesis Protect V1 Curve Launch Plan](./architecture/genesis-protect-v1-curve-launch.md) when deciding what to ship first on mainnet after the quote-curve, sidecar, prediction-market, and health-bond actuarial review.
 - Use [Protocol Console Functional Specification](./architecture/protocol-console-functional-spec.md) when you need the target-state screen-by-screen functional brief for the public protocol console.
 - Use [Solana Public Readiness Review](./reviews/solana-public-readiness-review.md) for the scored audit, blockers, and cleanup backlog.
 - Use [Liquidity Pool Metadata Schema](./reference/liquidity-pool-metadata-schema.md) when integrating LP-facing off-chain APY metadata for a `LiquidityPool`.
