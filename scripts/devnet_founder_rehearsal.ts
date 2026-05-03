@@ -1296,6 +1296,22 @@ async function runCommitmentsAndClaims(
 
   for (const asset of assets) {
     const members = await memberSetForAsset(ctx, asset.symbol);
+    if (
+      ctx.resume &&
+      (await assetPositivePathComplete(
+        ctx,
+        asset,
+        campaign,
+        healthPlan,
+        policySeries,
+        members,
+      ))
+    ) {
+      console.log(
+        `[founder-rehearsal] skip-positive:${asset.symbol}: already settled`,
+      );
+      continue;
+    }
     await ensureFeeBalance(
       ctx,
       members.pending.publicKey,
@@ -1359,6 +1375,74 @@ async function runCommitmentsAndClaims(
       members.activate,
     );
   }
+}
+
+async function assetPositivePathComplete(
+  ctx: RehearsalContext,
+  asset: AssetRuntime,
+  campaign: PublicKey,
+  healthPlan: PublicKey,
+  policySeries: PublicKey,
+  members: MemberSet,
+): Promise<boolean> {
+  const protocol = ctx.protocol;
+  const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
+  const pendingPosition = protocol.deriveCommitmentPositionPda({
+    campaign,
+    depositor: members.pending.publicKey,
+    beneficiary: members.pending.publicKey,
+  });
+  const refundPosition = protocol.deriveCommitmentPositionPda({
+    campaign,
+    depositor: members.refund.publicKey,
+    beneficiary: members.refund.publicKey,
+  });
+  const activationPosition = protocol.deriveCommitmentPositionPda({
+    campaign,
+    depositor: members.activate.publicKey,
+    beneficiary: members.activate.publicKey,
+  });
+  const claimCase = protocol.deriveClaimCasePda({
+    healthPlan,
+    claimId: `founder-${asset.symbol.toLowerCase()}-claim`,
+  });
+  const obligation = protocol.deriveObligationPda({
+    fundingLine: asset.fundingLine,
+    obligationId: `founder-${asset.symbol.toLowerCase()}-obligation`,
+  });
+  const pending = snapshot.commitmentPositions.find(
+    (row) => row.address === pendingPosition.toBase58(),
+  );
+  const refunded = snapshot.commitmentPositions.find(
+    (row) => row.address === refundPosition.toBase58(),
+  );
+  const activated = snapshot.commitmentPositions.find(
+    (row) => row.address === activationPosition.toBase58(),
+  );
+  const claim = snapshot.claimCases.find(
+    (row) => row.address === claimCase.toBase58(),
+  );
+  const settledObligation = snapshot.obligations.find(
+    (row) => row.address === obligation.toBase58(),
+  );
+  const memberPosition = protocol.deriveMemberPositionPda({
+    healthPlan,
+    wallet: members.activate.publicKey,
+    seriesScope: policySeries,
+  });
+  const activeMember = snapshot.memberPositions.find(
+    (row) => row.address === memberPosition.toBase58(),
+  );
+
+  return (
+    pending?.state === protocol.COMMITMENT_POSITION_PENDING &&
+    refunded?.state === protocol.COMMITMENT_POSITION_REFUNDED &&
+    activated?.state ===
+      protocol.COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED &&
+    activeMember !== undefined &&
+    claim?.intakeStatus === protocol.CLAIM_INTAKE_SETTLED &&
+    settledObligation?.status === protocol.OBLIGATION_STATUS_SETTLED
+  );
 }
 
 async function memberSetForAsset(
