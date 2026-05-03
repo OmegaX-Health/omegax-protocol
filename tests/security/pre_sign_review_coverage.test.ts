@@ -12,7 +12,8 @@
 //
 // Source trace:
 // - frontend/lib/protocol-action.ts:55-99 — gate is conditional on params.review.
-// - 17 components import executeProtocolTransaction (see report).
+// - Mounted components that import executeProtocolTransaction are enumerated
+//   dynamically below so legacy cleanup does not leave stale fixture lists.
 
 import test from "node:test";
 import assert from "node:assert/strict";

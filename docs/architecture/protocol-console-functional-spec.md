@@ -76,7 +76,7 @@ Use this together with:
 
 | Element | Required functionality |
 | --- | --- |
-| `ProtocolSummaryRail` | Show 2-4 route-level summary cards with label, value, and optional explanatory copy. |
+| Summary cards | Show 2-4 route-level facts with label, value, and optional explanatory copy. |
 | `SearchableSelect` | Combine a canonical selector with optional filter input, option count text, selected hint, empty message, and selector error. |
 | `FieldHint` | Show inline help on hover, focus, and tap/click; close on outside interaction and `Esc`. |
 | `ProtocolDetailDisclosure` | Collapse raw protocol values, manual overrides, hashes, and advanced accounting details until requested. |
