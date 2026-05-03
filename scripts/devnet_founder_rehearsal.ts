@@ -1754,6 +1754,7 @@ async function maybeSendClaimEvidenceAndAttestation(
   asset: AssetRuntime,
 ): Promise<void> {
   const protocol = ctx.protocol;
+  const evidenceRefHashHex = sha256Hex(`evidence-ref:${asset.symbol}`);
   const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
   if (
     !snapshot.claimAttestations.find(
@@ -1768,7 +1769,7 @@ async function maybeSendClaimEvidenceAndAttestation(
         authority: ctx.governance.publicKey,
         healthPlanAddress: healthPlan,
         claimCaseAddress: claimCase,
-        evidenceRefHashHex: sha256Hex(`evidence-ref:${asset.symbol}`),
+        evidenceRefHashHex,
         decisionSupportHashHex: sha256Hex(`decision-support:${asset.symbol}`),
         recentBlockhash: "11111111111111111111111111111111",
       }),
@@ -1784,7 +1785,7 @@ async function maybeSendClaimEvidenceAndAttestation(
         fundingLineAddress: asset.fundingLine,
         decision: protocol.CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
         attestationHashHex: sha256Hex(`attestation:${asset.symbol}:approve`),
-        attestationRefHashHex: sha256Hex(`attestation-ref:${asset.symbol}`),
+        attestationRefHashHex: evidenceRefHashHex,
         schemaKeyHashHex: STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX,
         recentBlockhash: "11111111111111111111111111111111",
       }),
