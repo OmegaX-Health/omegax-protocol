@@ -1966,9 +1966,10 @@ async function simulateExpectedFailure(
   signers: Keypair[],
 ): Promise<void> {
   const latest = await ctx.connection.getLatestBlockhash("confirmed");
+  tx.feePayer = tx.feePayer ?? signers[0]?.publicKey;
   tx.recentBlockhash = latest.blockhash;
   tx.sign(...uniqueKeypairs(signers));
-  const result = await ctx.connection.simulateTransaction(tx, signers);
+  const result = await ctx.connection.simulateTransaction(tx);
   if (!result.value.err) {
     throw new Error(`Negative simulation unexpectedly passed: ${label}`);
   }
