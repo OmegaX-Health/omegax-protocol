@@ -186,6 +186,11 @@ pub struct CreatePolicySeriesArgs {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct InitializeSeriesReserveLedgerArgs {
+    pub asset_mint: Pubkey,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct VersionPolicySeriesArgs {
     #[max_len(MAX_ID_LEN)]
     pub series_id: String,

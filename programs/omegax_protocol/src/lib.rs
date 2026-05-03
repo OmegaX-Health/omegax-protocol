@@ -183,6 +183,13 @@ pub mod omegax_protocol {
         crate::plans_membership::create_policy_series(ctx, args)
     }
 
+    pub fn initialize_series_reserve_ledger(
+        ctx: Context<InitializeSeriesReserveLedger>,
+        args: InitializeSeriesReserveLedgerArgs,
+    ) -> Result<()> {
+        crate::plans_membership::initialize_series_reserve_ledger(ctx, args)
+    }
+
     pub fn version_policy_series(
         ctx: Context<VersionPolicySeries>,
         args: VersionPolicySeriesArgs,

@@ -30,6 +30,7 @@ const {
   buildCreateCommitmentCampaignTx,
   buildCreateCommitmentPaymentRailTx,
   buildDepositCommitmentTx,
+  buildInitializeSeriesReserveLedgerTx,
   buildPauseCommitmentCampaignTx,
   buildPublishReserveAssetRailPriceTx,
   buildRefundCommitmentTx,
@@ -238,6 +239,24 @@ test("additional commitment payment rail builder adds assets without splitting c
   assert.equal(ix.keys[6]!.pubkey.toBase58(), travel30PremiumLine.address);
   assert.equal(ix.keys[7]!.pubkey.toBase58(), paymentRail.toBase58());
   assert.equal(ix.keys[8]!.pubkey.toBase58(), ledger.toBase58());
+});
+
+test("series reserve ledger builder initializes extra asset accounting for an existing series", () => {
+  const tx = buildInitializeSeriesReserveLedgerTx({
+    authority: AUTHORITY,
+    healthPlanAddress: genesisPlan.address,
+    policySeriesAddress: travel30Series.address,
+    assetMint: paymentMint,
+    recentBlockhash: RECENT_BLOCKHASH,
+  });
+  const ix = assertProtocolIxShape(tx, "initialize_series_reserve_ledger", AUTHORITY);
+  assert.equal(ix.keys.length, 6);
+  assert.equal(ix.keys[2]!.pubkey.toBase58(), genesisPlan.address);
+  assert.equal(ix.keys[3]!.pubkey.toBase58(), travel30Series.address);
+  assert.equal(
+    ix.keys[4]!.pubkey.toBase58(),
+    deriveSeriesReserveLedgerPda({ policySeries: travel30Series.address, assetMint: paymentMint }).toBase58(),
+  );
 });
 
 test("deposit, refund, and pause commitment builders keep commitment custody outside reserve accounting", () => {

@@ -33,6 +33,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(instructionNames.includes("create_reserve_domain"));
   assert(instructionNames.includes("create_health_plan"));
   assert(instructionNames.includes("create_policy_series"));
+  assert(instructionNames.includes("initialize_series_reserve_ledger"));
   assert(instructionNames.includes("open_funding_line"));
   assert(instructionNames.includes("create_liquidity_pool"));
   assert(instructionNames.includes("create_capital_class"));

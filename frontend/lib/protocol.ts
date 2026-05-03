@@ -4504,6 +4504,37 @@ export function buildCreatePolicySeriesTx(params: {
   });
 }
 
+export function buildInitializeSeriesReserveLedgerTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  policySeriesAddress: PublicKeyish;
+  assetMint: PublicKeyish;
+  recentBlockhash: string;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const assetMint = toPublicKey(params.assetMint);
+  const seriesReserveLedger = deriveSeriesReserveLedgerPda({
+    policySeries: params.policySeriesAddress,
+    assetMint,
+  });
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "initialize_series_reserve_ledger",
+    args: {
+      asset_mint: assetMint,
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      { pubkey: params.policySeriesAddress },
+      { pubkey: seriesReserveLedger, isWritable: true },
+      { pubkey: SystemProgram.programId },
+    ],
+  });
+}
+
 export function buildOpenFundingLineTx(params: {
   authority: PublicKeyish;
   healthPlanAddress: PublicKeyish;

@@ -915,6 +915,7 @@ async function ensureFundingLine(
     },
   );
   if (existing) return;
+  await ensureSeriesReserveLedger(ctx, healthPlan, policySeries, asset);
   await sendSignedTransaction(ctx, {
     label: `open_funding_line:${asset.symbol}`,
     tx: protocol.buildOpenFundingLineTx({
@@ -928,6 +929,43 @@ async function ensureFundingLine(
       fundingPriority: asset.payoutPriority,
       committedAmount: 0n,
       capsHashHex: sha256Hex(`founder-travel30-funding-line:${asset.symbol}`),
+      recentBlockhash: "11111111111111111111111111111111",
+    }),
+    signer: ctx.governance,
+    signers: [ctx.governance],
+  });
+}
+
+async function ensureSeriesReserveLedger(
+  ctx: RehearsalContext,
+  healthPlan: PublicKey,
+  policySeries: PublicKey,
+  asset: AssetRuntime,
+): Promise<void> {
+  const protocol = ctx.protocol;
+  const address = protocol.deriveSeriesReserveLedgerPda({
+    policySeries,
+    assetMint: asset.mint,
+  });
+  const snapshot = await protocol.loadProtocolConsoleSnapshot(ctx.connection);
+  const existing = snapshot.seriesReserveLedgers.find(
+    (row) => row.address === address.toBase58(),
+  );
+  assertCanonicalAccountMatches(
+    `series_reserve_ledger:${asset.symbol}`,
+    existing as Record<string, unknown> | null,
+    {
+      assetMint: asset.mint.toBase58(),
+    },
+  );
+  if (existing) return;
+  await sendSignedTransaction(ctx, {
+    label: `initialize_series_reserve_ledger:${asset.symbol}`,
+    tx: protocol.buildInitializeSeriesReserveLedgerTx({
+      authority: ctx.governance.publicKey,
+      healthPlanAddress: healthPlan,
+      policySeriesAddress: policySeries,
+      assetMint: asset.mint,
       recentBlockhash: "11111111111111111111111111111111",
     }),
     signer: ctx.governance,

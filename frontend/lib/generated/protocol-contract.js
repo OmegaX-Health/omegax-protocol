@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: c5396d0b4d43f7216d6f33b8f33ba36f27b076fe7c7bfe4836461e455cce8331
+// contract_sha256: d7daf306f61df6768b9737724ce9f09c0dee8582274b7f93b18e107bfad4bdc3
 export const PROTOCOL_PROGRAM_ID = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B";
 export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
     "activate_direct_premium_commitment": Uint8Array.from([94, 177, 11, 111, 30, 246, 181, 78]),
@@ -33,6 +33,7 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
     "init_pool_treasury_vault": Uint8Array.from([96, 169, 51, 224, 0, 207, 141, 47]),
     "init_protocol_fee_vault": Uint8Array.from([212, 235, 61, 42, 96, 183, 225, 57]),
     "initialize_protocol_governance": Uint8Array.from([220, 188, 231, 198, 20, 71, 42, 123]),
+    "initialize_series_reserve_ledger": Uint8Array.from([113, 155, 191, 126, 81, 152, 220, 249]),
     "mark_impairment": Uint8Array.from([58, 97, 30, 157, 211, 45, 174, 238]),
     "open_claim_case": Uint8Array.from([151, 125, 231, 211, 63, 132, 248, 184]),
     "open_funding_line": Uint8Array.from([231, 140, 66, 127, 163, 1, 197, 9]),
@@ -160,6 +161,9 @@ export const PROTOCOL_INSTRUCTION_ARGS = {
     ],
     "initialize_protocol_governance": [
         { name: "args", type: {"defined":{"name":"InitializeProtocolGovernanceArgs"}} },
+    ],
+    "initialize_series_reserve_ledger": [
+        { name: "args", type: {"defined":{"name":"InitializeSeriesReserveLedgerArgs"}} },
     ],
     "mark_impairment": [
         { name: "args", type: {"defined":{"name":"MarkImpairmentArgs"}} },
@@ -569,6 +573,14 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
     "initialize_protocol_governance": [
         { name: "governance_authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
         { name: "protocol_governance", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
+        { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
+    ],
+    "initialize_series_reserve_ledger": [
+        { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+        { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
+        { name: "health_plan", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
+        { name: "policy_series", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 108, 105, 99, 121, 95, 115, 101, 114, 105, 101, 115] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "policy_series.series_id" }] },
+        { name: "series_reserve_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [115, 101, 114, 105, 101, 115, 95, 114, 101, 115, 101, 114, 118, 101, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "policy_series" }, { kind: "arg", path: "args.asset_mint" }] },
         { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
     ],
     "mark_impairment": [
