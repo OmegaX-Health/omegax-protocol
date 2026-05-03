@@ -610,6 +610,14 @@ function toBigInt(value: BigNumberish | null | undefined): bigint {
   if (typeof value === "bigint") return value;
   if (typeof value === "number") return BigInt(Math.trunc(value));
   if (typeof value === "string" && value.trim()) return BigInt(value);
+  if (
+    value &&
+    typeof value === "object" &&
+    value.constructor?.name === "BN" &&
+    typeof (value as { toString?: unknown }).toString === "function"
+  ) {
+    return BigInt((value as { toString(): string }).toString());
+  }
   return 0n;
 }
 

@@ -250,6 +250,84 @@ test("devnet founder chain inputs derive activated reserve while leaving pending
   assert.equal(inputs[0]!.reservedRaw, 25_000_000n);
 });
 
+test("devnet founder chain inputs parse Anchor BN balance sheets before actuarial math", () => {
+  class BN {
+    constructor(private readonly value: bigint) {}
+    toString() {
+      return this.value.toString();
+    }
+  }
+  const nowTs = 1_777_000_000;
+  const usdcMint = "USDC111111111111111111111111111111111111111";
+  const campaign = "Campaign111111111111111111111111111111111111";
+  const inputs = chainInputsFromSnapshot({
+    nowTs,
+    reserveDomain: "Reserve111111111111111111111111111111111111",
+    assets: [{
+      ...FOUNDER_ASSET_RAILS[0]!,
+      mint: usdcMint,
+    }],
+    ledgers: [{
+      address: "Ledger1111111111111111111111111111111111111",
+      reserveDomain: "Reserve111111111111111111111111111111111111",
+      assetMint: usdcMint,
+      sheet: {
+        funded: new BN(134_000_000n),
+        settled: new BN(25_000_000n),
+      },
+    }],
+    rails: [{
+      address: "Rail111111111111111111111111111111111111111",
+      reserveDomain: "Reserve111111111111111111111111111111111111",
+      assetMint: usdcMint,
+      oracleAuthority: "Oracle111111111111111111111111111111111111",
+      assetSymbol: "USDC",
+      role: 0,
+      payoutPriority: 1,
+      oracleSource: 3,
+      oracleFeedIdHex: "11".repeat(32),
+      maxStalenessSeconds: 86_400,
+      haircutBps: 0,
+      maxExposureBps: 10_000,
+      depositEnabled: true,
+      payoutEnabled: true,
+      capacityEnabled: true,
+      active: true,
+      lastPriceUsd1e8: 100_000_000n,
+      lastPriceConfidenceBps: 5,
+      lastPricePublishedAtTs: nowTs,
+      lastPriceSlot: 1n,
+      lastPriceProofHashHex: "22".repeat(32),
+      auditNonce: 1n,
+      bump: 255,
+    }],
+    commitmentPositions: [
+      commitmentPosition(campaign, usdcMint, 159_000_000n, COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED),
+    ],
+    obligations: [],
+  });
+
+  assert.equal(inputs[0]!.fundedRaw, 159_000_000n);
+  assert.equal(inputs[0]!.settledRaw, 25_000_000n);
+  const report = evaluateChainActuarialGate({
+    nowTs,
+    activatedTravel30Members: 1,
+    assets: inputs,
+    assumptions: {
+      seed: 1,
+      trials: 20,
+      baselineClaimFrequency: 0.04,
+      maxPayoutUsd: 3_000,
+      severityMinUsd: 75,
+      severityModeUsd: 650,
+      severityP95Usd: 2_250,
+      severityMaxUsd: 3_000,
+    },
+  });
+  assert.equal(report.assetRows[0]!.encumberedUsd, 25);
+  assert.equal(report.assetRows[0]!.freeUsd, 134);
+});
+
 test("devnet founder raw amount conversion handles stable, SOL, BTC, ETH, and OMEGAX rails", () => {
   const bySymbol = Object.fromEntries(FOUNDER_ASSET_RAILS.map((asset) => [asset.symbol, asset]));
   assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.USDC.decimals, priceUsd1e8: bySymbol.USDC.priceUsd1e8 }), 159_000_000n);
