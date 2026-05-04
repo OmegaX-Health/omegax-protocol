@@ -41,6 +41,7 @@
     "devnet:frontend:smoke": "node --import tsx scripts/devnet_frontend_role_smoke.ts",
     "devnet:frontend:signoff": "DEVNET_FIXTURE_STRICT=1 node --import tsx scripts/devnet_frontend_role_smoke.ts",
     "devnet:operator:drawer:sim": "node --import tsx scripts/devnet_operator_drawer_sim.ts",
+    "devnet:treasury:seed-canaries": "node --import tsx scripts/seed_devnet_treasury_canaries.ts",
     "devnet:treasury:pen-test": "node --import tsx scripts/devnet_treasury_pen_test.ts",
     "devnet:governance:smoke:create-vote": "node --import tsx scripts/devnet_governance_smoke.ts create-vote",
     "devnet:governance:smoke:execute": "node --import tsx scripts/devnet_governance_smoke.ts execute",

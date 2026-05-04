@@ -73,8 +73,9 @@ Still required before any production-promotion claim:
 - Full localnet round trips for fee-vault init/accrue/withdraw across protocol,
   pool treasury, and pool oracle fee rails.
 - Devnet canary states for protocol fee vault, pool treasury vault, pool oracle
-  fee vault, unsettled linked claim, pending LP redemption, and LP-allocation
-  obligation.
+  fee vault, pending LP redemption, and LP-allocation obligation. The linked
+  claim canary has been seeded and is covered by
+  `docs/security/devnet-treasury-pen-test-2026-05-04.md`.
 - A fresh devnet treasury pen-test report with zero skipped probes or explicit
   accepted-risk explanations.
 - Release-candidate evidence with CI run IDs, localnet E2E output, SBOM,

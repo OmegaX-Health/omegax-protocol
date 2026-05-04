@@ -9,8 +9,9 @@ mainnet transactions, private-key discovery, or live-fund movement.
 
 No unauthenticated devnet treasury drain was demonstrated. The live devnet
 treasury runner still blocked all raw SPL vault drain attempts, and the richer
-OmegaX outflow probes remain limited by missing live canary fee, claim, and LP
-redemption states.
+OmegaX linked-claim settlement probe now runs against a live seeded canary and
+is blocked by on-chain authorization. Fee-vault and LP-redemption probes remain
+limited by missing governance-authorized canary state.
 
 One new high-priority accounting bug class was found and hardened in source:
 
@@ -64,8 +65,8 @@ does not show the same encumbrance or loss.
 - Fee-vault recipient swap: source checks still bind withdrawals to configured
   recipients, but devnet has no initialized withdrawable fee vaults to exercise.
 - Linked-claim payout diversion: source checks still bind recipient owner to the
-  member or member-delegated recipient; devnet lacks an unsettled canary linked
-  claim with usable vault-token accounts.
+  member or member-delegated recipient; the seeded devnet linked-claim canary is
+  blocked before funds can move.
 - LP redemption diversion: source checks still bind recipient owner to the LP
   owner; devnet has no pending LP redemption canary.
 - Token-2022 custody confusion: existing classic SPL guard remains in place.
@@ -78,7 +79,6 @@ small canary states for:
 - protocol fee vault with accrued SPL fees
 - pool treasury vault with accrued SPL fees
 - pool oracle fee vault with accrued SPL fees
-- unsettled linked claim obligation with usable vault token account
 - LP position with pending redemption shares
 - LP-allocation funding line with an active allocation position and canary
   obligation
@@ -86,5 +86,6 @@ small canary states for:
 Then rerun:
 
 ```bash
+npm run devnet:treasury:seed-canaries
 npm run devnet:treasury:pen-test
 ```
