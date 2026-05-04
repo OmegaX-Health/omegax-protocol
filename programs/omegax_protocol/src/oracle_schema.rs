@@ -117,7 +117,7 @@ pub(crate) fn update_oracle_profile(
 }
 
 pub(crate) fn set_pool_oracle(ctx: Context<SetPoolOracle>, args: SetPoolOracleArgs) -> Result<()> {
-    require_pool_control(
+    require_curator_control(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,
@@ -150,7 +150,7 @@ pub(crate) fn set_pool_oracle_permissions(
     ctx: Context<SetPoolOraclePermissions>,
     args: SetPoolOraclePermissionsArgs,
 ) -> Result<()> {
-    require_pool_control(
+    require_curator_control(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,
@@ -181,7 +181,7 @@ pub(crate) fn set_pool_oracle_policy(
     ctx: Context<SetPoolOraclePolicy>,
     args: SetPoolOraclePolicyArgs,
 ) -> Result<()> {
-    require_pool_control(
+    require_curator_control(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,

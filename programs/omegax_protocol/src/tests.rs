@@ -169,6 +169,9 @@ fn sentinel_is_not_curator_control() {
     assert!(require_curator_control(&curator, &governance, &pool).is_ok());
     assert!(require_curator_control(&governance_authority, &governance, &pool).is_ok());
     assert!(require_curator_control(&sentinel, &governance, &pool).is_err());
+    assert!(require_allocator(&pool.allocator, &governance, &pool).is_ok());
+    assert!(require_allocator(&curator, &governance, &pool).is_ok());
+    assert!(require_allocator(&sentinel, &governance, &pool).is_err());
 }
 
 #[test]
@@ -205,6 +208,58 @@ fn sponsor_budget_reserve_and_settlement_walks_the_kernel() {
     assert_eq!(sheet.funded, 380);
     assert_eq!(sheet.settled, 120);
     assert_eq!(sheet.owed, 0);
+}
+
+#[test]
+fn reserve_capacity_rejects_unfunded_non_allocation_obligations() {
+    let mut sheet = ReserveBalanceSheet::default();
+    book_inflow_sheet(&mut sheet, 100).unwrap();
+    assert!(require_obligation_reserve_capacity(&sheet, None, 100).is_ok());
+    assert!(require_obligation_reserve_capacity(&sheet, None, 101).is_err());
+}
+
+#[test]
+fn reserve_capacity_uses_free_lp_allocation_capacity() {
+    let allocation = AllocationPosition {
+        reserve_domain: Pubkey::new_unique(),
+        liquidity_pool: Pubkey::new_unique(),
+        capital_class: Pubkey::new_unique(),
+        health_plan: Pubkey::new_unique(),
+        policy_series: Pubkey::new_unique(),
+        funding_line: Pubkey::new_unique(),
+        cap_amount: 1_000,
+        weight_bps: 10_000,
+        allocation_mode: 0,
+        allocated_amount: 250,
+        utilized_amount: 0,
+        reserved_capacity: 200,
+        realized_pnl: 0,
+        impaired_amount: 0,
+        deallocation_only: false,
+        active: true,
+        bump: 1,
+    };
+    assert!(require_obligation_reserve_capacity(
+        &ReserveBalanceSheet::default(),
+        Some(&allocation),
+        50
+    )
+    .is_ok());
+    assert!(require_obligation_reserve_capacity(
+        &ReserveBalanceSheet::default(),
+        Some(&allocation),
+        51
+    )
+    .is_err());
+}
+
+#[test]
+fn allocation_capacity_uses_redeemable_pool_class_capacity() {
+    let mut sheet = ReserveBalanceSheet::default();
+    book_inflow_sheet(&mut sheet, 500).unwrap();
+    book_allocation(&mut sheet, 400).unwrap();
+    assert!(require_allocatable_reserve_capacity(&sheet, 100).is_ok());
+    assert!(require_allocatable_reserve_capacity(&sheet, 101).is_err());
 }
 
 fn sample_commitment_ledger(campaign: Pubkey, payment_asset_mint: Pubkey) -> CommitmentLedger {

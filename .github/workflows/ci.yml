@@ -81,8 +81,11 @@ jobs:
           toolchain: 1.88.0
           components: rustfmt, clippy
 
-      - name: Install cargo-license
-        run: cargo install cargo-license --locked
+      - name: Install Rust audit tooling
+        run: |
+          cargo install cargo-license --version 0.7.0 --locked
+          cargo install cargo-audit --version 0.22.1 --locked
+          cargo install cargo-deny --version 0.19.4 --locked
 
       - name: Install root dependencies
         run: npm ci
@@ -98,6 +101,12 @@ jobs:
 
       - name: Rust lint
         run: npm run rust:lint
+
+      - name: Rust dependency advisories
+        run: cargo audit
+
+      - name: Rust dependency policy
+        run: cargo deny check advisories bans sources
 
       - name: IDL freshness check
         run: npm run idl:freshness:check
@@ -119,3 +128,9 @@ jobs:
 
       - name: Dependency license audit
         run: npm run license:audit
+
+      - name: npm dependency advisories
+        run: npm run security:audit:deps
+
+      - name: Generate SBOM
+        run: npm run security:sbom

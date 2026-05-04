@@ -56,6 +56,14 @@ pub(crate) fn settle_obligation(
                 OmegaXProtocolError::SettlementOutflowAccountsRequired
             );
         }
+    } else if args.next_status == OBLIGATION_STATUS_SETTLED {
+        require!(
+            ctx.accounts.asset_mint.is_some()
+                && ctx.accounts.vault_token_account.is_some()
+                && ctx.accounts.recipient_token_account.is_some()
+                && ctx.accounts.token_program.is_some(),
+            OmegaXProtocolError::SettlementOutflowAccountsRequired
+        );
     }
 
     match args.next_status {
@@ -114,24 +122,20 @@ pub(crate) fn settle_obligation(
             )?;
             obligation.status = OBLIGATION_STATUS_SETTLED;
 
-            // Linked-claim settlement must include the SPL outflow accounts.
-            // Without them, the obligation would be marked settled while
-            // the vault balance never leaves custody.
+            // Any asset-backed settlement must include SPL outflow accounts.
+            // Linked claims pay the member/delegate recipient; unlinked
+            // obligations can only pay a token account owned by the settling
+            // authority, avoiding an accounting-only "settled" state.
+            let (Some(mint), Some(vault_ta), Some(recipient_ta), Some(token_prog)) = (
+                ctx.accounts.asset_mint.as_ref(),
+                ctx.accounts.vault_token_account.as_ref(),
+                ctx.accounts.recipient_token_account.as_ref(),
+                ctx.accounts.token_program.as_ref(),
+            ) else {
+                return Err(OmegaXProtocolError::SettlementOutflowAccountsRequired.into());
+            };
             if let Some(claim_case_ref) = ctx.accounts.claim_case.as_deref() {
-                let (
-                    Some(member_pos),
-                    Some(mint),
-                    Some(vault_ta),
-                    Some(recipient_ta),
-                    Some(token_prog),
-                ) = (
-                    ctx.accounts.member_position.as_ref(),
-                    ctx.accounts.asset_mint.as_ref(),
-                    ctx.accounts.vault_token_account.as_ref(),
-                    ctx.accounts.recipient_token_account.as_ref(),
-                    ctx.accounts.token_program.as_ref(),
-                )
-                else {
+                let Some(member_pos) = ctx.accounts.member_position.as_ref() else {
                     return Err(OmegaXProtocolError::SettlementOutflowAccountsRequired.into());
                 };
                 require_keys_eq!(
@@ -146,15 +150,21 @@ pub(crate) fn settle_obligation(
                     resolved_recipient,
                     OmegaXProtocolError::Unauthorized
                 );
-                transfer_from_domain_vault(
-                    amount,
-                    &ctx.accounts.domain_asset_vault,
-                    vault_ta,
-                    recipient_ta,
-                    mint,
-                    token_prog,
-                )?;
+            } else {
+                require_keys_eq!(
+                    recipient_ta.owner,
+                    ctx.accounts.authority.key(),
+                    OmegaXProtocolError::Unauthorized
+                );
             }
+            transfer_from_domain_vault(
+                amount,
+                &ctx.accounts.domain_asset_vault,
+                vault_ta,
+                recipient_ta,
+                mint,
+                token_prog,
+            )?;
         }
         OBLIGATION_STATUS_CANCELED => {
             cancel_outstanding(

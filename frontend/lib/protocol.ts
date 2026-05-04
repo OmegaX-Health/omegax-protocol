@@ -5597,15 +5597,14 @@ function buildObligationFlowTx(params: {
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const includeSettlementOutflow = Boolean(
-    params.memberPositionAddress
-      && params.vaultTokenAccountAddress
+    params.vaultTokenAccountAddress
       && params.recipientTokenAccountAddress,
   );
   const settlementOutflowAccounts: ProtocolInstructionAccountInput[] =
     params.instructionName === "settle_obligation"
       ? includeSettlementOutflow
         ? [
-          { pubkey: params.memberPositionAddress },
+          optionalProtocolAccount(params.memberPositionAddress),
           { pubkey: params.assetMint },
           { pubkey: params.vaultTokenAccountAddress, isWritable: true },
           { pubkey: params.recipientTokenAccountAddress, isWritable: true },

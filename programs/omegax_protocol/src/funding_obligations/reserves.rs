@@ -37,6 +37,14 @@ pub(crate) fn reserve_obligation(
         ctx.accounts.funding_line.key(),
         ctx.accounts.funding_line.asset_mint,
     )?;
+    require_obligation_reserve_capacity(
+        &ctx.accounts.funding_line_ledger.sheet,
+        ctx.accounts
+            .allocation_position
+            .as_deref()
+            .map(|account| &**account),
+        reserve_amount,
+    )?;
 
     obligation.status = OBLIGATION_STATUS_RESERVED;
     obligation.reserved_amount = reserve_amount;

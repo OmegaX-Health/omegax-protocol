@@ -62,8 +62,10 @@
     "semantic:readiness:check": "node scripts/check_semantic_readiness.mjs",
     "public:hygiene:check": "node scripts/check_public_repo_hygiene.mjs",
     "license:audit": "node scripts/check_dependency_licenses.mjs",
+    "security:audit:deps": "node scripts/check_dependency_advisories.mjs",
+    "security:sbom": "node scripts/generate_sbom.mjs",
     "ci:public": "npm run rust:fmt:check && npm run rust:test && npm run rust:lint && npm run idl:freshness:check && npm run protocol:contract:check && npm run test:node && npm run frontend:build && npm run semantic:readiness:check && npm run public:hygiene:check",
-    "verify:public": "npm run ci:public && npm run license:audit",
+    "verify:public": "npm run ci:public && npm run license:audit && npm run security:audit:deps && npm run security:sbom",
     "doctor": "node scripts/doctor.mjs",
     "verify": "npm run doctor && npm run ci:public"
   },
@@ -75,6 +77,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.37",
+    "license-checker": "25.0.1",
     "playwright": "^1.58.2",
     "tsx": "^4.19.2"
   },

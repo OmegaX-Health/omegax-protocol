@@ -64,6 +64,47 @@ pub(crate) fn book_owed(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<
     recompute_sheet(sheet)
 }
 
+pub(crate) fn require_free_reserve_capacity(
+    sheet: &ReserveBalanceSheet,
+    amount: u64,
+) -> Result<()> {
+    require!(
+        sheet.free >= amount,
+        OmegaXProtocolError::InsufficientFreeReserveCapacity
+    );
+    Ok(())
+}
+
+pub(crate) fn require_allocatable_reserve_capacity(
+    sheet: &ReserveBalanceSheet,
+    amount: u64,
+) -> Result<()> {
+    require!(
+        sheet.redeemable >= amount,
+        OmegaXProtocolError::InsufficientFreeReserveCapacity
+    );
+    Ok(())
+}
+
+pub(crate) fn require_obligation_reserve_capacity(
+    line_sheet: &ReserveBalanceSheet,
+    allocation_position: Option<&AllocationPosition>,
+    amount: u64,
+) -> Result<()> {
+    if let Some(position) = allocation_position {
+        let free_allocated = position
+            .allocated_amount
+            .saturating_sub(position.reserved_capacity);
+        require!(
+            free_allocated >= amount,
+            OmegaXProtocolError::InsufficientFreeAllocationCapacity
+        );
+        return Ok(());
+    }
+
+    require_free_reserve_capacity(line_sheet, amount)
+}
+
 pub(crate) fn remaining_claim_amount(claim_case: &ClaimCase) -> u64 {
     claim_case
         .approved_amount

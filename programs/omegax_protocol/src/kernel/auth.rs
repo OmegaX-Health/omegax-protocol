@@ -332,22 +332,6 @@ pub(crate) fn require_claim_attestation_oracle_authority(
     Ok(())
 }
 
-pub(crate) fn require_pool_control(
-    authority: &Pubkey,
-    governance: &ProtocolGovernance,
-    pool: &LiquidityPool,
-) -> Result<()> {
-    if *authority == pool.curator
-        || *authority == pool.allocator
-        || *authority == pool.sentinel
-        || *authority == governance.governance_authority
-    {
-        Ok(())
-    } else {
-        err!(OmegaXProtocolError::Unauthorized)
-    }
-}
-
 pub(crate) fn require_curator_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,

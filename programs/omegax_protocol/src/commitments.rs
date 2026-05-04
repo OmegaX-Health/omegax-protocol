@@ -399,6 +399,7 @@ pub(crate) fn activate_direct_premium_commitment(
         &ctx.accounts.campaign,
         &ctx.accounts.payment_rail,
     )?;
+    require_commitment_activation_window(&ctx.accounts.campaign, &ctx.accounts.payment_rail)?;
     require_pending_commitment_position(&ctx.accounts.position)?;
     require_matching_position(
         ctx.accounts.campaign.key(),
@@ -487,6 +488,7 @@ pub(crate) fn activate_treasury_credit_commitment(
         &ctx.accounts.campaign,
         &ctx.accounts.payment_rail,
     )?;
+    require_commitment_activation_window(&ctx.accounts.campaign, &ctx.accounts.payment_rail)?;
     require_pending_commitment_position(&ctx.accounts.position)?;
     require_matching_position(
         ctx.accounts.campaign.key(),
@@ -563,6 +565,7 @@ pub(crate) fn activate_waterfall_commitment(
         &ctx.accounts.campaign,
         &ctx.accounts.payment_rail,
     )?;
+    require_commitment_activation_window(&ctx.accounts.campaign, &ctx.accounts.payment_rail)?;
     require!(
         ctx.accounts.payment_rail.mode == COMMITMENT_MODE_WATERFALL_RESERVE
             || ctx.accounts.payment_rail.mode == COMMITMENT_MODE_DIRECT_PREMIUM,
@@ -850,6 +853,14 @@ fn require_matching_payment_rail(
         OmegaXProtocolError::HealthPlanMismatch
     );
     Ok(())
+}
+
+fn require_commitment_activation_window(
+    campaign: &CommitmentCampaign,
+    payment_rail: &CommitmentPaymentRail,
+) -> Result<()> {
+    require_commitment_campaign_active(campaign)?;
+    require_commitment_payment_rail_active(payment_rail)
 }
 
 fn require_matching_position(
