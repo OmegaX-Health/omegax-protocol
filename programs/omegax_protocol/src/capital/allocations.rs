@@ -8,11 +8,16 @@ pub(crate) fn create_allocation_position(
     ctx: Context<CreateAllocationPosition>,
     args: CreateAllocationPositionArgs,
 ) -> Result<()> {
-    require_pool_control(
+    require_allocator(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,
     )?;
+    require_keys_eq!(
+        ctx.accounts.funding_line.asset_mint,
+        ctx.accounts.liquidity_pool.deposit_asset_mint,
+        OmegaXProtocolError::AllocationAssetMismatch
+    );
 
     let allocation = &mut ctx.accounts.allocation_position;
     allocation.reserve_domain = ctx.accounts.liquidity_pool.reserve_domain;
@@ -54,7 +59,7 @@ pub(crate) fn update_allocation_caps(
     ctx: Context<UpdateAllocationCaps>,
     args: UpdateAllocationCapsArgs,
 ) -> Result<()> {
-    require_pool_control(
+    require_allocator(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,
@@ -99,6 +104,12 @@ pub(crate) fn allocate_capital(
             <= ctx.accounts.allocation_position.cap_amount,
         OmegaXProtocolError::AllocationCapExceeded
     );
+    require_keys_eq!(
+        ctx.accounts.funding_line.asset_mint,
+        ctx.accounts.liquidity_pool.deposit_asset_mint,
+        OmegaXProtocolError::AllocationAssetMismatch
+    );
+    require_allocatable_reserve_capacity(&ctx.accounts.pool_class_ledger.sheet, amount)?;
 
     ctx.accounts.allocation_position.allocated_amount =
         checked_add(ctx.accounts.allocation_position.allocated_amount, amount)?;
@@ -133,6 +144,11 @@ pub(crate) fn deallocate_capital(
 
     let amount = args.amount;
     require_positive_amount(amount)?;
+    require_keys_eq!(
+        ctx.accounts.funding_line.asset_mint,
+        ctx.accounts.liquidity_pool.deposit_asset_mint,
+        OmegaXProtocolError::AllocationAssetMismatch
+    );
     let free_allocated = ctx
         .accounts
         .allocation_position

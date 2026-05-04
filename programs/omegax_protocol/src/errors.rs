@@ -90,8 +90,12 @@ pub enum OmegaXProtocolError {
     AllocationCapExceeded,
     #[msg("Allocation position mismatch")]
     AllocationPositionMismatch,
+    #[msg("LP allocation asset mint must match the pool deposit asset mint")]
+    AllocationAssetMismatch,
     #[msg("Insufficient free allocation capacity")]
     InsufficientFreeAllocationCapacity,
+    #[msg("Insufficient free reserve capacity")]
+    InsufficientFreeReserveCapacity,
     #[msg("Arithmetic overflow or underflow")]
     ArithmeticError,
     #[msg("Membership gate configuration is invalid")]
@@ -146,6 +150,8 @@ pub enum OmegaXProtocolError {
     ClaimEvidenceMismatch,
     #[msg("Claim evidence cannot be changed after attestations begin")]
     ClaimEvidenceLocked,
+    #[msg("Claim settlement recipient is locked after approval or payout")]
+    ClaimRecipientLocked,
     #[msg("Health plan has paused oracle finality")]
     OracleFinalityHeld,
     #[msg("Too many schema dependency addresses were provided")]

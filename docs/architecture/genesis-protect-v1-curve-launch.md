@@ -30,7 +30,7 @@ Member chooses budget
 
 ## Why this is the V1
 
-The prior fixed-price V1 was actuarially clear but left a product gap: some users will not buy a 159 USD Travel 30 policy, while they may buy 15 to 99 USD of protection.
+The fixed-price V1 is now 99 USD, but the product gap still exists: some users will not buy a one-size Travel 30 policy, while they may buy 15 to 39 USD of reserve-gated protection.
 
 The later full-stack market design is strategically stronger, but it is too much surface area for the first mainnet launch. It adds public market rules, settlement logic, predictor onboarding, collateral accounting, reward waterfalls, market integrity risk, and legal review.
 
@@ -63,7 +63,6 @@ Fresh-market quote examples from the Nomad Protect Curve PoC:
 | 15 USD | 286 USD | 5.25% |
 | 39 USD | 743 USD | 5.25% |
 | 99 USD | 1,884 USD | 5.25% |
-| 159 USD | 3,000 USD | 5.26% |
 
 Warm and stressed markets quote less cover per dollar. That is intentional. The curve should protect reserve health rather than preserve a marketing cap.
 
@@ -127,15 +126,15 @@ The repo contains two relevant workbooks:
 
 ### Existing Genesis fixed SKU launch gate
 
-The April 27 Genesis workbook keeps the current fixed SKU launch healthy:
+The May 4 Genesis workbook keeps the current 99 USD fixed SKU launch healthy when the lower premium load is replaced with explicit sponsor/backstop capital:
 
 | Scenario | Gate | Premium | p99.5 claims | Reserve |
 | --- | --- | ---: | ---: | ---: |
-| public-open 1000 Event 7 + 500 Travel 30 | healthy | 118,500 USD | 53,762 USD | 118,300 USD |
-| adverse 1000 Event 7 + 500 Travel 30 | healthy | 118,500 USD | 79,482 USD | 118,300 USD |
-| severe adverse 1000 Event 7 + 500 Travel 30 | healthy | 118,500 USD | 91,977 USD | 118,300 USD |
-| travel30-only 500 | healthy | 79,500 USD | 40,894 USD | 84,900 USD |
-| travel30-only adverse 500 | healthy | 79,500 USD | 59,925 USD | 84,900 USD |
+| public-open 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 53,762 USD | 118,300 USD |
+| adverse 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 79,482 USD | 118,300 USD |
+| severe adverse 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 91,977 USD | 118,300 USD |
+| travel30-only 500 | healthy | 49,500 USD | 40,894 USD | 84,900 USD |
+| travel30-only adverse 500 | healthy | 49,500 USD | 59,925 USD | 84,900 USD |
 
 This remains the conservative basis for mainnet launch.
 
@@ -145,11 +144,11 @@ The updated Nomad curve PoC tested multiple models:
 
 | Model | Verdict | Gate | Members | Avg premium | Avg cap | Expected loss ratio | p99.5 claims | Reserve |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Calibrated Pay-Anything Curve | ship candidate | healthy | 650 | 63.48 USD | 925 USD | 38.22% | 26,964 USD | 132,137.60 USD |
-| Underwriting Prediction Tranche | needs wrapper | healthy | 1000 | 60.46 USD | 798 USD | 36.07% | 33,874 USD | 216,986.40 USD |
-| Member Health Bond | ship candidate | healthy | 850 | 64.52 USD | 885 USD | 32.70% | 29,161 USD | 154,360.55 USD |
-| Full Stack Market Mutual | needs wrapper | healthy | 1500 | 58.36 USD | 695 USD | 30.93% | 40,023 USD | 333,786 USD |
-| Flat-Promise Pay-Anything Failure Case | reject | pause | 500 | 28.92 USD | 3,000 USD | 158.66% | 40,494 USD | 63,014 USD |
+| Calibrated Pay-Anything Curve | ship candidate | healthy | 650 | 54.22 USD | 814 USD | 43.55% | 25,218 USD | 126,721.40 USD |
+| Underwriting Prediction Tranche | needs wrapper | healthy | 1000 | 52.78 USD | 719 USD | 40.53% | 32,321 USD | 210,074.40 USD |
+| Member Health Bond | ship candidate | healthy | 850 | 55.98 USD | 792 USD | 36.80% | 27,830 USD | 147,827.40 USD |
+| Full Stack Market Mutual | needs wrapper | healthy | 1500 | 50.24 USD | 623 USD | 35.20% | 38,273 USD | 322,824 USD |
+| Flat-Promise Pay-Anything Failure Case | reject | pause | 500 | 27.84 USD | 3,000 USD | 164.81% | 40,494 USD | 62,528 USD |
 
 Main finding:
 

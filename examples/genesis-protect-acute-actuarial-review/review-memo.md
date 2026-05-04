@@ -1,6 +1,6 @@
 # Genesis Protect Acute End-to-End Actuarial Workbook
 
-Generated: 2026-04-27T00:00:00.000Z
+Generated: 2026-05-04T00:00:00.000Z
 
 ## Headline
 
@@ -14,18 +14,18 @@ Generated: 2026-04-27T00:00:00.000Z
 
 | Scenario | Gate | Premium | p99.5 Claims | Reserve | Extra Reserve |
 | --- | --- | --- | --- | --- | --- |
-| bootstrap-50-e7-20-t30 | healthy | 5130 | 6315 | 118300 | 0 |
-| phase2-200-e7-60-t30 | healthy | 17340 | 12699 | 118300 | 0 |
-| table-safe-500-e7-200-t30 | healthy | 51300 | 27870 | 118300 | 0 |
-| public-open-1000-e7-500-t30 | healthy | 118500 | 53762 | 118300 | 0 |
-| adverse-1000-e7-500-t30 | healthy | 118500 | 79482 | 118300 | 0 |
-| severe-adverse-1000-e7-500-t30 | healthy | 118500 | 91977 | 118300 | 0 |
-| sponsor-cohort-100-e7-250-t30 | healthy | 43650 | 29941 | 143300 | 0 |
-| founders-pass-12x-100-t30 | pause | 190800 | 103856 | 84900 | 18956 |
-| country-tier-sponsor-only-300-t30 | healthy | 47700 | 37233 | 109900 | 0 |
-| country-tier-waitlist-100-t30 | healthy | 15900 | 21085 | 84900 | 0 |
-| travel30-only-500 | healthy | 79500 | 40894 | 84900 | 0 |
-| travel30-only-adverse-500 | healthy | 79500 | 59925 | 84900 | 0 |
+| bootstrap-50-e7-20-t30 | healthy | 3930 | 6315 | 118300 | 0 |
+| phase2-200-e7-60-t30 | healthy | 13740 | 12699 | 118300 | 0 |
+| table-safe-500-e7-200-t30 | healthy | 39300 | 27870 | 118300 | 0 |
+| public-open-1000-e7-500-t30 | healthy | 88500 | 53762 | 118300 | 0 |
+| adverse-1000-e7-500-t30 | healthy | 88500 | 79482 | 118300 | 0 |
+| severe-adverse-1000-e7-500-t30 | healthy | 88500 | 91977 | 118300 | 0 |
+| sponsor-cohort-100-e7-250-t30 | healthy | 28650 | 29941 | 143300 | 0 |
+| founders-pass-12x-100-t30 | pause | 118800 | 103856 | 84900 | 18956 |
+| country-tier-sponsor-only-300-t30 | healthy | 29700 | 37233 | 109900 | 0 |
+| country-tier-waitlist-100-t30 | healthy | 9900 | 21085 | 84900 | 0 |
+| travel30-only-500 | healthy | 49500 | 40894 | 84900 | 0 |
+| travel30-only-adverse-500 | healthy | 49500 | 59925 | 84900 | 0 |
 | lp-exit-1000-e7 | pause | 39000 | 18117 | 13400 | 4717 |
 
 ## Pricing Recommendations
@@ -33,7 +33,7 @@ Generated: 2026-04-27T00:00:00.000Z
 | SKU | Current Premium | Current Gate | Recommended Premium | Recommended Cap | Recommended Gate |
 | --- | --- | --- | --- | --- | --- |
 | event7 | 39 | healthy | 39 | 1000 | healthy |
-| travel30 | 159 | healthy | 159 | 3000 | healthy |
+| travel30 | 99 | healthy | 99 | 3000 | healthy |
 
 ## Limits
 

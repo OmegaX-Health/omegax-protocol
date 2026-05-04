@@ -1,6 +1,6 @@
 # Dependency Advisory Risk Acceptance
 
-Last reviewed: 2026-04-27
+Last reviewed: 2026-05-04
 
 This note records production dependency advisories that remain after the CSO remediation pass.
 It is intentionally narrow: only advisories still reported by `npm audit --omit=dev` after compatible
@@ -35,8 +35,25 @@ Acceptance conditions:
 - Keep `@solana/spl-token`, `@solana/web3.js`, and Solana wallet packages on the newest compatible
   published releases.
 - Do not use `npm audit fix --force` if it proposes downgrading SPL Token or Web3.js.
+- Keep `npm run security:audit:deps` in CI so this file is the only accepted-advisory allowlist.
 - Revisit this file when a patched SPL Token or buffer-layout-utils release is available, or when
   this repository starts exposing backend parsing surfaces for untrusted token buffers.
+
+### RustSec warnings through Anchor/Solana
+
+- Current local `cargo audit` state: 6 warnings, all transitive through Anchor/Solana crates
+- Current `cargo deny` policy: advisories are checked in CI; `unmaintained` and `unsound` fail for
+  workspace-owned crates while current transitive Solana/Anchor warnings remain accepted; yanked
+  crates warn while bans and source provenance remain enforced
+- Observed advisories:
+  - `RUSTSEC-2025-0141` (`bincode` unmaintained)
+  - `RUSTSEC-2025-0161` (`libsecp256k1` unmaintained)
+  - `RUSTSEC-2026-0012` (`keccak` ARMv8 backend unsoundness, plus yanked crate warning)
+  - `RUSTSEC-2026-0097` (`rand` unsoundness in custom-logger edge case)
+
+We are not replacing these directly because they enter through the Solana/Anchor dependency tree.
+The protocol should continue to pin and upgrade Anchor/Solana-compatible releases quickly; direct use
+of these crates in protocol code requires a separate review.
 
 ## Remediated In This Pass
 

@@ -15,7 +15,11 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
 
 import { STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX } from "./devnet_governance_smoke_helpers.ts";
 import { loadEnvFile } from "./support/load_env_file.ts";
@@ -42,10 +46,10 @@ type RoleWallets = {
 };
 
 const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
-const GOVERNANCE_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
+const DEFAULT_GOVERNANCE_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 const LOCAL_ROLE_DIR = resolve(homedir(), ".config/solana/omegax-devnet");
 const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
-const ROLE_MIN_LAMPORTS = 75_000_000n;
+const ROLE_MIN_LAMPORTS = BigInt(process.env.OMEGAX_DEVNET_ROLE_MIN_LAMPORTS ?? "75000000");
 
 const MEMBERSHIP_MODE_OPEN = 0;
 const MEMBERSHIP_MODE_INVITE_ONLY = 2;
@@ -59,6 +63,18 @@ const RIGHT_VIEW_PAYOUT_HISTORY = 1 << 1;
 const RIGHT_OPEN_CLAIM_CASE = 1 << 2;
 const RIGHT_APPOINT_DELEGATE = 1 << 3;
 const STANDARD_SCHEMA_KEY_HASH_BYTES = [...Buffer.from(STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX, "hex")];
+
+function expandHome(path: string): string {
+  return path.replace(/^~(?=\/|$)/, homedir());
+}
+
+function configuredGovernanceKeypairPath(): string {
+  return expandHome(
+    process.env.OMEGAX_DEVNET_PROTOCOL_GOVERNANCE_KEYPAIR_PATH?.trim()
+    || process.env.SOLANA_KEYPAIR?.trim()
+    || DEFAULT_GOVERNANCE_KEYPAIR_PATH,
+  );
+}
 
 function ensureRoleKeypair(name: string): Keypair {
   const path = resolve(LOCAL_ROLE_DIR, `${name}.json`);
@@ -179,6 +195,35 @@ async function sendProtocolInstruction(params: {
   return signature;
 }
 
+async function sendTransaction(params: {
+  connection: Connection;
+  feePayer: Keypair;
+  label: string;
+  signers?: Keypair[];
+  transaction: Transaction;
+}): Promise<string> {
+  const { blockhash, lastValidBlockHeight } = await params.connection.getLatestBlockhash("confirmed");
+  params.transaction.feePayer = params.feePayer.publicKey;
+  params.transaction.recentBlockhash = blockhash;
+  params.transaction.sign(
+    params.feePayer,
+    ...(params.signers ?? []).filter((signer) => signer.publicKey.toBase58() !== params.feePayer.publicKey.toBase58()),
+  );
+  const signature = await params.connection.sendRawTransaction(params.transaction.serialize(), {
+    maxRetries: 5,
+    skipPreflight: false,
+  });
+  const confirmation = await params.connection.confirmTransaction(
+    { blockhash, lastValidBlockHeight, signature },
+    "confirmed",
+  );
+  if (confirmation.value.err) {
+    throw new Error(`${params.label} failed during confirmation.`);
+  }
+  console.log(`[live-bootstrap] ${params.label}: ${signature}`);
+  return signature;
+}
+
 async function sendLamportsIfNeeded(params: {
   connection: Connection;
   governance: Keypair;
@@ -236,7 +281,8 @@ function currentValue(
 }
 
 async function main() {
-  const governance = keypairFromFile(GOVERNANCE_KEYPAIR_PATH);
+  loadEnvFile(FRONTEND_ENV_PATH);
+  const governance = keypairFromFile(configuredGovernanceKeypairPath());
   const roleWallets: RoleWallets = {
     governance,
     oracle: ensureRoleKeypair("oracle-operator"),
@@ -407,6 +453,14 @@ async function main() {
     reserveDomain: openReserveDomain.address,
     assetMint: fixtureState.rewardMint,
   }).toBase58();
+  const openSettlementProtocolFeeVault = protocol.deriveProtocolFeeVaultPda({
+    reserveDomain: openReserveDomain.address,
+    assetMint: fixtureState.settlementMint,
+  }).toBase58();
+  const poolSettlementTreasuryVault = protocol.derivePoolTreasuryVaultPda({
+    liquidityPool: pool.address,
+    assetMint: fixtureState.settlementMint,
+  }).toBase58();
   // PT-2026-04-27-01/02 fix: vault token accounts are now PDA-owned. Operators
   // no longer pre-create them or pass `OMEGAX_DEVNET_*_VAULT_TOKEN_ACCOUNT`
   // env vars; downstream inflow / settlement instructions reference these
@@ -429,6 +483,12 @@ async function main() {
       assetMint: fixtureState.wrapperSettlementMint,
     })
     .toBase58();
+  const secondMemberSettlementTokenAccount = getAssociatedTokenAddressSync(
+    new PublicKey(fixtureState.settlementMint),
+    roleWallets.secondMember.publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+  ).toBase58();
   const openClassLedger = protocol.derivePoolClassLedgerPda({
     capitalClass: openClass.address,
     assetMint: fixtureState.settlementMint,
@@ -953,7 +1013,7 @@ async function main() {
     await sendProtocolInstruction({
       protocol,
       connection,
-      feePayer: governance,
+      feePayer: roleWallets.oracle,
       label: "register_oracle:canonical",
       instructionName: "register_oracle",
       args: {
@@ -968,7 +1028,7 @@ async function main() {
         supported_schema_key_hashes: [[...Buffer.from(STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX, "hex")]],
       },
       accounts: [
-        { pubkey: governance.publicKey, isSigner: true, isWritable: true },
+        { pubkey: roleWallets.oracle.publicKey, isSigner: true, isWritable: true },
         { pubkey: oracleProfileAddress, isWritable: true },
         { pubkey: SystemProgram.programId },
       ],
@@ -1182,6 +1242,29 @@ async function main() {
   }
 
   if (protocol.toBigIntAmount(currentBlendedPremiumLine?.fundedAmount) < 480_000n) {
+    if (!snapshot.protocolFeeVaults.find((row) => row.address === openSettlementProtocolFeeVault)) {
+      await sendProtocolInstruction({
+        protocol,
+        connection,
+        feePayer: governance,
+        label: "init_protocol_fee_vault:open-settlement",
+        instructionName: "init_protocol_fee_vault",
+        args: {
+          asset_mint: new PublicKey(fixtureState.settlementMint),
+          fee_recipient: governance.publicKey,
+        },
+        accounts: [
+          { pubkey: governance.publicKey, isSigner: true, isWritable: true },
+          { pubkey: governanceAddress },
+          { pubkey: openReserveDomain.address },
+          { pubkey: fixtureState.domainAssetVaults[0]!.address },
+          { pubkey: openSettlementProtocolFeeVault, isWritable: true },
+          { pubkey: SystemProgram.programId },
+        ],
+      });
+      snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
+    }
+
     await sendProtocolInstruction({
       protocol,
       connection,
@@ -1201,6 +1284,7 @@ async function main() {
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
+        { pubkey: openSettlementProtocolFeeVault, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
         { pubkey: openSettlementVaultTokenAccount, isWritable: true },
@@ -1254,6 +1338,29 @@ async function main() {
   const currentOpenLp = currentValue(snapshot, openLpPosition).lpPosition;
   const currentWrapperLp = currentValue(snapshot, wrapperLpPosition).lpPosition;
 
+  if (!snapshot.poolTreasuryVaults.find((row) => row.address === poolSettlementTreasuryVault)) {
+    await sendProtocolInstruction({
+      protocol,
+      connection,
+      feePayer: governance,
+      label: "init_pool_treasury_vault:omega-health-income",
+      instructionName: "init_pool_treasury_vault",
+      args: {
+        asset_mint: new PublicKey(fixtureState.settlementMint),
+        fee_recipient: governance.publicKey,
+      },
+      accounts: [
+        { pubkey: governance.publicKey, isSigner: true, isWritable: true },
+        { pubkey: governanceAddress },
+        { pubkey: pool.address },
+        { pubkey: fixtureState.domainAssetVaults[0]!.address },
+        { pubkey: poolSettlementTreasuryVault, isWritable: true },
+        { pubkey: SystemProgram.programId },
+      ],
+    });
+    snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
+  }
+
   if (protocol.toBigIntAmount(currentOpenLp?.subscriptionBasis) < 1_500_000n) {
     await sendProtocolInstruction({
       protocol,
@@ -1274,6 +1381,7 @@ async function main() {
         { pubkey: openClass.address, isWritable: true },
         { pubkey: openClassLedger, isWritable: true },
         { pubkey: openLpPosition, isWritable: true },
+        { pubkey: poolSettlementTreasuryVault, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_LP_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
         { pubkey: openSettlementVaultTokenAccount, isWritable: true },
@@ -1303,6 +1411,7 @@ async function main() {
         { pubkey: wrapperClass.address, isWritable: true },
         { pubkey: wrapperClassLedger, isWritable: true },
         { pubkey: wrapperLpPosition, isWritable: true },
+        { pubkey: poolSettlementTreasuryVault, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_WRAPPER_PROVIDER_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
         { pubkey: openSettlementVaultTokenAccount, isWritable: true },
@@ -1313,17 +1422,6 @@ async function main() {
   }
 
   const allocationSpecs = [
-    {
-      address: rewardAllocation,
-      ledger: rewardAllocationLedger,
-      capitalClass: openClass.address,
-      healthPlan: blendedPlan.address,
-      fundingLine: blendedRewardLiquidityLine.address,
-      policySeries: blendedRewardSeries.address,
-      capAmount: 200_000n,
-      weightBps: 1500,
-      allocationAmount: 150_000n,
-    },
     {
       address: protectionOpenAllocation,
       ledger: protectionOpenAllocationLedger,
@@ -1499,6 +1597,7 @@ async function main() {
           { pubkey: null },
           { pubkey: null },
           { pubkey: address, isWritable: true },
+          { pubkey: null },
         ],
       });
     }
@@ -1531,6 +1630,15 @@ async function main() {
           { pubkey: null },
           { pubkey: null },
           { pubkey: address, isWritable: true },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
         ],
       });
     }
@@ -1563,6 +1671,15 @@ async function main() {
           { pubkey: null },
           { pubkey: null },
           { pubkey: address, isWritable: true },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: fixtureState.rewardMint },
+          { pubkey: openRewardVaultTokenAccount, isWritable: true },
+          { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
+          { pubkey: TOKEN_PROGRAM_ID },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
         ],
       });
     }
@@ -1570,6 +1687,21 @@ async function main() {
 
   await createRewardObligationIfMissing(seekerSettledObligation, "reward-obligation-001", 20_000n, "settled");
   await createRewardObligationIfMissing(seekerClaimableObligation, "reward-obligation-002", 8_000n, "claimable");
+
+  if (!await protocol.accountExists(connection, secondMemberSettlementTokenAccount)) {
+    await sendTransaction({
+      connection,
+      feePayer: roleWallets.secondMember,
+      label: "create_ata:second-member-settlement",
+      transaction: new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(
+        roleWallets.secondMember.publicKey,
+        new PublicKey(secondMemberSettlementTokenAccount),
+        roleWallets.secondMember.publicKey,
+        new PublicKey(fixtureState.settlementMint),
+        TOKEN_PROGRAM_ID,
+      )),
+    });
+  }
 
   const protectionClaimSpecs = [
     {
@@ -1595,7 +1727,7 @@ async function main() {
       await sendProtocolInstruction({
         protocol,
         connection,
-        feePayer: roleWallets.memberDelegate,
+        feePayer: roleWallets.secondMember,
         label: `open_claim_case:${claimSpec.claimId}`,
         instructionName: "open_claim_case",
         args: {
@@ -1605,7 +1737,8 @@ async function main() {
           evidence_ref_hash: sha256Bytes(`claim:${claimSpec.claimId}:evidence`),
         },
         accounts: [
-          { pubkey: roleWallets.memberDelegate.publicKey, isSigner: true, isWritable: true },
+          { pubkey: roleWallets.secondMember.publicKey, isSigner: true, isWritable: true },
+          { pubkey: governanceAddress },
           { pubkey: blendedPlan.address },
           { pubkey: blendedProtectionMemberPosition },
           { pubkey: blendedPremiumLine.address },
@@ -1702,6 +1835,7 @@ async function main() {
           { pubkey: null },
           { pubkey: null },
           { pubkey: claimSpec.obligationAddress, isWritable: true },
+          { pubkey: claimSpec.claimAddress, isWritable: true },
         ],
       });
     }
@@ -1709,7 +1843,10 @@ async function main() {
     if (!claimSpec.settle) continue;
     snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
     const reservedObligation = currentValue(snapshot, claimSpec.obligationAddress).obligation;
-    if (reservedObligation?.status === protocol.OBLIGATION_STATUS_RESERVED) {
+    if (
+      reservedObligation?.status === protocol.OBLIGATION_STATUS_RESERVED
+      || reservedObligation?.status === protocol.OBLIGATION_STATUS_CLAIMABLE_PAYABLE
+    ) {
       await sendProtocolInstruction({
         protocol,
         connection,
@@ -1717,9 +1854,9 @@ async function main() {
         label: `settle_obligation:${claimSpec.obligationId}`,
         instructionName: "settle_obligation",
         args: {
-          next_status: protocol.OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
+          next_status: protocol.OBLIGATION_STATUS_SETTLED,
           amount: claimSpec.amount,
-          settlement_reason_hash: sha256Bytes(`obligation:${claimSpec.obligationId}:payable`),
+          settlement_reason_hash: sha256Bytes(`obligation:${claimSpec.obligationId}:settled`),
         },
         accounts: [
           { pubkey: governance.publicKey, isSigner: true },
@@ -1735,6 +1872,15 @@ async function main() {
           { pubkey: null },
           { pubkey: null },
           { pubkey: claimSpec.obligationAddress, isWritable: true },
+          { pubkey: claimSpec.claimAddress, isWritable: true },
+          { pubkey: blendedProtectionMemberPosition },
+          { pubkey: fixtureState.settlementMint },
+          { pubkey: openSettlementVaultTokenAccount, isWritable: true },
+          { pubkey: secondMemberSettlementTokenAccount, isWritable: true },
+          { pubkey: TOKEN_PROGRAM_ID },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
         ],
       });
     }
@@ -1766,6 +1912,15 @@ async function main() {
           { pubkey: null },
           { pubkey: claimSpec.claimAddress, isWritable: true },
           { pubkey: claimSpec.obligationAddress, isWritable: true },
+          { pubkey: openSettlementProtocolFeeVault, isWritable: true },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: null },
+          { pubkey: blendedProtectionMemberPosition },
+          { pubkey: fixtureState.settlementMint },
+          { pubkey: openSettlementVaultTokenAccount, isWritable: true },
+          { pubkey: secondMemberSettlementTokenAccount, isWritable: true },
+          { pubkey: TOKEN_PROGRAM_ID },
         ],
       });
     }

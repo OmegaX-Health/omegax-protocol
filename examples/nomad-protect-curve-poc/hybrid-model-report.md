@@ -16,51 +16,51 @@ The best product shape is not "prediction market replaces insurance." It is "ins
 
 | Model | Verdict | Gate | Members | Avg Premium | Avg Cap | Expected Loss Ratio | p99.5 Claims | Reserve |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Separated Backstop Curve | ship_candidate | healthy | 500 | 65.88 | 1001 | 37.94% | 22626 | 114646 |
-| Calibrated Pay-Anything Curve | ship_candidate | healthy | 650 | 63.48 | 925 | 38.22% | 26964 | 132137.6 |
-| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 62.33 | 799 | 37.4% | 35774 | 201095.2 |
-| Underwriting Prediction Tranche | needs_wrapper | healthy | 1000 | 60.46 | 798 | 36.07% | 33874 | 216986.4 |
-| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 61.48 | 737 | 33.7% | 44874 | 287997.15 |
+| Separated Backstop Curve | ship_candidate | healthy | 500 | 55.8 | 872 | 43.33% | 21314 | 110110 |
+| Calibrated Pay-Anything Curve | ship_candidate | healthy | 650 | 54.22 | 814 | 43.55% | 25218 | 126721.4 |
+| Loss-Ratio Signal Market | needs_wrapper | healthy | 1000 | 54.71 | 723 | 41.79% | 34301 | 194237.2 |
+| Underwriting Prediction Tranche | needs_wrapper | healthy | 1000 | 52.78 | 719 | 40.53% | 32321 | 210074.4 |
+| Collateralized Sidecar Vault | needs_wrapper | healthy | 1500 | 52.48 | 658 | 38.57% | 43163 | 275848 |
 | Parametric Fast-Cash Overlay | ship_candidate | healthy | 1200 | 15 | 250 | 99.62% | 23250 | 91200 |
-| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 64.28 | 894 | 35.8% | 29598 | 156278 |
-| Member Health Bond | ship_candidate | healthy | 850 | 64.52 | 885 | 32.7% | 29161 | 154360.55 |
-| Full Stack Market Mutual | needs_wrapper | healthy | 1500 | 58.36 | 695 | 30.93% | 40023 | 333786 |
-| Flat-Promise Pay-Anything Failure Case | reject | pause | 500 | 28.92 | 3000 | 158.66% | 40494 | 63014 |
+| Member Mutual Rebate Pool | ship_candidate | healthy | 800 | 56.4 | 807 | 39.79% | 28453 | 150608 |
+| Member Health Bond | ship_candidate | healthy | 850 | 55.98 | 792 | 36.8% | 27830 | 147827.4 |
+| Full Stack Market Mutual | needs_wrapper | healthy | 1500 | 50.24 | 623 | 35.2% | 38273 | 322824 |
+| Flat-Promise Pay-Anything Failure Case | reject | pause | 500 | 27.84 | 3000 | 164.81% | 40494 | 62528 |
 
 ## Scale Checks
 
 | Model | Scale | Gate | Members | Backer Capital | Active Cover Limit | p99.5 Claims | Reserve | Reserve / Active Limit |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Separated Backstop Curve | launch scale | healthy | 500 | 60000 | 472397 | 21950 | 112647.99 | 23.85% |
-| Separated Backstop Curve | 3x demand with matching capital | healthy | 1500 | 180000 | 1095641 | 44670 | 286939.08 | 26.19% |
-| Separated Backstop Curve | 3x demand with launch capital | healthy | 1500 | 60000 | 1073115 | 44487 | 164595.37 | 15.34% |
-| Calibrated Pay-Anything Curve | launch scale | healthy | 650 | 70000 | 630849 | 27523 | 134439.8 | 21.31% |
-| Calibrated Pay-Anything Curve | 3x demand with matching capital | healthy | 1950 | 210000 | 1383567 | 55640 | 349531.57 | 25.26% |
-| Calibrated Pay-Anything Curve | 3x demand with launch capital | healthy | 1950 | 70000 | 1391349 | 56289 | 210483.72 | 15.13% |
-| Loss-Ratio Signal Market | launch scale | healthy | 1000 | 120000 | 834249 | 36328 | 204378.4 | 24.5% |
-| Loss-Ratio Signal Market | 3x demand with matching capital | healthy | 3000 | 360000 | 1756582 | 74431 | 557562.4 | 31.74% |
-| Loss-Ratio Signal Market | 3x demand with launch capital | healthy | 3000 | 120000 | 1793141 | 75491 | 323189.2 | 18.02% |
-| Underwriting Prediction Tranche | launch scale | healthy | 1000 | 137576 | 847998 | 35200 | 221522.4 | 26.12% |
-| Underwriting Prediction Tranche | 3x demand with matching capital | healthy | 3000 | 267576 | 1815057 | 72126 | 468994 | 25.84% |
-| Underwriting Prediction Tranche | 3x demand with launch capital | healthy | 3000 | 137576 | 1819797 | 72696 | 339717.6 | 18.67% |
-| Collateralized Sidecar Vault | launch scale | healthy | 1500 | 180000 | 1074163 | 44373 | 284703.2 | 26.5% |
-| Collateralized Sidecar Vault | 3x demand with matching capital | healthy | 4500 | 540000 | 2285509 | 91284 | 815526.46 | 35.68% |
-| Collateralized Sidecar Vault | 3x demand with launch capital | healthy | 4500 | 180000 | 2245022 | 89363 | 448259.07 | 19.97% |
+| Separated Backstop Curve | launch scale | healthy | 500 | 60000 | 417497 | 20810 | 108868 | 26.08% |
+| Separated Backstop Curve | 3x demand with matching capital | healthy | 1500 | 180000 | 974437 | 42750 | 274681.6 | 28.19% |
+| Separated Backstop Curve | 3x demand with launch capital | healthy | 1500 | 60000 | 973672 | 43021 | 154606 | 15.88% |
+| Calibrated Pay-Anything Curve | launch scale | healthy | 650 | 70000 | 549980 | 25812 | 128256.8 | 23.32% |
+| Calibrated Pay-Anything Curve | 3x demand with matching capital | healthy | 1950 | 210000 | 1231226 | 53967 | 331666.3 | 26.94% |
+| Calibrated Pay-Anything Curve | 3x demand with launch capital | healthy | 1950 | 70000 | 1242848 | 53898 | 192980.3 | 15.53% |
+| Loss-Ratio Signal Market | launch scale | healthy | 1000 | 120000 | 735500 | 34438 | 195360.4 | 26.56% |
+| Loss-Ratio Signal Market | 3x demand with matching capital | healthy | 3000 | 360000 | 1603572 | 72036 | 534990.4 | 33.36% |
+| Loss-Ratio Signal Market | 3x demand with launch capital | healthy | 3000 | 120000 | 1617984 | 73077 | 297053.2 | 18.36% |
+| Underwriting Prediction Tranche | launch scale | healthy | 1000 | 137576 | 753390 | 33730 | 213044.4 | 28.28% |
+| Underwriting Prediction Tranche | 3x demand with matching capital | healthy | 3000 | 267576 | 1632942 | 69797 | 442372 | 27.09% |
+| Underwriting Prediction Tranche | 3x demand with launch capital | healthy | 3000 | 137576 | 1652671 | 70315 | 315147.6 | 19.07% |
+| Collateralized Sidecar Vault | launch scale | healthy | 1500 | 180000 | 958655 | 42531 | 273148 | 28.49% |
+| Collateralized Sidecar Vault | 3x demand with matching capital | healthy | 4500 | 540000 | 2068127 | 88041 | 777835.6 | 37.61% |
+| Collateralized Sidecar Vault | 3x demand with launch capital | healthy | 4500 | 180000 | 2029588 | 86655 | 411485.2 | 20.27% |
 | Parametric Fast-Cash Overlay | launch scale | healthy | 1200 | 50000 | 300000 | 23250 | 91200 | 30.4% |
 | Parametric Fast-Cash Overlay | 3x demand with matching capital | healthy | 3600 | 150000 | 900000 | 63000 | 223600 | 24.84% |
 | Parametric Fast-Cash Overlay | 3x demand with launch capital | caution | 3600 | 50000 | 900000 | 63000 | 123600 | 13.73% |
-| Member Mutual Rebate Pool | launch scale | healthy | 800 | 85000 | 749913 | 30585 | 159182.09 | 21.23% |
-| Member Mutual Rebate Pool | 3x demand with matching capital | healthy | 2400 | 255000 | 1604487 | 61651 | 422970.4 | 26.36% |
-| Member Mutual Rebate Pool | 3x demand with launch capital | healthy | 2400 | 85000 | 1620473 | 61800 | 255150.86 | 15.75% |
-| Member Health Bond | launch scale | healthy | 850 | 80000 | 735949 | 28646 | 152999.85 | 20.79% |
-| Member Health Bond | 3x demand with matching capital | healthy | 2550 | 240000 | 1642699 | 59164 | 413201.99 | 25.15% |
-| Member Health Bond | 3x demand with launch capital | healthy | 2550 | 80000 | 1648551 | 58605 | 254010.85 | 15.41% |
-| Full Stack Market Mutual | launch scale | healthy | 1500 | 230000 | 1072411 | 40677 | 336907.2 | 31.42% |
-| Full Stack Market Mutual | 3x demand with matching capital | healthy | 4500 | 410000 | 2221443 | 81038 | 681250.8 | 30.67% |
-| Full Stack Market Mutual | 3x demand with launch capital | healthy | 4500 | 230000 | 2233384 | 81426 | 503421.6 | 22.54% |
-| Flat-Promise Pay-Anything Failure Case | launch scale | pause | 500 | 25000 | 1500000 | 40611 | 62927.6 | 4.2% |
-| Flat-Promise Pay-Anything Failure Case | 3x demand with matching capital | pause | 1500 | 75000 | 4500000 | 98361 | 140186.8 | 3.12% |
-| Flat-Promise Pay-Anything Failure Case | 3x demand with launch capital | pause | 1500 | 25000 | 4500000 | 98304 | 89582 | 1.99% |
+| Member Mutual Rebate Pool | launch scale | healthy | 800 | 85000 | 667107 | 29056 | 152325.2 | 22.83% |
+| Member Mutual Rebate Pool | 3x demand with matching capital | healthy | 2400 | 255000 | 1451376 | 59469 | 402936.4 | 27.76% |
+| Member Mutual Rebate Pool | 3x demand with launch capital | healthy | 2400 | 85000 | 1470280 | 60305 | 235334 | 16.01% |
+| Member Health Bond | launch scale | healthy | 850 | 80000 | 657763 | 27547 | 146574.6 | 22.28% |
+| Member Health Bond | 3x demand with matching capital | healthy | 2550 | 240000 | 1483183 | 57051 | 391981 | 26.43% |
+| Member Health Bond | 3x demand with launch capital | healthy | 2550 | 80000 | 1491628 | 56738 | 233061 | 15.62% |
+| Full Stack Market Mutual | launch scale | healthy | 1500 | 230000 | 950471 | 39031 | 324379.2 | 34.13% |
+| Full Stack Market Mutual | 3x demand with matching capital | healthy | 4500 | 410000 | 2005638 | 77618 | 643666.8 | 32.09% |
+| Full Stack Market Mutual | 3x demand with launch capital | healthy | 4500 | 230000 | 2021197 | 78555 | 466269.6 | 23.07% |
+| Flat-Promise Pay-Anything Failure Case | launch scale | pause | 500 | 25000 | 1500000 | 40611 | 62225.6 | 4.15% |
+| Flat-Promise Pay-Anything Failure Case | 3x demand with matching capital | pause | 1500 | 75000 | 4500000 | 98361 | 138512.8 | 3.08% |
+| Flat-Promise Pay-Anything Failure Case | 3x demand with launch capital | pause | 1500 | 25000 | 4500000 | 98304 | 87638 | 1.95% |
 
 ## Model 1: Separated Backstop Curve
 
@@ -72,10 +72,10 @@ Members buy capped cover from the curve while backers freely supply junior reser
 
 - 30-day acute emergency cover; choose any budget from 15 USD upward; quote returns a fixed cap up to 3000 USD.
 - Members modeled: 500.
-- Average premium: 65.88 USD.
-- Average coverage cap: 1001 USD.
-- Active coverage limit: 500538 USD.
-- Budget range: 15-159 USD.
+- Average premium: 55.8 USD.
+- Average coverage cap: 872 USD.
+- Active coverage limit: 435792 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -92,17 +92,17 @@ Production boundary: Insurance-grade member entitlement; market-grade capital su
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 32940 |
-| Expected claims | 12497 |
-| Expected loss ratio | 37.94% |
-| p95 claims | 18583 |
-| p99 claims | 21536 |
-| p99.5 claims | 22626 |
-| Claims-paying reserve | 114646 |
+| Gross premium | 27900 |
+| Expected claims | 12090 |
+| Expected loss ratio | 43.33% |
+| p95 claims | 17699 |
+| p99 claims | 20286 |
+| p99.5 claims | 21314 |
+| Claims-paying reserve | 110110 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 20443 |
+| Expected surplus | 15810 |
 
 ### First Principles
 
@@ -127,10 +127,10 @@ Members can enter with any amount, but the curve converts that amount into an ex
 
 - 30-day acute emergency cover; any budget above 15 USD is accepted and converted into a fixed cap before purchase.
 - Members modeled: 650.
-- Average premium: 63.48 USD.
-- Average coverage cap: 925 USD.
-- Active coverage limit: 601270 USD.
-- Budget range: 15-159 USD.
+- Average premium: 54.22 USD.
+- Average coverage cap: 814 USD.
+- Active coverage limit: 529171 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -147,17 +147,17 @@ Production boundary: This is the good pay-anything version: flexible budget, fix
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 41264 |
-| Expected claims | 15772 |
-| Expected loss ratio | 38.22% |
-| p95 claims | 22401 |
-| p99 claims | 25589 |
-| p99.5 claims | 26964 |
-| Claims-paying reserve | 132137.6 |
+| Gross premium | 35246 |
+| Expected claims | 15350 |
+| Expected loss ratio | 43.55% |
+| p95 claims | 21384 |
+| p99 claims | 24178 |
+| p99.5 claims | 25218 |
+| Claims-paying reserve | 126721.4 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 25492 |
+| Expected surplus | 19896 |
 
 ### First Principles
 
@@ -184,10 +184,10 @@ Members still buy capped insurance; traders separately price whether the pool lo
 
 - Same 30-day acute cover, with the pool quote curve nudged by a public aggregate-loss signal.
 - Members modeled: 1000.
-- Average premium: 62.33 USD.
-- Average coverage cap: 799 USD.
-- Active coverage limit: 798998 USD.
-- Budget range: 15-159 USD.
+- Average premium: 54.71 USD.
+- Average coverage cap: 723 USD.
+- Active coverage limit: 722746 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -200,10 +200,10 @@ Production boundary: The event market must settle on aggregate pool data only an
 | baseRiskBackerCapitalUsd | 120000 |
 | effectiveClaimsCapitalUsd | 120000 |
 | eventThresholdLossRatioPct | 65 |
-| thresholdClaimsUsd | 40513.2 |
-| fairProbabilityPct | 0.02 |
-| marketProbabilityPct | 3.52 |
-| yesPriceCents | 3.52 |
+| thresholdClaimsUsd | 35560.2 |
+| fairProbabilityPct | 0.21 |
+| marketProbabilityPct | 3.71 |
+| yesPriceCents | 3.71 |
 | liquidityUsd | 75000 |
 | quoteAdjustmentPct | 0.7 |
 
@@ -211,17 +211,17 @@ Production boundary: The event market must settle on aggregate pool data only an
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 62328 |
-| Expected claims | 23313 |
-| Expected loss ratio | 37.4% |
-| p95 claims | 30777 |
-| p99 claims | 34260 |
-| p99.5 claims | 35774 |
-| Claims-paying reserve | 201095.2 |
+| Gross premium | 54708 |
+| Expected claims | 22865 |
+| Expected loss ratio | 41.79% |
+| p95 claims | 29884 |
+| p99 claims | 33141 |
+| p99.5 claims | 34301 |
+| Claims-paying reserve | 194237.2 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 39015 |
+| Expected surplus | 31843 |
 
 ### First Principles
 
@@ -251,10 +251,10 @@ Predictors stake on aggregate pool risk, and a defined share of that stake becom
 
 - Same 30-day acute cover from the quote curve; members never interact with individual claim markets.
 - Members modeled: 1000.
-- Average premium: 60.46 USD.
-- Average coverage cap: 798 USD.
-- Active coverage limit: 798094 USD.
-- Budget range: 15-159 USD.
+- Average premium: 52.78 USD.
+- Average coverage cap: 719 USD.
+- Active coverage limit: 718859 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -270,11 +270,11 @@ Production boundary: Prediction collateral counts as reserve only for the explic
 | predictionClaimsTrancheUsd | 72576 |
 | traderPayoutLiabilityUsd | 28224 |
 | eventThresholdLossRatioPct | 60 |
-| fairThresholdProbabilityPct | 0.15 |
+| fairThresholdProbabilityPct | 0.77 |
 | signalAccuracyPct | 61 |
-| rewardPoolBeforeWrongStakeUsd | 9702.78 |
+| rewardPoolBeforeWrongStakeUsd | 8088.24 |
 | wrongStakePenaltyPoolUsd | 11007.36 |
-| expectedCorrectPredictorRoiPct | 33.68 |
+| expectedCorrectPredictorRoiPct | 31.06 |
 | expectedWrongPredictorPenaltyPct | 28 |
 | rewardFunding | reserve_yield_plus_pricing_fees_plus_surplus_plus_wrong_stake_penalties_after_claims |
 
@@ -282,17 +282,17 @@ Production boundary: Prediction collateral counts as reserve only for the explic
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 60456 |
-| Expected claims | 21809 |
-| Expected loss ratio | 36.07% |
-| p95 claims | 29116 |
-| p99 claims | 32551 |
-| p99.5 claims | 33874 |
-| Claims-paying reserve | 216986.4 |
+| Gross premium | 52776 |
+| Expected claims | 21392 |
+| Expected loss ratio | 40.53% |
+| p95 claims | 28172 |
+| p99 claims | 31240 |
+| p99.5 claims | 32321 |
+| Claims-paying reserve | 210074.4 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 38647 |
+| Expected surplus | 31384 |
 
 ### First Principles
 
@@ -323,10 +323,10 @@ Backers buy tranche-like risk shares that absorb pool losses in a transparent wa
 
 - 30-day acute cover sold through the same quote curve; capacity expands when tranche capital clears.
 - Members modeled: 1500.
-- Average premium: 61.48 USD.
-- Average coverage cap: 737 USD.
-- Active coverage limit: 1105717 USD.
-- Budget range: 15-159 USD.
+- Average premium: 52.48 USD.
+- Average coverage cap: 658 USD.
+- Active coverage limit: 986327 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -339,7 +339,7 @@ Production boundary: Closest to insurance-linked securities or collateralized re
 | baseRiskBackerCapitalUsd | 180000 |
 | effectiveClaimsCapitalUsd | 180000 |
 | trancheCount | 3 |
-| juniorExpectedLossPct | 1.01 |
+| juniorExpectedLossPct | 0.65 |
 | seniorExpectedLossPct | 0 |
 | maxTrancheP995LossPct | 100 |
 
@@ -347,17 +347,17 @@ Production boundary: Closest to insurance-linked securities or collateralized re
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 92219.06 |
-| Expected claims | 31079 |
-| Expected loss ratio | 33.7% |
-| p95 claims | 39580 |
-| p99 claims | 43512 |
-| p99.5 claims | 44874 |
-| Claims-paying reserve | 287997.15 |
+| Gross premium | 78720 |
+| Expected claims | 30362 |
+| Expected loss ratio | 38.57% |
+| p95 claims | 38214 |
+| p99 claims | 41816 |
+| p99.5 claims | 43163 |
+| Claims-paying reserve | 275848 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 61140 |
+| Expected surplus | 48358 |
 
 ### First Principles
 
@@ -375,8 +375,8 @@ Production boundary: Closest to insurance-linked securities or collateralized re
 
 ### Notes
 
-- Sponsor first loss: attaches at 0 USD, expected loss 86.92%, p99.5 impairment 100%.
-- Junior sidecar: attaches at 35000 USD, expected loss 1.01%, p99.5 impairment 15.19%.
+- Sponsor first loss: attaches at 0 USD, expected loss 85.55%, p99.5 impairment 100%.
+- Junior sidecar: attaches at 35000 USD, expected loss 0.65%, p99.5 impairment 12.56%.
 - Senior sidecar: attaches at 100000 USD, expected loss 0%, p99.5 impairment 0%.
 
 ## Model 6: Parametric Fast-Cash Overlay
@@ -452,10 +452,10 @@ Members buy capped cover and receive surplus rebates when the cohort has a good 
 
 - 30-day capped cover with visible cohort economics; expected surplus funds member rebates and backer yield.
 - Members modeled: 800.
-- Average premium: 64.28 USD.
-- Average coverage cap: 894 USD.
-- Active coverage limit: 715395 USD.
-- Budget range: 15-159 USD.
+- Average premium: 56.4 USD.
+- Average coverage cap: 807 USD.
+- Active coverage limit: 645639 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -467,25 +467,25 @@ Production boundary: More consumer-friendly than a prediction market; still need
 | --- | ---: |
 | baseRiskBackerCapitalUsd | 85000 |
 | effectiveClaimsCapitalUsd | 85000 |
-| memberRebatePoolUsd | 11554.9 |
-| expectedRebatePerMemberUsd | 14.44 |
+| memberRebatePoolUsd | 9507.75 |
+| expectedRebatePerMemberUsd | 11.88 |
 | backerSurplusSharePct | 45 |
 
 ### Actuarial Output
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 51420 |
-| Expected claims | 18406 |
-| Expected loss ratio | 35.8% |
-| p95 claims | 25320 |
-| p99 claims | 28502 |
-| p99.5 claims | 29598 |
-| Claims-paying reserve | 156278 |
+| Gross premium | 45120 |
+| Expected claims | 17955 |
+| Expected loss ratio | 39.79% |
+| p95 claims | 24408 |
+| p99 claims | 27295 |
+| p99.5 claims | 28453 |
+| Claims-paying reserve | 150608 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 33014 |
+| Expected surplus | 27165 |
 
 ### First Principles
 
@@ -515,10 +515,10 @@ Members can back themselves to avoid claims through an optional no-claim bond an
 
 - 30-day capped acute cover plus optional health bond; no claim returns the bond and can earn a small rebate.
 - Members modeled: 850.
-- Average premium: 64.52 USD.
-- Average coverage cap: 885 USD.
-- Active coverage limit: 752022 USD.
-- Budget range: 15-159 USD.
+- Average premium: 55.98 USD.
+- Average coverage cap: 792 USD.
+- Active coverage limit: 673322 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -535,24 +535,24 @@ Production boundary: The bond is a member-aligned deductible/rebate layer, not a
 | perClaimForfeitureUsd | 70 |
 | modeledFrequencyReductionPct | 4.2 |
 | expectedBondForfeitureUsd | 938.46 |
-| noClaimRewardPoolUsd | 6643.62 |
-| expectedNoClaimRewardPerHealthyStakerUsd | 19.34 |
+| noClaimRewardPoolUsd | 5413.32 |
+| expectedNoClaimRewardPerHealthyStakerUsd | 15.76 |
 
 ### Actuarial Output
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 54845.06 |
-| Expected claims | 17936 |
-| Expected loss ratio | 32.7% |
-| p95 claims | 24735 |
-| p99 claims | 27956 |
-| p99.5 claims | 29161 |
-| Claims-paying reserve | 154360.55 |
+| Gross premium | 47586 |
+| Expected claims | 17512 |
+| Expected loss ratio | 36.8% |
+| p95 claims | 23880 |
+| p99 claims | 26691 |
+| p99.5 claims | 27830 |
+| Claims-paying reserve | 147827.4 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 36909 |
+| Expected surplus | 30074 |
 
 ### First Principles
 
@@ -582,10 +582,10 @@ Combines pay-anything coverage, sidecar reserve, predictor collateral, and optio
 
 - Any budget above 15 USD quotes capped acute cover; members can optionally stake a no-claim bond.
 - Members modeled: 1500.
-- Average premium: 58.36 USD.
-- Average coverage cap: 695 USD.
-- Active coverage limit: 1042798 USD.
-- Budget range: 15-159 USD.
+- Average premium: 50.24 USD.
+- Average coverage cap: 623 USD.
+- Active coverage limit: 934724 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -603,9 +603,9 @@ Production boundary: Best long-term design, but only production-safe if reward a
 | eventThresholdLossRatioPct | 58 |
 | fairThresholdProbabilityPct | 0 |
 | signalAccuracyPct | 63 |
-| rewardPoolBeforeWrongStakeUsd | 13809.36 |
+| rewardPoolBeforeWrongStakeUsd | 11460.72 |
 | wrongStakePenaltyPoolUsd | 22200 |
-| expectedCorrectPredictorRoiPct | 28.58 |
+| expectedCorrectPredictorRoiPct | 26.71 |
 | expectedWrongPredictorPenaltyPct | 30 |
 | rewardFunding | reserve_yield_plus_pricing_fees_plus_surplus_plus_wrong_stake_penalties_after_claims |
 | healthBondAdoptedMembers | 570 |
@@ -613,24 +613,24 @@ Production boundary: Best long-term design, but only production-safe if reward a
 | perClaimForfeitureUsd | 70 |
 | modeledFrequencyReductionPct | 3.42 |
 | expectedBondForfeitureUsd | 1541.42 |
-| noClaimRewardPoolUsd | 8465.52 |
-| expectedNoClaimRewardPerHealthyStakerUsd | 15.45 |
+| noClaimRewardPoolUsd | 6836.76 |
+| expectedNoClaimRewardPerHealthyStakerUsd | 12.48 |
 
 ### Actuarial Output
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 87540 |
-| Expected claims | 27072 |
-| Expected loss ratio | 30.93% |
-| p95 claims | 35007 |
-| p99 claims | 38508 |
-| p99.5 claims | 40023 |
-| Claims-paying reserve | 333786 |
+| Gross premium | 75360 |
+| Expected claims | 26526 |
+| Expected loss ratio | 35.2% |
+| p95 claims | 33882 |
+| p99 claims | 37006 |
+| p99.5 claims | 38273 |
+| Claims-paying reserve | 322824 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
 | Extra reserve-floor capital needed | 0 |
-| Expected surplus | 60468 |
+| Expected surplus | 48834 |
 
 ### First Principles
 
@@ -662,10 +662,10 @@ Bad curve red-team case: everyone pays any amount and receives the same broad co
 
 - Any payment from 15 USD upward is treated as full 3000 USD acute cover.
 - Members modeled: 500.
-- Average premium: 28.92 USD.
+- Average premium: 27.84 USD.
 - Average coverage cap: 3000 USD.
 - Active coverage limit: 1500000 USD.
-- Budget range: 15-159 USD.
+- Budget range: 15-99 USD.
 
 ### Market Design
 
@@ -678,23 +678,23 @@ Production boundary: Use only as a red-team failure case; pay-anything must be c
 | baseRiskBackerCapitalUsd | 25000 |
 | effectiveClaimsCapitalUsd | 25000 |
 | promisedCapUsd | 3000 |
-| averagePremiumRatePct | 0.96 |
+| averagePremiumRatePct | 0.93 |
 
 ### Actuarial Output
 
 | Metric | Value |
 | --- | ---: |
-| Gross premium | 14460 |
+| Gross premium | 13920 |
 | Expected claims | 22942 |
-| Expected loss ratio | 158.66% |
+| Expected loss ratio | 164.81% |
 | p95 claims | 33551 |
 | p99 claims | 38437 |
 | p99.5 claims | 40494 |
-| Claims-paying reserve | 63014 |
+| Claims-paying reserve | 62528 |
 | Reserve breach probability | 0 |
 | Extra p99.5 reserve needed | 0 |
-| Extra reserve-floor capital needed | 161986 |
-| Expected surplus | -8482 |
+| Extra reserve-floor capital needed | 162472 |
+| Expected surplus | -9022 |
 
 ### First Principles
 

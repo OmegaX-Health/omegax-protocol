@@ -21,6 +21,15 @@ export function isRpcRateLimit(error: unknown): boolean {
   return /\b429\b/.test(message) || /too many requests/i.test(message);
 }
 
+export function isTransientRpcTransportError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /fetch failed/i.test(message)
+    || /connect timeout/i.test(message)
+    || /UND_ERR_CONNECT_TIMEOUT/i.test(message)
+    || /socket.*closed/i.test(message)
+    || /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(message);
+}
+
 export async function withRpcRetry<T>(
   label: string,
   fn: () => Promise<T> | T,
@@ -39,11 +48,13 @@ export async function withRpcRetry<T>(
     try {
       return await fn();
     } catch (error) {
-      if (!isRpcRateLimit(error) || attempt >= attempts) {
+      const retryable = isRpcRateLimit(error) || isTransientRpcTransportError(error);
+      if (!retryable || attempt >= attempts) {
         throw error;
       }
+      const reason = isRpcRateLimit(error) ? "rate limited" : "transport failed";
       console.warn(
-        `[${logPrefix}] rpc rate limited during ${label}; retrying in ${delayMs}ms (${attempt}/${attempts})`,
+        `[${logPrefix}] rpc ${reason} during ${label}; retrying in ${delayMs}ms (${attempt}/${attempts})`,
       );
       await sleep(delayMs);
       delayMs *= 2;

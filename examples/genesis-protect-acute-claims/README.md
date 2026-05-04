@@ -10,8 +10,8 @@ with **32 simulated claim cases** spanning both Genesis Protect Acute product SK
 
 | Product | Coverage | Premium | Max Benefit | Benefit Mode |
 |---|---|---|---|---|
-| **Event 7** | 7 days | $39 | $1,500 | Fixed-benefit only |
-| **Travel 30** | 30 days | $99 | $5,000 | Hybrid fixed + reimbursement |
+| **Event 7** | 7 days | $39 | $1,000 | Fixed-benefit only |
+| **Travel 30** | 30 days | $99 | $3,000 | Hybrid fixed + reimbursement |
 
 ## Scenario structure
 
@@ -36,9 +36,9 @@ Each scenario is modelled across 7 dimensions:
 
 | Tier | Event 7 (fixed) | Travel 30 (hybrid UCR) |
 |---|---|---|
-| Tier 1 — ER same-day | $300 | $400 – $850 |
-| Tier 2 — Overnight | $700 | $1,200 – $2,500 |
-| Tier 3 — Surgery + ICU + 2 nights | $1,500 | $3,200 – $5,000 |
+| Tier 1 — ER same-day | $150 | $400 – $850 |
+| Tier 2 — Overnight | $500 | $1,200 – $2,500 |
+| Tier 3 — Surgery + ICU + 2 nights | $1,000 | $2,500 – $3,000 |
 
 ### Denial exclusion categories covered
 

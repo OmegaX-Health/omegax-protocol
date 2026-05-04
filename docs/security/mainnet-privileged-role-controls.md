@@ -6,7 +6,7 @@
 
 ## Why this exists
 
-The on-chain program enforces role checks (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_pool_control`, `require_curator_control`, `require_allocator`) plus pool-scoped oracle approval/permission checks for LP-backed claim attestations. The safety story for any of those checks is **only as strong as the wallet behind the role**. Pre-pen-test, the Genesis live bootstrap defaulted every privileged role to the governance signer if the role-specific environment variable was unset — a single key compromise drained the whole protocol. PT-05 closed the silent collapse via the opt-in `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` guard. This doc closes the rest of the gap: matrix, multisig requirement, break-glass exception, and rotation/recovery posture.
+The on-chain program enforces role checks (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_curator_control`, `require_allocator`) plus pool-scoped oracle approval/permission checks for LP-backed claim attestations. The safety story for any of those checks is **only as strong as the wallet behind the role**. Pre-pen-test, the Genesis live bootstrap defaulted every privileged role to the governance signer if the role-specific environment variable was unset — a single key compromise drained the whole protocol. PT-05 closed the silent collapse via the opt-in `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1` guard. This doc closes the rest of the gap: matrix, multisig requirement, break-glass exception, and rotation/recovery posture.
 
 ## 1. Privileged roles
 
@@ -22,7 +22,7 @@ Every entry below maps to a `require_*` check in the onchain program source (`pr
 | **Oracle authority** | `OracleProfile` signer + verified-schema gate; non-LP claims require the plan's configured oracle authority; LP-backed claims require active `PoolOracleApproval` and `POOL_ORACLE_PERMISSION_ATTEST_CLAIM` | `register_oracle`, `claim_oracle`, `attest_claim_case` from oracle profile | Oracle operator (OmegaX Health for v1) | Distinct hot wallet, rotated quarterly | (none — must be set explicitly) |
 | **Pool curator** | `require_curator_control` | `create_capital_class`, capital-class restriction updates, manager credentialing | LP product team | Distinct wallet, multisig for production | `governanceAuthority` |
 | **Pool allocator** | `require_allocator` | `create_allocation_position`, allocation cap & weight updates | Capital management team | Distinct wallet | `governanceAuthority` |
-| **Pool sentinel** | `require_pool_control` (sentinel lane) | pool-level pause flags, redemption-queue throttle | On-call sentinel | Distinct hot wallet (low blast radius — short-lived rotation OK) | `governanceAuthority` |
+| **Pool sentinel** | no broad economic mutation helper; sentinel remains a configured emergency role for future narrow pause/throttle surfaces | pool-level pause flags, redemption-queue throttle | On-call sentinel | Distinct hot wallet (low blast radius — short-lived rotation OK) | `governanceAuthority` |
 | **Membership invite authority** | (off-chain) | issuing invite permits for invite-only plans | Plan admin | Distinct wallet | (none — must be set explicitly when invite-only) |
 
 The on-chain enforcement does not change with this doc — every `require_*` call still does authority equality. What changes is **what each authority is**.
@@ -115,7 +115,7 @@ For release notes, sponsor decks, or LP communication that touches role custody,
 
 ## Appendix: source-of-truth pointers
 
-- Program role checks: `programs/omegax_protocol/src/kernel.rs`, `programs/omegax_protocol/src/kernel/`, and the calling domain modules (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_pool_control`, `require_curator_control`, `require_allocator`)
+- Program role checks: `programs/omegax_protocol/src/kernel.rs`, `programs/omegax_protocol/src/kernel/`, and the calling domain modules (`require_governance`, `require_plan_control`, `require_claim_operator`, `require_curator_control`, `require_allocator`)
 - Bootstrap config: `scripts/support/genesis_live_bootstrap_config.ts`
 - PT-05 distinct-keys guard: shipped in commit `8c219fe`; tests in `tests/genesis_live_bootstrap_config.test.ts`
 - Pen-test report: [`./pre-mainnet-pen-test-2026-04-27.md`](./pre-mainnet-pen-test-2026-04-27.md)

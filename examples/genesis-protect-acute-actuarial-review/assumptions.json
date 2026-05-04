@@ -25,23 +25,9 @@
   },
   "approvedCanonicalRedesign": {
     "status": "approved_applied_in_repo",
-    "approvedAt": "2026-04-27",
-    "approvalBasis": "p99.5 actuarial workbook pricing redesign",
+    "approvedAt": "2026-05-04",
+    "approvalBasis": "Travel 30 retail price reset to 99 USD with explicit backstop replacing removed premium load under the p99.5 launch gate",
     "historicalPriorDesign": {
-      "event7": {
-        "retailPremiumUsd": 39,
-        "cohortPremiumUsdMin": 29,
-        "cohortPremiumUsdMax": 35,
-        "maxPayoutUsd": 1500
-      },
-      "travel30": {
-        "retailPremiumUsd": 99,
-        "cohortPremiumUsdMin": 69,
-        "cohortPremiumUsdMax": 89,
-        "maxPayoutUsd": 5000
-      }
-    },
-    "appliedDesign": {
       "event7": {
         "retailPremiumUsd": 39,
         "cohortPremiumUsdMin": 28,
@@ -52,6 +38,20 @@
         "retailPremiumUsd": 159,
         "cohortPremiumUsdMin": 112,
         "cohortPremiumUsdMax": 144,
+        "maxPayoutUsd": 3000
+      }
+    },
+    "appliedDesign": {
+      "event7": {
+        "retailPremiumUsd": 39,
+        "cohortPremiumUsdMin": 28,
+        "cohortPremiumUsdMax": 36,
+        "maxPayoutUsd": 1000
+      },
+      "travel30": {
+        "retailPremiumUsd": 99,
+        "cohortPremiumUsdMin": 69,
+        "cohortPremiumUsdMax": 89,
         "maxPayoutUsd": 3000
       }
     }
@@ -112,9 +112,9 @@
       "displayName": "Genesis Protect Acute - Travel 30",
       "coverWindowDays": 30,
       "benefitStyle": "hybrid_fixed_plus_reimbursement",
-      "retailPremiumUsd": 159,
-      "cohortPremiumUsdMin": 112,
-      "cohortPremiumUsdMax": 144,
+      "retailPremiumUsd": 99,
+      "cohortPremiumUsdMin": 69,
+      "cohortPremiumUsdMax": 89,
       "maxPayoutUsd": 3000,
       "baselineClaimFrequency": 0.04,
       "baselineLossRatio": 0.412,
@@ -137,8 +137,8 @@
         "optimizerScenarioId": "adverse-1000-e7-500-t30"
       },
       "capitalStack": {
-        "premiumReserveUsd": 39900,
-        "sponsorBackstopUsd": 0,
+        "premiumReserveUsd": 24900,
+        "sponsorBackstopUsd": 15000,
         "juniorFirstLossUsd": 20000,
         "seniorLpReserveUsd": 25000
       },

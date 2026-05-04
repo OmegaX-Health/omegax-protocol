@@ -9,7 +9,7 @@ pub(crate) fn create_capital_class(
     args: CreateCapitalClassArgs,
 ) -> Result<()> {
     require_id(&args.class_id)?;
-    require_pool_control(
+    require_curator_control(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,
@@ -60,7 +60,7 @@ pub(crate) fn update_capital_class_controls(
     ctx: Context<UpdateCapitalClassControls>,
     args: UpdateCapitalClassControlsArgs,
 ) -> Result<()> {
-    require_pool_control(
+    require_curator_control(
         &ctx.accounts.authority.key(),
         &ctx.accounts.protocol_governance,
         &ctx.accounts.liquidity_pool,

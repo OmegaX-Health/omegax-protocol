@@ -27,6 +27,8 @@ This gate covers:
 - canonical-surface semantic readiness
 - tracked-file hygiene
 - dependency license policy
+- accepted npm advisory policy via `docs/operations/dependency-advisory-risk-acceptance.md`
+- SBOM generation for npm and Cargo dependency evidence
 
 Note: `npm run protocol:contract:check` currently normalizes the generated protocol artifacts before it verifies parity. Run it as a deliberate validation step, not as a background watcher.
 
@@ -58,6 +60,8 @@ Before merging a release candidate to `main`, confirm:
 - `npm run verify:public`
 - `npm run devnet:operator:drawer:sim`
 - `npm run test:e2e:localnet`
+- `npm run security:audit:deps`
+- `npm run security:sbom`
 - the checked-in docs describe the same public surface as the code and generated artifacts
 - [`./release-v0.3.1.md`](./release-v0.3.1.md) reflects the current release notes and known follow-up work
 

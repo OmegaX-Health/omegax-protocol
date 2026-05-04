@@ -122,7 +122,7 @@ const LOCAL_REHEARSAL_DIR = resolve(
 const GOVERNANCE_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 const ROLE_MIN_LAMPORTS = 150_000_000n;
 const GOVERNANCE_MIN_LAMPORTS = 2n * BigInt(LAMPORTS_PER_SOL);
-const FOUNDER_DEPOSIT_USD = 159;
+const FOUNDER_DEPOSIT_USD = 99;
 const CLAIM_REHEARSAL_USD = 25;
 const TERMS_HASH = sha256Hex("founder-travel30-devnet-rehearsal-terms-v1");
 
@@ -992,7 +992,11 @@ async function ensureReserveAssetRail(
         assetMint: asset.mint,
         priceUsd1e8: asset.priceUsd1e8,
         confidenceBps:
-          asset.symbol === "USDC" || asset.symbol === "PUSD" ? 5 : 250,
+          asset.symbol === "USDC" ||
+          asset.symbol === "PUSD" ||
+          asset.symbol === "USDT"
+            ? 5
+            : 250,
         publishedAtTs: BigInt(nowTs),
         proofHashHex: sha256Hex(
           `devnet rehearsal price evidence:${asset.symbol}:${asset.priceUsd1e8}`,

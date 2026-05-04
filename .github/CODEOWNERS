@@ -6,6 +6,9 @@
 /idl/ @marinosabijan
 /shared/ @marinosabijan
 /frontend/lib/generated/ @marinosabijan
+/frontend/lib/protocol*.ts @marinosabijan
+/frontend/lib/plan-launch-tx.ts @marinosabijan
+/frontend/lib/network-config.ts @marinosabijan
 
 /frontend/ @marinosabijan
 /scripts/ @marinosabijan

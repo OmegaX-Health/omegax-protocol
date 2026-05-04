@@ -15,7 +15,11 @@
   "monteCarlo": {
     "seed": 28036591,
     "trials": 30000,
-    "quantiles": [0.95, 0.99, 0.995]
+    "quantiles": [
+      0.95,
+      0.99,
+      0.995
+    ]
   },
   "product": {
     "displayName": "Nomad Protect Curve PoC",
@@ -83,7 +87,11 @@
       "riskMultiplier": 1.15
     }
   ],
-  "memberBudgetsUsd": [15, 39, 99, 159],
+  "memberBudgetsUsd": [
+    15,
+    39,
+    99
+  ],
   "hybridModels": [
     {
       "id": "separated-backstop-curve",
@@ -96,10 +104,18 @@
       "scale": {
         "members": 500,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.35 },
-          { "budgetUsd": 39, "weight": 0.3 },
-          { "budgetUsd": 99, "weight": 0.2 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.35
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.3
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.35
+          }
         ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 1,
@@ -118,12 +134,26 @@
       "scale": {
         "members": 650,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.22 },
-          { "budgetUsd": 23, "weight": 0.17 },
-          { "budgetUsd": 47, "weight": 0.18 },
-          { "budgetUsd": 82, "weight": 0.18 },
-          { "budgetUsd": 126, "weight": 0.15 },
-          { "budgetUsd": 159, "weight": 0.1 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.22
+          },
+          {
+            "budgetUsd": 23,
+            "weight": 0.17
+          },
+          {
+            "budgetUsd": 47,
+            "weight": 0.18
+          },
+          {
+            "budgetUsd": 82,
+            "weight": 0.18
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.25
+          }
         ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 1,
@@ -142,10 +172,18 @@
       "scale": {
         "members": 1000,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.3 },
-          { "budgetUsd": 39, "weight": 0.3 },
-          { "budgetUsd": 99, "weight": 0.25 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.3
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.3
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.4
+          }
         ],
         "riskMultiplier": 1.05,
         "frequencyMultiplier": 1.05,
@@ -170,10 +208,18 @@
       "scale": {
         "members": 1000,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.32 },
-          { "budgetUsd": 39, "weight": 0.28 },
-          { "budgetUsd": 99, "weight": 0.25 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.32
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.28
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.4
+          }
         ],
         "riskMultiplier": 1.02,
         "frequencyMultiplier": 1,
@@ -203,10 +249,18 @@
       "scale": {
         "members": 1500,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.35 },
-          { "budgetUsd": 39, "weight": 0.3 },
-          { "budgetUsd": 99, "weight": 0.2 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.35
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.3
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.35
+          }
         ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 1,
@@ -214,9 +268,24 @@
         "riskBackerCapitalUsd": 180000
       },
       "tranches": [
-        { "id": "sponsor-first-loss", "label": "Sponsor first loss", "capitalUsd": 35000, "couponSharePct": 0 },
-        { "id": "junior-sidecar", "label": "Junior sidecar", "capitalUsd": 65000, "couponSharePct": 62 },
-        { "id": "senior-sidecar", "label": "Senior sidecar", "capitalUsd": 115000, "couponSharePct": 38 }
+        {
+          "id": "sponsor-first-loss",
+          "label": "Sponsor first loss",
+          "capitalUsd": 35000,
+          "couponSharePct": 0
+        },
+        {
+          "id": "junior-sidecar",
+          "label": "Junior sidecar",
+          "capitalUsd": 65000,
+          "couponSharePct": 62
+        },
+        {
+          "id": "senior-sidecar",
+          "label": "Senior sidecar",
+          "capitalUsd": 115000,
+          "couponSharePct": 38
+        }
       ]
     },
     {
@@ -229,7 +298,12 @@
       "productionBoundary": "Can sit beside indemnity cover; trigger design must be explicit and not pretend to reimburse all losses.",
       "scale": {
         "members": 1200,
-        "budgetMix": [{ "budgetUsd": 15, "weight": 1 }],
+        "budgetMix": [
+          {
+            "budgetUsd": 15,
+            "weight": 1
+          }
+        ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 1.15,
         "severityMultiplier": 1,
@@ -252,10 +326,18 @@
       "scale": {
         "members": 800,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.25 },
-          { "budgetUsd": 39, "weight": 0.35 },
-          { "budgetUsd": 99, "weight": 0.25 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.25
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.35
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.4
+          }
         ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 0.95,
@@ -279,10 +361,18 @@
       "scale": {
         "members": 850,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.28 },
-          { "budgetUsd": 39, "weight": 0.34 },
-          { "budgetUsd": 99, "weight": 0.23 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.28
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.34
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.38
+          }
         ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 0.98,
@@ -308,11 +398,22 @@
       "scale": {
         "members": 1500,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.3 },
-          { "budgetUsd": 27, "weight": 0.15 },
-          { "budgetUsd": 39, "weight": 0.2 },
-          { "budgetUsd": 99, "weight": 0.2 },
-          { "budgetUsd": 159, "weight": 0.15 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.3
+          },
+          {
+            "budgetUsd": 27,
+            "weight": 0.15
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.2
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.35
+          }
         ],
         "riskMultiplier": 1.03,
         "frequencyMultiplier": 1,
@@ -349,10 +450,18 @@
       "scale": {
         "members": 500,
         "budgetMix": [
-          { "budgetUsd": 15, "weight": 0.7 },
-          { "budgetUsd": 39, "weight": 0.2 },
-          { "budgetUsd": 99, "weight": 0.08 },
-          { "budgetUsd": 159, "weight": 0.02 }
+          {
+            "budgetUsd": 15,
+            "weight": 0.7
+          },
+          {
+            "budgetUsd": 39,
+            "weight": 0.2
+          },
+          {
+            "budgetUsd": 99,
+            "weight": 0.1
+          }
         ],
         "riskMultiplier": 1,
         "frequencyMultiplier": 1,
@@ -399,7 +508,7 @@
       },
       {
         "member": "nomad_standard",
-        "budgetUsd": 159,
+        "budgetUsd": 99,
         "riskMultiplier": 1,
         "residenceCountry": "United States",
         "destinationCountry": "Japan"
@@ -469,7 +578,12 @@
       "type": "independent_claims",
       "label": "Micro-cover bootstrap: 200 nomads at 15 USD",
       "members": 200,
-      "budgetMix": [{ "budgetUsd": 15, "weight": 1 }],
+      "budgetMix": [
+        {
+          "budgetUsd": 15,
+          "weight": 1
+        }
+      ],
       "riskMultiplier": 1,
       "frequencyMultiplier": 1,
       "severityMultiplier": 1,
@@ -481,10 +595,18 @@
       "label": "Mixed nomad launch: micro + standard budgets",
       "members": 500,
       "budgetMix": [
-        { "budgetUsd": 15, "weight": 0.35 },
-        { "budgetUsd": 39, "weight": 0.3 },
-        { "budgetUsd": 99, "weight": 0.2 },
-        { "budgetUsd": 159, "weight": 0.15 }
+        {
+          "budgetUsd": 15,
+          "weight": 0.35
+        },
+        {
+          "budgetUsd": 39,
+          "weight": 0.3
+        },
+        {
+          "budgetUsd": 99,
+          "weight": 0.35
+        }
       ],
       "riskMultiplier": 1,
       "frequencyMultiplier": 1,
@@ -497,10 +619,18 @@
       "label": "Market-backed growth: open risk capital supports issuance",
       "members": 1500,
       "budgetMix": [
-        { "budgetUsd": 15, "weight": 0.35 },
-        { "budgetUsd": 39, "weight": 0.3 },
-        { "budgetUsd": 99, "weight": 0.2 },
-        { "budgetUsd": 159, "weight": 0.15 }
+        {
+          "budgetUsd": 15,
+          "weight": 0.35
+        },
+        {
+          "budgetUsd": 39,
+          "weight": 0.3
+        },
+        {
+          "budgetUsd": 99,
+          "weight": 0.35
+        }
       ],
       "riskMultiplier": 1,
       "frequencyMultiplier": 1,
@@ -513,10 +643,18 @@
       "label": "Thin-market growth: same demand without enough backers",
       "members": 1500,
       "budgetMix": [
-        { "budgetUsd": 15, "weight": 0.35 },
-        { "budgetUsd": 39, "weight": 0.3 },
-        { "budgetUsd": 99, "weight": 0.2 },
-        { "budgetUsd": 159, "weight": 0.15 }
+        {
+          "budgetUsd": 15,
+          "weight": 0.35
+        },
+        {
+          "budgetUsd": 39,
+          "weight": 0.3
+        },
+        {
+          "budgetUsd": 99,
+          "weight": 0.35
+        }
       ],
       "riskMultiplier": 1,
       "frequencyMultiplier": 1,
@@ -529,10 +667,18 @@
       "label": "Expensive-region adverse mix",
       "members": 600,
       "budgetMix": [
-        { "budgetUsd": 15, "weight": 0.25 },
-        { "budgetUsd": 39, "weight": 0.25 },
-        { "budgetUsd": 99, "weight": 0.25 },
-        { "budgetUsd": 159, "weight": 0.25 }
+        {
+          "budgetUsd": 15,
+          "weight": 0.25
+        },
+        {
+          "budgetUsd": 39,
+          "weight": 0.25
+        },
+        {
+          "budgetUsd": 99,
+          "weight": 0.5
+        }
       ],
       "riskMultiplier": 1.35,
       "frequencyMultiplier": 1.35,
@@ -545,9 +691,14 @@
       "label": "Nomad hub regional illness cluster",
       "members": 600,
       "budgetMix": [
-        { "budgetUsd": 39, "weight": 0.5 },
-        { "budgetUsd": 99, "weight": 0.3 },
-        { "budgetUsd": 159, "weight": 0.2 }
+        {
+          "budgetUsd": 39,
+          "weight": 0.5
+        },
+        {
+          "budgetUsd": 99,
+          "weight": 0.5
+        }
       ],
       "riskMultiplier": 1.15,
       "affectedRate": 0.3,

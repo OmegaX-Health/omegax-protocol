@@ -181,9 +181,9 @@ test("create commitment campaign builder uses the canonical campaign and reserve
     displayName: "Founder Travel30",
     metadataUri: "ipfs://founder-travel30",
     mode: COMMITMENT_MODE_DIRECT_PREMIUM,
-    depositAmount: 159_000_000n,
+    depositAmount: 99_000_000n,
     coverageAmount: 1_000_000_000n,
-    hardCapAmount: 159_000_000_000n,
+    hardCapAmount: 99_000_000_000n,
     startsAtTs: 1_770_000_000n,
     refundAfterTs: 1_777_776_000n,
     expiresAtTs: 1_780_000_000n,
@@ -229,9 +229,9 @@ test("additional commitment payment rail builder adds assets without splitting c
     coverageAssetMint: coverageMint,
     recentBlockhash: RECENT_BLOCKHASH,
     mode: COMMITMENT_MODE_WATERFALL_RESERVE,
-    depositAmount: 159_000_000n,
+    depositAmount: 99_000_000n,
     coverageAmount: 1_000_000_000n,
-    hardCapAmount: 159_000_000_000n,
+    hardCapAmount: 99_000_000_000n,
   });
   const ix = assertProtocolIxShape(tx, "create_commitment_payment_rail", AUTHORITY);
   assert.equal(ix.keys.length, 10);

@@ -72,6 +72,10 @@ pub(crate) fn authorize_claim_recipient(
     // and claim_case.member_position == member_position.key(), so reaching
     // this body means the member of record signed.
     let claim_case = &mut ctx.accounts.claim_case;
+    require!(
+        claim_case.intake_status < CLAIM_INTAKE_APPROVED && claim_case.paid_amount == 0,
+        OmegaXProtocolError::ClaimRecipientLocked
+    );
     claim_case.delegate_recipient = args.delegate_recipient;
     claim_case.updated_at = Clock::get()?.unix_timestamp;
     Ok(())

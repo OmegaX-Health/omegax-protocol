@@ -29,7 +29,7 @@
         "policySeries": "29XmfdaHceAeAvtiESAcNDXLsJxEqW2RBa3DttTUUcco",
         "seriesId": "genesis-travel-30-v1",
         "coverageDays": 30,
-        "premiumRetail": 159,
+        "premiumRetail": 99,
         "maxBenefit": 3000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "cycleSeconds": 2592000,

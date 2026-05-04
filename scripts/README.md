@@ -42,6 +42,7 @@ This directory contains the repository's command-line helpers.
 - `devnet_governance_smoke.ts` runs the shared-devnet native governance smoke in `create-vote` and `execute` phases
 - `devnet_governance_ui_readonly.ts` boots the local frontend and verifies readonly governance routes against devnet data
 - `devnet_operator_drawer_sim.ts` simulates the mounted operator drawer transactions against devnet and fails on real builder/wiring mismatches such as membership proof-mode or gate-configuration errors
+- `seed_devnet_treasury_canaries.ts` seeds devnet treasury pen-test canary state; with the local operator signer it creates a linked-claim obligation canary, and with `OMEGAX_DEVNET_PROTOCOL_GOVERNANCE_KEYPAIR_PATH` it can also seed governance-gated fee-vault and LP-redemption canaries
 - `deploy_devnet_beta.ts` runs the checked build, artifact parity, and canonical manifest/bootstrap preparation for the hard-break migration
 - `governance_schema_state_update.ts` updates governance-controlled schema state, including historical schema-dependency backfills when older accounts must be retired safely
 ## Usage guidance
@@ -50,6 +51,7 @@ This directory contains the repository's command-line helpers.
 - Use `npm run verify:public` for the public release gate.
 - Use `npm run frontend:workbench:mobile-sidebar:smoke` for the targeted mobile drawer accessibility smoke.
 - Use `npm run devnet:operator:drawer:sim` for the targeted plan/governance operator drawer transaction smoke.
+- Use `npm run devnet:treasury:seed-canaries` before `npm run devnet:treasury:pen-test` when the devnet snapshot lacks live treasury outflow canaries.
 - Use `npm run test:e2e:localnet` as an additional release-candidate sign-off step when the public protocol surface changes.
 - Use `npm run semantic:readiness:check` when you want the canonical-surface wording guard on its own.
 - Treat deployment and bootstrap helpers as operator tooling, not general contributor entry points.

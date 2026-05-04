@@ -38,8 +38,7 @@ function assertAllowedLicenses(entries, label) {
 function collectNodeLicenses(cwd, label) {
   const result = run(
     'npm',
-    ['exec', '--yes', '--package=license-checker', '--', 'license-checker', '--json', '--production'],
-    { cwd },
+    ['exec', '--', 'license-checker', '--json', '--production', '--start', cwd],
   );
 
   if (result.status !== 0) {
