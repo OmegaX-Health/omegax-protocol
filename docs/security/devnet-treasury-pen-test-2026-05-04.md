@@ -13,7 +13,7 @@ did not submit theft transactions and did not target mainnet.
 - Protocol governance PDA: `7rjTAckGY9PMTGH43B2pG3DC7czbLazF3LN3QaKnejty`
 - Protocol governance authority: `CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU`
 - RPC: `https://api.devnet.solana.com/`
-- Strict run time: `2026-05-04T08:58:24.111Z`
+- Strict run time: `2026-05-04T09:15:59.779Z`
 
 Deployment verification:
 
@@ -31,14 +31,15 @@ and had program data authority
 npm run devnet:program:redeploy-fresh
 npm run anchor:idl
 npm run protocol:contract
+OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=0 npm run protocol:bootstrap:devnet-live
 OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=0 npm run devnet:treasury:seed-canaries
-npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security-rehearsal-final
+npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security-rehearsal-full-bootstrap
 ```
 
 The timestamped local evidence files for the strict run are:
 
-- `artifacts/devnet-security-rehearsal-final/devnet-treasury-pen-test-2026-05-04T08-58-24-110Z.json`
-- `artifacts/devnet-security-rehearsal-final/devnet-treasury-pen-test-2026-05-04T08-58-24-110Z.md`
+- `artifacts/devnet-security-rehearsal-full-bootstrap/devnet-treasury-pen-test-2026-05-04T09-15-59-778Z.json`
+- `artifacts/devnet-security-rehearsal-full-bootstrap/devnet-treasury-pen-test-2026-05-04T09-15-59-778Z.md`
 
 The `artifacts/` directory is intentionally ignored by git, so this document is
 the tracked public-safe evidence summary.
@@ -63,8 +64,8 @@ Live snapshot at strict run:
   "protocolFeeVaults": 1,
   "poolTreasuryVaults": 2,
   "poolOracleFeeVaults": 1,
-  "claimCases": 2,
-  "obligations": 4,
+  "claimCases": 4,
+  "obligations": 7,
   "lpPositions": 3,
   "allocationPositions": 3
 }
@@ -92,7 +93,7 @@ No simulated theft path succeeded.
 | Fee withdrawal to attacker | protocol fee vault `EB7ENqp29Mdd7m1Lrxdukmw6b6QNK1oS2LjvrNegBXdi` | blocked | Attacker signer and attacker-owned recipient are rejected. |
 | Fee withdrawal to attacker | pool treasury vault `6ELshgz8a6iGd9uZnefJ8egeskYcJff2fJQTFL1WfbBi` | blocked | Attacker signer and attacker-owned recipient are rejected. |
 | Fee withdrawal to attacker | pool oracle fee vault `AR5M6BYfyXpeAHygttEQAwZshfYtrszTYSSFURecj2pW` | blocked | Attacker signer and attacker-owned recipient are rejected. |
-| Linked claim settle to attacker | claim `6UGgBVKdT8k71suQbFZqauUvGGjAxDV35Ck5oQRWymwF` | blocked | Attacker is not claim/operator authority and recipient is not member/delegate. |
+| Linked claim settle to attacker | claim `k3qrVYaN6iBgnuHhGEP2oXCBq5cLXedzSAuYrDAaRLV` | blocked | Attacker is not claim/operator authority and recipient is not member/delegate. |
 | LP redemption to attacker | LP position `GsYNHrsbin8tGuNfdZCqAdR6pDLaajSzhKJr2NNwbfVS` | blocked | Attacker is not curator/governance and recipient is not LP owner. |
 | Allocation obligation settle to attacker | obligation `FssKgX1yo8zSwxyLijnvsTQPCZ2qeZDcYrbgZ2s2R3PA` | blocked | Attacker is not settlement controller and allocation ledgers bind to the obligation. |
 
@@ -111,10 +112,13 @@ The linked-claim obligation canary also required pool-oracle fee accrual on
 and claim attestation bindings before accruing oracle fees and transferring net
 settlement funds.
 
-## Limits
+## Fixture Parity
 
-This is treasury canary proof for the final devnet program above. It is not a
-frontend fixture parity claim: the full health capital-markets bootstrap
-manifest was not regenerated for this final program because devnet funding and
-faucet limits stopped the broader bootstrap before completion. The strict
-treasury canary graph and strict pen-test did complete.
+After the first strict treasury run, devnet SOL was rebalanced between local
+role wallets and the full live bootstrap completed for the same final program.
+The checked-in devnet manifest and frontend fixture JSON now point at
+`3autasvKVhr7XtEtCrMwvELHMcgkSznNXRdzAe1FuCNX`.
+
+The stable rails remain simulated with devnet SPL mints. The current settlement
+and reward mints are local devnet test mints, not real USDC or real reward
+assets.
