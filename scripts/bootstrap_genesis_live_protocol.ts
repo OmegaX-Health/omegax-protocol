@@ -161,6 +161,19 @@ function stringifyJson(value: unknown): string {
   );
 }
 
+function loadAndValidateOracleKeypair(config: ReturnType<typeof loadGenesisLiveBootstrapConfig>): Keypair {
+  if (!existsSync(config.roles.oracleKeypairPath)) {
+    throw new Error("Genesis live oracle keypair file was not found.");
+  }
+  const oracle = keypairFromFile(config.roles.oracleKeypairPath);
+  if (oracle.publicKey.toBase58() !== config.roles.oracleAuthority) {
+    throw new Error(
+      `OMEGAX_LIVE_ORACLE_WALLET (${config.roles.oracleAuthority}) does not match the configured oracle keypair.`,
+    );
+  }
+  return oracle;
+}
+
 async function main() {
   const { planOnly } = parseArgs(process.argv.slice(2));
   loadEnvFile(FRONTEND_ENV_PATH);
@@ -173,6 +186,7 @@ async function main() {
   });
 
   if (planOnly) {
+    loadAndValidateOracleKeypair(config);
     console.log(stringifyJson(planSummary(protocol, config)));
     return;
   }
@@ -181,12 +195,7 @@ async function main() {
     throw new Error(`Genesis schema metadata file not found: ${config.schema.metadataLocalPath}`);
   }
 
-  const oracle = keypairFromFile(config.roles.oracleKeypairPath);
-  if (oracle.publicKey.toBase58() !== config.roles.oracleAuthority) {
-    throw new Error(
-      `OMEGAX_LIVE_ORACLE_WALLET (${config.roles.oracleAuthority}) does not match ${config.roles.oracleKeypairPath} (${oracle.publicKey.toBase58()}).`,
-    );
-  }
+  const oracle = loadAndValidateOracleKeypair(config);
 
   const seniorLp = config.capitalClasses.senior.lpKeypairPath
     ? keypairFromFile(config.capitalClasses.senior.lpKeypairPath)

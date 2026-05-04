@@ -6,7 +6,15 @@ import { dirname } from "node:path";
 import test from "node:test";
 
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
+} from "@solana/web3.js";
 
 import protocolModule from "../frontend/lib/protocol.ts";
 import {
@@ -24,7 +32,8 @@ const SAMPLE_HASH_HEX = "ab".repeat(32);
 
 const governanceAuthority = Keypair.generate().publicKey;
 const operator = Keypair.generate().publicKey;
-const attacker = Keypair.generate().publicKey;
+const attackerKeypair = Keypair.generate();
+const attacker = attackerKeypair.publicKey;
 const oracle = Keypair.generate().publicKey;
 const lpOwner = Keypair.generate().publicKey;
 const member = Keypair.generate().publicKey;
@@ -93,6 +102,22 @@ type MatrixRow = {
   mustInclude?: PublicKey[];
 };
 
+type RuntimeProbe = {
+  area: string;
+  instruction: string;
+  attack: string;
+  expectedGuard: string;
+  tx: Transaction;
+  category: string;
+};
+
+type RuntimeProbeResult = ReturnType<typeof rowSummary> & {
+  category: string;
+  runtimeStatus: "blocked" | "unexpected_success" | "inconclusive";
+  rejectionReason: string;
+  logs: string[];
+};
+
 function onlyProgramInstruction(tx: Transaction) {
   const instructions = tx.instructions.filter((ix) => ix.programId.equals(protocol.getProgramId()));
   assert.equal(instructions.length, 1, "expected exactly one OmegaX instruction");
@@ -134,6 +159,130 @@ function rowSummary(row: MatrixRow) {
     signerCount: ix.keys.filter((key) => key.isSigner).length,
     writableCount: ix.keys.filter((key) => key.isWritable).length,
   };
+}
+
+const fakePda = Keypair.generate().publicKey;
+const fakeMint = Keypair.generate().publicKey;
+const fakeRecipient = getAssociatedTokenAddressSync(assetMint, Keypair.generate().publicKey, true, TOKEN_PROGRAM_ID);
+const fakeLedger = Keypair.generate().publicKey;
+const fakeAttestation = Keypair.generate().publicKey;
+const knownLedgerAccounts = [
+  protocol.deriveFundingLineLedgerPda({ fundingLine, assetMint }),
+  protocol.derivePoolClassLedgerPda({ capitalClass, assetMint }),
+  protocol.deriveAllocationLedgerPda({ allocationPosition, assetMint }),
+];
+
+function cloneTxWithReplacement(row: MatrixRow, replacements: Map<string, PublicKey>): Transaction | null {
+  let mutated = false;
+  const tx = new Transaction();
+  for (const ix of row.tx.instructions) {
+    tx.add(new TransactionInstruction({
+      programId: ix.programId,
+      data: ix.data,
+      keys: ix.keys.map((key) => {
+        const replacement = replacements.get(key.pubkey.toBase58());
+        if (!replacement) return key;
+        mutated = true;
+        return { ...key, pubkey: replacement };
+      }),
+    }));
+  }
+  return mutated ? tx : null;
+}
+
+function runtimeProbes(): RuntimeProbe[] {
+  const probes: RuntimeProbe[] = matrixRows.map((row) => ({
+    ...row,
+    category: "wrong_signer_or_role_confusion",
+  }));
+  for (const row of matrixRows) {
+    const pdaCandidate = row.mustInclude?.find((account) =>
+      !account.equals(TOKEN_PROGRAM_ID)
+      && !account.equals(attackerAta)
+      && !account.equals(sourceAta)
+      && !account.equals(memberAta)
+      && !account.equals(assetMint),
+    );
+    if (pdaCandidate) {
+      const tx = cloneTxWithReplacement(row, new Map([[pdaCandidate.toBase58(), fakePda]]));
+      if (tx) probes.push({ ...row, tx, category: "wrong_pda_binding", attack: `${row.attack} + wrong PDA binding` });
+    }
+
+    const wrongMintTx = cloneTxWithReplacement(row, new Map([[assetMint.toBase58(), fakeMint]]));
+    if (wrongMintTx) {
+      probes.push({ ...row, tx: wrongMintTx, category: "wrong_mint", attack: `${row.attack} + wrong mint` });
+    }
+
+    const wrongRecipientTx = cloneTxWithReplacement(row, new Map([[attackerAta.toBase58(), fakeRecipient]]));
+    if (wrongRecipientTx) {
+      probes.push({ ...row, tx: wrongRecipientTx, category: "wrong_recipient", attack: `${row.attack} + alternate attacker recipient` });
+    }
+
+    const wrongTokenProgramTx = cloneTxWithReplacement(row, new Map([[TOKEN_PROGRAM_ID.toBase58(), protocol.getProgramId()]]));
+    if (wrongTokenProgramTx) {
+      probes.push({ ...row, tx: wrongTokenProgramTx, category: "wrong_token_program", attack: `${row.attack} + Token-2022/program substitution` });
+    }
+
+    const ledgerTarget = knownLedgerAccounts.find((ledger) => onlyProgramInstruction(row.tx).keys.some((key) => key.pubkey.equals(ledger)));
+    if (ledgerTarget) {
+      const tx = cloneTxWithReplacement(row, new Map([[ledgerTarget.toBase58(), fakeLedger]]));
+      if (tx) probes.push({ ...row, tx, category: "fake_ledger", attack: `${row.attack} + fake ledger` });
+    }
+
+    if (onlyProgramInstruction(row.tx).keys.some((key) => key.pubkey.equals(oracleFeeAttestation))) {
+      const tx = cloneTxWithReplacement(row, new Map([[oracleFeeAttestation.toBase58(), fakeAttestation]]));
+      if (tx) probes.push({ ...row, tx, category: "fake_attestation", attack: `${row.attack} + fake claim attestation` });
+    }
+
+    probes.push({
+      ...row,
+      category: "replay_or_double_settle",
+      attack: `${row.attack} + replay/double-settle attempt`,
+    });
+  }
+  return probes;
+}
+
+function rowLikeSummary(row: RuntimeProbe) {
+  const base = rowSummary(row);
+  return {
+    ...base,
+    category: row.category,
+  };
+}
+
+function writeAdversarialSummary(runtimeRows: RuntimeProbeResult[] | null): void {
+  const path = process.env.OMEGAX_E2E_ADVERSARIAL_SUMMARY_PATH?.trim();
+  if (!path) return;
+  mkdirSync(dirname(path), { recursive: true });
+  const runtimeCounts = runtimeRows
+    ? runtimeRows.reduce(
+        (counts, row) => {
+          counts[row.runtimeStatus] += 1;
+          return counts;
+        },
+        { blocked: 0, unexpected_success: 0, inconclusive: 0 },
+      )
+    : { blocked: 0, unexpected_success: 0, inconclusive: 0 };
+  writeFileSync(
+    path,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        executable: Boolean(runtimeRows),
+        requiredRuntimeProbeCount: runtimeRows?.length ?? 0,
+        totals: {
+          blocked: runtimeCounts.blocked,
+          unexpectedSuccess: runtimeCounts.unexpected_success,
+          inconclusive: runtimeCounts.inconclusive,
+        },
+        rows: matrixRows.map(rowSummary),
+        runtimeRows: runtimeRows ?? [],
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 const matrixRows: MatrixRow[] = [
@@ -434,19 +583,59 @@ test("builder rejects wrong token program before localnet execution", () => {
   );
 });
 
-test("adversarial matrix writes an evidence summary when requested", () => {
-  const path = process.env.OMEGAX_E2E_ADVERSARIAL_SUMMARY_PATH?.trim();
-  if (!path) return;
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(
-    path,
-    JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        rows: matrixRows.map(rowSummary),
-      },
-      null,
-      2,
-    ),
+test("executable adversarial matrix probes are blocked on localnet", async () => {
+  const rpcUrl = process.env.SOLANA_RPC_URL?.trim();
+  if (!rpcUrl) {
+    writeAdversarialSummary(null);
+    return;
+  }
+
+  const connection = new Connection(rpcUrl, "confirmed");
+  const latestForAirdrop = await connection.getLatestBlockhash("confirmed");
+  const airdropSignature = await connection.requestAirdrop(attacker, 2_000_000_000);
+  await connection.confirmTransaction(
+    { signature: airdropSignature, ...latestForAirdrop },
+    "confirmed",
   );
+
+  const probes = runtimeProbes();
+  assert(probes.length >= matrixRows.length * 4, "expected runtime variants beyond the static row set");
+  const results: RuntimeProbeResult[] = [];
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  for (const probe of probes) {
+    try {
+      const message = new TransactionMessage({
+        payerKey: attacker,
+        recentBlockhash: blockhash,
+        instructions: probe.tx.instructions,
+      }).compileToV0Message();
+      const tx = new VersionedTransaction(message);
+      tx.sign([attackerKeypair]);
+      const result = await connection.simulateTransaction(tx, {
+        commitment: "confirmed",
+        sigVerify: false,
+      });
+      const logs = result.value.logs ?? [];
+      results.push({
+        ...rowLikeSummary(probe),
+        runtimeStatus: result.value.err ? "blocked" : "unexpected_success",
+        rejectionReason: result.value.err ? JSON.stringify(result.value.err) : "simulation succeeded",
+        logs,
+      });
+    } catch (error) {
+      results.push({
+        ...rowLikeSummary(probe),
+        runtimeStatus: "inconclusive",
+        rejectionReason: error instanceof Error ? error.message : String(error),
+        logs: [],
+      });
+    }
+  }
+
+  writeAdversarialSummary(results);
+  const unexpectedSuccess = results.filter((row) => row.runtimeStatus === "unexpected_success");
+  const inconclusive = results.filter((row) => row.runtimeStatus === "inconclusive");
+  assert.deepEqual(unexpectedSuccess, []);
+  assert.deepEqual(inconclusive, []);
+  assert.equal(results.filter((row) => row.runtimeStatus === "blocked").length, results.length);
 });

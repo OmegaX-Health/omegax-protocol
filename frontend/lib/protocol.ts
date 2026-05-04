@@ -839,6 +839,66 @@ export type MixedReserveWaterfallModel = {
   payoutOrder: MixedReserveWaterfallRail[];
 };
 
+export type ClaimFundingReadinessState =
+  | "settle_now"
+  | "reserve_then_settle"
+  | "queue_or_refund"
+  | "operator_action_required";
+
+export type ClaimFundingReadinessOtherReserveAsset = {
+  reserveAssetRail: string | null;
+  reserveDomain: string;
+  assetMint: string;
+  assetSymbol: string;
+  freeAmountRaw: bigint;
+  priceFresh: boolean;
+  priceUsd1e8: bigint | null;
+  haircutBps: number;
+  estimatedValueUsd1e8: bigint | null;
+  haircutAdjustedValueUsd1e8: bigint | null;
+  immediatelySettleable: false;
+  warnings: string[];
+};
+
+export type ClaimFundingReadiness = {
+  reserveDomain: string | null;
+  settlementMint: string;
+  requestedAmount: bigint;
+  directSettlementAssetCapacityAmount: bigint;
+  fundingLineAvailableAmount: bigint;
+  immediatelySettleableAmount: bigint;
+  reservedOrPayableAmount: bigint;
+  pendingObligationsAmount: bigint;
+  queuedRedemptionsAmount: bigint;
+  availableLpAllocationCapacityAmount: bigint;
+  otherReserveAssets: ClaimFundingReadinessOtherReserveAsset[];
+  readiness: ClaimFundingReadinessState;
+  warnings: string[];
+};
+
+export type ClaimFundingReadinessInput = {
+  snapshot: Pick<
+    ProtocolConsoleSnapshot,
+    | "domainAssetVaults"
+    | "reserveAssetRails"
+    | "domainAssetLedgers"
+    | "fundingLines"
+    | "obligations"
+    | "liquidityPools"
+    | "capitalClasses"
+    | "lpPositions"
+    | "allocationPositions"
+  >;
+  settlementMint: PublicKeyish;
+  requestedAmount: BigNumberish;
+  reserveDomainAddress?: PublicKeyish | null;
+  healthPlanAddress?: PublicKeyish | null;
+  policySeriesAddress?: PublicKeyish | null;
+  fundingLineAddress?: PublicKeyish | null;
+  assetDecimalsByMint?: Record<string, number>;
+  nowTs?: number;
+};
+
 export type MemberReadModel = {
   wallet: string;
   planParticipations: Array<{
@@ -1754,6 +1814,310 @@ export function buildMixedReserveWaterfallModel(params: {
     reserveDomain,
     payoutOrder,
     totalEffectiveCapacityUsd1e8: payoutOrder.reduce((sum, rail) => sum + rail.effectiveCapacityUsd1e8, 0n),
+  };
+}
+
+function normalizeOptionalAddress(value: PublicKeyish | null | undefined): string | null {
+  return value ? normalizeAddress(value) : null;
+}
+
+function matchesOptionalScope(actual: string | null | undefined, expected: string | null): boolean {
+  return !expected || actual === expected;
+}
+
+function clampDecimals(value: number | undefined): number {
+  return Math.max(0, Math.min(18, value ?? 6));
+}
+
+function freshRailPrice(rail: ReserveAssetRailSnapshot | null | undefined, nowTs: number): boolean {
+  if (!rail || !rail.active || !rail.capacityEnabled) return false;
+  const price = toBigIntAmount(rail.lastPriceUsd1e8);
+  if (price <= 0n) return false;
+  const publishedAt = Number(rail.lastPricePublishedAtTs ?? 0);
+  const maxStaleness = Number(rail.maxStalenessSeconds ?? 0);
+  return maxStaleness === 0 || (publishedAt > 0 && nowTs - publishedAt <= maxStaleness);
+}
+
+function amountToUsd1e8(params: {
+  amountRaw: bigint;
+  rail: ReserveAssetRailSnapshot | null | undefined;
+  decimals: number;
+  nowTs: number;
+}): bigint | null {
+  if (!freshRailPrice(params.rail, params.nowTs)) return null;
+  const price = toBigIntAmount(params.rail?.lastPriceUsd1e8);
+  const decimalFactor = 10n ** BigInt(clampDecimals(params.decimals));
+  return (params.amountRaw * price) / decimalFactor;
+}
+
+function fundingLineFreeForReadiness(line: FundingLineSnapshot): bigint {
+  if (line.sheet) return recomputeReserveBalanceSheet(line.sheet).free;
+  const funded = toBigIntAmount(line.fundedAmount);
+  const spent = toBigIntAmount(line.spentAmount);
+  const reserved = toBigIntAmount(line.reservedAmount);
+  const encumbered = spent + reserved;
+  return funded > encumbered ? funded - encumbered : 0n;
+}
+
+function maxBigIntAmount(values: Array<BigNumberish | null | undefined>): bigint {
+  let max = 0n;
+  for (const value of values) {
+    const amount = toBigIntAmount(value);
+    if (amount > max) max = amount;
+  }
+  return max;
+}
+
+function obligationExposureAmount(obligation: ObligationSnapshot): bigint {
+  if (
+    obligation.status === OBLIGATION_STATUS_SETTLED
+    || obligation.status === OBLIGATION_STATUS_CANCELED
+    || obligation.status === OBLIGATION_STATUS_RECOVERED
+  ) {
+    return 0n;
+  }
+  return maxBigIntAmount([
+    obligation.outstandingAmount,
+    obligation.reservedAmount,
+    obligation.claimableAmount,
+    obligation.payableAmount,
+    obligation.principalAmount,
+  ]);
+}
+
+function reserveOrPayableExposureAmount(obligation: ObligationSnapshot): bigint {
+  if (
+    obligation.status !== OBLIGATION_STATUS_RESERVED
+    && obligation.status !== OBLIGATION_STATUS_CLAIMABLE_PAYABLE
+  ) {
+    return 0n;
+  }
+  return maxBigIntAmount([
+    obligation.reservedAmount,
+    obligation.claimableAmount,
+    obligation.payableAmount,
+    obligation.outstandingAmount,
+    obligation.principalAmount,
+  ]);
+}
+
+export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): ClaimFundingReadiness {
+  const settlementMint = normalizeAddress(params.settlementMint);
+  const requestedAmount = toBigIntAmount(params.requestedAmount);
+  const nowTs = params.nowTs ?? Math.floor(Date.now() / 1000);
+  const fundingLineAddress = normalizeOptionalAddress(params.fundingLineAddress);
+  const healthPlanAddress = normalizeOptionalAddress(params.healthPlanAddress);
+  const policySeriesAddress = normalizeOptionalAddress(params.policySeriesAddress);
+  const selectedFundingLine = fundingLineAddress
+    ? params.snapshot.fundingLines.find((line) => line.address === fundingLineAddress) ?? null
+    : null;
+  const reserveDomain = normalizeOptionalAddress(params.reserveDomainAddress)
+    ?? selectedFundingLine?.reserveDomain
+    ?? params.snapshot.domainAssetVaults.find((vault) => vault.assetMint === settlementMint)?.reserveDomain
+    ?? params.snapshot.reserveAssetRails.find((rail) => rail.assetMint === settlementMint)?.reserveDomain
+    ?? null;
+  const warnings: string[] = [];
+
+  const inReserve = (value: { reserveDomain: string }) => !reserveDomain || value.reserveDomain === reserveDomain;
+  const lineMatchesScope = (line: FundingLineSnapshot) =>
+    inReserve(line)
+    && line.assetMint === settlementMint
+    && matchesOptionalScope(line.healthPlan, healthPlanAddress)
+    && matchesOptionalScope(line.policySeries ?? null, policySeriesAddress)
+    && matchesOptionalScope(line.address, fundingLineAddress);
+  const obligationMatchesScope = (obligation: ObligationSnapshot) =>
+    inReserve(obligation)
+    && obligation.assetMint === settlementMint
+    && matchesOptionalScope(obligation.healthPlan, healthPlanAddress)
+    && matchesOptionalScope(obligation.policySeries ?? null, policySeriesAddress)
+    && matchesOptionalScope(obligation.fundingLine, fundingLineAddress);
+
+  if (!reserveDomain) {
+    warnings.push("No reserve domain could be inferred; readiness is limited to settlement mint totals across the snapshot.");
+  }
+
+  const settlementLedgers = params.snapshot.domainAssetLedgers
+    .filter((ledger) => ledger.assetMint === settlementMint && inReserve(ledger))
+    .map((ledger) => recomputeReserveBalanceSheet(ledger.sheet));
+  const settlementVaultTotal = params.snapshot.domainAssetVaults
+    .filter((vault) => vault.assetMint === settlementMint && inReserve(vault))
+    .reduce((sum, vault) => sum + toBigIntAmount(vault.totalAssets), 0n);
+  const matchingObligations = params.snapshot.obligations.filter(obligationMatchesScope);
+  const reservedOrPayableAmount = matchingObligations.reduce(
+    (sum, obligation) => sum + reserveOrPayableExposureAmount(obligation),
+    0n,
+  );
+  const pendingObligationsAmount = matchingObligations.reduce(
+    (sum, obligation) => sum + obligationExposureAmount(obligation),
+    0n,
+  );
+
+  const poolByAddress = new Map(params.snapshot.liquidityPools.map((pool) => [pool.address, pool]));
+  const classByAddress = new Map(params.snapshot.capitalClasses.map((capitalClass) => [capitalClass.address, capitalClass]));
+  const queuedRedemptionsAmount = params.snapshot.lpPositions.reduce((sum, position) => {
+    const capitalClass = classByAddress.get(position.capitalClass);
+    const pool = capitalClass ? poolByAddress.get(capitalClass.liquidityPool) : null;
+    if (!capitalClass || !pool) return sum;
+    if (pool.depositAssetMint !== settlementMint || (reserveDomain && pool.reserveDomain !== reserveDomain)) return sum;
+    return sum + toBigIntAmount(position.pendingRedemptionAssets);
+  }, 0n);
+
+  const settlementLedgerFree = settlementLedgers.reduce((sum, sheet) => sum + sheet.free, 0n);
+  const settlementFreeFromVaultFallback = settlementVaultTotal > pendingObligationsAmount + queuedRedemptionsAmount
+    ? settlementVaultTotal - pendingObligationsAmount - queuedRedemptionsAmount
+    : 0n;
+  const directSettlementAssetCapacityAmount = settlementLedgers.length > 0
+    ? settlementLedgerFree
+    : settlementFreeFromVaultFallback;
+
+  const scopedFundingLines = params.snapshot.fundingLines.filter(lineMatchesScope);
+  const activeFundingLines = scopedFundingLines.filter((line) => line.status === FUNDING_LINE_STATUS_OPEN);
+  const fundingLineAvailableAmount = activeFundingLines.reduce(
+    (sum, line) => sum + fundingLineFreeForReadiness(line),
+    0n,
+  );
+  if (scopedFundingLines.length > 0 && activeFundingLines.length === 0) {
+    warnings.push("Matching settlement funding line exists, but it is not open for new settlement activity.");
+  }
+  if (fundingLineAddress && !selectedFundingLine) {
+    warnings.push("Requested funding line was not found in the snapshot.");
+  }
+
+  const immediatelySettleableAmount = scopedFundingLines.length > 0
+    ? (directSettlementAssetCapacityAmount < fundingLineAvailableAmount
+        ? directSettlementAssetCapacityAmount
+        : fundingLineAvailableAmount)
+    : directSettlementAssetCapacityAmount;
+
+  const availableLpAllocationCapacityAmount = params.snapshot.allocationPositions
+    .filter((allocation) =>
+      allocation.active
+      && inReserve(allocation)
+      && matchesOptionalScope(allocation.healthPlan, healthPlanAddress)
+      && matchesOptionalScope(allocation.policySeries ?? null, policySeriesAddress)
+      && matchesOptionalScope(allocation.fundingLine, fundingLineAddress)
+      && params.snapshot.fundingLines.some((line) => line.address === allocation.fundingLine && line.assetMint === settlementMint),
+    )
+    .reduce((sum, allocation) => {
+      const capAmount = toBigIntAmount(allocation.capAmount);
+      const encumbered =
+        toBigIntAmount(allocation.allocatedAmount)
+        + toBigIntAmount(allocation.reservedCapacity)
+        + toBigIntAmount(allocation.utilizedAmount);
+      return sum + (capAmount > encumbered ? capAmount - encumbered : 0n);
+    }, 0n);
+
+  const railsByMint = new Map(
+    params.snapshot.reserveAssetRails
+      .filter((rail) => inReserve(rail))
+      .map((rail) => [rail.assetMint, rail]),
+  );
+  const ledgerByMint = new Map(
+    params.snapshot.domainAssetLedgers
+      .filter((ledger) => inReserve(ledger))
+      .map((ledger) => [ledger.assetMint, recomputeReserveBalanceSheet(ledger.sheet)]),
+  );
+  const vaultTotalsByMint = new Map<string, bigint>();
+  for (const vault of params.snapshot.domainAssetVaults.filter((entry) => inReserve(entry))) {
+    vaultTotalsByMint.set(vault.assetMint, (vaultTotalsByMint.get(vault.assetMint) ?? 0n) + toBigIntAmount(vault.totalAssets));
+  }
+  const reserveMints = new Set<string>([
+    ...railsByMint.keys(),
+    ...ledgerByMint.keys(),
+    ...vaultTotalsByMint.keys(),
+  ]);
+  const otherReserveAssets = [...reserveMints]
+    .filter((assetMint) => assetMint !== settlementMint)
+    .sort()
+    .map((assetMint): ClaimFundingReadinessOtherReserveAsset => {
+      const rail = railsByMint.get(assetMint) ?? null;
+      const ledger = ledgerByMint.get(assetMint);
+      const freeAmountRaw = ledger?.free ?? vaultTotalsByMint.get(assetMint) ?? 0n;
+      const decimals = clampDecimals(params.assetDecimalsByMint?.[assetMint]);
+      const estimatedValueUsd1e8 = amountToUsd1e8({
+        amountRaw: freeAmountRaw,
+        rail,
+        decimals,
+        nowTs,
+      });
+      const haircutBps = Math.max(0, rail?.haircutBps ?? 0);
+      const haircutAdjustedValueUsd1e8 = estimatedValueUsd1e8 === null
+        ? null
+        : (estimatedValueUsd1e8 * BigInt(Math.max(0, 10_000 - haircutBps))) / 10_000n;
+      const assetWarnings: string[] = [
+        "Non-settlement reserve asset; explicit conversion or funding action is required before settlement-mint payout.",
+      ];
+      if (!rail) {
+        assetWarnings.push("No reserve asset rail exists for this asset.");
+      } else if (!freshRailPrice(rail, nowTs)) {
+        assetWarnings.push("No fresh published price is available, so haircut-adjusted value is not counted.");
+      }
+      return {
+        reserveAssetRail: rail?.address ?? null,
+        reserveDomain: reserveDomain ?? rail?.reserveDomain ?? "",
+        assetMint,
+        assetSymbol: rail?.assetSymbol ?? assetMint.slice(0, 4),
+        freeAmountRaw,
+        priceFresh: freshRailPrice(rail, nowTs),
+        priceUsd1e8: rail ? toBigIntAmount(rail.lastPriceUsd1e8) : null,
+        haircutBps,
+        estimatedValueUsd1e8,
+        haircutAdjustedValueUsd1e8,
+        immediatelySettleable: false,
+        warnings: assetWarnings,
+      };
+    });
+
+  const shortfallAmount = requestedAmount > immediatelySettleableAmount
+    ? requestedAmount - immediatelySettleableAmount
+    : 0n;
+  const settlementRail = railsByMint.get(settlementMint) ?? null;
+  const shortfallUsd1e8 = amountToUsd1e8({
+    amountRaw: shortfallAmount,
+    rail: settlementRail,
+    decimals: clampDecimals(params.assetDecimalsByMint?.[settlementMint]),
+    nowTs,
+  });
+  const otherReserveHaircutValueUsd1e8 = otherReserveAssets.reduce(
+    (sum, asset) => sum + (asset.haircutAdjustedValueUsd1e8 ?? 0n),
+    0n,
+  );
+
+  if (shortfallAmount > 0n) {
+    warnings.push("Settlement-mint capacity is below the requested amount.");
+  }
+  if (otherReserveAssets.some((asset) => asset.freeAmountRaw > 0n)) {
+    warnings.push("Other reserve assets are valuation context only; they do not increase immediately-settleable settlement-mint capacity.");
+  }
+  if (shortfallAmount > 0n && shortfallUsd1e8 === null && otherReserveHaircutValueUsd1e8 > 0n) {
+    warnings.push("Settlement-mint shortfall cannot be compared to other assets without a fresh settlement asset price.");
+  }
+
+  let readiness: ClaimFundingReadinessState;
+  if (requestedAmount <= immediatelySettleableAmount) {
+    readiness = "settle_now";
+  } else if (requestedAmount <= immediatelySettleableAmount + availableLpAllocationCapacityAmount) {
+    readiness = "reserve_then_settle";
+  } else if (otherReserveHaircutValueUsd1e8 > 0n && (shortfallUsd1e8 === null || otherReserveHaircutValueUsd1e8 >= shortfallUsd1e8)) {
+    readiness = "operator_action_required";
+  } else {
+    readiness = "queue_or_refund";
+  }
+
+  return {
+    reserveDomain,
+    settlementMint,
+    requestedAmount,
+    directSettlementAssetCapacityAmount,
+    fundingLineAvailableAmount,
+    immediatelySettleableAmount,
+    reservedOrPayableAmount,
+    pendingObligationsAmount,
+    queuedRedemptionsAmount,
+    availableLpAllocationCapacityAmount,
+    otherReserveAssets,
+    readiness,
+    warnings,
   };
 }
 

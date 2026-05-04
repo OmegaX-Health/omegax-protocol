@@ -13,7 +13,7 @@ did not submit theft transactions and did not target mainnet.
 - Protocol governance PDA: `7rjTAckGY9PMTGH43B2pG3DC7czbLazF3LN3QaKnejty`
 - Protocol governance authority: `CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU`
 - RPC: `https://api.devnet.solana.com/`
-- Strict run time: `2026-05-04T09:15:59.779Z`
+- Strict run time: `2026-05-04T15:53:44.974Z`
 
 Deployment verification:
 
@@ -38,11 +38,17 @@ npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security
 
 The timestamped local evidence files for the strict run are:
 
-- `artifacts/devnet-security-rehearsal-full-bootstrap/devnet-treasury-pen-test-2026-05-04T09-15-59-778Z.json`
-- `artifacts/devnet-security-rehearsal-full-bootstrap/devnet-treasury-pen-test-2026-05-04T09-15-59-778Z.md`
+- `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.json`
+- `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.md`
 
 The `artifacts/` directory is intentionally ignored by git, so this document is
 the tracked public-safe evidence summary.
+
+The May 4 `15:53Z` strict rerun followed an idempotent devnet bootstrap. A
+fresh `seed-canaries` invocation was rate-limited by the public devnet RPC after
+confirming the linked-claim canary and minting test assets, but the strict
+pen-test runner verified that every required canary was already live before it
+executed attack probes.
 
 ## Canary Readiness
 
