@@ -25,7 +25,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 [dependencies]
 anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
-anchor-spl = "0.32.1"
+anchor-spl = "1.0.2"
 blake3 = "=1.8.2"
 solana-sdk-ids = "2.2.1"
 solana-sha256-hasher = "2.3.0"
