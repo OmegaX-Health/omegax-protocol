@@ -1862,6 +1862,102 @@ fn accrue_fee_overflow_errors() {
     assert_eq!(total, u64::MAX);
 }
 
+#[test]
+fn fee_accrual_removes_inflow_fee_from_reserve_capacity_before_withdrawal() {
+    let mut sheet = ReserveBalanceSheet::default();
+    book_inflow_sheet(&mut sheet, 1_000).unwrap();
+
+    book_fee_accrual_sheet(&mut sheet, 50).unwrap();
+
+    assert_eq!(sheet.funded, 950);
+    assert_eq!(sheet.free, 950);
+    assert_eq!(sheet.redeemable, 950);
+
+    let mut domain_assets = 1_000;
+    book_fee_withdrawal(&mut domain_assets, 50).unwrap();
+
+    assert_eq!(domain_assets, 950);
+    assert_eq!(sheet.funded, 950);
+    assert_eq!(sheet.free, 950);
+}
+
+#[test]
+fn settlement_origin_fee_withdrawal_does_not_double_debit_domain_sheet() {
+    let reserve_domain = Pubkey::new_unique();
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut funding_line = sample_funding_line(
+        reserve_domain,
+        health_plan,
+        policy_series,
+        asset_mint,
+        FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+    );
+    funding_line.reserved_amount = 100;
+
+    let mut domain_assets = 1_000;
+    let mut domain_sheet = ReserveBalanceSheet {
+        funded: 1_000,
+        claimable: 100,
+        free: 900,
+        redeemable: 900,
+        ..ReserveBalanceSheet::default()
+    };
+    let mut plan_sheet = domain_sheet;
+    let mut line_sheet = domain_sheet;
+
+    book_settlement_from_delivery(
+        &mut domain_assets,
+        &mut domain_sheet,
+        &mut plan_sheet,
+        &mut line_sheet,
+        None,
+        None,
+        None,
+        None,
+        &mut funding_line,
+        100,
+    )
+    .unwrap();
+
+    let fee_kept_in_custody = 10;
+    domain_assets = checked_add(domain_assets, fee_kept_in_custody).unwrap();
+    assert_eq!(domain_assets, 910);
+    assert_eq!(domain_sheet.funded, 900);
+    assert_eq!(domain_sheet.settled, 100);
+
+    book_fee_withdrawal(&mut domain_assets, fee_kept_in_custody).unwrap();
+
+    assert_eq!(domain_assets, 900);
+    assert_eq!(domain_sheet.funded, 900);
+    assert_eq!(domain_sheet.settled, 100);
+}
+
+#[test]
+fn redemption_origin_fee_withdrawal_does_not_double_debit_domain_sheet() {
+    let mut domain_assets = 1_000;
+    let mut domain_sheet = ReserveBalanceSheet::default();
+    book_inflow_sheet(&mut domain_sheet, 1_000).unwrap();
+    book_pending_redemption(&mut domain_sheet, 100).unwrap();
+
+    let asset_amount = 100;
+    let exit_fee = 10;
+    let net_to_lp = checked_sub(asset_amount, exit_fee).unwrap();
+    domain_assets = checked_sub(domain_assets, net_to_lp).unwrap();
+    settle_pending_redemption_domain(&mut domain_sheet, asset_amount).unwrap();
+
+    assert_eq!(domain_assets, 910);
+    assert_eq!(domain_sheet.funded, 900);
+    assert_eq!(domain_sheet.settled, 100);
+
+    book_fee_withdrawal(&mut domain_assets, exit_fee).unwrap();
+
+    assert_eq!(domain_assets, 900);
+    assert_eq!(domain_sheet.funded, 900);
+    assert_eq!(domain_sheet.settled, 100);
+}
+
 // -------- Phase 1.7 withdraw-helper tests --------
 
 #[test]

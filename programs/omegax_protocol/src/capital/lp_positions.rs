@@ -58,10 +58,9 @@ pub(crate) fn deposit_into_capital_class(
 
     // Phase 1.6 — Pool-treasury entry fee. Validate the canonical fee vault
     // matches (liquidity_pool, deposit_asset_mint), then compute the fee
-    // against capital_class.fee_bps. The full `amount` remains physically
-    // locked in the DomainAssetVault; the fee carve-out is removed from
-    // the LP-side accounting only (subscription_basis, NAV, default shares).
-    // pool.total_value_locked still tracks the full physical balance.
+    // against capital_class.fee_bps. DomainAssetVault.total_assets tracks the
+    // full physical balance until withdrawal; LP reserve ledgers and pool TVL
+    // track net claims-paying capital.
     let pool_key = ctx.accounts.liquidity_pool.key();
     let pool_deposit_mint = ctx.accounts.liquidity_pool.deposit_asset_mint;
     let class_fee_bps = ctx.accounts.capital_class.fee_bps;
@@ -101,17 +100,21 @@ pub(crate) fn deposit_into_capital_class(
     capital_class.nav_assets = checked_add(capital_class.nav_assets, net_amount)?;
 
     let pool = &mut ctx.accounts.liquidity_pool;
-    pool.total_value_locked = checked_add(pool.total_value_locked, amount)?;
+    pool.total_value_locked = checked_add(pool.total_value_locked, net_amount)?;
 
     book_inflow(&mut ctx.accounts.domain_asset_vault.total_assets, amount)?;
     book_inflow_sheet(&mut ctx.accounts.domain_asset_ledger.sheet, amount)?;
     book_inflow_sheet(&mut ctx.accounts.pool_class_ledger.sheet, amount)?;
+    if entry_fee > 0 {
+        book_fee_accrual_sheet(&mut ctx.accounts.domain_asset_ledger.sheet, entry_fee)?;
+        book_fee_accrual_sheet(&mut ctx.accounts.pool_class_ledger.sheet, entry_fee)?;
+    }
     ctx.accounts.pool_class_ledger.total_shares =
         checked_add(ctx.accounts.pool_class_ledger.total_shares, shares)?;
 
     // Accrue the entry fee to the pool-treasury vault. SPL tokens already
-    // sit in the DomainAssetVault from the transfer above; this only updates
-    // the rail's claim counter.
+    // sit in the DomainAssetVault from the transfer above; reserve capacity
+    // was netted above, and this updates the rail's claim counter.
     if entry_fee > 0 {
         let vault = &mut ctx.accounts.pool_treasury_vault;
         let vault_key = vault.key();

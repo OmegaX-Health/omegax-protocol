@@ -46,14 +46,17 @@ pub(crate) fn book_restricted_sheet(sheet: &mut ReserveBalanceSheet, amount: u64
     recompute_sheet(sheet)
 }
 
-pub(crate) fn book_fee_withdrawal(
-    domain_assets: &mut u64,
-    domain_sheet: &mut ReserveBalanceSheet,
-    amount: u64,
-) -> Result<()> {
+pub(crate) fn book_fee_accrual_sheet(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {
+    if amount == 0 {
+        return Ok(());
+    }
+    sheet.funded = checked_sub(sheet.funded, amount)?;
+    recompute_sheet(sheet)
+}
+
+pub(crate) fn book_fee_withdrawal(domain_assets: &mut u64, amount: u64) -> Result<()> {
     *domain_assets = checked_sub(*domain_assets, amount)?;
-    domain_sheet.funded = checked_sub(domain_sheet.funded, amount)?;
-    recompute_sheet(domain_sheet)
+    Ok(())
 }
 
 pub(crate) fn book_owed(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {

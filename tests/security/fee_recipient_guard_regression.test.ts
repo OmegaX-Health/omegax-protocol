@@ -44,8 +44,15 @@ test("[CSO-2026-04-29] SPL and SOL fee withdrawals validate configured recipient
   }
 });
 
-test("[CSO-2026-04-29] SPL fee withdrawals debit domain vault accounting", () => {
+test("[CSO-2026-05-04] SPL fee withdrawals debit physical custody only", () => {
   assert.match(programSource, /fn book_fee_withdrawal\s*\(/);
+  const helper = extractInstructionBody("book_fee_withdrawal");
+  assert.match(helper, /domain_assets\s*=\s*checked_sub\(\*domain_assets,\s*amount\)\?/);
+  assert.doesNotMatch(
+    helper,
+    /domain_sheet|\.funded|recompute_sheet/,
+    "fee withdrawals must not double-debit reserve sheets; fee accrual or gross settlement already removes fee capacity",
+  );
 
   for (const handler of [
     "withdraw_protocol_fee_spl",
@@ -55,7 +62,7 @@ test("[CSO-2026-04-29] SPL fee withdrawals debit domain vault accounting", () =>
     assert.match(
       extractInstructionBody(handler),
       /book_fee_withdrawal\s*\(/,
-      `${handler} must debit DomainAssetVault and DomainAssetLedger funded balances after SPL fee outflow`,
+      `${handler} must debit DomainAssetVault physical accounting after SPL fee outflow`,
     );
   }
 });

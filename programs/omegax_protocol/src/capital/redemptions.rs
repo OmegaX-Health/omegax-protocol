@@ -143,10 +143,11 @@ pub(crate) fn process_redemption_queue(
         checked_sub(ctx.accounts.capital_class.nav_assets, asset_amount)?;
     ctx.accounts.capital_class.pending_redemptions =
         checked_sub(ctx.accounts.capital_class.pending_redemptions, asset_amount)?;
-    // pool: total_value_locked tracks physical lock, decreases only by
-    // net_to_lp (fee tokens stay locked as treasury claim).
+    // pool: total_value_locked tracks LP claims-paying capital, so the full
+    // redeemed asset amount leaves TVL even though the fee remains physically
+    // in custody until fee withdrawal.
     ctx.accounts.liquidity_pool.total_value_locked =
-        checked_sub(ctx.accounts.liquidity_pool.total_value_locked, net_to_lp)?;
+        checked_sub(ctx.accounts.liquidity_pool.total_value_locked, asset_amount)?;
     ctx.accounts.liquidity_pool.total_pending_redemptions = checked_sub(
         ctx.accounts.liquidity_pool.total_pending_redemptions,
         asset_amount,
@@ -156,10 +157,9 @@ pub(crate) fn process_redemption_queue(
     ctx.accounts.domain_asset_vault.total_assets =
         checked_sub(ctx.accounts.domain_asset_vault.total_assets, net_to_lp)?;
 
-    // Ledger sheets: track the full pending → settled transition. When fee
-    // is taken, the sheet temporarily over-states LP outflow vs physical
-    // outflow; treasury accrual reconciles via the accrued_fees counter.
-    // TODO: fee-aware ledger semantics in a follow-up.
+    // Ledger sheets track the full pending -> settled transition. The fee
+    // remains in DomainAssetVault.total_assets until withdrawn but is no
+    // longer LP reserve capacity.
     settle_pending_redemption(
         &mut ctx.accounts.pool_class_ledger,
         asset_amount,
