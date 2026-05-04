@@ -79,7 +79,7 @@
     "bs58": "^6.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.37",
+    "@types/node": "^25.6.0",
     "license-checker": "25.0.1",
     "playwright": "^1.58.2",
     "tsx": "^4.19.2"
