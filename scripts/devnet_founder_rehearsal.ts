@@ -992,7 +992,11 @@ async function ensureReserveAssetRail(
         assetMint: asset.mint,
         priceUsd1e8: asset.priceUsd1e8,
         confidenceBps:
-          asset.symbol === "USDC" || asset.symbol === "PUSD" ? 5 : 250,
+          asset.symbol === "USDC" ||
+          asset.symbol === "PUSD" ||
+          asset.symbol === "USDT"
+            ? 5
+            : 250,
         publishedAtTs: BigInt(nowTs),
         proofHashHex: sha256Hex(
           `devnet rehearsal price evidence:${asset.symbol}:${asset.priceUsd1e8}`,

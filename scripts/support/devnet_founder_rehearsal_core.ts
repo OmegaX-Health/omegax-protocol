@@ -35,6 +35,7 @@ export const CANONICAL_FOUNDER_REHEARSAL_IDS = {
 export type FounderAssetSymbol =
   | "USDC"
   | "PUSD"
+  | "USDT"
   | "WSOL"
   | "WBTC"
   | "WETH"
@@ -86,9 +87,23 @@ export const FOUNDER_ASSET_RAILS: readonly FounderAssetRail[] = [
     localMintLabel: "pusd-mint",
   },
   {
+    symbol: "USDT",
+    decimals: 6,
+    payoutPriority: 3,
+    haircutBps: 50,
+    maxExposureBps: 9_000,
+    role: RESERVE_ASSET_ROLE_SECONDARY_STABLE,
+    priceUsd1e8: 100_000_000n,
+    depositEnabled: true,
+    payoutEnabled: true,
+    capacityEnabled: true,
+    mintEnv: "OMEGAX_DEVNET_USDT_MINT",
+    localMintLabel: "usdt-mint",
+  },
+  {
     symbol: "WSOL",
     decimals: 9,
-    payoutPriority: 3,
+    payoutPriority: 4,
     haircutBps: 2_000,
     maxExposureBps: 5_000,
     role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
@@ -102,7 +117,7 @@ export const FOUNDER_ASSET_RAILS: readonly FounderAssetRail[] = [
   {
     symbol: "WBTC",
     decimals: 8,
-    payoutPriority: 4,
+    payoutPriority: 5,
     haircutBps: 2_500,
     maxExposureBps: 4_000,
     role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
@@ -116,7 +131,7 @@ export const FOUNDER_ASSET_RAILS: readonly FounderAssetRail[] = [
   {
     symbol: "WETH",
     decimals: 8,
-    payoutPriority: 5,
+    payoutPriority: 6,
     haircutBps: 2_500,
     maxExposureBps: 4_000,
     role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
@@ -130,7 +145,7 @@ export const FOUNDER_ASSET_RAILS: readonly FounderAssetRail[] = [
   {
     symbol: "OMEGAX",
     decimals: 6,
-    payoutPriority: 6,
+    payoutPriority: 7,
     haircutBps: 7_500,
     maxExposureBps: 2_000,
     role: RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,

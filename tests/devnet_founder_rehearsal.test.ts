@@ -103,6 +103,7 @@ test("devnet founder rehearsal maps one UI campaign to per-asset funding lines u
   assert.deepEqual(ids, [
     "genesis-travel30-premiums-usdc",
     "genesis-travel30-premiums-pusd",
+    "genesis-travel30-premiums-usdt",
     "genesis-travel30-premiums-wsol",
     "genesis-travel30-premiums-wbtc",
     "genesis-travel30-premiums-weth",
@@ -154,7 +155,7 @@ test("devnet founder chain actuarial capacity excludes pending and refunded comm
         symbol: "OMEGAX",
         mint: "OMEGAX1111111111111111111111111111111111111",
         decimals: 6,
-        payoutPriority: 6,
+        payoutPriority: 7,
         haircutBps: 7_500,
         maxExposureBps: 2_000,
         priceUsd1e8: 10_000_000n,
@@ -332,6 +333,7 @@ test("devnet founder raw amount conversion handles stable, SOL, BTC, ETH, and OM
   const bySymbol = Object.fromEntries(FOUNDER_ASSET_RAILS.map((asset) => [asset.symbol, asset]));
   assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.USDC.decimals, priceUsd1e8: bySymbol.USDC.priceUsd1e8 }), 159_000_000n);
   assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.PUSD.decimals, priceUsd1e8: bySymbol.PUSD.priceUsd1e8 }), 159_000_000n);
+  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.USDT.decimals, priceUsd1e8: bySymbol.USDT.priceUsd1e8 }), 159_000_000n);
   assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.WSOL.decimals, priceUsd1e8: bySymbol.WSOL.priceUsd1e8 }), 1_060_000_000n);
   assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.WBTC.decimals, priceUsd1e8: bySymbol.WBTC.priceUsd1e8 }), 159_000n);
   assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.WETH.decimals, priceUsd1e8: bySymbol.WETH.priceUsd1e8 }), 5_300_000n);
