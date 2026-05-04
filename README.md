@@ -97,6 +97,7 @@ This patch hardens the first publishable canonical OmegaX health-capital-markets
 - redemption payouts are derived on-chain from queued shares and NAV rather than caller-supplied payout amounts
 - emergency pause now covers reserve-moving exits, settlement paths, and new commitment deposits
 - settlement and redemption fee carve-outs must leave a positive net recipient payout; oracle-fee accrual is bound to the matching claim attestation
+- fee accrual leaves reserve ledgers and LP TVL net of fee claims while `DomainAssetVault.total_assets` tracks physical custody until SPL fee withdrawal
 - optional mutable reserve ledgers are bound to the expected series, class, allocation, funding line, domain, and mint before mutation
 - it is a hard-break devnet migration from the retired pool-first model
 - reserve domains define hard custody and legal settlement boundaries

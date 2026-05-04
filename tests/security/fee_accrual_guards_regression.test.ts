@@ -46,6 +46,20 @@ test("[CSO-2026-04-29] fee-accrual handlers removed missing-vault compatibility 
   assert.doesNotMatch(redemptionBody, /class_fee_bps\s*==\s*0/);
 });
 
+test("[CSO-2026-05-04] fee accrual leaves reserve ledgers net of fees", () => {
+  const premiumBody = extractInstructionBody("record_premium_payment");
+  const depositBody = extractInstructionBody("deposit_into_capital_class");
+  const redemptionBody = extractInstructionBody("process_redemption_queue");
+
+  assert.match(premiumBody, /book_fee_accrual_sheet\(&mut ctx\.accounts\.domain_asset_ledger\.sheet, fee\)\?/);
+  assert.match(premiumBody, /book_fee_accrual_sheet\(&mut ctx\.accounts\.plan_reserve_ledger\.sheet, fee\)\?/);
+  assert.match(premiumBody, /book_fee_accrual_sheet\(&mut ctx\.accounts\.funding_line_ledger\.sheet, fee\)\?/);
+  assert.match(depositBody, /book_fee_accrual_sheet\(&mut ctx\.accounts\.domain_asset_ledger\.sheet, entry_fee\)\?/);
+  assert.match(depositBody, /book_fee_accrual_sheet\(&mut ctx\.accounts\.pool_class_ledger\.sheet, entry_fee\)\?/);
+  assert.match(depositBody, /total_value_locked\s*=\s*checked_add\(pool\.total_value_locked,\s*net_amount\)\?/);
+  assert.match(redemptionBody, /total_value_locked\s*=\s*\n?\s*checked_sub\(ctx\.accounts\.liquidity_pool\.total_value_locked,\s*asset_amount\)\?/);
+});
+
 test("[CSO-2026-04-29] fee-accrual builders derive canonical fee-vault PDAs", () => {
   const recentBlockhash = "11111111111111111111111111111111";
   const authority = DEVNET_PROTOCOL_FIXTURE_STATE.wallets[0]!.address;

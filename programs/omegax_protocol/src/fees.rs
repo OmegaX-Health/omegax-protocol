@@ -186,7 +186,6 @@ pub(crate) fn withdraw_protocol_fee_spl(
     )?;
     book_fee_withdrawal(
         &mut ctx.accounts.domain_asset_vault.total_assets,
-        &mut ctx.accounts.domain_asset_ledger.sheet,
         args.amount,
     )?;
 
@@ -274,7 +273,6 @@ pub(crate) fn withdraw_pool_treasury_spl(
     )?;
     book_fee_withdrawal(
         &mut ctx.accounts.domain_asset_vault.total_assets,
-        &mut ctx.accounts.domain_asset_ledger.sheet,
         args.amount,
     )?;
 
@@ -362,7 +360,6 @@ pub(crate) fn withdraw_pool_oracle_fee_spl(
     )?;
     book_fee_withdrawal(
         &mut ctx.accounts.domain_asset_vault.total_assets,
-        &mut ctx.accounts.domain_asset_ledger.sheet,
         args.amount,
     )?;
 

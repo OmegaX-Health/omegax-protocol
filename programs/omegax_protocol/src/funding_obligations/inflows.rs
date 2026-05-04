@@ -91,6 +91,7 @@ pub(crate) fn record_premium_payment(
     let funding_line_asset_mint = ctx.accounts.funding_line.asset_mint;
     let health_plan_reserve_domain = ctx.accounts.health_plan.reserve_domain;
     let protocol_fee_bps = ctx.accounts.protocol_governance.protocol_fee_bps;
+    let fee = fee_share_from_bps(amount, protocol_fee_bps)?;
 
     let funding_line = &mut ctx.accounts.funding_line;
     funding_line.funded_amount = checked_add(funding_line.funded_amount, amount)?;
@@ -103,11 +104,18 @@ pub(crate) fn record_premium_payment(
         book_inflow_sheet(&mut series_ledger.sheet, amount)?;
     }
 
+    if fee > 0 {
+        book_fee_accrual_sheet(&mut ctx.accounts.domain_asset_ledger.sheet, fee)?;
+        book_fee_accrual_sheet(&mut ctx.accounts.plan_reserve_ledger.sheet, fee)?;
+        book_fee_accrual_sheet(&mut ctx.accounts.funding_line_ledger.sheet, fee)?;
+        if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
+            book_fee_accrual_sheet(&mut series_ledger.sheet, fee)?;
+        }
+    }
+
     // Phase 1.6 — Protocol fee accrual on premium income.
-    // The full premium amount is booked into the vault; the fee is an
-    // internal claim that decrements `accrued_fees - withdrawn_fees`
-    // headroom. No user-facing payout reduction here (premiums are not
-    // refundable).
+    // The full premium amount stays physically in the vault until withdrawal,
+    // but the fee carve-out leaves reserve capacity at accrual time.
     let vault = &mut ctx.accounts.protocol_fee_vault;
     require_keys_eq!(
         vault.reserve_domain,
@@ -119,7 +127,6 @@ pub(crate) fn record_premium_payment(
         funding_line_asset_mint,
         OmegaXProtocolError::FeeVaultMismatch
     );
-    let fee = fee_share_from_bps(amount, protocol_fee_bps)?;
     if fee > 0 {
         let vault_key = vault.key();
         let vault_mint = vault.asset_mint;
