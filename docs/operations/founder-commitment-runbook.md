@@ -5,7 +5,7 @@ Founder Travel30 commitments are a temporary launch flow for collecting intent a
 ## Terms
 
 - First public campaign: Founder Travel30.
-- Public commitment price: `$159`.
+- Public commitment price: `$99`.
 - Public route: `/protect/founder`.
 - Refund window: opens 90 days after campaign start unless governance cancels the campaign, makes a material change, or marks a depositor ineligible earlier.
 - Fees: no commitment fee, activation fee, or refund fee.

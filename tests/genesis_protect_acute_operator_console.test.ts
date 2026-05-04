@@ -478,9 +478,9 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
     coverageAssetMint: travel30PremiumLine.assetMint,
     activationAuthority: "oxhocTdPyENqy9RS13iaq2upoNAovMJHu9PMaBxrK8h",
     status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
-    depositAmount: 159n,
+    depositAmount: 99n,
     coverageAmount: 1_000n,
-    hardCapAmount: 159_000n,
+    hardCapAmount: 99_000n,
     startsAtTs: 1_770_000_000,
     refundAfterTs: 1_777_776_000,
     expiresAtTs: 1_780_000_000,
@@ -511,9 +511,9 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
       coverageFundingLine: travel30PremiumLine.address,
       mode: COMMITMENT_MODE_WATERFALL_RESERVE,
       status: COMMITMENT_CAMPAIGN_STATUS_ACTIVE,
-      depositAmount: 159n,
+      depositAmount: 99n,
       coverageAmount: 1_000n,
-      hardCapAmount: 159_000n,
+      hardCapAmount: 99_000n,
       auditNonce: 0n,
       bump: 1,
     },
@@ -539,7 +539,7 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
       address: usdcLedger,
       campaign,
       paymentAssetMint: travel30PremiumLine.assetMint,
-      pendingAmount: 159n,
+      pendingAmount: 99n,
       activatedAmount: 0n,
       treasuryLockedAmount: 0n,
       refundedAmount: 0n,
@@ -569,7 +569,7 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
       beneficiary: "FounderBeneficiary111111111111111111111111",
       paymentAssetMint: travel30PremiumLine.assetMint,
       coverageAssetMint: travel30PremiumLine.assetMint,
-      amount: 159n,
+      amount: 99n,
       coverageAmount: 1_000n,
       queueIndex: 0n,
       state: COMMITMENT_POSITION_PENDING,
@@ -606,7 +606,7 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
   assert.equal(model.founderCommitments.paymentRailCount, 2);
   assert.equal(model.founderCommitments.waterfallRailCount, 2);
   assert.equal(model.founderCommitments.pendingPositionCount, 1);
-  assert.equal(model.founderCommitments.pendingCustodyAmount, 159n);
+  assert.equal(model.founderCommitments.pendingCustodyAmount, 99n);
   assert.equal(model.founderCommitments.pendingCoverageAmount, 1_000n);
   assert.equal(model.founderCommitments.treasuryInventoryAmount, 0n);
   assert.equal(model.founderCommitments.claimsPayingReserveImpact, 0n);

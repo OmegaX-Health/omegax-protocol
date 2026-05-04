@@ -939,9 +939,9 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
       displayName: "Founder Travel30",
       metadataUri: "ipfs://founder-travel30",
       mode: COMMITMENT_MODE_WATERFALL_RESERVE,
-      depositAmount: 159_000_000n,
+      depositAmount: 99_000_000n,
       coverageAmount: 1_000_000_000n,
-      hardCapAmount: 159_000_000_000n,
+      hardCapAmount: 99_000_000_000n,
       startsAtTs: 1_770_000_000n,
       refundAfterTs: 1_777_776_000n,
       expiresAtTs: 1_780_000_000n,
@@ -969,9 +969,9 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
         coverageAssetMint: coverageMint,
         recentBlockhash: STATIC_BLOCKHASH,
         mode: rail.symbol === "OMEGAX" ? COMMITMENT_MODE_WATERFALL_RESERVE : COMMITMENT_MODE_WATERFALL_RESERVE,
-        depositAmount: rail.symbol === "OMEGAX" ? 5_000_000n : 159_000_000n,
+        depositAmount: rail.symbol === "OMEGAX" ? 5_000_000n : 99_000_000n,
         coverageAmount: 1_000_000_000n,
-        hardCapAmount: rail.symbol === "OMEGAX" ? 5_000_000_000n : 159_000_000_000n,
+        hardCapAmount: rail.symbol === "OMEGAX" ? 5_000_000_000n : 99_000_000_000n,
       });
       const paymentRailIx = assertProtocolTxInstruction(paymentRailTx, "create_commitment_payment_rail");
       assert.equal(paymentRailIx.keys[3]!.pubkey.toBase58(), campaign);

@@ -27,15 +27,15 @@ test("Genesis actuarial assumptions match public metadata", () => {
 
   assert.deepEqual(assumptions.approvedCanonicalRedesign.historicalPriorDesign.event7, {
     retailPremiumUsd: 39,
-    cohortPremiumUsdMin: 29,
-    cohortPremiumUsdMax: 35,
-    maxPayoutUsd: 1500,
+    cohortPremiumUsdMin: 28,
+    cohortPremiumUsdMax: 36,
+    maxPayoutUsd: 1000,
   });
   assert.deepEqual(assumptions.approvedCanonicalRedesign.historicalPriorDesign.travel30, {
-    retailPremiumUsd: 99,
-    cohortPremiumUsdMin: 69,
-    cohortPremiumUsdMax: 89,
-    maxPayoutUsd: 5000,
+    retailPremiumUsd: 159,
+    cohortPremiumUsdMin: 112,
+    cohortPremiumUsdMax: 144,
+    maxPayoutUsd: 3000,
   });
 });
 
@@ -113,7 +113,7 @@ test("Genesis pricing recommendations satisfy the p99.5 solvency gate while pres
 
   const travel30 = output.pricingRecommendations.find((entry: any) => entry.sku === "travel30");
   assert.equal(travel30.current.launchGate, "healthy");
-  assert.equal(travel30.current.premiumUsd, 159);
+  assert.equal(travel30.current.premiumUsd, 99);
   assert.equal(travel30.current.capUsd, 3000);
 });
 
@@ -126,8 +126,8 @@ test("Genesis generated memo and canonical plan agree with JSON headline gates",
   assert.match(memo, /p99\.5/i);
   assert.match(canonicalPlan, new RegExp(output.canonicalUpdatePlan.status));
   assert.equal(output.canonicalUpdatePlan.status, "approved_applied_in_repo");
-  assert.equal(output.canonicalUpdatePlan.historicalPriorDesign.travel30.retailPremiumUsd, 99);
-  assert.equal(output.canonicalUpdatePlan.appliedDesign.travel30.retailPremiumUsd, 159);
+  assert.equal(output.canonicalUpdatePlan.historicalPriorDesign.travel30.retailPremiumUsd, 159);
+  assert.equal(output.canonicalUpdatePlan.appliedDesign.travel30.retailPremiumUsd, 99);
   for (const change of output.canonicalUpdatePlan.changes) {
     assert.match(canonicalPlan, new RegExp(change.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }

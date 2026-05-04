@@ -747,7 +747,7 @@ function buildReviewOutput() {
 
   return {
     generated: true,
-    generatedAt: "2026-04-27T00:00:00.000Z",
+    generatedAt: "2026-05-04T00:00:00.000Z",
     reviewId: assumptions.reviewId,
     purpose: assumptions.purpose,
     targetSolvencyQuantile: assumptions.targetSolvencyQuantile,

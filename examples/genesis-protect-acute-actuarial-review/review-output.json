@@ -1,6 +1,6 @@
 {
   "generated": true,
-  "generatedAt": "2026-04-27T00:00:00.000Z",
+  "generatedAt": "2026-05-04T00:00:00.000Z",
   "reviewId": "genesis-protect-acute-end-to-end-actuarial-workbook-2026-04",
   "purpose": "Repo-first end-to-end actuarial pricing and launch-control workbook for the first Genesis Protect Acute policies.",
   "targetSolvencyQuantile": 0.995,
@@ -48,9 +48,9 @@
       "event7Members": 50,
       "travel30Members": 20,
       "countryTier": "available",
-      "grossPremiumUsd": 5130,
-      "expectedClaimsUsd": 2119,
-      "expectedSurplusUsd": 3011,
+      "grossPremiumUsd": 3930,
+      "expectedClaimsUsd": 1625,
+      "expectedSurplusUsd": 2305,
       "averageSimulatedClaimsUsd": 1577,
       "claimsPayingReserveUsd": 118300,
       "reserveReductionUsd": 0,
@@ -58,7 +58,7 @@
       "p95ClaimsUsd": 4126,
       "p99ClaimsUsd": 5706,
       "p995ClaimsUsd": 6315,
-      "capitalRequiredAtTargetUsd": 1185,
+      "capitalRequiredAtTargetUsd": 2385,
       "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
@@ -70,9 +70,9 @@
       "event7Members": 200,
       "travel30Members": 60,
       "countryTier": "available",
-      "grossPremiumUsd": 17340,
-      "expectedClaimsUsd": 7167,
-      "expectedSurplusUsd": 10173,
+      "grossPremiumUsd": 13740,
+      "expectedClaimsUsd": 5684,
+      "expectedSurplusUsd": 8056,
       "averageSimulatedClaimsUsd": 5310,
       "claimsPayingReserveUsd": 118300,
       "reserveReductionUsd": 0,
@@ -92,9 +92,9 @@
       "event7Members": 500,
       "travel30Members": 200,
       "countryTier": "available",
-      "grossPremiumUsd": 51300,
-      "expectedClaimsUsd": 21194,
-      "expectedSurplusUsd": 30106,
+      "grossPremiumUsd": 39300,
+      "expectedClaimsUsd": 16250,
+      "expectedSurplusUsd": 23050,
       "averageSimulatedClaimsUsd": 15739,
       "claimsPayingReserveUsd": 118300,
       "reserveReductionUsd": 0,
@@ -114,9 +114,9 @@
       "event7Members": 1000,
       "travel30Members": 500,
       "countryTier": "available",
-      "grossPremiumUsd": 118500,
-      "expectedClaimsUsd": 48939,
-      "expectedSurplusUsd": 69561,
+      "grossPremiumUsd": 88500,
+      "expectedClaimsUsd": 36579,
+      "expectedSurplusUsd": 51921,
       "averageSimulatedClaimsUsd": 36408,
       "claimsPayingReserveUsd": 118300,
       "reserveReductionUsd": 0,
@@ -136,9 +136,9 @@
       "event7Members": 1000,
       "travel30Members": 500,
       "countryTier": "available",
-      "grossPremiumUsd": 118500,
-      "expectedClaimsUsd": 76467,
-      "expectedSurplusUsd": 42033,
+      "grossPremiumUsd": 88500,
+      "expectedClaimsUsd": 57155,
+      "expectedSurplusUsd": 31345,
       "averageSimulatedClaimsUsd": 55916,
       "claimsPayingReserveUsd": 118300,
       "reserveReductionUsd": 0,
@@ -158,9 +158,9 @@
       "event7Members": 1000,
       "travel30Members": 500,
       "countryTier": "available",
-      "grossPremiumUsd": 118500,
-      "expectedClaimsUsd": 91761,
-      "expectedSurplusUsd": 26739,
+      "grossPremiumUsd": 88500,
+      "expectedClaimsUsd": 68586,
+      "expectedSurplusUsd": 19914,
       "averageSimulatedClaimsUsd": 67078,
       "claimsPayingReserveUsd": 118300,
       "reserveReductionUsd": 0,
@@ -168,7 +168,7 @@
       "p95ClaimsUsd": 83034,
       "p99ClaimsUsd": 89806,
       "p995ClaimsUsd": 91977,
-      "capitalRequiredAtTargetUsd": 0,
+      "capitalRequiredAtTargetUsd": 3477,
       "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
@@ -180,9 +180,9 @@
       "event7Members": 100,
       "travel30Members": 250,
       "countryTier": "sponsor_only",
-      "grossPremiumUsd": 43650,
-      "expectedClaimsUsd": 21775,
-      "expectedSurplusUsd": 21875,
+      "grossPremiumUsd": 28650,
+      "expectedClaimsUsd": 14297,
+      "expectedSurplusUsd": 14353,
       "averageSimulatedClaimsUsd": 16317,
       "claimsPayingReserveUsd": 143300,
       "reserveReductionUsd": 0,
@@ -190,7 +190,7 @@
       "p95ClaimsUsd": 24729,
       "p99ClaimsUsd": 28511,
       "p995ClaimsUsd": 29941,
-      "capitalRequiredAtTargetUsd": 0,
+      "capitalRequiredAtTargetUsd": 1291,
       "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
@@ -202,9 +202,9 @@
       "event7Members": 0,
       "travel30Members": 1200,
       "countryTier": "available",
-      "grossPremiumUsd": 190800,
-      "expectedClaimsUsd": 99441,
-      "expectedSurplusUsd": 91359,
+      "grossPremiumUsd": 118800,
+      "expectedClaimsUsd": 61916,
+      "expectedSurplusUsd": 56884,
       "averageSimulatedClaimsUsd": 74789,
       "claimsPayingReserveUsd": 84900,
       "reserveReductionUsd": 0,
@@ -224,9 +224,9 @@
       "event7Members": 0,
       "travel30Members": 300,
       "countryTier": "sponsor_only",
-      "grossPremiumUsd": 47700,
-      "expectedClaimsUsd": 28250,
-      "expectedSurplusUsd": 19450,
+      "grossPremiumUsd": 29700,
+      "expectedClaimsUsd": 17590,
+      "expectedSurplusUsd": 12110,
       "averageSimulatedClaimsUsd": 21177,
       "claimsPayingReserveUsd": 109900,
       "reserveReductionUsd": 0,
@@ -234,7 +234,7 @@
       "p95ClaimsUsd": 31095,
       "p99ClaimsUsd": 35458,
       "p995ClaimsUsd": 37233,
-      "capitalRequiredAtTargetUsd": 0,
+      "capitalRequiredAtTargetUsd": 7533,
       "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
@@ -246,9 +246,9 @@
       "event7Members": 0,
       "travel30Members": 100,
       "countryTier": "waitlist",
-      "grossPremiumUsd": 15900,
-      "expectedClaimsUsd": 12283,
-      "expectedSurplusUsd": 3617,
+      "grossPremiumUsd": 9900,
+      "expectedClaimsUsd": 7648,
+      "expectedSurplusUsd": 2252,
       "averageSimulatedClaimsUsd": 9123,
       "claimsPayingReserveUsd": 84900,
       "reserveReductionUsd": 0,
@@ -256,7 +256,7 @@
       "p95ClaimsUsd": 16160,
       "p99ClaimsUsd": 19612,
       "p995ClaimsUsd": 21085,
-      "capitalRequiredAtTargetUsd": 5185,
+      "capitalRequiredAtTargetUsd": 11185,
       "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
@@ -268,9 +268,9 @@
       "event7Members": 0,
       "travel30Members": 500,
       "countryTier": "available",
-      "grossPremiumUsd": 79500,
-      "expectedClaimsUsd": 32754,
-      "expectedSurplusUsd": 46746,
+      "grossPremiumUsd": 49500,
+      "expectedClaimsUsd": 20394,
+      "expectedSurplusUsd": 29106,
       "averageSimulatedClaimsUsd": 24699,
       "claimsPayingReserveUsd": 84900,
       "reserveReductionUsd": 0,
@@ -290,9 +290,9 @@
       "event7Members": 0,
       "travel30Members": 500,
       "countryTier": "available",
-      "grossPremiumUsd": 79500,
-      "expectedClaimsUsd": 51178,
-      "expectedSurplusUsd": 28322,
+      "grossPremiumUsd": 49500,
+      "expectedClaimsUsd": 31866,
+      "expectedSurplusUsd": 17634,
       "averageSimulatedClaimsUsd": 37986,
       "claimsPayingReserveUsd": 84900,
       "reserveReductionUsd": 0,
@@ -300,7 +300,7 @@
       "p95ClaimsUsd": 51686,
       "p99ClaimsUsd": 57874,
       "p995ClaimsUsd": 59925,
-      "capitalRequiredAtTargetUsd": 0,
+      "capitalRequiredAtTargetUsd": 10425,
       "additionalReserveNeededUsd": 0,
       "reserveBreachProbability": 0,
       "launchGate": "healthy"
@@ -472,36 +472,36 @@
         "aggressive": 103.87
       },
       "event7CurrentPremiumUsd": 39,
-      "travel30CurrentPremiumUsd": 159
+      "travel30CurrentPremiumUsd": 99
     },
     {
       "sku": "travel30",
       "optimizerScenarioId": "adverse-1000-e7-500-t30",
       "members": 500,
       "current": {
-        "premiumUsd": 159,
+        "premiumUsd": 99,
         "capUsd": 3000,
-        "grossPremiumUsd": 79500,
-        "expectedClaimsUsd": 51178,
-        "expectedSurplusUsd": 28322,
+        "grossPremiumUsd": 49500,
+        "expectedClaimsUsd": 31866,
+        "expectedSurplusUsd": 17634,
         "claimsPayingReserveUsd": 84900,
-        "p95ClaimsUsd": 51702,
-        "p99ClaimsUsd": 57736,
-        "p995ClaimsUsd": 59826,
+        "p95ClaimsUsd": 51692,
+        "p99ClaimsUsd": 57793,
+        "p995ClaimsUsd": 59918,
         "reserveBreachProbability": 0,
         "additionalReserveNeededUsd": 0,
         "launchGate": "healthy"
       },
       "recommended": {
-        "premiumUsd": 159,
+        "premiumUsd": 99,
         "capUsd": 3000,
-        "grossPremiumUsd": 79500,
-        "expectedClaimsUsd": 51178,
-        "expectedSurplusUsd": 28322,
+        "grossPremiumUsd": 49500,
+        "expectedClaimsUsd": 31866,
+        "expectedSurplusUsd": 17634,
         "claimsPayingReserveUsd": 84900,
-        "p95ClaimsUsd": 51702,
-        "p99ClaimsUsd": 57736,
-        "p995ClaimsUsd": 59826,
+        "p95ClaimsUsd": 51692,
+        "p99ClaimsUsd": 57793,
+        "p995ClaimsUsd": 59918,
         "reserveBreachProbability": 0,
         "additionalReserveNeededUsd": 0,
         "launchGate": "healthy"
@@ -509,26 +509,26 @@
       "cohortBands": [
         {
           "discountPct": 10,
-          "cohortPremiumUsd": 144
+          "cohortPremiumUsd": 90
         },
         {
           "discountPct": 20,
-          "cohortPremiumUsd": 128
+          "cohortPremiumUsd": 80
         },
         {
           "discountPct": 30,
-          "cohortPremiumUsd": 112
+          "cohortPremiumUsd": 70
         }
       ],
       "currentReserveUsd": 84900,
       "additionalReserveNeededAtRecommendedUsd": 0,
       "lpApyBandPct": {
-        "conservative": 37.76,
-        "modeled": 62.94,
-        "aggressive": 78.67
+        "conservative": 23.51,
+        "modeled": 39.19,
+        "aggressive": 48.98
       },
       "event7CurrentPremiumUsd": 39,
-      "travel30CurrentPremiumUsd": 159
+      "travel30CurrentPremiumUsd": 99
     }
   ],
   "countryScoring": {
@@ -711,23 +711,9 @@
   },
   "canonicalUpdatePlan": {
     "status": "approved_applied_in_repo",
-    "approvedAt": "2026-04-27",
-    "approvalBasis": "p99.5 actuarial workbook pricing redesign",
+    "approvedAt": "2026-05-04",
+    "approvalBasis": "Travel 30 retail price reset to 99 USD with explicit backstop replacing removed premium load under the p99.5 launch gate",
     "historicalPriorDesign": {
-      "event7": {
-        "retailPremiumUsd": 39,
-        "cohortPremiumUsdMin": 29,
-        "cohortPremiumUsdMax": 35,
-        "maxPayoutUsd": 1500
-      },
-      "travel30": {
-        "retailPremiumUsd": 99,
-        "cohortPremiumUsdMin": 69,
-        "cohortPremiumUsdMax": 89,
-        "maxPayoutUsd": 5000
-      }
-    },
-    "appliedDesign": {
       "event7": {
         "retailPremiumUsd": 39,
         "cohortPremiumUsdMin": 28,
@@ -741,12 +727,23 @@
         "maxPayoutUsd": 3000
       }
     },
+    "appliedDesign": {
+      "event7": {
+        "retailPremiumUsd": 39,
+        "cohortPremiumUsdMin": 28,
+        "cohortPremiumUsdMax": 36,
+        "maxPayoutUsd": 1000
+      },
+      "travel30": {
+        "retailPremiumUsd": 99,
+        "cohortPremiumUsdMin": 69,
+        "cohortPremiumUsdMax": 89,
+        "maxPayoutUsd": 3000
+      }
+    },
     "changes": [
-      "Event 7: cohort band 29-35 -> 28-36 USD.",
-      "Event 7: max payout cap 1500 -> 1000 USD.",
-      "Travel 30: retail premium 99 -> 159 USD.",
-      "Travel 30: cohort band 69-89 -> 112-144 USD.",
-      "Travel 30: max payout cap 5000 -> 3000 USD."
+      "Travel 30: retail premium 159 -> 99 USD.",
+      "Travel 30: cohort band 112-144 -> 69-89 USD."
     ],
     "requiredSurfaces": [
       "frontend public Genesis metadata",
@@ -760,23 +757,9 @@
   },
   "approvedCanonicalRedesign": {
     "status": "approved_applied_in_repo",
-    "approvedAt": "2026-04-27",
-    "approvalBasis": "p99.5 actuarial workbook pricing redesign",
+    "approvedAt": "2026-05-04",
+    "approvalBasis": "Travel 30 retail price reset to 99 USD with explicit backstop replacing removed premium load under the p99.5 launch gate",
     "historicalPriorDesign": {
-      "event7": {
-        "retailPremiumUsd": 39,
-        "cohortPremiumUsdMin": 29,
-        "cohortPremiumUsdMax": 35,
-        "maxPayoutUsd": 1500
-      },
-      "travel30": {
-        "retailPremiumUsd": 99,
-        "cohortPremiumUsdMin": 69,
-        "cohortPremiumUsdMax": 89,
-        "maxPayoutUsd": 5000
-      }
-    },
-    "appliedDesign": {
       "event7": {
         "retailPremiumUsd": 39,
         "cohortPremiumUsdMin": 28,
@@ -787,6 +770,20 @@
         "retailPremiumUsd": 159,
         "cohortPremiumUsdMin": 112,
         "cohortPremiumUsdMax": 144,
+        "maxPayoutUsd": 3000
+      }
+    },
+    "appliedDesign": {
+      "event7": {
+        "retailPremiumUsd": 39,
+        "cohortPremiumUsdMin": 28,
+        "cohortPremiumUsdMax": 36,
+        "maxPayoutUsd": 1000
+      },
+      "travel30": {
+        "retailPremiumUsd": 99,
+        "cohortPremiumUsdMin": 69,
+        "cohortPremiumUsdMax": 89,
         "maxPayoutUsd": 3000
       }
     }

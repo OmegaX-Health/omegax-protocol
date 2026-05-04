@@ -2,19 +2,16 @@
 
 Status: approved_applied_in_repo
 
-Approved: 2026-04-27
+Approved: 2026-05-04
 
-Basis: p99.5 actuarial workbook pricing redesign
+Basis: Travel 30 retail price reset to 99 USD with explicit backstop replacing removed premium load under the p99.5 launch gate
 
 This records the approved canonical pricing redesign now applied in repo metadata.
 
 ## Canonical Changes
 
-- Event 7: cohort band 29-35 -> 28-36 USD.
-- Event 7: max payout cap 1500 -> 1000 USD.
-- Travel 30: retail premium 99 -> 159 USD.
-- Travel 30: cohort band 69-89 -> 112-144 USD.
-- Travel 30: max payout cap 5000 -> 3000 USD.
+- Travel 30: retail premium 159 -> 99 USD.
+- Travel 30: cohort band 112-144 -> 69-89 USD.
 
 ## Surfaces To Keep Synchronized
 

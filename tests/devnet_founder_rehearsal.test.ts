@@ -227,9 +227,9 @@ test("devnet founder chain inputs derive activated reserve while leaving pending
       bump: 255,
     }],
     commitmentPositions: [
-      commitmentPosition(campaign, usdcMint, 159_000_000n, COMMITMENT_POSITION_PENDING),
-      commitmentPosition(campaign, usdcMint, 159_000_000n, COMMITMENT_POSITION_REFUNDED),
-      commitmentPosition(campaign, usdcMint, 159_000_000n, COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED),
+      commitmentPosition(campaign, usdcMint, 99_000_000n, COMMITMENT_POSITION_PENDING),
+      commitmentPosition(campaign, usdcMint, 99_000_000n, COMMITMENT_POSITION_REFUNDED),
+      commitmentPosition(campaign, usdcMint, 99_000_000n, COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED),
     ],
     obligations: [{
       address: "Obligation111111111111111111111111111111111",
@@ -245,9 +245,9 @@ test("devnet founder chain inputs derive activated reserve while leaving pending
     }],
   });
 
-  assert.equal(inputs[0]!.fundedRaw, 159_000_000n);
-  assert.equal(inputs[0]!.pendingRaw, 159_000_000n);
-  assert.equal(inputs[0]!.refundedRaw, 159_000_000n);
+  assert.equal(inputs[0]!.fundedRaw, 99_000_000n);
+  assert.equal(inputs[0]!.pendingRaw, 99_000_000n);
+  assert.equal(inputs[0]!.refundedRaw, 99_000_000n);
   assert.equal(inputs[0]!.reservedRaw, 25_000_000n);
 });
 
@@ -303,12 +303,12 @@ test("devnet founder chain inputs parse Anchor BN balance sheets before actuaria
       bump: 255,
     }],
     commitmentPositions: [
-      commitmentPosition(campaign, usdcMint, 159_000_000n, COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED),
+      commitmentPosition(campaign, usdcMint, 99_000_000n, COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED),
     ],
     obligations: [],
   });
 
-  assert.equal(inputs[0]!.fundedRaw, 159_000_000n);
+  assert.equal(inputs[0]!.fundedRaw, 134_000_000n);
   assert.equal(inputs[0]!.settledRaw, 25_000_000n);
   const report = evaluateChainActuarialGate({
     nowTs,
@@ -326,18 +326,18 @@ test("devnet founder chain inputs parse Anchor BN balance sheets before actuaria
     },
   });
   assert.equal(report.assetRows[0]!.encumberedUsd, 25);
-  assert.equal(report.assetRows[0]!.freeUsd, 134);
+  assert.equal(report.assetRows[0]!.freeUsd, 109);
 });
 
 test("devnet founder raw amount conversion handles stable, SOL, BTC, ETH, and OMEGAX rails", () => {
   const bySymbol = Object.fromEntries(FOUNDER_ASSET_RAILS.map((asset) => [asset.symbol, asset]));
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.USDC.decimals, priceUsd1e8: bySymbol.USDC.priceUsd1e8 }), 159_000_000n);
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.PUSD.decimals, priceUsd1e8: bySymbol.PUSD.priceUsd1e8 }), 159_000_000n);
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.USDT.decimals, priceUsd1e8: bySymbol.USDT.priceUsd1e8 }), 159_000_000n);
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.WSOL.decimals, priceUsd1e8: bySymbol.WSOL.priceUsd1e8 }), 1_060_000_000n);
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.WBTC.decimals, priceUsd1e8: bySymbol.WBTC.priceUsd1e8 }), 159_000n);
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.WETH.decimals, priceUsd1e8: bySymbol.WETH.priceUsd1e8 }), 5_300_000n);
-  assert.equal(rawAmountForUsd({ usd: 159, decimals: bySymbol.OMEGAX.decimals, priceUsd1e8: bySymbol.OMEGAX.priceUsd1e8 }), 1_590_000_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.USDC.decimals, priceUsd1e8: bySymbol.USDC.priceUsd1e8 }), 99_000_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.PUSD.decimals, priceUsd1e8: bySymbol.PUSD.priceUsd1e8 }), 99_000_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.USDT.decimals, priceUsd1e8: bySymbol.USDT.priceUsd1e8 }), 99_000_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.WSOL.decimals, priceUsd1e8: bySymbol.WSOL.priceUsd1e8 }), 660_000_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.WBTC.decimals, priceUsd1e8: bySymbol.WBTC.priceUsd1e8 }), 99_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.WETH.decimals, priceUsd1e8: bySymbol.WETH.priceUsd1e8 }), 3_300_000n);
+  assert.equal(rawAmountForUsd({ usd: 99, decimals: bySymbol.OMEGAX.decimals, priceUsd1e8: bySymbol.OMEGAX.priceUsd1e8 }), 990_000_000n);
 });
 
 function commitmentPosition(campaign: string, mint: string, amount: bigint, state: number) {

@@ -310,20 +310,20 @@ fn pending_commitment_deposit_stays_out_of_reserve_sheets() {
     let mut plan_sheet = ReserveBalanceSheet::default();
     let mut funding_line_sheet = ReserveBalanceSheet::default();
 
-    book_inflow(&mut vault_total_assets, 159_000_000).unwrap();
+    book_inflow(&mut vault_total_assets, 99_000_000).unwrap();
 
-    assert_eq!(vault_total_assets, 159_000_000);
+    assert_eq!(vault_total_assets, 99_000_000);
     assert_eq!(domain_sheet, ReserveBalanceSheet::default());
     assert_eq!(plan_sheet, ReserveBalanceSheet::default());
     assert_eq!(funding_line_sheet, ReserveBalanceSheet::default());
 
-    book_inflow_sheet(&mut domain_sheet, 159_000_000).unwrap();
-    book_inflow_sheet(&mut plan_sheet, 159_000_000).unwrap();
-    book_inflow_sheet(&mut funding_line_sheet, 159_000_000).unwrap();
+    book_inflow_sheet(&mut domain_sheet, 99_000_000).unwrap();
+    book_inflow_sheet(&mut plan_sheet, 99_000_000).unwrap();
+    book_inflow_sheet(&mut funding_line_sheet, 99_000_000).unwrap();
 
-    assert_eq!(domain_sheet.funded, 159_000_000);
-    assert_eq!(plan_sheet.funded, 159_000_000);
-    assert_eq!(funding_line_sheet.funded, 159_000_000);
+    assert_eq!(domain_sheet.funded, 99_000_000);
+    assert_eq!(plan_sheet.funded, 99_000_000);
+    assert_eq!(funding_line_sheet.funded, 99_000_000);
 }
 
 #[test]
@@ -332,22 +332,22 @@ fn commitment_activation_and_refund_are_one_way_states() {
     let ledger_key = Pubkey::new_unique();
     let asset_mint = Pubkey::new_unique();
     let mut ledger = sample_commitment_ledger(campaign, asset_mint);
-    ledger.pending_amount = 159_000_000;
+    ledger.pending_amount = 99_000_000;
     let mut position =
-        sample_commitment_position(campaign, ledger_key, asset_mint, asset_mint, 159_000_000, 0);
+        sample_commitment_position(campaign, ledger_key, asset_mint, asset_mint, 99_000_000, 0);
 
     commitments::require_pending_commitment_position(&position).unwrap();
     commitments::activate_commitment_position_at(
         &mut ledger,
         &mut position,
         COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED,
-        159_000_000,
+        99_000_000,
         200,
     )
     .unwrap();
 
     assert_eq!(ledger.pending_amount, 0);
-    assert_eq!(ledger.activated_amount, 159_000_000);
+    assert_eq!(ledger.activated_amount, 99_000_000);
     assert_eq!(position.state, COMMITMENT_POSITION_DIRECT_PREMIUM_ACTIVATED);
     assert!(commitments::require_pending_commitment_position(&position).is_err());
 
@@ -358,15 +358,15 @@ fn commitment_activation_and_refund_are_one_way_states() {
 #[test]
 fn treasury_credit_locks_only_existing_stable_capacity() {
     let mut stable_sheet = ReserveBalanceSheet::default();
-    assert!(book_restricted_sheet(&mut stable_sheet, 159_000_000).is_err());
+    assert!(book_restricted_sheet(&mut stable_sheet, 99_000_000).is_err());
     assert_eq!(stable_sheet, ReserveBalanceSheet::default());
 
     book_inflow_sheet(&mut stable_sheet, 250_000_000).unwrap();
-    book_restricted_sheet(&mut stable_sheet, 159_000_000).unwrap();
+    book_restricted_sheet(&mut stable_sheet, 99_000_000).unwrap();
 
     assert_eq!(stable_sheet.funded, 250_000_000);
-    assert_eq!(stable_sheet.restricted, 159_000_000);
-    assert_eq!(stable_sheet.free, 91_000_000);
+    assert_eq!(stable_sheet.restricted, 99_000_000);
+    assert_eq!(stable_sheet.free, 151_000_000);
 }
 
 #[test]
@@ -384,14 +384,14 @@ fn treasury_credit_commitment_never_counts_omegax_as_stable_reserve() {
         omegax_mint,
         stable_mint,
         10_000_000_000,
-        159_000_000,
+        99_000_000,
     );
 
     book_inflow(&mut omegax_vault_total_assets, position.amount).unwrap();
     ledger.pending_amount = position.amount;
     assert_eq!(stable_sheet.funded, 0);
 
-    book_inflow_sheet(&mut stable_sheet, 159_000_000).unwrap();
+    book_inflow_sheet(&mut stable_sheet, 99_000_000).unwrap();
     book_restricted_sheet(&mut stable_sheet, position.coverage_amount).unwrap();
     commitments::activate_commitment_position_at(
         &mut ledger,
@@ -403,8 +403,8 @@ fn treasury_credit_commitment_never_counts_omegax_as_stable_reserve() {
     .unwrap();
 
     assert_eq!(omegax_vault_total_assets, 10_000_000_000);
-    assert_eq!(stable_sheet.funded, 159_000_000);
-    assert_eq!(stable_sheet.restricted, 159_000_000);
+    assert_eq!(stable_sheet.funded, 99_000_000);
+    assert_eq!(stable_sheet.restricted, 99_000_000);
     assert_eq!(ledger.treasury_locked_amount, 10_000_000_000);
     assert_eq!(ledger.activated_amount, 0);
 }

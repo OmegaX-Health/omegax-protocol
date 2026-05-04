@@ -210,9 +210,9 @@ export const GENESIS_PROTECT_ACUTE_SKUS: Record<GenesisProtectAcuteSkuKey, Genes
     payoutCapUsd: 3_000,
     benefitStyle: "hybrid_fixed_plus_reimbursement",
     pricing: {
-      retailUsd: 159,
-      cohortUsdMin: 112,
-      cohortUsdMax: 144,
+      retailUsd: 99,
+      cohortUsdMin: 69,
+      cohortUsdMax: 89,
       sponsorNote: "Sponsor pricing is negotiated for larger cohorts.",
     },
     benefitTiers: [

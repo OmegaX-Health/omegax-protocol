@@ -108,7 +108,7 @@ test("Nomad curve end-to-end drill enforces caps, waiting periods, and exclusion
   assert.equal(claims.claim_budget_routine_denial.denialReason, "not_covered");
 
   assert.equal(output.endToEndPoc.paidClaimsUsd, 1936);
-  assert.equal(output.endToEndPoc.remainingCoverageLimitUsd, 1994);
+  assert.equal(output.endToEndPoc.remainingCoverageLimitUsd, 877);
   assert(output.endToEndPoc.finalReserveUsd > 0);
 });
 
