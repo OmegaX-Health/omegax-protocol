@@ -40,12 +40,12 @@ audited.
 | Evidence | Path / URL | Notes |
 |----------|------------|-------|
 | Release evidence | [`../operations/release-v0.3.2-evidence.md`](../operations/release-v0.3.2-evidence.md) | canonical readiness snapshot |
-| Devnet treasury report | [`./devnet-treasury-pen-test-2026-05-04.md`](./devnet-treasury-pen-test-2026-05-04.md) | prior strict run: `8 blocked`, `0 vulnerable`, `0 skipped`, `0 inconclusive` |
+| Devnet treasury report | [`./devnet-treasury-pen-test-2026-05-05.md`](./devnet-treasury-pen-test-2026-05-05.md) | merged hardened replay: `8 blocked`, `0 vulnerable`, `0 skipped`, `0 inconclusive` |
 | Privileged-role controls | [`./mainnet-privileged-role-controls.md`](./mainnet-privileged-role-controls.md) | role custody, distinct-key guard, multisig requirement |
 | Pre-mainnet pen test | [`./pre-mainnet-pen-test-2026-04-27.md`](./pre-mainnet-pen-test-2026-04-27.md) | finding lineage and fixed rehearsal issues |
 | Localnet E2E summary | `artifacts/localnet-e2e-summary-2026-05-04T16-40-45-011Z.json` | ignored artifact; current local evidence path |
 | Localnet adversarial matrix | `artifacts/localnet-adversarial-matrix-2026-05-04T16-40-45-011Z.json` | ignored artifact; `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` |
-| Devnet strict JSON | `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.json` | ignored artifact; tracked summary above |
+| Devnet strict JSON | `artifacts/devnet-security-rehearsal-hardened-2026-05-05/devnet-treasury-pen-test-2026-05-04T18-49-38-251Z.json` | ignored artifact; tracked summary above |
 | IDL | [`../../idl/omegax_protocol.json`](../../idl/omegax_protocol.json) | generated Anchor IDL |
 | Protocol contract | [`../../shared/protocol_contract.json`](../../shared/protocol_contract.json) | generated public contract artifact |
 
@@ -95,7 +95,7 @@ Instruction ownership summary from
 ## Devnet Treasury Evidence
 
 Latest tracked strict devnet report:
-[`./devnet-treasury-pen-test-2026-05-04.md`](./devnet-treasury-pen-test-2026-05-04.md).
+[`./devnet-treasury-pen-test-2026-05-05.md`](./devnet-treasury-pen-test-2026-05-05.md).
 
 Summary:
 
@@ -118,8 +118,8 @@ Required canaries were present for the prior deployed devnet program:
 - LP position with pending redemption shares and usable vault custody
 - allocation-scoped obligation for allocation/PDA binding probes
 
-Fresh reviewer note: this strict run predates PR `#55` merge. A hardened
-devnet replay against the merged binary remains mandatory before funding.
+Fresh reviewer note: this strict run is the post-merge hardened replay against
+devnet program `BtLPiswEfzwxenWM3GR6hihViZHpXLU6Pygw3nmH3B2s`.
 
 ## Money/Control Surfaces To Review
 
@@ -274,4 +274,3 @@ Result:
 - [ ] No known critical/high blockers for bootstrap role separation.
 
 Findings / conditions:
-

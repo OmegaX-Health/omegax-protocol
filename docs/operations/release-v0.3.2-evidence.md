@@ -154,12 +154,12 @@ actual settlement-asset reserve/funding/allocation capacity.
 
 | Field | Value |
 |-------|-------|
-| Devnet bootstrap | PASS for prior canary state, `OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=0 npm run protocol:bootstrap:devnet-live` completed after public RPC 429 retries |
-| Canary seeding | PARTIAL RERUN: public devnet RPC rate-limited the fresh seed command after linked-claim and test-asset steps; strict pen-test verified all required canaries were already live |
-| Strict pen-test | PASS, `npm run devnet:treasury:pen-test -- --strict` |
+| Devnet bootstrap | PASS against merged hardened binary at `BtLPiswEfzwxenWM3GR6hihViZHpXLU6Pygw3nmH3B2s`; `OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=100000000 npm run protocol:bootstrap:devnet-live` |
+| Canary seeding | PASS, all required treasury canaries seeded against the new devnet program |
+| Strict pen-test | PASS, `npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security-rehearsal-hardened-2026-05-05` |
 | Strict result | `8 blocked`, `0 vulnerable`, `0 skipped`, `0 inconclusive` |
-| Evidence | `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.json`, `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.md`, tracked summary `docs/security/devnet-treasury-pen-test-2026-05-04.md` |
-| Hardened binary replay | BLOCKER: PR `#55` has not been merged, redeployed to devnet, and strict pen-test has not been rerun against the merged hardened binary |
+| Evidence | `artifacts/devnet-security-rehearsal-hardened-2026-05-05/devnet-treasury-pen-test-2026-05-04T18-49-38-251Z.json`, `artifacts/devnet-security-rehearsal-hardened-2026-05-05/devnet-treasury-pen-test-2026-05-04T18-49-38-251Z.md`, tracked summary `docs/security/devnet-treasury-pen-test-2026-05-05.md` |
+| Hardened binary replay | PASS: merged hardened binary was redeployed, bootstrapped, seeded, and strict-tested on devnet |
 
 ## 9. Mainnet Preflight
 
