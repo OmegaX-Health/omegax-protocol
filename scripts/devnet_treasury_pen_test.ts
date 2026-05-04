@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
+import { resolve } from "node:path";
+
+import {
   Connection,
   Keypair,
   PublicKey,
@@ -23,6 +29,8 @@ const DEVNET_RPC_URL =
   "https://api.devnet.solana.com";
 
 const ZERO_PUBKEY = "11111111111111111111111111111111";
+const CLI_ARGS = process.argv.slice(2);
+const STRICT_MODE = CLI_ARGS.includes("--strict");
 
 type ProbeStatus = "blocked" | "vulnerable" | "skipped" | "inconclusive";
 
@@ -38,6 +46,22 @@ type ProbeResult = {
 
 type ConsoleSnapshot = Awaited<ReturnType<typeof protocol.loadProtocolConsoleSnapshot>>;
 
+type RequiredCanary = {
+  name: string;
+  ready: boolean;
+  detail: string;
+};
+
+function nowStamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function cliValue(name: string): string | null {
+  const index = CLI_ARGS.indexOf(name);
+  if (index === -1) return null;
+  return CLI_ARGS[index + 1] ?? null;
+}
+
 function stringifyWithBigints(value: unknown): string {
   return JSON.stringify(
     value,
@@ -48,6 +72,115 @@ function stringifyWithBigints(value: unknown): string {
 
 function nonZeroAddress(value?: string | null): value is string {
   return Boolean(value && value !== ZERO_PUBKEY);
+}
+
+function redactRpcUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    if (url.search) url.search = "?...";
+    if (url.username || url.password) {
+      url.username = "...";
+      url.password = "";
+    }
+    return url.toString();
+  } catch {
+    return value.includes("?") ? `${value.slice(0, value.indexOf("?"))}?...` : value;
+  }
+}
+
+function hasWithdrawableSplFees<T extends { assetMint: string; accruedFees: bigint; withdrawnFees: bigint }>(
+  rows: T[],
+): boolean {
+  return rows.some((row) =>
+    row.assetMint !== protocol.NATIVE_SOL_MINT && row.accruedFees > row.withdrawnFees
+  );
+}
+
+function hasLinkedClaimCandidate(snapshot: ConsoleSnapshot): boolean {
+  return snapshot.obligations.some((obligation) => {
+    if (!obligation.claimCase || obligation.status === protocol.OBLIGATION_STATUS_SETTLED) return false;
+    if (obligation.outstandingAmount <= 0n) return false;
+    const claim = snapshot.claimCases.find((row) => row.address === obligation.claimCase);
+    const vault = snapshot.domainAssetVaults.find((row) =>
+      row.reserveDomain === obligation.reserveDomain &&
+      row.assetMint === obligation.assetMint &&
+      nonZeroAddress(row.vaultTokenAccount)
+    );
+    return Boolean(claim && vault);
+  });
+}
+
+function hasLpRedemptionCandidate(snapshot: ConsoleSnapshot): boolean {
+  return snapshot.lpPositions.some((position) => {
+    if (position.pendingRedemptionShares <= 0n) return false;
+    const capitalClass = snapshot.capitalClasses.find((row) => row.address === position.capitalClass);
+    const pool = capitalClass
+      ? snapshot.liquidityPools.find((row) => row.address === capitalClass.liquidityPool)
+      : null;
+    const vault = pool
+      ? snapshot.domainAssetVaults.find((row) =>
+        row.reserveDomain === pool.reserveDomain &&
+        row.assetMint === pool.depositAssetMint &&
+        nonZeroAddress(row.vaultTokenAccount)
+      )
+      : null;
+    return Boolean(capitalClass && pool && vault);
+  });
+}
+
+function hasAllocationObligationCandidate(snapshot: ConsoleSnapshot): boolean {
+  return snapshot.obligations.some((obligation) => {
+    if (!nonZeroAddress(obligation.allocationPosition) || !nonZeroAddress(obligation.capitalClass)) return false;
+    if (obligation.status === protocol.OBLIGATION_STATUS_SETTLED || obligation.outstandingAmount <= 0n) return false;
+    const vault = snapshot.domainAssetVaults.find((row) =>
+      row.reserveDomain === obligation.reserveDomain &&
+      row.assetMint === obligation.assetMint &&
+      nonZeroAddress(row.vaultTokenAccount)
+    );
+    return Boolean(vault);
+  });
+}
+
+function requiredCanaries(snapshot: ConsoleSnapshot): RequiredCanary[] {
+  return [
+    {
+      name: "domain-asset-vault-spl-balance",
+      ready: snapshot.domainAssetVaults.some((vault) =>
+        vault.totalAssets > 0n && nonZeroAddress(vault.vaultTokenAccount)
+      ),
+      detail: "At least one SPL DomainAssetVault must hold assets for raw vault-drain probes.",
+    },
+    {
+      name: "protocol-fee-vault-accrual",
+      ready: hasWithdrawableSplFees(snapshot.protocolFeeVaults),
+      detail: "A protocol fee vault must exist with withdrawable accrued SPL fees.",
+    },
+    {
+      name: "pool-treasury-vault-accrual",
+      ready: hasWithdrawableSplFees(snapshot.poolTreasuryVaults),
+      detail: "A pool treasury vault must exist with withdrawable accrued SPL fees.",
+    },
+    {
+      name: "pool-oracle-fee-vault-accrual",
+      ready: hasWithdrawableSplFees(snapshot.poolOracleFeeVaults),
+      detail: "A pool oracle fee vault must exist with withdrawable accrued SPL fees.",
+    },
+    {
+      name: "linked-claim-obligation",
+      ready: hasLinkedClaimCandidate(snapshot),
+      detail: "An unsettled linked-claim obligation must exist with usable SPL outflow accounts.",
+    },
+    {
+      name: "pending-lp-redemption",
+      ready: hasLpRedemptionCandidate(snapshot),
+      detail: "An LP position must have pending redemption shares and usable vault custody.",
+    },
+    {
+      name: "lp-allocation-obligation",
+      ready: hasAllocationObligationCandidate(snapshot),
+      detail: "An unsettled allocation-scoped obligation must exist for allocation/PDA binding probes.",
+    },
+  ];
 }
 
 function probeSkipped(name: string, target: string, expected: string, detail: string): ProbeResult {
@@ -445,6 +578,78 @@ async function redemptionProbes(
   ];
 }
 
+async function allocationObligationSettlementProbes(
+  connection: Connection,
+  attacker: Keypair,
+  simulationFeePayer: PublicKey,
+  snapshot: ConsoleSnapshot,
+): Promise<ProbeResult[]> {
+  const candidate = snapshot.obligations.find((obligation) => {
+    if (!nonZeroAddress(obligation.allocationPosition) || !nonZeroAddress(obligation.capitalClass)) return false;
+    if (obligation.status === protocol.OBLIGATION_STATUS_SETTLED || obligation.outstandingAmount <= 0n) return false;
+    const vault = snapshot.domainAssetVaults.find((row) =>
+      row.reserveDomain === obligation.reserveDomain &&
+      row.assetMint === obligation.assetMint &&
+      nonZeroAddress(row.vaultTokenAccount)
+    );
+    return Boolean(vault);
+  });
+
+  if (!candidate) {
+    return [
+      probeSkipped(
+        "omegax-allocation-obligation-settle-to-attacker",
+        "settle_obligation",
+        "Allocation-scoped obligations should reject attacker signer/recipient routing.",
+        "No live unsettled allocation-scoped obligation with a usable vault token account was found.",
+      ),
+    ];
+  }
+
+  const vault = snapshot.domainAssetVaults.find((row) =>
+    row.reserveDomain === candidate.reserveDomain &&
+    row.assetMint === candidate.assetMint &&
+    nonZeroAddress(row.vaultTokenAccount)
+  )!;
+  const mint = new PublicKey(candidate.assetMint);
+  const attackerAta = getAssociatedTokenAddressSync(mint, attacker.publicKey);
+  const setup = createAssociatedTokenAccountIdempotentInstruction(
+    simulationFeePayer,
+    attackerAta,
+    attacker.publicKey,
+    mint,
+  );
+  const attackTx = protocol.buildSettleObligationTx({
+    authority: attacker.publicKey,
+    healthPlanAddress: candidate.healthPlan,
+    reserveDomainAddress: candidate.reserveDomain,
+    fundingLineAddress: candidate.fundingLine,
+    assetMint: candidate.assetMint,
+    obligationAddress: candidate.address,
+    recentBlockhash: ZERO_PUBKEY,
+    nextStatus: protocol.OBLIGATION_STATUS_SETTLED,
+    amount: 1n,
+    policySeriesAddress: candidate.policySeries,
+    capitalClassAddress: candidate.capitalClass,
+    allocationPositionAddress: candidate.allocationPosition,
+    poolAssetMint: candidate.assetMint,
+    vaultTokenAccountAddress: vault.vaultTokenAccount,
+    recipientTokenAccountAddress: attackerAta,
+    tokenProgramId: TOKEN_PROGRAM_ID,
+  });
+
+  return [
+    await simulateAttack(
+      connection,
+      simulationFeePayer,
+      "omegax-allocation-obligation-settle-to-attacker",
+      candidate.address,
+      "OmegaX should reject because the attacker is not an authorized settlement controller and allocation ledgers must bind to the obligation.",
+      new Transaction().add(setup, ...attackTx.instructions),
+    ),
+  ];
+}
+
 async function chooseSimulationFeePayer(
   connection: Connection,
   snapshot: ConsoleSnapshot,
@@ -464,15 +669,98 @@ async function chooseSimulationFeePayer(
   throw new Error("No funded public devnet account found for non-mutating simulation fee payer.");
 }
 
+function writeEvidenceReport(params: {
+  attacker: PublicKey;
+  counts: Record<ProbeStatus, number>;
+  required: RequiredCanary[];
+  results: ProbeResult[];
+  simulationFeePayer: PublicKey;
+  snapshot: ConsoleSnapshot;
+}): { jsonPath: string; markdownPath: string } {
+  const outDir = resolve(cliValue("--out-dir") ?? process.env.OMEGAX_TREASURY_PEN_TEST_OUT_DIR ?? "artifacts");
+  mkdirSync(outDir, { recursive: true });
+  const stamp = nowStamp();
+  const jsonPath = resolve(outDir, `devnet-treasury-pen-test-${stamp}.json`);
+  const markdownPath = resolve(outDir, `devnet-treasury-pen-test-${stamp}.md`);
+  const missing = params.required.filter((item) => !item.ready);
+  const evidence = {
+    generatedAt: new Date().toISOString(),
+    strictMode: STRICT_MODE,
+    rpc: redactRpcUrl(DEVNET_RPC_URL),
+    attacker: params.attacker.toBase58(),
+    simulationFeePayer: params.simulationFeePayer.toBase58(),
+    counts: params.counts,
+    requiredCanaries: params.required,
+    liveSnapshot: {
+      domainAssetVaults: params.snapshot.domainAssetVaults.length,
+      protocolFeeVaults: params.snapshot.protocolFeeVaults.length,
+      poolTreasuryVaults: params.snapshot.poolTreasuryVaults.length,
+      poolOracleFeeVaults: params.snapshot.poolOracleFeeVaults.length,
+      claimCases: params.snapshot.claimCases.length,
+      obligations: params.snapshot.obligations.length,
+      lpPositions: params.snapshot.lpPositions.length,
+      allocationPositions: params.snapshot.allocationPositions.length,
+    },
+    acceptedSkipReasons: [
+      {
+        name: "sol-only-fee-rails",
+        reason: "Strict rehearsal requires SPL canaries. SOL-only rails remain unsupported by the current devnet seed plan and must be justified separately before release sign-off.",
+      },
+    ],
+    results: params.results,
+  };
+  writeFileSync(jsonPath, stringifyWithBigints(evidence));
+
+  const markdown = [
+    "# Devnet Treasury Pen-Test Evidence",
+    "",
+    `Generated: ${evidence.generatedAt}`,
+    `Strict mode: ${STRICT_MODE ? "yes" : "no"}`,
+    `RPC: ${evidence.rpc}`,
+    `Attacker: ${evidence.attacker}`,
+    `Simulation fee payer: ${evidence.simulationFeePayer}`,
+    "",
+    "## Counts",
+    "",
+    `- blocked: ${params.counts.blocked}`,
+    `- vulnerable: ${params.counts.vulnerable}`,
+    `- skipped: ${params.counts.skipped}`,
+    `- inconclusive: ${params.counts.inconclusive}`,
+    "",
+    "## Required Canaries",
+    "",
+    ...params.required.map((item) => `- ${item.ready ? "ready" : "missing"}: ${item.name} - ${item.detail}`),
+    "",
+    "## Probe Results",
+    "",
+    ...params.results.map((result) => [
+      `### ${result.name}`,
+      "",
+      `- status: ${result.status}`,
+      `- target: ${result.target}`,
+      `- expected: ${result.expected}`,
+      `- detail: ${result.detail}`,
+      "",
+    ].join("\n")),
+    missing.length > 0 ? "## Strict Blockers" : "",
+    missing.length > 0 ? "" : "",
+    ...missing.map((item) => `- ${item.name}: ${item.detail}`),
+    "",
+  ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n");
+  writeFileSync(markdownPath, markdown);
+  return { jsonPath, markdownPath };
+}
+
 async function main(): Promise<void> {
   const connection = new Connection(DEVNET_RPC_URL, "confirmed");
   const attacker = Keypair.generate();
 
-  console.log(`RPC: ${DEVNET_RPC_URL}`);
+  console.log(`RPC: ${redactRpcUrl(DEVNET_RPC_URL)}`);
   console.log(`Attacker: ${attacker.publicKey.toBase58()}`);
 
   const snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
   const simulationFeePayer = await chooseSimulationFeePayer(connection, snapshot);
+  const required = requiredCanaries(snapshot);
   console.log(`Simulation fee payer: ${simulationFeePayer.toBase58()} (no transaction is sent)`);
   console.log(
     stringifyWithBigints({
@@ -484,7 +772,9 @@ async function main(): Promise<void> {
         claimCases: snapshot.claimCases.length,
         obligations: snapshot.obligations.length,
         lpPositions: snapshot.lpPositions.length,
+        allocationPositions: snapshot.allocationPositions.length,
       },
+      requiredCanaries: required,
     }),
   );
 
@@ -493,6 +783,7 @@ async function main(): Promise<void> {
     ...(await feeVaultWithdrawProbes(connection, attacker, simulationFeePayer, snapshot)),
     ...(await claimObligationSettlementProbes(connection, attacker, simulationFeePayer, snapshot)),
     ...(await redemptionProbes(connection, attacker, simulationFeePayer, snapshot)),
+    ...(await allocationObligationSettlementProbes(connection, attacker, simulationFeePayer, snapshot)),
   ];
 
   const counts = results.reduce<Record<ProbeStatus, number>>(
@@ -504,9 +795,24 @@ async function main(): Promise<void> {
   );
 
   console.log(stringifyWithBigints({ counts, results }));
+  const evidence = writeEvidenceReport({
+    attacker: attacker.publicKey,
+    counts,
+    required,
+    results,
+    simulationFeePayer,
+    snapshot,
+  });
+  console.log(`Evidence JSON: ${evidence.jsonPath}`);
+  console.log(`Evidence Markdown: ${evidence.markdownPath}`);
 
   if (counts.vulnerable > 0) {
     process.exitCode = 2;
+  } else if (
+    STRICT_MODE
+    && (counts.skipped > 0 || counts.inconclusive > 0 || required.some((item) => !item.ready))
+  ) {
+    process.exitCode = 3;
   }
 }
 

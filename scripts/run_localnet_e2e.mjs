@@ -173,6 +173,7 @@ async function main() {
   const ledgerDir = join(tempRoot, "ledger");
   const logPath = join(tempRoot, "validator.log");
   const summaryPath = join(artifactsRoot, `localnet-e2e-summary-${nowStamp()}.json`);
+  const adversarialSummaryPath = join(artifactsRoot, `localnet-adversarial-matrix-${nowStamp()}.json`);
   await mkdir(ledgerDir, { recursive: true });
   const programUpgradeAuthority = Keypair.generate();
   const programUpgradeAuthorityPath = join(tempRoot, "program-upgrade-authority.json");
@@ -255,6 +256,7 @@ async function main() {
       NEXT_PUBLIC_PROTOCOL_PROGRAM_ID: programId,
       PROTOCOL_PROGRAM_ID: programId,
       OMEGAX_E2E_SUMMARY_PATH: summaryPath,
+      OMEGAX_E2E_ADVERSARIAL_SUMMARY_PATH: adversarialSummaryPath,
       OMEGAX_E2E_VALIDATOR_LOG: logPath,
       OMEGAX_E2E_RPC_PORT: String(rpcPort),
       OMEGAX_E2E_WS_PORT: String(wsPort),
@@ -275,6 +277,7 @@ async function main() {
           "--test",
           "--test-concurrency=1",
           "e2e/localnet_protocol_surface.test.ts",
+          "e2e/localnet_adversarial_matrix.test.ts",
         ],
         {
           cwd: repoRoot,
