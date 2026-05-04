@@ -1,113 +1,120 @@
-# Devnet Treasury Penetration Test — 2026-05-04
+# Devnet Treasury Penetration Test - 2026-05-04
 
-**Scope:** authorized devnet-only treasury theft attempt against the public OmegaX protocol deployment.  
-**Program:** `Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B` on Solana devnet.  
-**Runner:** `npm run devnet:treasury:pen-test -- --strict` (`scripts/devnet_treasury_pen_test.ts`).
-**Run time:** `2026-05-04T06:34:58Z`.
-**Governance handoff:** `npm run devnet:governance:handoff` created/funded a
-pending devnet governance wallet and role wallets, then stopped because the
-live on-chain governance authority is still
-`27AFKaBMMPYzSBxBR24hyVDZE7GDYBFE7ae1hrYWBPFP` and no matching local signer or
-approved governance execution path was available.
-**Canary seed:** `npm run devnet:treasury:seed-canaries` confirmed the live
-linked-claim obligation canary. Governance-gated fee-vault, pool-oracle,
-LP-redemption, and LP-allocation canaries could not be initialized until the
-on-chain governance authority is rotated or signs the setup transactions.
+## Scope
 
-## Method
+Authorized devnet-only treasury theft rehearsal against the current OmegaX
+protocol program. The runner used RPC simulation for attack transactions; it
+did not submit theft transactions and did not target mainnet.
 
-The runner generates an in-memory attacker wallet and performs non-mutating
-devnet simulations only. It does not send the attack transactions and does not
-read or write any operator keypair files.
+## Deployment Under Test
 
-Because the devnet faucet returned intermittent internal errors during this
-run, the simulation uses a funded public devnet account as the fee payer and
-keeps the attacker wallet as the authority/recipient inside the attack
-instructions. Signature verification is intentionally disabled by RPC
-simulation; the instruction-level signer bits still execute the same
-authorization path, and no state changes are committed.
+- Program: `3autasvKVhr7XtEtCrMwvELHMcgkSznNXRdzAe1FuCNX`
+- Program data authority: `CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU`
+- Protocol governance PDA: `7rjTAckGY9PMTGH43B2pG3DC7czbLazF3LN3QaKnejty`
+- Protocol governance authority: `CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU`
+- RPC: `https://api.devnet.solana.com/`
+- Strict run time: `2026-05-04T08:58:24.111Z`
 
-Attack classes:
+Deployment verification:
 
-1. Raw SPL transfer from live `DomainAssetVault.vault_token_account` to an attacker ATA.
-2. OmegaX fee-vault withdrawal to an attacker-owned token account.
-3. OmegaX linked-claim obligation settlement to an attacker-owned token account.
-4. OmegaX LP redemption processing to an attacker-owned token account.
-5. OmegaX allocation-scoped obligation settlement to an attacker-owned token account.
+```sh
+solana program show 3autasvKVhr7XtEtCrMwvELHMcgkSznNXRdzAe1FuCNX --url devnet
+```
 
-## Result
+The deployed program is owned by `BPFLoaderUpgradeab1e11111111111111111111111`
+and had program data authority
+`CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU` at verification time.
 
-**No simulated theft path succeeded.**
+## Commands
 
-Summary from the devnet run:
+```sh
+npm run devnet:program:redeploy-fresh
+npm run anchor:idl
+npm run protocol:contract
+OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=0 npm run devnet:treasury:seed-canaries
+npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security-rehearsal-final
+```
+
+The timestamped local evidence files for the strict run are:
+
+- `artifacts/devnet-security-rehearsal-final/devnet-treasury-pen-test-2026-05-04T08-58-24-110Z.json`
+- `artifacts/devnet-security-rehearsal-final/devnet-treasury-pen-test-2026-05-04T08-58-24-110Z.md`
+
+The `artifacts/` directory is intentionally ignored by git, so this document is
+the tracked public-safe evidence summary.
+
+## Canary Readiness
+
+Strict mode required every canary to be present. All were ready:
+
+- domain asset vault with SPL balance
+- protocol fee vault with accrued SPL fees
+- pool treasury vault with accrued SPL fees
+- pool oracle fee vault with accrued SPL fees
+- unsettled linked-claim obligation with usable SPL outflow accounts
+- LP position with pending redemption shares and usable vault custody
+- allocation-scoped obligation for allocation/PDA binding probes
+
+Live snapshot at strict run:
 
 ```json
 {
-  "counts": {
-    "blocked": 7,
-    "vulnerable": 0,
-    "skipped": 3,
-    "inconclusive": 0
-  }
+  "domainAssetVaults": 3,
+  "protocolFeeVaults": 1,
+  "poolTreasuryVaults": 2,
+  "poolOracleFeeVaults": 1,
+  "claimCases": 2,
+  "obligations": 4,
+  "lpPositions": 3,
+  "allocationPositions": 3
 }
 ```
 
-The blocked probes were six raw SPL vault-drain attempts against live vault
-token accounts plus one OmegaX linked-claim settlement attempt against the
-seeded canary obligation. Raw SPL drains failed at the SPL Token program with
-owner mismatch; the linked-claim settlement failed in OmegaX auth because the
-attacker was not the claim/operator authority.
+## Result
 
-Strict mode intentionally returned non-zero because required canaries are still
-missing. This is the correct result: no theft path succeeded, but this was not
-a complete end-to-end rehearsal.
+No simulated theft path succeeded.
 
-## Devnet Coverage Gaps
-
-The live devnet deployment did not expose enough initialized post-Phase 1.7
-state to complete every treasury theft path:
-
-- `protocolFeeVaults`: `0`
-- `poolTreasuryVaults`: `0`
-- `poolOracleFeeVaults`: `0`
-- live unsettled linked-claim obligation with usable vault token account:
-  seeded and blocked by the pen-test
-- live LP position with pending redemption shares: none
-- live allocation-scoped obligation with usable vault token account: none
-
-That means this run proves the raw SPL custody boundary and the linked-claim
-settlement authority boundary against live initialized devnet state. Fee
-withdrawal, pool-oracle fee withdrawal, LP redemption, and allocation-scoped
-settlement still need governance-authorized canaries.
-
-## Notable Devnet State
-
-The live snapshot contained nine `DomainAssetVault` accounts, but several
-legacy vault rows still have `vaultTokenAccount =
-11111111111111111111111111111111` while carrying non-zero `totalAssets`.
-Those rows are not directly stealable through the current runner, but they are
-a devnet parity smell: they cannot exercise the current PDA-owned SPL outflow
-model.
-
-## Follow-Up
-
-Before treating devnet as a full treasury-security rehearsal, initialize the
-current fee-vault rails and create the remaining outflow canaries:
-
-- one protocol fee vault with accrued SPL fees
-- one pool treasury vault with accrued SPL fees
-- one pool oracle fee vault with accrued SPL fees
-- one LP position with pending redemption shares
-- one allocation-scoped obligation backed by the canary LP allocation
-
-Then rerun:
-
-```sh
-npm run devnet:governance:handoff
-npm run devnet:treasury:seed-canaries
-npm run devnet:treasury:pen-test -- --strict
+```json
+{
+  "blocked": 8,
+  "vulnerable": 0,
+  "skipped": 0,
+  "inconclusive": 0
+}
 ```
 
-The strict runner exits non-zero if any simulated theft succeeds, any required
-canary is missing, or any probe is skipped/inconclusive without an accepted
-reason.
+## Probe Results
+
+| Probe | Target | Status | Expected boundary |
+| --- | --- | --- | --- |
+| Raw SPL vault drain | `GUt2SdFK1SDcBw4mBTJoF4GX3nLKNVU8Hz6mCcaCMxD8:AbPybY6PHwLLnnCb22qNafwZuB8GcFxkcimZxiH9C6kn` | blocked | Attacker is not vault token-account authority. |
+| Raw SPL vault drain | `3nTS89pYbsR26hBxqK2hUwTQxqha5cgaujs8fLsXgJcR:Ci4MNGKvr8Bg6h4Qmn9DJq5hM2fR4zgDNccjVKrJkTer` | blocked | Attacker is not vault token-account authority. |
+| Fee withdrawal to attacker | protocol fee vault `EB7ENqp29Mdd7m1Lrxdukmw6b6QNK1oS2LjvrNegBXdi` | blocked | Attacker signer and attacker-owned recipient are rejected. |
+| Fee withdrawal to attacker | pool treasury vault `6ELshgz8a6iGd9uZnefJ8egeskYcJff2fJQTFL1WfbBi` | blocked | Attacker signer and attacker-owned recipient are rejected. |
+| Fee withdrawal to attacker | pool oracle fee vault `AR5M6BYfyXpeAHygttEQAwZshfYtrszTYSSFURecj2pW` | blocked | Attacker signer and attacker-owned recipient are rejected. |
+| Linked claim settle to attacker | claim `6UGgBVKdT8k71suQbFZqauUvGGjAxDV35Ck5oQRWymwF` | blocked | Attacker is not claim/operator authority and recipient is not member/delegate. |
+| LP redemption to attacker | LP position `GsYNHrsbin8tGuNfdZCqAdR6pDLaajSzhKJr2NNwbfVS` | blocked | Attacker is not curator/governance and recipient is not LP owner. |
+| Allocation obligation settle to attacker | obligation `FssKgX1yo8zSwxyLijnvsTQPCZ2qeZDcYrbgZ2s2R3PA` | blocked | Attacker is not settlement controller and allocation ledgers bind to the obligation. |
+
+## Rehearsal Findings Fixed
+
+The rehearsal uncovered a real settlement accounting defect before the final
+strict run: allocation-scoped obligation settlement could underflow because
+logical allocation capacity was being settled through the same funded-custody
+path as physical domain/pool vault accounting. The program now uses
+allocation-style settlement for plan, funding-line, series, and allocation
+capacity ledgers while keeping domain and pool ledgers as physical funded
+custody debits.
+
+The linked-claim obligation canary also required pool-oracle fee accrual on
+`settle_obligation`. That path now validates the pool oracle fee vault, policy,
+and claim attestation bindings before accruing oracle fees and transferring net
+settlement funds.
+
+## Limits
+
+This is treasury canary proof for the final devnet program above. It is not a
+frontend fixture parity claim: the full health capital-markets bootstrap
+manifest was not regenerated for this final program because devnet funding and
+faucet limits stopped the broader bootstrap before completion. The strict
+treasury canary graph and strict pen-test did complete.

@@ -1990,6 +1990,26 @@ fn settlement_origin_fee_withdrawal_does_not_double_debit_domain_sheet() {
 }
 
 #[test]
+fn allocation_ledger_settlement_does_not_require_funded_balance() {
+    let mut sheet = ReserveBalanceSheet {
+        allocated: 1_000,
+        reserved: 500,
+        owed: 500,
+        free: 0,
+        redeemable: 0,
+        ..ReserveBalanceSheet::default()
+    };
+
+    settle_from_allocation_sheet(&mut sheet, OBLIGATION_DELIVERY_MODE_PAYABLE, 500).unwrap();
+
+    assert_eq!(sheet.funded, 0);
+    assert_eq!(sheet.allocated, 1_000);
+    assert_eq!(sheet.reserved, 0);
+    assert_eq!(sheet.owed, 0);
+    assert_eq!(sheet.settled, 500);
+}
+
+#[test]
 fn redemption_origin_fee_withdrawal_does_not_double_debit_domain_sheet() {
     let mut domain_assets = 1_000;
     let mut domain_sheet = ReserveBalanceSheet::default();

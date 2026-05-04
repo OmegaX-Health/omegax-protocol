@@ -34,6 +34,18 @@ pub(crate) fn settle_obligation(
         ctx.accounts.funding_line.asset_mint,
     )?;
 
+    let oracle_fee = resolve_obligation_oracle_fee(
+        ctx.accounts.health_plan.key(),
+        obligation,
+        ctx.accounts.claim_case.as_deref(),
+        ctx.accounts.pool_oracle_fee_vault.as_deref(),
+        ctx.accounts.pool_oracle_policy.as_deref(),
+        ctx.accounts.oracle_fee_attestation.as_deref(),
+        amount,
+    )?;
+    let net_to_recipient = checked_sub(amount, oracle_fee)?;
+    require_positive_amount(net_to_recipient)?;
+
     if let Some(claim_case) = ctx.accounts.claim_case.as_deref() {
         require_matching_linked_claim_case(
             claim_case,
@@ -120,6 +132,10 @@ pub(crate) fn settle_obligation(
                 amount,
                 obligation,
             )?;
+            if oracle_fee > 0 {
+                ctx.accounts.domain_asset_vault.total_assets =
+                    checked_add(ctx.accounts.domain_asset_vault.total_assets, oracle_fee)?;
+            }
             obligation.status = OBLIGATION_STATUS_SETTLED;
 
             // Any asset-backed settlement must include SPL outflow accounts.
@@ -158,13 +174,26 @@ pub(crate) fn settle_obligation(
                 );
             }
             transfer_from_domain_vault(
-                amount,
+                net_to_recipient,
                 &ctx.accounts.domain_asset_vault,
                 vault_ta,
                 recipient_ta,
                 mint,
                 token_prog,
             )?;
+            if oracle_fee > 0 {
+                if let Some(vault) = ctx.accounts.pool_oracle_fee_vault.as_deref_mut() {
+                    let key = vault.key();
+                    let mint = vault.asset_mint;
+                    let total = accrue_fee(&mut vault.accrued_fees, oracle_fee)?;
+                    emit!(FeeAccruedEvent {
+                        vault: key,
+                        asset_mint: mint,
+                        amount: oracle_fee,
+                        accrued_total: total,
+                    });
+                }
+            }
         }
         OBLIGATION_STATUS_CANCELED => {
             cancel_outstanding(
@@ -226,6 +255,86 @@ pub(crate) fn settle_obligation(
     Ok(())
 }
 
+fn resolve_obligation_oracle_fee(
+    health_plan_key: Pubkey,
+    obligation: &Obligation,
+    claim_case: Option<&Account<ClaimCase>>,
+    pool_oracle_fee_vault: Option<&Account<PoolOracleFeeVault>>,
+    pool_oracle_policy: Option<&Account<PoolOraclePolicy>>,
+    oracle_fee_attestation: Option<&Account<ClaimAttestation>>,
+    amount: u64,
+) -> Result<u64> {
+    match (
+        pool_oracle_fee_vault,
+        pool_oracle_policy,
+        oracle_fee_attestation,
+    ) {
+        (Some(vault), Some(policy), Some(attestation)) => {
+            require!(
+                claim_case.is_some(),
+                OmegaXProtocolError::ClaimAttestationRequiredForOracleFee
+            );
+            let claim_case =
+                claim_case.ok_or(OmegaXProtocolError::ClaimAttestationRequiredForOracleFee)?;
+            require_keys_eq!(
+                vault.oracle,
+                attestation.oracle,
+                OmegaXProtocolError::OracleProfileMismatch
+            );
+            require_keys_eq!(
+                attestation.claim_case,
+                claim_case.key(),
+                OmegaXProtocolError::Unauthorized
+            );
+            require_keys_eq!(
+                attestation.health_plan,
+                health_plan_key,
+                OmegaXProtocolError::HealthPlanMismatch
+            );
+            require_keys_eq!(
+                attestation.policy_series,
+                claim_case.policy_series,
+                OmegaXProtocolError::PolicySeriesMismatch
+            );
+            require!(
+                attestation.evidence_ref_hash == claim_case.evidence_ref_hash,
+                OmegaXProtocolError::ClaimEvidenceMismatch
+            );
+            require_keys_eq!(
+                vault.asset_mint,
+                obligation.asset_mint,
+                OmegaXProtocolError::FeeVaultMismatch
+            );
+            require_keys_eq!(
+                vault.liquidity_pool,
+                policy.liquidity_pool,
+                OmegaXProtocolError::LiquidityPoolMismatch
+            );
+            require_keys_eq!(
+                attestation.liquidity_pool,
+                policy.liquidity_pool,
+                OmegaXProtocolError::LiquidityPoolMismatch
+            );
+            require_keys_eq!(
+                attestation.allocation_position,
+                obligation.allocation_position,
+                OmegaXProtocolError::AllocationPositionMismatch
+            );
+            let fee = fee_share_from_bps(amount, policy.oracle_fee_bps)?;
+            require!(fee < amount, OmegaXProtocolError::FeeVaultBpsMisconfigured);
+            Ok(fee)
+        }
+        (Some(_), Some(_), None) => {
+            err!(OmegaXProtocolError::ClaimAttestationRequiredForOracleFee)
+        }
+        (None, Some(_), _) => err!(OmegaXProtocolError::FeeVaultRequiredForConfiguredFee),
+        (None, None, None) => Ok(0),
+        (Some(_), None, _) | (None, None, Some(_)) => {
+            err!(OmegaXProtocolError::FeeVaultBpsMisconfigured)
+        }
+    }
+}
+
 #[derive(Accounts)]
 pub struct SettleObligation<'info> {
     pub authority: Signer<'info>,
@@ -265,4 +374,8 @@ pub struct SettleObligation<'info> {
     #[account(mut)]
     pub recipient_token_account: Option<InterfaceAccount<'info, TokenAccount>>,
     pub token_program: Option<Interface<'info, TokenInterface>>,
+    #[account(mut)]
+    pub pool_oracle_fee_vault: Option<Box<Account<'info, PoolOracleFeeVault>>>,
+    pub pool_oracle_policy: Option<Box<Account<'info, PoolOraclePolicy>>>,
+    pub oracle_fee_attestation: Option<Box<Account<'info, ClaimAttestation>>>,
 }

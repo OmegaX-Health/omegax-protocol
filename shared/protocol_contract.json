@@ -12847,6 +12847,24 @@
           "writable": false,
           "signer": false,
           "optional": true
+        },
+        {
+          "name": "pool_oracle_fee_vault",
+          "writable": true,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_policy",
+          "writable": false,
+          "signer": false,
+          "optional": true
+        },
+        {
+          "name": "oracle_fee_attestation",
+          "writable": false,
+          "signer": false,
+          "optional": true
         }
       ]
     },

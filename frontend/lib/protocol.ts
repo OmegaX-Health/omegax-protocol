@@ -25,7 +25,17 @@ export type PublicKeyish = PublicKey | string;
 export type BigNumberish = bigint | number | string;
 
 const TEXT_ENCODER = new TextEncoder();
-const PROGRAM_ID = new PublicKey(PROTOCOL_PROGRAM_ID);
+
+function configuredProtocolProgramId(): string {
+  const runtimeEnv = typeof process !== "undefined" ? process.env : undefined;
+  return (
+    runtimeEnv?.NEXT_PUBLIC_PROTOCOL_PROGRAM_ID?.trim()
+    || runtimeEnv?.PROTOCOL_PROGRAM_ID?.trim()
+    || PROTOCOL_PROGRAM_ID
+  );
+}
+
+const PROGRAM_ID = new PublicKey(configuredProtocolProgramId());
 
 export const ZERO_PUBKEY = "11111111111111111111111111111111";
 export const ZERO_PUBKEY_KEY = new PublicKey(ZERO_PUBKEY);
@@ -5592,10 +5602,22 @@ function buildObligationFlowTx(params: {
   vaultTokenAccountAddress?: PublicKeyish | null;
   recipientTokenAccountAddress?: PublicKeyish | null;
   tokenProgramId?: PublicKeyish | null;
+  poolOracleFeeVaultAddress?: PublicKeyish | null;
+  poolOraclePolicyAddress?: PublicKeyish | null;
+  oracleFeeAttestationAddress?: PublicKeyish | null;
+  oracleFeeAddress?: PublicKeyish | null;
   args: Record<string, unknown>;
   includeVault?: boolean;
 }): Transaction {
   const authority = toPublicKey(params.authority);
+  const oracleFeeAttestation = params.oracleFeeAttestationAddress
+    ? toPublicKey(params.oracleFeeAttestationAddress)
+    : params.oracleFeeAddress && params.claimCaseAddress
+      ? deriveClaimAttestationPda({
+        claimCase: params.claimCaseAddress,
+        oracle: params.oracleFeeAddress,
+      })
+      : null;
   const includeSettlementOutflow = Boolean(
     params.vaultTokenAccountAddress
       && params.recipientTokenAccountAddress,
@@ -5617,6 +5639,14 @@ function buildObligationFlowTx(params: {
           optionalProtocolAccount(undefined),
           optionalProtocolAccount(undefined),
         ]
+      : [];
+  const settlementFeeAccounts: ProtocolInstructionAccountInput[] =
+    params.instructionName === "settle_obligation"
+      ? [
+        optionalProtocolAccount(params.poolOracleFeeVaultAddress, true),
+        optionalProtocolAccount(params.poolOraclePolicyAddress),
+        optionalProtocolAccount(oracleFeeAttestation),
+      ]
       : [];
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
@@ -5663,6 +5693,7 @@ function buildObligationFlowTx(params: {
       { pubkey: params.obligationAddress, isWritable: true },
       optionalProtocolAccount(params.claimCaseAddress, true),
       ...settlementOutflowAccounts,
+      ...settlementFeeAccounts,
     ],
   });
 }
@@ -5731,6 +5762,10 @@ export function buildSettleObligationTx(params: {
   vaultTokenAccountAddress?: PublicKeyish | null;
   recipientTokenAccountAddress?: PublicKeyish | null;
   tokenProgramId?: PublicKeyish | null;
+  poolOracleFeeVaultAddress?: PublicKeyish | null;
+  poolOraclePolicyAddress?: PublicKeyish | null;
+  oracleFeeAttestationAddress?: PublicKeyish | null;
+  oracleFeeAddress?: PublicKeyish | null;
 }): Transaction {
   return buildObligationFlowTx({
     ...params,

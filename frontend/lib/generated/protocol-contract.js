@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 7c17f469236ac2b62a4e33bebee7cb8073c223665cba532219f504ccae96aa1c
+// contract_sha256: 14157588296844e66f7618fd96e46a5031c53e3c0207b6e6de193d8d96aa0082
 export const PROTOCOL_PROGRAM_ID = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B";
 export const PROTOCOL_INSTRUCTION_DISCRIMINATORS = {
     "activate_direct_premium_commitment": Uint8Array.from([94, 177, 11, 111, 30, 246, 181, 78]),
@@ -810,6 +810,9 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS = {
         { name: "vault_token_account", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
         { name: "recipient_token_account", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
         { name: "token_program", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "pool_oracle_fee_vault", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "pool_oracle_policy", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+        { name: "oracle_fee_attestation", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
     ],
     "update_allocation_caps": [
         { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },

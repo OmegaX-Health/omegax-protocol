@@ -333,6 +333,37 @@ pub(crate) fn settle_from_sheet(
     recompute_sheet(sheet)
 }
 
+pub(crate) fn settle_from_allocation_sheet(
+    sheet: &mut ReserveBalanceSheet,
+    delivery_mode: u8,
+    amount: u64,
+) -> Result<()> {
+    match delivery_mode {
+        OBLIGATION_DELIVERY_MODE_CLAIMABLE => {
+            if sheet.claimable >= amount {
+                sheet.claimable = checked_sub(sheet.claimable, amount)?;
+            } else if sheet.reserved >= amount {
+                sheet.reserved = checked_sub(sheet.reserved, amount)?;
+            } else {
+                return err!(OmegaXProtocolError::AmountExceedsReservedBalance);
+            }
+        }
+        OBLIGATION_DELIVERY_MODE_PAYABLE => {
+            if sheet.payable >= amount {
+                sheet.payable = checked_sub(sheet.payable, amount)?;
+            } else if sheet.reserved >= amount {
+                sheet.reserved = checked_sub(sheet.reserved, amount)?;
+            } else {
+                return err!(OmegaXProtocolError::AmountExceedsReservedBalance);
+            }
+        }
+        _ => return err!(OmegaXProtocolError::InvalidObligationStateTransition),
+    }
+    sheet.owed = sheet.owed.saturating_sub(amount);
+    sheet.settled = checked_add(sheet.settled, amount)?;
+    recompute_sheet(sheet)
+}
+
 pub(crate) fn book_pending_redemption(sheet: &mut ReserveBalanceSheet, amount: u64) -> Result<()> {
     sheet.pending_redemption = checked_add(sheet.pending_redemption, amount)?;
     recompute_sheet(sheet)
@@ -442,11 +473,21 @@ pub(crate) fn settle_delivery(
     amount: u64,
     obligation: &mut Obligation,
 ) -> Result<()> {
+    let allocation_scoped = allocation_position.is_some() || allocation_sheet.is_some();
     settle_from_sheet(domain_sheet, obligation.delivery_mode, amount)?;
-    settle_from_sheet(plan_sheet, obligation.delivery_mode, amount)?;
-    settle_from_sheet(line_sheet, obligation.delivery_mode, amount)?;
+    if allocation_scoped {
+        settle_from_allocation_sheet(plan_sheet, obligation.delivery_mode, amount)?;
+        settle_from_allocation_sheet(line_sheet, obligation.delivery_mode, amount)?;
+    } else {
+        settle_from_sheet(plan_sheet, obligation.delivery_mode, amount)?;
+        settle_from_sheet(line_sheet, obligation.delivery_mode, amount)?;
+    }
     if let Some(series) = series_sheet {
-        settle_from_sheet(&mut series.sheet, obligation.delivery_mode, amount)?;
+        if allocation_scoped {
+            settle_from_allocation_sheet(&mut series.sheet, obligation.delivery_mode, amount)?;
+        } else {
+            settle_from_sheet(&mut series.sheet, obligation.delivery_mode, amount)?;
+        }
     }
     if let Some(class_ledger) = class_sheet {
         settle_from_sheet(&mut class_ledger.sheet, obligation.delivery_mode, amount)?;
@@ -455,7 +496,7 @@ pub(crate) fn settle_delivery(
         position.reserved_capacity = position.reserved_capacity.saturating_sub(amount);
     }
     if let Some(ledger) = allocation_sheet {
-        settle_from_sheet(&mut ledger.sheet, obligation.delivery_mode, amount)?;
+        settle_from_allocation_sheet(&mut ledger.sheet, obligation.delivery_mode, amount)?;
     }
     *domain_assets = checked_sub(*domain_assets, amount)?;
     funding_line.reserved_amount = funding_line.reserved_amount.saturating_sub(amount);
@@ -579,7 +620,7 @@ pub(crate) fn book_settlement_from_delivery(
         position.reserved_capacity = position.reserved_capacity.saturating_sub(amount);
     }
     if let Some(ledger) = allocation_sheet {
-        settle_from_sheet(&mut ledger.sheet, delivery_mode, amount)?;
+        settle_from_allocation_sheet(&mut ledger.sheet, delivery_mode, amount)?;
     }
     *domain_assets = checked_sub(*domain_assets, amount)?;
     funding_line.reserved_amount = funding_line.reserved_amount.saturating_sub(amount);

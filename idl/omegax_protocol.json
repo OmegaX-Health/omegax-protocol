@@ -11930,6 +11930,19 @@
         {
           "name": "token_program",
           "optional": true
+        },
+        {
+          "name": "pool_oracle_fee_vault",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "pool_oracle_policy",
+          "optional": true
+        },
+        {
+          "name": "oracle_fee_attestation",
+          "optional": true
         }
       ],
       "args": [

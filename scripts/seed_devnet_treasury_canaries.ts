@@ -21,6 +21,7 @@ import {
 } from "@solana/spl-token";
 
 import { loadEnvFile } from "./support/load_env_file.ts";
+import { STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX } from "./devnet_governance_smoke_helpers.ts";
 import { wrapConnectionWithRpcRetry } from "./support/rpc_retry.ts";
 import { keypairFromFile, sha256Bytes } from "./support/script_helpers.ts";
 
@@ -36,11 +37,12 @@ const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 const LOCAL_ROLE_DIR = resolve(homedir(), ".config/solana/omegax-devnet");
 const DEFAULT_OPERATOR_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 const ZERO_PUBKEY = "11111111111111111111111111111111";
-const ROLE_MIN_LAMPORTS = 75_000_000n;
+const ROLE_MIN_LAMPORTS = BigInt(process.env.OMEGAX_DEVNET_ROLE_MIN_LAMPORTS ?? "75000000");
 
-const CANARY_CLAIM_ID = "pt-usdc-claim-001";
-const CANARY_OBLIGATION_ID = "pt-usdc-oblig-001";
-const CANARY_ORACLE_FEE_CLAIM_ID = "pt-oracle-fee-001";
+const CANARY_CLAIM_ID = "pt-usdc-premium-claim-001";
+const CANARY_OBLIGATION_ID = "pt-usdc-premium-oblig-001";
+const CANARY_ORACLE_FEE_CLAIM_ID = "pt-oracle-fee-lp-002";
+const CANARY_ORACLE_FEE_OBLIGATION_ID = "pt-oracle-fee-lp-oblig-002";
 const CANARY_ALLOCATION_LINE_ID = "pt-usdc-lp-line-001";
 const CANARY_ALLOCATION_OBLIGATION_ID = "pt-lp-alloc-oblig-001";
 const CANARY_POOL_ID = "pt-usdc-treasury-pool";
@@ -48,10 +50,10 @@ const CANARY_CLASS_ID = "pt-usdc-canary-class";
 const CANARY_DEPOSIT_AMOUNT = 10_000n;
 const CANARY_REDEMPTION_SHARES = 100n;
 const CANARY_CLAIM_AMOUNT = 1_000n;
-const CANARY_ORACLE_FEE_CLAIM_AMOUNT = 2_000n;
+const CANARY_ORACLE_FEE_CLAIM_AMOUNT = 500n;
 const CANARY_ALLOCATION_AMOUNT = 1_000n;
 const CANARY_ALLOCATION_OBLIGATION_AMOUNT = 250n;
-const CANARY_SCHEMA_KEY_HASH_HEX = stableHash("treasury-canary:oracle-schema:key");
+const CANARY_SCHEMA_KEY_HASH_HEX = STANDARD_OUTCOMES_SCHEMA_KEY_HASH_HEX;
 
 function loadLocalEnv(): void {
   loadEnvFile(resolve(process.cwd(), ".env.local"));
@@ -93,6 +95,30 @@ function loadRoleKeypair(name: string): Keypair | null {
   return optionalKeypair(resolve(LOCAL_ROLE_DIR, `${name}.json`));
 }
 
+function loadKeypairForWallet(wallet: PublicKey | string, operator: Keypair): Keypair | null {
+  const expected = new PublicKey(wallet).toBase58();
+  if (operator.publicKey.toBase58() === expected) return operator;
+
+  const candidates = [
+    optionalKeypair(process.env.OMEGAX_DEVNET_PROTOCOL_GOVERNANCE_KEYPAIR_PATH),
+    loadRoleKeypair("member"),
+    loadRoleKeypair("second-member"),
+    loadRoleKeypair("member-delegate"),
+    loadRoleKeypair("lp-provider"),
+    loadRoleKeypair("wrapper-provider"),
+    loadRoleKeypair("oracle-operator"),
+  ];
+  return candidates.find((candidate) => candidate?.publicKey.toBase58() === expected) ?? null;
+}
+
+function requireKeypairForWallet(wallet: PublicKey | string, operator: Keypair, label: string): Keypair {
+  const keypair = loadKeypairForWallet(wallet, operator);
+  if (!keypair) {
+    throw new Error(`Missing local keypair for ${label}: ${new PublicKey(wallet).toBase58()}`);
+  }
+  return keypair;
+}
+
 function findRequired<T>(rows: T[], predicate: (row: T) => boolean, label: string): T {
   const row = rows.find(predicate);
   if (!row) throw new Error(`Missing required devnet account for ${label}.`);
@@ -101,6 +127,12 @@ function findRequired<T>(rows: T[], predicate: (row: T) => boolean, label: strin
 
 function nonZeroAddress(value?: string | null): value is string {
   return Boolean(value && value !== ZERO_PUBKEY);
+}
+
+function fundingLineFreeCapacity(line: Snapshot["fundingLines"][number]): bigint {
+  return BigInt(String(line.fundedAmount ?? 0))
+    - BigInt(String(line.reservedAmount ?? 0))
+    - BigInt(String(line.spentAmount ?? 0));
 }
 
 function stableHash(label: string): string {
@@ -230,7 +262,7 @@ async function ensureAtaAndMint(params: {
     feePayer: params.payer,
     label: `mint:${params.label}`,
     tx,
-    signers: [params.payer, params.mintAuthority],
+    signers: params.amount > 0n ? [params.payer, params.mintAuthority] : [params.payer],
   });
   return ata;
 }
@@ -242,26 +274,30 @@ function chooseUsdcCanaryRail(snapshot: Snapshot): {
 } {
   const candidates = snapshot.domainAssetVaults
     .filter((row) => nonZeroAddress(row.vaultTokenAccount))
-    .map((vault) => ({
-      vault,
-      fundingLine: snapshot.fundingLines.find((line) =>
-        line.reserveDomain === vault.reserveDomain
-        && line.assetMint === vault.assetMint
-        && Boolean(line.policySeries),
-      ),
-    }))
+    .flatMap((vault) =>
+      snapshot.fundingLines
+        .filter((line) =>
+          line.reserveDomain === vault.reserveDomain
+          && line.assetMint === vault.assetMint
+          && Boolean(line.policySeries)
+        )
+        .map((fundingLine) => ({ vault, fundingLine }))
+    )
     .filter((row): row is {
       vault: Snapshot["domainAssetVaults"][number];
       fundingLine: Snapshot["fundingLines"][number];
-    } => Boolean(row.fundingLine))
+    } => Boolean(row.fundingLine) && fundingLineFreeCapacity(row.fundingLine) >= CANARY_CLAIM_AMOUNT)
     .sort((left, right) => {
       const score = (line: Snapshot["fundingLines"][number]) => {
         const haystack = `${line.lineId ?? ""} ${line.displayName ?? ""}`.toLowerCase();
+        if (fundingLineFreeCapacity(line) <= 0n) return 100;
+        if (haystack.includes("premium")) return 0;
         if (haystack.includes("usdc")) return 0;
         if (haystack.includes("pusd")) return 1;
         return 2;
       };
-      return score(left.fundingLine) - score(right.fundingLine);
+      return score(left.fundingLine) - score(right.fundingLine)
+        || Number(fundingLineFreeCapacity(right.fundingLine) - fundingLineFreeCapacity(left.fundingLine));
     });
   const { vault, fundingLine } = candidates[0] ?? {};
   if (!vault || !fundingLine) {
@@ -285,6 +321,8 @@ async function seedLinkedClaimCanary(params: {
 }): Promise<void> {
   const { protocol, connection, operator } = params;
   const { fundingLine, memberPosition, vault } = chooseUsdcCanaryRail(params.snapshot);
+  const authority = loadProtocolGovernanceSigner(params.snapshot, operator) ?? operator;
+  const memberSigner = requireKeypairForWallet(memberPosition.wallet, operator, "linked claim member");
   const claimCase = protocol.deriveClaimCasePda({
     healthPlan: fundingLine.healthPlan,
     claimId: CANARY_CLAIM_ID,
@@ -298,10 +336,10 @@ async function seedLinkedClaimCanary(params: {
   if (!snapshot.claimCases.find((row) => row.address === claimCase.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: memberSigner,
       label: `open_claim_case:${CANARY_CLAIM_ID}`,
       tx: protocol.buildOpenClaimCaseTx({
-        authority: operator.publicKey,
+        authority: memberSigner.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         memberPositionAddress: memberPosition.address,
         fundingLineAddress: fundingLine.address,
@@ -311,7 +349,7 @@ async function seedLinkedClaimCanary(params: {
         evidenceRefHashHex: stableHash("treasury-canary:linked-claim:evidence"),
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [memberSigner],
     });
   }
 
@@ -319,10 +357,10 @@ async function seedLinkedClaimCanary(params: {
   if (!snapshot.obligations.find((row) => row.address === obligation.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: authority,
       label: `create_obligation:${CANARY_OBLIGATION_ID}`,
       tx: protocol.buildCreateObligationTx({
-        authority: operator.publicKey,
+        authority: authority.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         fundingLineAddress: fundingLine.address,
@@ -337,7 +375,7 @@ async function seedLinkedClaimCanary(params: {
         creationReasonHashHex: stableHash("treasury-canary:linked-claim:obligation"),
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [authority],
     });
   }
 
@@ -347,10 +385,10 @@ async function seedLinkedClaimCanary(params: {
   if (liveClaim && liveClaim.intakeStatus < protocol.CLAIM_INTAKE_APPROVED) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: authority,
       label: `adjudicate_claim_case:${CANARY_CLAIM_ID}`,
       tx: protocol.buildAdjudicateClaimCaseTx({
-        authority: operator.publicKey,
+        authority: authority.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         claimCaseAddress: claimCase,
         reviewState: protocol.CLAIM_INTAKE_APPROVED,
@@ -361,17 +399,17 @@ async function seedLinkedClaimCanary(params: {
         obligationAddress: obligation,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [authority],
     });
   }
 
   if (!liveObligation || liveObligation.status === protocol.OBLIGATION_STATUS_PROPOSED) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: authority,
       label: `reserve_obligation:${CANARY_OBLIGATION_ID}`,
       tx: protocol.buildReserveObligationTx({
-        authority: operator.publicKey,
+        authority: authority.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         fundingLineAddress: fundingLine.address,
@@ -382,7 +420,7 @@ async function seedLinkedClaimCanary(params: {
         amount: CANARY_CLAIM_AMOUNT,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [authority],
     });
   }
 
@@ -393,12 +431,13 @@ async function seedLinkedClaimCanary(params: {
 
 async function ensureOracleCanary(params: {
   connection: Connection;
+  governance: Keypair;
   operator: Keypair;
   oracle: Keypair;
   pool: PublicKey;
   protocol: ProtocolModule;
 }): Promise<void> {
-  const { connection, operator, oracle, pool, protocol } = params;
+  const { connection, governance, operator, oracle, pool, protocol } = params;
   const oracleProfile = protocol.deriveOracleProfilePda({ oracle: oracle.publicKey });
   const approval = protocol.derivePoolOracleApprovalPda({ liquidityPool: pool, oracle: oracle.publicKey });
   const permissionSet = protocol.derivePoolOraclePermissionSetPda({ liquidityPool: pool, oracle: oracle.publicKey });
@@ -417,10 +456,10 @@ async function ensureOracleCanary(params: {
   if (!snapshot.outcomeSchemas.find((row) => row.address === outcomeSchema.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "register_outcome_schema:treasury-canary",
       tx: protocol.buildRegisterOutcomeSchemaTx({
-        publisher: operator.publicKey,
+        publisher: governance.publicKey,
         schemaKeyHashHex: CANARY_SCHEMA_KEY_HASH_HEX,
         schemaKey: "omegax.treasury.canary.claim.v1",
         version: 1,
@@ -430,7 +469,23 @@ async function ensureOracleCanary(params: {
         metadataUri: "ipfs://omegax-devnet-treasury-canary",
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
+    });
+  }
+
+  snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
+  if (!snapshot.outcomeSchemas.find((row) => row.address === outcomeSchema.toBase58() && row.verified)) {
+    await sendTransaction({
+      connection,
+      feePayer: governance,
+      label: "verify_outcome_schema:treasury-canary",
+      tx: protocol.buildVerifyOutcomeSchemaTx({
+        governanceAuthority: governance.publicKey,
+        schemaKeyHashHex: CANARY_SCHEMA_KEY_HASH_HEX,
+        verified: true,
+        recentBlockhash: ZERO_PUBKEY,
+      }),
+      signers: [governance],
     });
   }
 
@@ -439,10 +494,10 @@ async function ensureOracleCanary(params: {
   if (!liveProfile) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: oracle,
       label: "register_oracle:treasury-canary",
       tx: protocol.buildRegisterOracleTx({
-        admin: operator.publicKey,
+        admin: oracle.publicKey,
         oracle: oracle.publicKey,
         oracleType: protocol.ORACLE_TYPE_HEALTH_APP,
         displayName: "PT Devnet Canary Oracle",
@@ -454,7 +509,7 @@ async function ensureOracleCanary(params: {
         supportedSchemaKeyHashesHex: [CANARY_SCHEMA_KEY_HASH_HEX],
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [oracle],
     });
   }
 
@@ -477,10 +532,10 @@ async function ensureOracleCanary(params: {
   if (!snapshot.poolOraclePolicies.find((row) => row.address === policy.toBase58() && row.oracleFeeBps === 25)) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "set_pool_oracle_policy:treasury-canary",
       tx: protocol.buildSetPoolOraclePolicyTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         poolAddress: pool,
         quorumM: 1,
         quorumN: 1,
@@ -490,7 +545,7 @@ async function ensureOracleCanary(params: {
         challengeWindowSecs: 0,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -498,16 +553,16 @@ async function ensureOracleCanary(params: {
   if (!snapshot.poolOracleApprovals.find((row) => row.address === approval.toBase58() && row.active)) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "set_pool_oracle:treasury-canary",
       tx: protocol.buildSetPoolOracleTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         poolAddress: pool,
         oracle: oracle.publicKey,
         active: true,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -518,16 +573,16 @@ async function ensureOracleCanary(params: {
   )) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "set_pool_oracle_permissions:treasury-canary",
       tx: protocol.buildSetPoolOraclePermissionsTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         poolAddress: pool,
         oracle: oracle.publicKey,
         permissions: protocol.POOL_ORACLE_PERMISSION_ATTEST_CLAIM,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 }
@@ -543,7 +598,7 @@ async function ensurePoolOracleFeeVaultCanary(params: {
   protocol: ProtocolModule;
 }): Promise<PublicKey> {
   const { assetMint, connection, domainAssetVault, governance, operator, oracle, pool, protocol } = params;
-  await ensureOracleCanary({ connection, operator, oracle, pool, protocol });
+  await ensureOracleCanary({ connection, governance, operator, oracle, pool, protocol });
 
   const poolOracleFeeVault = protocol.derivePoolOracleFeeVaultPda({
     liquidityPool: pool,
@@ -585,8 +640,11 @@ async function ensurePoolOracleFeeVaultCanary(params: {
 
 async function seedPoolOracleFeeAccrualCanary(params: {
   assetMint: PublicKey;
+  allocationPosition: PublicKey;
+  capitalClass: PublicKey;
   connection: Connection;
   fundingLine: Snapshot["fundingLines"][number];
+  governance: Keypair;
   memberPosition: Snapshot["memberPositions"][number];
   operator: Keypair;
   oracle: Keypair;
@@ -597,8 +655,11 @@ async function seedPoolOracleFeeAccrualCanary(params: {
 }): Promise<void> {
   const {
     assetMint,
+    allocationPosition,
+    capitalClass,
     connection,
     fundingLine,
+    governance,
     memberPosition,
     operator,
     oracle,
@@ -607,6 +668,7 @@ async function seedPoolOracleFeeAccrualCanary(params: {
     protocol,
     vaultTokenAccount,
   } = params;
+  const memberSigner = requireKeypairForWallet(memberPosition.wallet, operator, "oracle-fee claim member");
   const claimCase = protocol.deriveClaimCasePda({
     healthPlan: fundingLine.healthPlan,
     claimId: CANARY_ORACLE_FEE_CLAIM_ID,
@@ -615,16 +677,20 @@ async function seedPoolOracleFeeAccrualCanary(params: {
     claimCase,
     oracle: oracle.publicKey,
   });
+  const obligation = protocol.deriveObligationPda({
+    fundingLine: fundingLine.address,
+    obligationId: CANARY_ORACLE_FEE_OBLIGATION_ID,
+  });
   const policy = protocol.derivePoolOraclePolicyPda({ liquidityPool: pool });
 
   let snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
   if (!snapshot.claimCases.find((row) => row.address === claimCase.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: memberSigner,
       label: `open_claim_case:${CANARY_ORACLE_FEE_CLAIM_ID}`,
       tx: protocol.buildOpenClaimCaseTx({
-        authority: operator.publicKey,
+        authority: memberSigner.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         memberPositionAddress: memberPosition.address,
         fundingLineAddress: fundingLine.address,
@@ -634,7 +700,37 @@ async function seedPoolOracleFeeAccrualCanary(params: {
         evidenceRefHashHex: stableHash("treasury-canary:oracle-fee:evidence"),
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [memberSigner],
+    });
+  }
+
+  snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
+  if (!snapshot.obligations.find((row) => row.address === obligation.toBase58())) {
+    await sendTransaction({
+      connection,
+      feePayer: governance,
+      label: `create_obligation:${CANARY_ORACLE_FEE_OBLIGATION_ID}`,
+      tx: protocol.buildCreateObligationTx({
+        authority: governance.publicKey,
+        healthPlanAddress: fundingLine.healthPlan,
+        reserveDomainAddress: fundingLine.reserveDomain,
+        fundingLineAddress: fundingLine.address,
+        assetMint,
+        obligationId: CANARY_ORACLE_FEE_OBLIGATION_ID,
+        policySeriesAddress: fundingLine.policySeries,
+        memberWalletAddress: memberPosition.wallet,
+        beneficiaryAddress: memberPosition.wallet,
+        claimCaseAddress: claimCase,
+        liquidityPoolAddress: pool,
+        capitalClassAddress: capitalClass,
+        allocationPositionAddress: allocationPosition,
+        poolAssetMint: assetMint,
+        deliveryMode: protocol.OBLIGATION_DELIVERY_MODE_PAYABLE,
+        amount: CANARY_ORACLE_FEE_CLAIM_AMOUNT,
+        creationReasonHashHex: stableHash("treasury-canary:oracle-fee:obligation"),
+        recentBlockhash: ZERO_PUBKEY,
+      }),
+      signers: [governance],
     });
   }
 
@@ -651,9 +747,11 @@ async function seedPoolOracleFeeAccrualCanary(params: {
         fundingLineAddress: fundingLine.address,
         decision: protocol.CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE,
         attestationHashHex: stableHash("treasury-canary:oracle-fee:attestation"),
-        attestationRefHashHex: stableHash("treasury-canary:oracle-fee:attestation-ref"),
+        attestationRefHashHex: stableHash("treasury-canary:oracle-fee:evidence"),
         schemaKeyHashHex: CANARY_SCHEMA_KEY_HASH_HEX,
         liquidityPoolAddress: pool,
+        capitalClassAddress: capitalClass,
+        allocationPositionAddress: allocationPosition,
         poolOracleApprovalAddress: protocol.derivePoolOracleApprovalPda({ liquidityPool: pool, oracle: oracle.publicKey }),
         poolOraclePermissionSetAddress: protocol.derivePoolOraclePermissionSetPda({ liquidityPool: pool, oracle: oracle.publicKey }),
         poolOraclePolicyAddress: policy,
@@ -668,10 +766,10 @@ async function seedPoolOracleFeeAccrualCanary(params: {
   if (liveClaim && liveClaim.intakeStatus < protocol.CLAIM_INTAKE_APPROVED) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: `adjudicate_claim_case:${CANARY_ORACLE_FEE_CLAIM_ID}`,
       tx: protocol.buildAdjudicateClaimCaseTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         claimCaseAddress: claimCase,
         reviewState: protocol.CLAIM_INTAKE_APPROVED,
@@ -679,18 +777,51 @@ async function seedPoolOracleFeeAccrualCanary(params: {
         deniedAmount: 0n,
         reserveAmount: CANARY_ORACLE_FEE_CLAIM_AMOUNT,
         decisionSupportHashHex: stableHash("treasury-canary:oracle-fee:decision"),
+        obligationAddress: obligation,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
+    });
+  }
+
+  snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
+  const liveObligation = snapshot.obligations.find((row) => row.address === obligation.toBase58());
+  if (!liveObligation || liveObligation.status === protocol.OBLIGATION_STATUS_PROPOSED) {
+    await sendTransaction({
+      connection,
+      feePayer: governance,
+      label: `reserve_obligation:${CANARY_ORACLE_FEE_OBLIGATION_ID}`,
+      tx: protocol.buildReserveObligationTx({
+        authority: governance.publicKey,
+        healthPlanAddress: fundingLine.healthPlan,
+        reserveDomainAddress: fundingLine.reserveDomain,
+        fundingLineAddress: fundingLine.address,
+        assetMint,
+        obligationAddress: obligation,
+        claimCaseAddress: claimCase,
+        policySeriesAddress: fundingLine.policySeries,
+        capitalClassAddress: capitalClass,
+        allocationPositionAddress: allocationPosition,
+        poolAssetMint: assetMint,
+        amount: CANARY_ORACLE_FEE_CLAIM_AMOUNT,
+        recentBlockhash: ZERO_PUBKEY,
+      }),
+      signers: [governance],
     });
   }
 
   snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
   const refreshedClaim = snapshot.claimCases.find((row) => row.address === claimCase.toBase58());
-  if (refreshedClaim && refreshedClaim.paidAmount < CANARY_ORACLE_FEE_CLAIM_AMOUNT) {
+  const refreshedObligation = snapshot.obligations.find((row) => row.address === obligation.toBase58());
+  if (
+    refreshedClaim
+    && refreshedObligation
+    && refreshedClaim.paidAmount < CANARY_ORACLE_FEE_CLAIM_AMOUNT
+    && refreshedObligation.status !== protocol.OBLIGATION_STATUS_SETTLED
+  ) {
     const recipientAta = await ensureAtaAndMint({
       connection,
-      payer: operator,
+      payer: memberSigner,
       mintAuthority: operator,
       owner: new PublicKey(memberPosition.wallet),
       mint: assetMint,
@@ -699,16 +830,21 @@ async function seedPoolOracleFeeAccrualCanary(params: {
     });
     await sendTransaction({
       connection,
-      feePayer: operator,
-      label: `settle_claim_case:${CANARY_ORACLE_FEE_CLAIM_ID}`,
-      tx: protocol.buildSettleClaimCaseTx({
-        authority: operator.publicKey,
+      feePayer: governance,
+      label: `settle_obligation:${CANARY_ORACLE_FEE_OBLIGATION_ID}`,
+      tx: protocol.buildSettleObligationTx({
+        authority: governance.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         fundingLineAddress: fundingLine.address,
         assetMint,
-        claimCaseAddress: claimCase,
+        obligationAddress: obligation,
+        nextStatus: protocol.OBLIGATION_STATUS_SETTLED,
         policySeriesAddress: fundingLine.policySeries,
+        claimCaseAddress: claimCase,
+        capitalClassAddress: capitalClass,
+        allocationPositionAddress: allocationPosition,
+        poolAssetMint: assetMint,
         poolOracleFeeVaultAddress: poolOracleFeeVault,
         poolOraclePolicyAddress: policy,
         oracleFeeAddress: oracle.publicKey,
@@ -717,9 +853,10 @@ async function seedPoolOracleFeeAccrualCanary(params: {
         recipientTokenAccountAddress: recipientAta,
         tokenProgramId: TOKEN_PROGRAM_ID,
         amount: CANARY_ORACLE_FEE_CLAIM_AMOUNT,
+        settlementReasonHashHex: stableHash("treasury-canary:oracle-fee:settlement"),
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 }
@@ -729,12 +866,13 @@ async function seedAllocationObligationCanary(params: {
   capitalClass: PublicKey;
   connection: Connection;
   fundingLine: Snapshot["fundingLines"][number];
+  governance: Keypair;
   memberPosition: Snapshot["memberPositions"][number];
   operator: Keypair;
   pool: PublicKey;
   protocol: ProtocolModule;
 }): Promise<void> {
-  const { assetMint, capitalClass, connection, fundingLine, memberPosition, operator, pool, protocol } = params;
+  const { assetMint, capitalClass, connection, fundingLine, governance, memberPosition, operator, pool, protocol } = params;
   const allocationLine = protocol.deriveFundingLinePda({
     healthPlan: fundingLine.healthPlan,
     lineId: CANARY_ALLOCATION_LINE_ID,
@@ -752,10 +890,10 @@ async function seedAllocationObligationCanary(params: {
   if (!snapshot.fundingLines.find((row) => row.address === allocationLine.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: `open_funding_line:${CANARY_ALLOCATION_LINE_ID}`,
       tx: protocol.buildOpenFundingLineTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         assetMint,
@@ -767,7 +905,7 @@ async function seedAllocationObligationCanary(params: {
         capsHashHex: stableHash("treasury-canary:allocation-line:caps"),
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -781,10 +919,10 @@ async function seedAllocationObligationCanary(params: {
   if (!snapshot.allocationPositions.find((row) => row.address === allocationPosition.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "create_allocation_position:treasury-canary",
       tx: protocol.buildCreateAllocationPositionTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         poolAddress: pool,
         capitalClassAddress: capitalClass,
         healthPlanAddress: fundingLine.healthPlan,
@@ -797,7 +935,7 @@ async function seedAllocationObligationCanary(params: {
         deallocationOnly: false,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -806,10 +944,10 @@ async function seedAllocationObligationCanary(params: {
   if (!liveAllocation || liveAllocation.allocatedAmount < CANARY_ALLOCATION_AMOUNT) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "allocate_capital:treasury-canary",
       tx: protocol.buildAllocateCapitalTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         poolAddress: pool,
         capitalClassAddress: capitalClass,
         poolDepositAssetMint: assetMint,
@@ -818,7 +956,7 @@ async function seedAllocationObligationCanary(params: {
         amount: CANARY_ALLOCATION_AMOUNT,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -826,10 +964,10 @@ async function seedAllocationObligationCanary(params: {
   if (!snapshot.obligations.find((row) => row.address === obligation.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: `create_obligation:${CANARY_ALLOCATION_OBLIGATION_ID}`,
       tx: protocol.buildCreateObligationTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         fundingLineAddress: allocationLine,
@@ -847,7 +985,7 @@ async function seedAllocationObligationCanary(params: {
         creationReasonHashHex: stableHash("treasury-canary:allocation-obligation"),
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -856,10 +994,10 @@ async function seedAllocationObligationCanary(params: {
   if (!liveObligation || liveObligation.status === protocol.OBLIGATION_STATUS_PROPOSED) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: `reserve_obligation:${CANARY_ALLOCATION_OBLIGATION_ID}`,
       tx: protocol.buildReserveObligationTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         fundingLineAddress: allocationLine,
@@ -872,7 +1010,7 @@ async function seedAllocationObligationCanary(params: {
         amount: CANARY_ALLOCATION_OBLIGATION_AMOUNT,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 }
@@ -921,16 +1059,16 @@ async function ensureFeeVaultsAndLpCanaries(params: {
   if (!snapshot.liquidityPools.find((row) => row.address === pool.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: `create_liquidity_pool:${CANARY_POOL_ID}`,
       tx: protocol.buildCreateLiquidityPoolTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         reserveDomainAddress: reserveDomain,
         poolId: CANARY_POOL_ID,
         displayName: "PT USDC Treasury Canary",
-        curator: operator.publicKey,
-        allocator: operator.publicKey,
-        sentinel: operator.publicKey,
+        curator: governance.publicKey,
+        allocator: governance.publicKey,
+        sentinel: governance.publicKey,
         depositAssetMint: assetMint,
         strategyHashHex: stableHash("treasury-canary:pool:strategy"),
         allowedExposureHashHex: stableHash("treasury-canary:pool:exposure"),
@@ -940,7 +1078,7 @@ async function ensureFeeVaultsAndLpCanaries(params: {
         pauseFlags: 0,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -948,10 +1086,10 @@ async function ensureFeeVaultsAndLpCanaries(params: {
   if (!snapshot.capitalClasses.find((row) => row.address === capitalClass.toBase58())) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: `create_capital_class:${CANARY_CLASS_ID}`,
       tx: protocol.buildCreateCapitalClassTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         poolAddress: pool,
         poolDepositAssetMint: assetMint,
         classId: CANARY_CLASS_ID,
@@ -968,7 +1106,7 @@ async function ensureFeeVaultsAndLpCanaries(params: {
         pauseFlags: 0,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -1069,20 +1207,20 @@ async function ensureFeeVaultsAndLpCanaries(params: {
     connection,
     payer: operator,
     mintAuthority: operator,
-    owner: operator.publicKey,
+    owner: governance.publicKey,
     mint: assetMint,
     amount: CANARY_DEPOSIT_AMOUNT,
-    label: "operator-premium-usdc",
+    label: "governance-premium-usdc",
   });
   snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
   const feeVault = snapshot.protocolFeeVaults.find((row) => row.address === protocolFeeVault.toBase58());
   if (!feeVault || BigInt(String(feeVault.accruedFees ?? 0)) === 0n) {
     await sendTransaction({
       connection,
-      feePayer: operator,
+      feePayer: governance,
       label: "record_premium_payment:treasury-canary",
       tx: protocol.buildRecordPremiumPaymentTx({
-        authority: operator.publicKey,
+        authority: governance.publicKey,
         healthPlanAddress: fundingLine.healthPlan,
         reserveDomainAddress: fundingLine.reserveDomain,
         fundingLineAddress: fundingLine.address,
@@ -1094,7 +1232,7 @@ async function ensureFeeVaultsAndLpCanaries(params: {
         amount: CANARY_DEPOSIT_AMOUNT,
         recentBlockhash: ZERO_PUBKEY,
       }),
-      signers: [operator],
+      signers: [governance],
     });
   }
 
@@ -1108,10 +1246,38 @@ async function ensureFeeVaultsAndLpCanaries(params: {
     pool,
     protocol,
   });
-  await seedPoolOracleFeeAccrualCanary({
+  await seedAllocationObligationCanary({
     assetMint,
+    capitalClass,
     connection,
     fundingLine,
+    governance,
+    memberPosition,
+    operator,
+    pool,
+    protocol,
+  });
+  const allocationLine = protocol.deriveFundingLinePda({
+    healthPlan: fundingLine.healthPlan,
+    lineId: CANARY_ALLOCATION_LINE_ID,
+  });
+  const allocationPosition = protocol.deriveAllocationPositionPda({
+    capitalClass,
+    fundingLine: allocationLine,
+  });
+  const afterAllocation = await protocol.loadProtocolConsoleSnapshot(connection);
+  const oracleFeeFundingLine = findRequired(
+    afterAllocation.fundingLines,
+    (row) => row.address === allocationLine.toBase58(),
+    "oracle-fee allocation funding line",
+  );
+  await seedPoolOracleFeeAccrualCanary({
+    assetMint,
+    allocationPosition,
+    capitalClass,
+    connection,
+    fundingLine: oracleFeeFundingLine,
+    governance,
     memberPosition,
     operator,
     oracle,
@@ -1119,16 +1285,6 @@ async function ensureFeeVaultsAndLpCanaries(params: {
     poolOracleFeeVault,
     protocol,
     vaultTokenAccount: vault.vaultTokenAccount,
-  });
-  await seedAllocationObligationCanary({
-    assetMint,
-    capitalClass,
-    connection,
-    fundingLine,
-    memberPosition,
-    operator,
-    pool,
-    protocol,
   });
 }
 

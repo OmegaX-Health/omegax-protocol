@@ -5,6 +5,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   Connection,
@@ -21,16 +22,14 @@ import {
   getMint,
 } from "@solana/spl-token";
 
-import protocol from "../frontend/lib/protocol.ts";
-
-const DEVNET_RPC_URL =
-  process.env.SOLANA_RPC_URL?.trim() ||
-  process.env.NEXT_PUBLIC_SOLANA_RPC_URL?.trim() ||
-  "https://api.devnet.solana.com";
+import { loadEnvFile } from "./support/load_env_file.ts";
 
 const ZERO_PUBKEY = "11111111111111111111111111111111";
 const CLI_ARGS = process.argv.slice(2);
 const STRICT_MODE = CLI_ARGS.includes("--strict");
+
+type ProtocolModule = typeof import("../frontend/lib/protocol.ts");
+let protocol: ProtocolModule;
 
 type ProbeStatus = "blocked" | "vulnerable" | "skipped" | "inconclusive";
 
@@ -44,7 +43,7 @@ type ProbeResult = {
   logs?: string[];
 };
 
-type ConsoleSnapshot = Awaited<ReturnType<typeof protocol.loadProtocolConsoleSnapshot>>;
+type ConsoleSnapshot = Awaited<ReturnType<ProtocolModule["loadProtocolConsoleSnapshot"]>>;
 
 type RequiredCanary = {
   name: string;
@@ -54,6 +53,25 @@ type RequiredCanary = {
 
 function nowStamp(): string {
   return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function loadLocalEnv(): void {
+  loadEnvFile(resolve(process.cwd(), ".env.local"));
+  loadEnvFile(resolve(process.cwd(), "frontend/.env.local"));
+}
+
+async function importFreshProtocol(): Promise<ProtocolModule> {
+  const url = `${pathToFileURL(resolve(process.cwd(), "frontend/lib/protocol.ts")).href}?v=${Date.now()}`;
+  const module = (await import(url)) as { default?: ProtocolModule } & ProtocolModule;
+  return (module.default ?? module) as ProtocolModule;
+}
+
+function devnetRpcUrl(): string {
+  return (
+    process.env.SOLANA_RPC_URL?.trim()
+    || process.env.NEXT_PUBLIC_SOLANA_RPC_URL?.trim()
+    || "https://api.devnet.solana.com"
+  );
 }
 
 function cliValue(name: string): string | null {
@@ -674,6 +692,7 @@ function writeEvidenceReport(params: {
   counts: Record<ProbeStatus, number>;
   required: RequiredCanary[];
   results: ProbeResult[];
+  rpcUrl: string;
   simulationFeePayer: PublicKey;
   snapshot: ConsoleSnapshot;
 }): { jsonPath: string; markdownPath: string } {
@@ -686,7 +705,7 @@ function writeEvidenceReport(params: {
   const evidence = {
     generatedAt: new Date().toISOString(),
     strictMode: STRICT_MODE,
-    rpc: redactRpcUrl(DEVNET_RPC_URL),
+    rpc: redactRpcUrl(params.rpcUrl),
     attacker: params.attacker.toBase58(),
     simulationFeePayer: params.simulationFeePayer.toBase58(),
     counts: params.counts,
@@ -752,10 +771,14 @@ function writeEvidenceReport(params: {
 }
 
 async function main(): Promise<void> {
-  const connection = new Connection(DEVNET_RPC_URL, "confirmed");
+  loadLocalEnv();
+  protocol = await importFreshProtocol();
+
+  const rpcUrl = devnetRpcUrl();
+  const connection = new Connection(rpcUrl, "confirmed");
   const attacker = Keypair.generate();
 
-  console.log(`RPC: ${redactRpcUrl(DEVNET_RPC_URL)}`);
+  console.log(`RPC: ${redactRpcUrl(rpcUrl)}`);
   console.log(`Attacker: ${attacker.publicKey.toBase58()}`);
 
   const snapshot = await protocol.loadProtocolConsoleSnapshot(connection);
@@ -800,6 +823,7 @@ async function main(): Promise<void> {
     counts,
     required,
     results,
+    rpcUrl,
     simulationFeePayer,
     snapshot,
   });

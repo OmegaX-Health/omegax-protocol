@@ -29,6 +29,16 @@ test("[CSO-2026-05-04] reserve, release, and settlement share the strict binding
   assert.match(extractRustFunctionBody("settle_obligation"), /validate_treasury_mutation_bindings\(/);
 });
 
+test("[CSO-2026-05-04] allocation-scoped settlement does not debit capacity ledgers as funded custody", () => {
+  const body = extractRustFunctionBody("settle_delivery");
+
+  assert.match(body, /let allocation_scoped = allocation_position\.is_some\(\) \|\| allocation_sheet\.is_some\(\)/);
+  assert.match(body, /settle_from_allocation_sheet\(plan_sheet/);
+  assert.match(body, /settle_from_allocation_sheet\(line_sheet/);
+  assert.match(body, /settle_from_allocation_sheet\(&mut series\.sheet/);
+  assert.match(body, /settle_from_allocation_sheet\(&mut ledger\.sheet/);
+});
+
 test("[CSO-2026-05-04] standalone LP-allocation impairments require scoped accounts", () => {
   const body = extractRustFunctionBody("validate_impairment_bindings");
 
