@@ -85,7 +85,7 @@ jobs:
             build-essential
 
       - name: Cache cargo registry, git, and target
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: |
             ~/.cargo/registry
@@ -97,7 +97,7 @@ jobs:
 
       - name: Cache Solana CLI install
         id: solana-cache
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ~/.local/share/solana
           key: solana-${{ env.SOLANA_CLI_VERSION }}-${{ runner.os }}-v1
@@ -114,7 +114,7 @@ jobs:
 
       - name: Cache Anchor CLI binary
         id: anchor-cache
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ~/.cargo/bin/anchor
           key: anchor-cli-${{ env.ANCHOR_VERSION }}-${{ runner.os }}
