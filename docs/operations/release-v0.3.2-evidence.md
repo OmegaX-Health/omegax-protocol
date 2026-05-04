@@ -12,15 +12,18 @@ are closed.
 |-------|-------|
 | Release tag | `v0.3.2` |
 | Candidate implementation commit | `d9fa872dc289dcba6886f81551d21ba0d2016bb7` |
-| Branch where assembled | local `codex/pre-mainnet-liability-locks-20260505` |
-| Date assembled (UTC) | `2026-05-04T16:38:16Z` |
+| Branch where assembled | PR `#55`, `codex/pre-mainnet-liability-locks-20260505` |
+| Date assembled (UTC) | `2026-05-04T17:34:07Z` |
 | Maintainer | `Marino Sabijan, MD <marinosabijan@gmail.com>` |
 
 Push status: direct `main` push was rejected by branch protection, so the
-candidate moved to draft PR
+candidate moved to PR
 [`#55`](https://github.com/OmegaX-Health/omegax-protocol/pull/55). The PR
-branch is pushed and remote CI is green. The PR remains draft/unmerged pending
-review and production-signoff gates.
+branch is pushed and marked ready for review. Remote CI was green on PR head
+`ace6317a37997ab148f78a0f817565ed323197f1` before this evidence-only closure
+update. Any later PR head must be checked again before merge. The PR remains
+unmerged because branch protection now requires human approval and CODEOWNERS
+review. The final merged `main` SHA must replace the PR-head SHA after merge.
 
 ## 2. Generated Artifact Hashes
 
@@ -42,11 +45,22 @@ review and production-signoff gates.
 
 ## 3. CI Evidence
 
-| Workflow | Candidate run URL | Run ID | Conclusion | Status |
+| Workflow | Last green PR run URL | Run ID | Conclusion | Status |
 |----------|-------------------|--------|------------|--------|
-| Public CI (`ci.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25331088101/job/74264690494` | `25331088101` | success | PASS |
-| CodeQL (`codeql.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/runs/74264861269` | `74264861269` | success | PASS |
-| Localnet E2E (`localnet-e2e.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25331088045/job/74264691480` | `25331088045` | success | PASS |
+| Public CI (`ci.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25332475611/job/74269330889` | `25332475611` | success | PASS |
+| CodeQL (`codeql.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/runs/74269517022` | `74269517022` | success | PASS |
+| Localnet E2E (`localnet-e2e.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25332475638/job/74269331451` | `25332475638` | success | PASS |
+
+PR state at branch-protection closure:
+
+| Field | Value |
+|-------|-------|
+| PR | [`#55`](https://github.com/OmegaX-Health/omegax-protocol/pull/55) |
+| Head SHA | `ace6317a37997ab148f78a0f817565ed323197f1` before this evidence-only closure update |
+| Draft state | ready for review |
+| Merge state | `BLOCKED` |
+| Review decision | `REVIEW_REQUIRED` |
+| Current reviews | none |
 
 Last remote `main` baseline before this local commit:
 
@@ -60,13 +74,40 @@ Last remote `main` baseline before this local commit:
 | Setting | Expected | Actual |
 |---------|----------|--------|
 | Branch protection enabled on `main` | yes | yes |
-| Required PR review approvals | `>= 1` | `0` BLOCKER |
+| Required PR review approvals | `>= 1` | `1` |
+| CODEOWNERS review | yes for `.github/`, `programs/`, `idl/`, `shared/`, `frontend/lib/protocol*`, and `scripts/` | yes |
 | Stale review dismissal | yes | yes |
 | Required status checks | `verify` | `verify` |
 | Strict status checks | yes | yes |
 | Admin enforcement | yes | yes |
 | Force pushes blocked | yes | yes |
 | Branch deletion blocked | yes | yes |
+
+Branch-protection API snapshot, `2026-05-04T17:34:07Z`:
+
+```json
+{
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": true,
+    "require_last_push_approval": false,
+    "required_approving_review_count": 1
+  },
+  "required_status_checks": {
+    "contexts": ["verify"],
+    "strict": true
+  },
+  "enforce_admins": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+```
+
+Open review-operations blocker: the GitHub collaborator list visible to the
+maintainer token currently contains only `marinosabijan`. A non-author
+collaborator, team, or outside reviewer with repository review permission must
+be added/requested before the approval requirement can be satisfied without
+bypassing the policy.
 
 ## 5. Local Validation Lanes
 
@@ -78,7 +119,7 @@ Last remote `main` baseline before this local commit:
 | Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS | `artifacts/localnet-e2e-summary-2026-05-04T16-40-45-011Z.json` |
 | Executable adversarial localnet | included in localnet E2E | PASS: `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-04T16-40-45-011Z.json` |
 | Operator drawer simulation | `SOLANA_KEYPAIR=<devnet governance keypair> npm run devnet:operator:drawer:sim` | PASS: `FAIL=0`; expected idempotent collisions and fixture skips only | console output |
-| Mainnet preflight, no sends | `npm run protocol:bootstrap:genesis-live -- --plan` with distinct role wallets and mainnet USDC | PASS | console JSON; no transactions sent |
+| Mainnet preflight, no sends | `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 npm run protocol:bootstrap:genesis-live -- --plan` | BLOCKER: current operator env is missing `OMEGAX_LIVE_SETTLEMENT_MINT`; command failed before send path | console error; no transactions sent |
 | Mainnet unsafe config tests | `npm run verify:public` node suite | PASS | `tests/genesis_live_bootstrap_config.test.ts`, `tests/genesis_live_bootstrap_plan_cli.test.ts` |
 
 ## 6. Dependency Scan
@@ -108,17 +149,18 @@ actual settlement-asset reserve/funding/allocation capacity.
 
 | Field | Value |
 |-------|-------|
-| Devnet bootstrap | PASS, `OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=0 npm run protocol:bootstrap:devnet-live` completed after public RPC 429 retries |
+| Devnet bootstrap | PASS for prior canary state, `OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=0 npm run protocol:bootstrap:devnet-live` completed after public RPC 429 retries |
 | Canary seeding | PARTIAL RERUN: public devnet RPC rate-limited the fresh seed command after linked-claim and test-asset steps; strict pen-test verified all required canaries were already live |
 | Strict pen-test | PASS, `npm run devnet:treasury:pen-test -- --strict` |
 | Strict result | `8 blocked`, `0 vulnerable`, `0 skipped`, `0 inconclusive` |
 | Evidence | `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.json`, `artifacts/devnet-treasury-pen-test-2026-05-04T15-53-44-974Z.md`, tracked summary `docs/security/devnet-treasury-pen-test-2026-05-04.md` |
-| Hardened binary replay | BLOCKER: PR `#55` has not been redeployed to devnet and strict pen-test has not been rerun against the hardened binary |
+| Hardened binary replay | BLOCKER: PR `#55` has not been merged, redeployed to devnet, and strict pen-test has not been rerun against the merged hardened binary |
 
 ## 9. Mainnet Preflight
 
-No mainnet transaction was sent. The `--plan` path exits after config/keypair
-validation and JSON plan output.
+No mainnet transaction was sent. The successful `--plan` path exits after
+config/keypair validation and JSON plan output; the current replay stopped even
+earlier at required-environment validation.
 
 | Field | Value |
 |-------|-------|
@@ -134,8 +176,20 @@ validation and JSON plan output.
 | Pool | `GvfgrHmzoPZXpn1H7L85R7qA9iFr3dBhZYNb5WeXMXqt` |
 | Senior class | `7BUpgc71EhLoFcH7PdqHkNyrGYdiCcX9FQ3rS55Moyui` |
 | Junior class | `9JAzzfoyysVg1DDoAdXZBN2Hy834RkgGnv5shUg3qywR` |
-| Role-map status | distinct wallets supplied for sponsor, sponsor operator, claims operator, oracle, curator, allocator, sentinel, and reserve admin |
-| Multisig posture | REQUIRED before real reserve funding; not proven in this evidence package |
+| Role-map status | previous plan used distinct wallets for sponsor, sponsor operator, claims operator, oracle, curator, allocator, sentinel, and reserve admin; current no-send replay is blocked by missing operator env |
+| Multisig posture | REQUIRED before real reserve funding; Squads V4 2-of-3 has not been created/proven in this evidence package |
+
+Current no-send replay:
+
+```sh
+OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 npm run protocol:bootstrap:genesis-live -- --plan
+```
+
+Result: BLOCKER. The command failed before any send path with
+`Missing required environment variable OMEGAX_LIVE_SETTLEMENT_MINT`. This is a
+safe failure and keeps mainnet untouched, but it means the final production
+role map and multisig posture are not yet freshly proven from the current
+operator environment.
 
 Unsafe config proof:
 
@@ -154,6 +208,7 @@ Unsafe config proof:
 | Third-party review date | none |
 | Internal pen-test report | `docs/security/devnet-treasury-pen-test-2026-05-04.md` |
 | Outstanding high/critical internal findings | none known after the strict devnet run; external review still missing |
+| Independent-review packet | `docs/security/mainnet-money-control-review-packet-v0.3.2.md` |
 
 Public messaging must not claim audited, fully decentralized claims, uncapped
 solvency, or mixed-asset settlement. Other reserve assets may be shown as
@@ -182,10 +237,12 @@ green on `d9fa872dc289dcba6886f81551d21ba0d2016bb7`.
 ## 12. Sign-off
 
 This evidence is sufficient for local pre-mainnet readiness review only. It is
-not sufficient for public mainnet funding until the PR is reviewed and merged,
-the branch-review policy is fixed or explicitly accepted, multisig governance
-and upgrade posture are proven, the hardened binary is redeployed/rehearsed on
-devnet, and money/control surfaces receive independent review.
+not sufficient for public mainnet funding until PR `#55` receives human
+CODEOWNERS approval and merges, the final merged SHA is recorded, Squads V4
+2-of-3 governance and upgrade posture are proven, the current operator env
+successfully produces a no-send mainnet plan, the merged hardened binary is
+redeployed/rehearsed on devnet, and money/control surfaces receive independent
+review.
 
 Signed-off-by: Marino Sabijan, MD <marinosabijan@gmail.com>  
 Date: 2026-05-04
