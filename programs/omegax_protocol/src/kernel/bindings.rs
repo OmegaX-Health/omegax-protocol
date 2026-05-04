@@ -123,6 +123,27 @@ pub(crate) fn validate_treasury_mutation_bindings(
         funding_line_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
     );
+
+    let allocation_scoped = obligation.liquidity_pool != ZERO_PUBKEY
+        || obligation.capital_class != ZERO_PUBKEY
+        || obligation.allocation_position != ZERO_PUBKEY;
+    if allocation_scoped {
+        require!(
+            obligation.liquidity_pool != ZERO_PUBKEY
+                && obligation.capital_class != ZERO_PUBKEY
+                && obligation.allocation_position != ZERO_PUBKEY,
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+        require!(
+            pool_class_ledger.is_some(),
+            OmegaXProtocolError::CapitalClassMismatch
+        );
+        require!(
+            allocation_position.is_some() && allocation_ledger.is_some(),
+            OmegaXProtocolError::AllocationPositionMismatch
+        );
+    }
+
     validate_optional_series_ledger(
         series_ledger,
         obligation.policy_series,
@@ -138,6 +159,23 @@ pub(crate) fn validate_treasury_mutation_bindings(
         obligation.allocation_position,
         obligation.funding_line,
     )?;
+    if let Some(position) = allocation_position {
+        require_keys_eq!(
+            position.liquidity_pool,
+            obligation.liquidity_pool,
+            OmegaXProtocolError::LiquidityPoolMismatch
+        );
+        require_keys_eq!(
+            position.capital_class,
+            obligation.capital_class,
+            OmegaXProtocolError::CapitalClassMismatch
+        );
+        require_keys_eq!(
+            position.health_plan,
+            obligation.health_plan,
+            OmegaXProtocolError::HealthPlanMismatch
+        );
+    }
     validate_optional_allocation_ledger(
         allocation_ledger,
         obligation.allocation_position,
@@ -199,6 +237,17 @@ pub(crate) fn validate_impairment_bindings(
             obligation,
             funding_line_key,
             funding_line.asset_mint,
+        );
+    }
+
+    if funding_line.line_type == FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
+        require!(
+            pool_class_ledger.is_some(),
+            OmegaXProtocolError::CapitalClassMismatch
+        );
+        require!(
+            allocation_position.is_some() && allocation_ledger.is_some(),
+            OmegaXProtocolError::AllocationPositionMismatch
         );
     }
 
