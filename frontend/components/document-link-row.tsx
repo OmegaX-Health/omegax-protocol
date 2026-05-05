@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import safeExternalUrl from "@/lib/safe-external-url";
+
+const { resolveSafeExternalHref } = safeExternalUrl;
+
 type DocumentLinkRowProps = {
   href: string;
   label: string;
@@ -18,21 +22,9 @@ function formatDocumentSource(value: string, fallback?: string): string {
   }
 }
 
-function isOpenableHref(value: string): boolean {
-  const normalized = value.trim();
-  if (!normalized) return false;
-  if (normalized.startsWith("/")) return true;
-  try {
-    const url = new URL(normalized);
-    return url.protocol === "https:" || url.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
 export function DocumentLinkRow({ href, label, sourceLabel }: DocumentLinkRowProps) {
   const normalizedHref = href.trim();
-  const canOpen = isOpenableHref(normalizedHref);
+  const safeHref = resolveSafeExternalHref(normalizedHref);
 
   return (
     <div className="plans-review-document">
@@ -41,10 +33,10 @@ export function DocumentLinkRow({ href, label, sourceLabel }: DocumentLinkRowPro
         <span className="plans-review-document-host">{formatDocumentSource(normalizedHref, sourceLabel)}</span>
         <span className="plans-review-document-url" title={normalizedHref}>{normalizedHref}</span>
       </div>
-      {canOpen ? (
+      {safeHref ? (
         <a
           className="secondary-button plans-review-document-action"
-          href={normalizedHref}
+          href={safeHref}
           target="_blank"
           rel="noreferrer"
           aria-label={`Open ${label}`}
