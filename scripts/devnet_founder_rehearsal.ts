@@ -2352,7 +2352,12 @@ async function simulateExpectedFailure(
     encodedTransaction,
     { commitment: "confirmed", encoding: "base64", sigVerify: true },
   ]);
-  const err = response.error ?? response.result?.value?.err;
+  if (response.error) {
+    throw new Error(
+      `simulateTransaction RPC error for negative simulation ${label}: ${JSON.stringify(response.error)}`,
+    );
+  }
+  const err = response.result?.value?.err;
   if (!err) {
     throw new Error(`Negative simulation unexpectedly passed: ${label}`);
   }
