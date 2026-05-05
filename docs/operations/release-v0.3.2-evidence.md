@@ -1,21 +1,22 @@
 # Release v0.3.2 Evidence
 
 This is the production-promotion evidence snapshot for the pre-mainnet security
-completion work, including the liability-state hardening branch. It is assembled
-for review, not a mainnet funding approval. Mainnet sends and real reserve
-funding remain blocked until the remote CI/PR and external-review gates below
-are closed.
+completion work, including the liability-state hardening branch and the Phase 0
+mainnet surface-gating pass. It is assembled for review, not a mainnet funding
+approval. Mainnet sends and real reserve funding remain blocked until the
+no-send mainnet preflight, production custody, and self-audit signoff gates
+below are closed.
 
 ## 1. Identity
 
 | Field | Value |
 |-------|-------|
 | Release tag | `v0.3.2` |
-| Candidate implementation commit | `d9fa872dc289dcba6886f81551d21ba0d2016bb7` |
+| Candidate implementation commit | `bd87ce95ea58bbdf70ffeb8181327311fe34a232` |
 | Branch where assembled | merged `main` |
-| Date assembled (UTC) | `2026-05-04T18:21:27Z` |
+| Date assembled (UTC) | `2026-05-05T09:55:37Z` |
 | Maintainer | `Marino Sabijan, MD <marinosabijan@gmail.com>` |
-| Final merged main SHA | `cce5975e580ae878a414120fbad65058f85cd766` |
+| Final merged main SHA | `bd87ce95ea58bbdf70ffeb8181327311fe34a232` |
 
 Push status: direct `main` push was rejected by branch protection, so the
 candidate moved to PR
@@ -28,6 +29,13 @@ repo currently has a single write collaborator, `marinosabijan`, who was also
 the PR author, so GitHub could not record a non-author approving review. Branch
 protection is therefore set to a solo-maintainer mode that keeps strict
 required status checks while removing the impossible separate-approval rule.
+
+Phase 0 surface gating was merged through PR
+[`#68`](https://github.com/OmegaX-Health/omegax-protocol/pull/68) into
+`main` at merge commit `bd87ce95ea58bbdf70ffeb8181327311fe34a232`. The PR head
+`c71839c0778f235db54ac13978c871a1e0da6944` passed Public CI, CodeQL, and
+Localnet E2E before merge. The merged `main` commit also passed Public CI and
+CodeQL after merge.
 
 ## 2. Generated Artifact Hashes
 
@@ -51,9 +59,9 @@ required status checks while removing the impossible separate-approval rule.
 
 | Workflow | Last green PR run URL | Run ID | Conclusion | Status |
 |----------|-------------------|--------|------------|--------|
-| Public CI (`ci.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25335270808/job/74278805238` | `25335270808` | success | PASS |
-| CodeQL (`codeql.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/runs/74278957301` | `74278957301` | success | PASS |
-| Localnet E2E (`localnet-e2e.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25335270813/job/74278805898` | `25335270813` | success | PASS |
+| Public CI (`ci.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25369212613/job/74387996776` | `25369212613` | success | PASS |
+| CodeQL (`codeql.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25369212596/job/74387996691` | `25369212596` | success | PASS |
+| Localnet E2E (`localnet-e2e.yml`) | `https://github.com/OmegaX-Health/omegax-protocol/actions/runs/25368679568/job/74386147252` | `25368679568` | success | PASS |
 
 PR state at solo-maintainer branch-protection closure:
 
@@ -66,6 +74,17 @@ PR state at solo-maintainer branch-protection closure:
 | Review decision | not required in solo-maintainer mode |
 | Current reviews | automated Codex comments only; GitHub rejected self-approval |
 | Merge commit | `cce5975e580ae878a414120fbad65058f85cd766` |
+
+Phase 0 PR state:
+
+| Field | Value |
+|-------|-------|
+| PR | [`#68`](https://github.com/OmegaX-Health/omegax-protocol/pull/68) |
+| Head SHA | `c71839c0778f235db54ac13978c871a1e0da6944` |
+| Draft state | ready for review |
+| Merge state | merged into `main` |
+| Review decision | not required in solo-maintainer mode |
+| Merge commit | `bd87ce95ea58bbdf70ffeb8181327311fe34a232` |
 
 Last remote `main` baseline before this local commit:
 
@@ -119,12 +138,12 @@ with repository review permission.
 | Lane | Command | Result | Artifact |
 |------|---------|--------|----------|
 | Liability-state Rust regression | `npm run rust:test` | PASS: `80 passed`, `0 failed` | console output |
-| Liability-state Node/static regression | `npm run test:node` | PASS: `234 passed`, `0 failed` | console output |
+| Liability-state Node/static regression | `npm run test:node` | PASS: `243 passed`, `0 failed` | console output |
 | Repo baseline health | `npm run verify:public` | PASS | SBOM under `artifacts/sbom/` |
-| Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS | `artifacts/localnet-e2e-summary-2026-05-04T16-40-45-011Z.json` |
-| Executable adversarial localnet | included in localnet E2E | PASS: `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-04T16-40-45-011Z.json` |
+| Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS | `artifacts/localnet-e2e-summary-2026-05-05T08-38-38-317Z.json` |
+| Executable adversarial localnet | included in localnet E2E | PASS: `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-05T08-38-38-317Z.json` |
 | Operator drawer simulation | `SOLANA_KEYPAIR=<devnet governance keypair> npm run devnet:operator:drawer:sim` | PASS: `FAIL=0`; expected idempotent collisions and fixture skips only | console output |
-| Mainnet preflight, no sends | `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 OMEGAX_LIVE_SETTLEMENT_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v npm run protocol:bootstrap:genesis-live -- --plan` | BLOCKER: current operator env is missing `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH`; command failed before send path | console error; no transactions sent |
+| Mainnet preflight, no sends | `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 OMEGAX_LIVE_SETTLEMENT_MINT=4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump npm run protocol:bootstrap:genesis-live -- --plan` | BLOCKER: current operator env is missing `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH`; command failed before send path | console error; no transactions sent |
 | Mainnet unsafe config tests | `npm run verify:public` node suite | PASS | `tests/genesis_live_bootstrap_config.test.ts`, `tests/genesis_live_bootstrap_plan_cli.test.ts` |
 
 ## 6. Dependency Scan
@@ -175,7 +194,7 @@ oracle keypair path and final role-map inputs.
 |-------|-------|
 | RPC | `https://api.mainnet-beta.solana.com` |
 | Program ID planned | `Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B` |
-| Settlement mint supplied for current replay | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
+| Settlement mint supplied for current replay | `4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump` |
 | Governance authority used for plan | `AiNPYZQkbfcTkSh3r9vPKAMgMa3TbU47Jk3TaKTCB4Sg` |
 | Governance config address | `CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU` |
 | Reserve domain | `WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq` |
@@ -192,7 +211,7 @@ Current no-send replay:
 
 ```sh
 OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 \
-OMEGAX_LIVE_SETTLEMENT_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v \
+OMEGAX_LIVE_SETTLEMENT_MINT=4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump \
 npm run protocol:bootstrap:genesis-live -- --plan
 ```
 
