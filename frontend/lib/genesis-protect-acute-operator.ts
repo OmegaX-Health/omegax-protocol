@@ -163,8 +163,11 @@ export type GenesisProtectAcuteCommitmentCampaignRow = {
   displayName: string;
   mode: number;
   status: number;
+  policySeries: string | null;
+  coverageFundingLine: string;
   paymentAssetMint: string;
   coverageAssetMint: string;
+  termsHashHex: string;
   paymentRailCount: number;
   paymentAssetMints: string[];
   waterfallRailCount: number;
@@ -516,8 +519,11 @@ function buildGenesisProtectAcuteCommitmentPosture(params: {
       displayName: campaign.displayName || campaign.campaignId,
       mode: campaign.mode,
       status: campaign.status,
+      policySeries: campaign.policySeries ?? null,
+      coverageFundingLine: campaign.coverageFundingLine,
       paymentAssetMint: campaign.paymentAssetMint,
       coverageAssetMint: campaign.coverageAssetMint,
+      termsHashHex: campaign.termsHashHex,
       paymentRailCount: paymentAssetMints.length,
       paymentAssetMints,
       waterfallRailCount,

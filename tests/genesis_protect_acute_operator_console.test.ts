@@ -610,6 +610,9 @@ test("Genesis setup surfaces Founder commitments separately from claims-paying r
   assert.equal(model.founderCommitments.pendingCoverageAmount, 1_000n);
   assert.equal(model.founderCommitments.treasuryInventoryAmount, 0n);
   assert.equal(model.founderCommitments.claimsPayingReserveImpact, 0n);
+  assert.equal(model.founderCommitments.rows[0]?.policySeries, travel30Series.address);
+  assert.equal(model.founderCommitments.rows[0]?.coverageFundingLine, travel30PremiumLine.address);
+  assert.equal(model.founderCommitments.rows[0]?.termsHashHex, "11".repeat(32));
   assert.ok(
     model.founderCommitments.warnings.some((warning) => /do not count as claims-paying reserve/i.test(warning)),
   );

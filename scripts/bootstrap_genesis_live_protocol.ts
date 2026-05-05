@@ -121,8 +121,26 @@ function planSummary(
   config: ReturnType<typeof loadGenesisLiveBootstrapConfig>,
 ) {
   return {
+    noTransactionsSent: true,
     rpcUrl: config.rpcUrl,
     programId: protocol.getProgramId().toBase58(),
+    launchProfile: {
+      id: config.launchProfile.id,
+      network: config.launchProfile.network,
+      description: config.launchProfile.description,
+      lpDeposits: config.launchProfile.lpDeposits,
+      lpRedemptionRequests: config.launchProfile.lpRedemptionRequests,
+      dashboards: {
+        capital: config.launchProfile.capitalDashboard,
+        reserves: config.launchProfile.reserveDashboard,
+        claims: config.launchProfile.claimsDashboard,
+        oracle: config.launchProfile.oracleDashboard,
+        commitments: config.launchProfile.commitmentsDashboard,
+      },
+      disabledSurfaces: config.launchProfile.disabledSurfaces,
+      hiddenSurfaces: config.launchProfile.hiddenSurfaces,
+      assertions: config.launchProfile.mainnetPlanAssertions,
+    },
     governanceAuthority: config.governanceAuthority,
     governanceConfigAddress: config.governanceConfigAddress,
     settlementMint: config.settlementMint,
@@ -148,6 +166,18 @@ function planSummary(
     fundingLines: config.fundingLines,
     pool: config.liquidityPool,
     capitalClasses: config.capitalClasses,
+    lpClassPosture: {
+      restrictionMode: "open",
+      minLockupSeconds: "2592000",
+      minLockupDays: 30,
+      redemptionPolicy: "queue_only",
+      tokenProgram: "classic_spl_only",
+    },
+    redemptionPosture: {
+      policy: "queue_only",
+      requestSurface: config.launchProfile.lpRedemptionRequests,
+      processingSurface: config.launchProfile.capitalAdminActions,
+    },
     allocations: config.allocations,
     fundingAmounts: config.fundingAmounts,
   };

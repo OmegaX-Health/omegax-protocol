@@ -4917,6 +4917,12 @@
     padding-top: 0.2rem;
   }
 
+  .plans-action-disabled {
+    opacity: 0.64;
+    cursor: default;
+    pointer-events: none;
+  }
+
   .plans-context-bar {
     --plans-context-control-height: 3.8rem;
     display: flex;
@@ -7386,6 +7392,21 @@
     transform: translateY(-1px);
     border-color: color-mix(in oklab, var(--border-strong) 34%, var(--border));
     color: var(--cyan-ink);
+  }
+
+  .plans-wizard-chip-disabled,
+  .plans-wizard-chip:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    transform: none;
+    border-style: dashed;
+  }
+
+  .plans-wizard-chip-disabled:hover,
+  .plans-wizard-chip:disabled:hover {
+    transform: none;
+    color: var(--muted-foreground);
+    border-color: color-mix(in oklab, var(--border-strong) 16%, var(--border));
   }
 
   .plans-wizard-chip:focus-visible {

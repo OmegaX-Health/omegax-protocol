@@ -11,6 +11,8 @@ import {
   CapitalOperatorDrawer,
   type CapitalOperatorSection,
 } from "@/components/capital-operator-drawer";
+import { CapitalLpSelfServicePanel } from "@/components/capital-lp-self-service-panel";
+import { useNetworkContext } from "@/components/network-context";
 import { PoolTreasuryPanel } from "@/components/pool-treasury-panel";
 import { PoolWorkspaceProvider } from "@/components/pool-workspace-context";
 import { useWorkspacePersona } from "@/components/workspace-persona";
@@ -19,6 +21,10 @@ import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount } from "@/lib/canonical-ui";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
 import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
+import {
+  isGenesisPhase0SurfaceActionable,
+  resolveGenesisPhase0LaunchProfile,
+} from "@/lib/genesis-phase0-launch-profile";
 import {
   buildAuditTrail,
   CAPITAL_TABS,
@@ -192,7 +198,12 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
+  const { selectedNetwork } = useNetworkContext();
   const { snapshot, loading, error, refresh } = useProtocolConsoleSnapshot();
+  const phase0Profile = useMemo(
+    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork }),
+    [selectedNetwork],
+  );
   const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
   const wallet = useWallet();
 
@@ -243,12 +254,13 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
       ),
     [selectedPool, snapshot.allocationPositions],
   );
-  const queueRows = useMemo(() => {
+  const poolLpPositions = useMemo(() => {
     const classAddresses = new Set(poolClasses.map((capitalClass) => capitalClass.address));
-    return snapshot.lpPositions.filter(
-      (position) => classAddresses.has(position.capitalClass) && hasPendingRedemptionQueue(position),
-    );
+    return snapshot.lpPositions.filter((position) => classAddresses.has(position.capitalClass));
   }, [poolClasses, snapshot.lpPositions]);
+  const queueRows = useMemo(() => {
+    return poolLpPositions.filter((position) => hasPendingRedemptionQueue(position));
+  }, [poolLpPositions]);
   const linkedPlanContext = useMemo(() => {
     const planAddresses = [...new Set(poolAllocations.map((allocation) => allocation.healthPlan).filter(Boolean))];
     const seriesAddresses = [...new Set(
@@ -419,7 +431,9 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
 
   /* ── Operator drawer ── */
 
-  const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
+  const canOperate =
+    OPERATOR_PERSONAS.has(effectivePersona)
+    && isGenesisPhase0SurfaceActionable(phase0Profile, "capitalAdminActions");
   const [operatorOpen, setOperatorOpen] = useState(false);
   const [operatorSection, setOperatorSection] = useState<CapitalOperatorSection>("provision");
 
@@ -709,6 +723,14 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
                       </p>
                     )}
                   </article>
+
+                  <CapitalLpSelfServicePanel
+                    selectedPool={selectedPool}
+                    selectedClass={selectedClass ?? poolClasses[0] ?? null}
+                    domainAssetVaults={snapshot.domainAssetVaults}
+                    lpPositions={poolLpPositions}
+                    onRefresh={refresh}
+                  />
                 </div>
               ) : null}
 

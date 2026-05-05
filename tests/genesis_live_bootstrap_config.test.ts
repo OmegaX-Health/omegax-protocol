@@ -27,11 +27,33 @@ test("Genesis live bootstrap config derives canonical Genesis addresses and defa
   assert.equal(config.policySeries.travel30.seriesId, "genesis-travel-30-v1");
   assert.equal(config.fundingLines.event7Sponsor.lineId, "genesis-event7-sponsor");
   assert.equal(config.fundingLines.travel30Liquidity.lineId, "genesis-travel30-liquidity");
+  assert.equal(config.launchProfile.network, "devnet");
+  assert.equal(config.launchProfile.lpDeposits, "live");
+  assert.equal(config.launchProfile.lpRedemptionRequests, "live");
   assert.equal(config.schema.keyHashHex, schemaKeyHashHex("genesis-protect-acute-claim", 1));
   assert.equal(
     config.schema.metadataUri,
     "https://protocol.omegax.health/schemas/genesis-protect-acute-claim-v1.json",
   );
+});
+
+test("Genesis live bootstrap defaults to open LP classes and queue-only redemptions", () => {
+  const config = loadGenesisLiveBootstrapConfig({
+    governanceAuthority: GOVERNANCE,
+    env: {
+      OMEGAX_LIVE_SETTLEMENT_MINT: "So11111111111111111111111111111111111111112",
+      OMEGAX_LIVE_ORACLE_WALLET: ORACLE,
+      OMEGAX_LIVE_ORACLE_KEYPAIR_PATH: "/tmp/genesis-oracle.json",
+      OMEGAX_LIVE_CLUSTER_OVERRIDE: "devnet",
+    },
+  });
+
+  assert.equal(config.capitalClasses.senior.restrictionMode, 0);
+  assert.equal(config.capitalClasses.junior.restrictionMode, 0);
+  assert.equal(config.capitalClasses.senior.minLockupSeconds, 30n * 86_400n);
+  assert.equal(config.capitalClasses.junior.minLockupSeconds, 30n * 86_400n);
+  assert.equal(config.liquidityPool.redemptionPolicy, 1);
+  assert(config.launchProfile.mainnetPlanAssertions.some((row) => /Classic SPL Token custody only/i.test(row)));
 });
 
 test("Genesis live bootstrap config requires LP keypair paths when deposit amounts are set", () => {
@@ -161,6 +183,26 @@ test("Mainnet bootstrap blocked when role wallets default to governance signer",
     }),
     /Mainnet bootstrap blocked.*privileged role\(s\) would default to the governance signer.*OMEGAX_LIVE_RESERVE_DOMAIN_ADMIN/,
   );
+});
+
+test("Mainnet Phase 0 bootstrap blocks accidental reward, RWA, hybrid, or extra admin attempts", () => {
+  for (const flag of [
+    "OMEGAX_LIVE_ENABLE_REWARD_LAUNCH",
+    "OMEGAX_LIVE_ENABLE_RWA_POLICY",
+    "OMEGAX_LIVE_ENABLE_HYBRID_LAUNCH",
+    "OMEGAX_LIVE_ENABLE_ADMIN_BOOTSTRAP",
+  ]) {
+    assert.throws(
+      () => loadGenesisLiveBootstrapConfig({
+        governanceAuthority: GOVERNANCE,
+        env: {
+          ...baseMainnetEnv(),
+          [flag]: "1",
+        },
+      }),
+      /Mainnet Phase 0 bootstrap blocked/,
+    );
+  }
 });
 
 test("Mainnet bootstrap loads cleanly when every privileged role has a distinct wallet", () => {

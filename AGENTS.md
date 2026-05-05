@@ -25,6 +25,14 @@ Public repository. Keep instructions and changes public-safe.
 - Do not hand-edit generated outputs in `idl/`, `shared/`, or `frontend/lib/generated/` unless a documented maintenance workflow explicitly requires it.
 - If you change the protocol surface or shared protocol builders, regenerate artifacts with `npm run anchor:idl` and `npm run protocol:contract`.
 
+## Cross-Repo Protect Buyer Surface
+
+- The `$99` Founder commitment buyer flow belongs in the OmegaX website Protect funnel and the OmegaX Health `protocol-oracle-service`, not in this protocol console as a duplicate purchase UI.
+- The protocol console should treat Founder commitments as a transparency/operator/auditor surface: show campaign status, accepted rails, pending/activated/refunded counts, terms hash, linked coverage lane, and reserve impact, then link out to the consumer Protect flow when a user wants to commit.
+- Keep these states semantically separate in labels, models, and docs: Founder commitment is a refundable pending hold; Protect quote is eligibility/pricing for activating cover; claims-paying reserve only increases after the relevant activation/posting rules are satisfied.
+- Do not present pending commitments as active cover or available claims-paying reserve. Pending custody, treasury inventory, and reserve impact must remain distinct.
+- If the external consumer/oracle commitment campaign cannot be read in production, fail closed in protocol-facing copy instead of implying the campaign is actively accepting deposits.
+
 ## Genesis Protect Launch Keys
 
 - The prepared public vanity operator wallet is `oxhocTdPyENqy9RS13iaq2upoNAovMJHu9PMaBxrK8h`.

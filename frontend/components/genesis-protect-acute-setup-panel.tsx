@@ -22,6 +22,8 @@ type GenesisProtectAcuteSetupPanelProps = {
   bootstrapHref: string;
   oracleBindingsHref: string;
   claimsHref: string;
+  adminActionsEnabled?: boolean;
+  founderCommitmentHref?: string;
   skuConsoleHrefs: Record<GenesisProtectAcuteSkuKey, {
     claims: string;
     treasury: string;
@@ -66,6 +68,13 @@ function commitmentModeLabel(mode: number): string {
     default:
       return `MODE_${mode}`;
   }
+}
+
+function shortHash(value: string | null | undefined): string {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return "None";
+  if (normalized.length <= 16) return normalized;
+  return `${normalized.slice(0, 8)}…${normalized.slice(-8)}`;
 }
 
 function checklistRows(props: GenesisProtectAcuteSetupPanelProps) {
@@ -258,16 +267,24 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
         <div className="plans-notice liquid-glass" role="status">
           <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">lock</span>
           <p>
-            <strong>Founder Travel30 commitment mode.</strong>{" "}
-            Pending deposits are shown as custody or rail inventory here and stay out of claims-paying reserve until activation.
+            <strong>Founder commitments are read-only here.</strong>{" "}
+            Pending deposits are refundable holds, not active cover, not LP deposits, and not claims-paying reserve until activation or posting rules are satisfied.
           </p>
         </div>
+
+        {props.founderCommitmentHref ? (
+          <div className="plans-wizard-support-actions">
+            <Link href={props.founderCommitmentHref} className="secondary-button inline-flex w-fit" target="_blank" rel="noreferrer">
+              Open consumer Founder flow
+            </Link>
+          </div>
+        ) : null}
 
         <div className="plans-settings-grid">
           <div className="plans-settings-row">
             <div>
-              <span className="plans-settings-label">Commitment campaign</span>
-              <span className="plans-settings-lane">Founder Travel30 campaign visibility in the protocol console</span>
+              <span className="plans-settings-label">Founder campaigns</span>
+              <span className="plans-settings-lane">Read-only campaign status linked to this plan and policy series</span>
             </div>
             <span className="plans-settings-address">
               {props.model.founderCommitments.activeCampaignCount}/{props.model.founderCommitments.campaignCount} active
@@ -338,6 +355,18 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
                   <div className="plans-settings-row">
                     <span className="plans-settings-label">Pending</span>
                     <span className="plans-settings-address">{formatAmount(row.pendingAmount)}</span>
+                  </div>
+                  <div className="plans-settings-row">
+                    <span className="plans-settings-label">Policy series</span>
+                    <span className="plans-settings-address">{row.policySeries ? shortHash(row.policySeries) : "Unlinked"}</span>
+                  </div>
+                  <div className="plans-settings-row">
+                    <span className="plans-settings-label">Funding line</span>
+                    <span className="plans-settings-address">{shortHash(row.coverageFundingLine)}</span>
+                  </div>
+                  <div className="plans-settings-row">
+                    <span className="plans-settings-label">Terms hash</span>
+                    <span className="plans-settings-address">{shortHash(row.termsHashHex)}</span>
                   </div>
                   <div className="plans-settings-row">
                     <span className="plans-settings-label">Activated</span>
@@ -453,9 +482,11 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
         </div>
 
         <div className="plans-wizard-support-actions">
-          <Link href={props.bootstrapHref} className="secondary-button inline-flex w-fit">
-            Rerun Genesis template
-          </Link>
+          {props.adminActionsEnabled ? (
+            <Link href={props.bootstrapHref} className="secondary-button inline-flex w-fit">
+              Rerun Genesis template
+            </Link>
+          ) : null}
           {props.planAddress ? (
             <Link href={props.claimsHref} className="secondary-button inline-flex w-fit">
               Open claim console
@@ -489,13 +520,15 @@ export function GenesisProtectAcuteSetupPanel(props: GenesisProtectAcuteSetupPan
                   <p className="text-sm font-semibold text-[var(--foreground)]">{row.title}</p>
                   <p className="field-help">{row.detail}</p>
                 </div>
-                <span className={`status-pill ${row.ready ? "status-ok" : "status-off"}`}>
-                  {row.ready ? "Ready" : "Action needed"}
-                </span>
-              </div>
-              <Link href={row.href} className="secondary-button inline-flex w-fit">
-                {row.action}
-              </Link>
+              <span className={`status-pill ${row.ready ? "status-ok" : "status-off"}`}>
+                {row.ready ? "Ready" : "Action needed"}
+              </span>
+            </div>
+              {props.adminActionsEnabled ? (
+                <Link href={row.href} className="secondary-button inline-flex w-fit">
+                  {row.action}
+                </Link>
+              ) : null}
             </article>
           ))}
         </div>

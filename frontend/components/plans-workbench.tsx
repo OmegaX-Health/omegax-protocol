@@ -14,6 +14,7 @@ import {
 import { GenesisProtectAcuteClaimsConsolePanel } from "@/components/genesis-protect-acute-claims-console";
 import { GenesisProtectAcuteReserveConsolePanel } from "@/components/genesis-protect-acute-reserve-console";
 import { GenesisProtectAcuteSetupPanel } from "@/components/genesis-protect-acute-setup-panel";
+import { useNetworkContext } from "@/components/network-context";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { buildCanonicalConsoleStateFromSnapshot } from "@/lib/console-model";
 import { formatAmount, plansForPool, seriesOutcomeCount } from "@/lib/canonical-ui";
@@ -37,6 +38,10 @@ import {
   normalizeGenesisProtectAcuteClaimQueueFilter,
   normalizeGenesisProtectAcuteReserveLaneFilter,
 } from "@/lib/genesis-protect-acute-console";
+import {
+  isGenesisPhase0SurfaceActionable,
+  resolveGenesisPhase0LaunchProfile,
+} from "@/lib/genesis-phase0-launch-profile";
 import {
   buildAuditTrail,
   defaultTabForPersona,
@@ -314,7 +319,12 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
+  const { selectedNetwork } = useNetworkContext();
   const { snapshot, loading, error, refresh } = useProtocolConsoleSnapshot();
+  const phase0Profile = useMemo(
+    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork }),
+    [selectedNetwork],
+  );
   const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
   const routeMode: PlansRouteMode = pathname === "/claims" ? "claims" : "plans";
   const forcedTab: PlanTabId | null = routeMode === "claims" ? "claims" : null;
@@ -611,7 +621,9 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
 
   /* ── Operator drawer ── */
 
-  const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
+  const canOperate =
+    OPERATOR_PERSONAS.has(effectivePersona)
+    && isGenesisPhase0SurfaceActionable(phase0Profile, "policyAdminActions");
   const [operatorOpen, setOperatorOpen] = useState(false);
   const [operatorSection, setOperatorSection] = useState<PlanOperatorSection>("funding");
 
@@ -712,15 +724,27 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                   Operator actions
                 </button>
               ) : null}
-              <Link
-                href={routeMode === "plans" ? (genesisSetupMode ? genesisBootstrapHref : "/plans/new") : planWorkspaceHref}
-                className={canOperate ? "plans-secondary-cta" : "plans-hero-cta"}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {routeMode === "plans" ? "add" : "arrow_back"}
-                </span>
-                {routeMode === "plans" ? (genesisSetupMode ? "Genesis template" : "New plan") : "Back to plan"}
-              </Link>
+              {routeMode === "plans" ? (
+                canOperate ? (
+                  <Link
+                    href={genesisSetupMode ? genesisBootstrapHref : "/plans/new"}
+                    className="plans-secondary-cta"
+                  >
+                    <span className="material-symbols-outlined" aria-hidden="true">add</span>
+                    {genesisSetupMode ? "Genesis template" : "New plan"}
+                  </Link>
+                ) : (
+                  <span className="plans-secondary-cta plans-action-disabled" aria-disabled="true">
+                    <span className="material-symbols-outlined" aria-hidden="true">visibility</span>
+                    Read-only Phase 0
+                  </span>
+                )
+              ) : (
+                <Link href={planWorkspaceHref} className={canOperate ? "plans-secondary-cta" : "plans-hero-cta"}>
+                  <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                  Back to plan
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -827,6 +851,8 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                     oracleBindingsHref={`/oracles${genesisPoolAddress ? `?${new URLSearchParams({ pool: genesisPoolAddress, tab: "bindings" }).toString()}` : "?tab=bindings"}`}
                     claimsHref={genesisClaimsHref}
                     skuConsoleHrefs={genesisSkuConsoleHrefs}
+                    adminActionsEnabled={canOperate}
+                    founderCommitmentHref={process.env.NEXT_PUBLIC_PROTECT_FOUNDER_COMMITMENT_URL ?? "https://omegax.health/protect/founder"}
                   />
                 ) : (
                   <div className="plans-stack">

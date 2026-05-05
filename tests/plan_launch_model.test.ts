@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { Keypair } from "@solana/web3.js";
 
 import planLaunchModule from "../frontend/lib/plan-launch.ts";
+import phase0Module from "../frontend/lib/genesis-phase0-launch-profile.ts";
 import type {
   LaunchBasicsValidationInput,
   LaunchMembershipValidationInput,
@@ -25,6 +27,93 @@ const {
   validateProtectionLane,
   validateRewardLane,
 } = planLaunchModule as typeof import("../frontend/lib/plan-launch.ts");
+
+const {
+  isGenesisPhase0SurfaceActionable,
+  resolveGenesisPhase0LaunchProfile,
+} = phase0Module as typeof import("../frontend/lib/genesis-phase0-launch-profile.ts");
+
+test("Genesis Phase 0 launch profile keeps mainnet conservative by default", () => {
+  const profile = resolveGenesisPhase0LaunchProfile({
+    network: "mainnet-beta",
+    env: {},
+  });
+
+  assert.equal(profile.lpDeposits, "live");
+  assert.equal(profile.lpRedemptionRequests, "live");
+  assert.equal(profile.commitmentsDashboard, "read_only");
+  assert.equal(profile.rewardLaunch, "disabled_preview");
+  assert.equal(profile.rwaPolicyLaunch, "disabled_preview");
+  assert.equal(profile.hybridLaunch, "disabled_preview");
+  assert.equal(profile.capitalAdminActions, "hidden");
+  assert.equal(profile.policyAdminActions, "hidden");
+  assert(profile.disabledSurfaces.includes("reward launch"));
+  assert(profile.hiddenSurfaces.includes("capital admin actions"));
+  assert.equal(isGenesisPhase0SurfaceActionable(profile, "policyAdminActions"), false);
+});
+
+test("Genesis Phase 0 launch profile only makes devnet preview surfaces live behind explicit flags", () => {
+  const defaultDevnet = resolveGenesisPhase0LaunchProfile({
+    network: "devnet",
+    env: {},
+  });
+  assert.equal(defaultDevnet.rewardLaunch, "disabled_preview");
+  assert.equal(defaultDevnet.rwaPolicyLaunch, "disabled_preview");
+  assert.equal(defaultDevnet.hybridLaunch, "disabled_preview");
+
+  const flaggedDevnet = resolveGenesisPhase0LaunchProfile({
+    network: "devnet",
+    env: {
+      NEXT_PUBLIC_ENABLE_REWARD_LAUNCH: "1",
+      NEXT_PUBLIC_ENABLE_RWA_POLICY: "1",
+      NEXT_PUBLIC_ENABLE_HYBRID_LAUNCH: "1",
+      NEXT_PUBLIC_ENABLE_PROTOCOL_OPERATOR_ACTIONS: "1",
+    },
+  });
+  assert.equal(flaggedDevnet.rewardLaunch, "live");
+  assert.equal(flaggedDevnet.rwaPolicyLaunch, "live");
+  assert.equal(flaggedDevnet.hybridLaunch, "live");
+  assert.equal(flaggedDevnet.capitalAdminActions, "live");
+});
+
+test("Genesis Phase 0 mainnet future surfaces require a second explicit allow flag", () => {
+  const profile = resolveGenesisPhase0LaunchProfile({
+    network: "mainnet-beta",
+    env: {
+      NEXT_PUBLIC_ENABLE_REWARD_LAUNCH: "1",
+      NEXT_PUBLIC_ENABLE_RWA_POLICY: "1",
+      NEXT_PUBLIC_ENABLE_HYBRID_LAUNCH: "1",
+    },
+  });
+
+  assert.equal(profile.rewardLaunch, "disabled_preview");
+  assert.equal(profile.rwaPolicyLaunch, "disabled_preview");
+  assert.equal(profile.hybridLaunch, "disabled_preview");
+
+  const allowed = resolveGenesisPhase0LaunchProfile({
+    network: "mainnet-beta",
+    env: {
+      NEXT_PUBLIC_ENABLE_REWARD_LAUNCH: "1",
+      NEXT_PUBLIC_ENABLE_RWA_POLICY: "1",
+      NEXT_PUBLIC_ENABLE_HYBRID_LAUNCH: "1",
+      NEXT_PUBLIC_ALLOW_MAINNET_FUTURE_SURFACES: "1",
+    },
+  });
+  assert.equal(allowed.rewardLaunch, "live");
+  assert.equal(allowed.rwaPolicyLaunch, "live");
+  assert.equal(allowed.hybridLaunch, "live");
+});
+
+test("Phase 0 UI keeps public LP self-service separate from hidden admin drawers", () => {
+  const capitalWorkbench = readFileSync("frontend/components/capital-workbench.tsx", "utf8");
+  const lpPanel = readFileSync("frontend/components/capital-lp-self-service-panel.tsx", "utf8");
+
+  assert.match(capitalWorkbench, /CapitalLpSelfServicePanel/);
+  assert.match(capitalWorkbench, /capitalAdminActions/);
+  assert.match(lpPanel, /buildDepositIntoCapitalClassTx/);
+  assert.match(lpPanel, /buildRequestRedemptionTx/);
+  assert.doesNotMatch(lpPanel, /buildProcessRedemptionQueueTx/);
+});
 
 test("RWA policy launch controls stay future-gated by default", () => {
   assert.equal(isRwaPolicyLaunchEnabled({}), false);

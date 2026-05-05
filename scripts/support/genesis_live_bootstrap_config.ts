@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 
 import { PublicKey } from "@solana/web3.js";
 
+import phase0Module from "../../frontend/lib/genesis-phase0-launch-profile.ts";
 import genesisModule from "../../frontend/lib/genesis-protect-acute.ts";
 import protocolModule from "../../frontend/lib/protocol.ts";
 
@@ -43,10 +44,16 @@ const {
   deriveReserveDomainPda,
 } = protocolModule as typeof import("../../frontend/lib/protocol.ts");
 
+const {
+  resolveGenesisPhase0LaunchProfile,
+  phase0FlagEnabled,
+} = phase0Module as typeof import("../../frontend/lib/genesis-phase0-launch-profile.ts");
+
 type GenesisLiveBootstrapEnv = NodeJS.ProcessEnv;
 
 export type GenesisLiveBootstrapConfig = {
   rpcUrl: string;
+  launchProfile: ReturnType<typeof resolveGenesisPhase0LaunchProfile>;
   governanceAuthority: string;
   governanceConfigAddress: string | null;
   settlementMint: string;
@@ -276,6 +283,47 @@ function parseBigIntEnv(env: GenesisLiveBootstrapEnv, name: string, fallback: bi
   }
 }
 
+function assertPhase0MainnetBootstrapAttemptAllowed(params: {
+  env: GenesisLiveBootstrapEnv;
+  targetingMainnet: boolean;
+}): void {
+  if (!params.targetingMainnet) return;
+
+  const guardedAttempts: Array<{ attempt: string; allow: string; label: string }> = [
+    {
+      attempt: "OMEGAX_LIVE_ENABLE_REWARD_LAUNCH",
+      allow: "OMEGAX_ALLOW_MAINNET_REWARD_LAUNCH",
+      label: "reward launch creation",
+    },
+    {
+      attempt: "OMEGAX_LIVE_ENABLE_RWA_POLICY",
+      allow: "OMEGAX_ALLOW_MAINNET_RWA_LAUNCH",
+      label: "RWA policy creation",
+    },
+    {
+      attempt: "OMEGAX_LIVE_ENABLE_HYBRID_LAUNCH",
+      allow: "OMEGAX_ALLOW_MAINNET_HYBRID_LAUNCH",
+      label: "hybrid launch creation",
+    },
+    {
+      attempt: "OMEGAX_LIVE_ENABLE_ADMIN_BOOTSTRAP",
+      allow: "OMEGAX_ALLOW_MAINNET_ADMIN_BOOTSTRAP",
+      label: "extra admin bootstrap",
+    },
+  ];
+
+  const blocked = guardedAttempts.filter((entry) =>
+    phase0FlagEnabled(params.env, entry.attempt) && !phase0FlagEnabled(params.env, entry.allow),
+  );
+  if (blocked.length === 0) return;
+
+  throw new Error(
+    "Mainnet Phase 0 bootstrap blocked: "
+      + blocked.map((entry) => `${entry.label} set by ${entry.attempt} without ${entry.allow}=1`).join("; ")
+      + ". Genesis Phase 0 bootstraps LP classes, protection policy series, funding lines, and reserve visibility only by default.",
+  );
+}
+
 function absolutePublicUri(pathOrUrl: string): string {
   if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
     return pathOrUrl;
@@ -394,6 +442,19 @@ export function loadGenesisLiveBootstrapConfig(params: {
     clusterOverride === "mainnet"
     || (clusterOverride !== "devnet" && clusterOverride !== "localnet" && isMainnetCluster(rpcUrlForGuard));
   const breakGlass = env.OMEGAX_ALLOW_LOCAL_SIGNER_FOR_MAINNET === "1";
+  const launchProfile = resolveGenesisPhase0LaunchProfile({
+    network: targetingMainnet ? "mainnet-beta" : "devnet",
+    env: {
+      NEXT_PUBLIC_ENABLE_REWARD_LAUNCH: env.OMEGAX_LIVE_ENABLE_REWARD_LAUNCH,
+      NEXT_PUBLIC_ENABLE_RWA_POLICY: env.OMEGAX_LIVE_ENABLE_RWA_POLICY,
+      NEXT_PUBLIC_ENABLE_HYBRID_LAUNCH: env.OMEGAX_LIVE_ENABLE_HYBRID_LAUNCH,
+      NEXT_PUBLIC_ENABLE_DAO_FALLBACK: env.OMEGAX_LIVE_ENABLE_DAO_FALLBACK,
+      NEXT_PUBLIC_ENABLE_PROTOCOL_OPERATOR_ACTIONS: env.OMEGAX_LIVE_ENABLE_ADMIN_BOOTSTRAP,
+      NEXT_PUBLIC_ALLOW_MAINNET_FUTURE_SURFACES: env.OMEGAX_ALLOW_MAINNET_FUTURE_SURFACES,
+    },
+  });
+
+  assertPhase0MainnetBootstrapAttemptAllowed({ env, targetingMainnet });
 
   if (targetingMainnet && !breakGlass) {
     if (env.OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS !== "1") {
@@ -548,6 +609,7 @@ export function loadGenesisLiveBootstrapConfig(params: {
       ?? optionalEnv(env, "NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL")
       ?? optionalEnv(env, "NEXT_PUBLIC_SOLANA_RPC_URL")
       ?? "https://api.mainnet-beta.solana.com",
+    launchProfile,
     governanceAuthority,
     governanceConfigAddress: optionalPubkey(
       env,

@@ -11,6 +11,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { DocumentLinkRow } from "@/components/document-link-row";
 import { MultiOraclePicker, type MultiOracleOption } from "@/components/multi-oracle-picker";
+import { useNetworkContext } from "@/components/network-context";
 import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
 import { WizardDetailSheet, WizardDetailTriggerRow, type WizardDetailMetaItem } from "@/components/wizard-detail-sheet";
 import { cn } from "@/lib/cn";
@@ -64,6 +65,10 @@ import {
   fetchProtectionMetadataDocument,
   validateProtectionMetadataAgainstPosture,
 } from "@/lib/protection-metadata";
+import {
+  isGenesisPhase0SurfaceActionable,
+  resolveGenesisPhase0LaunchProfile,
+} from "@/lib/genesis-phase0-launch-profile";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildCreateAllocationPositionTx,
@@ -378,12 +383,20 @@ export function PlanCreationWizard() {
   const searchParams = useSearchParams();
   const { connection } = useConnection();
   const { connected, publicKey, sendTransaction } = useWallet();
+  const { selectedNetwork } = useNetworkContext();
   const { snapshot } = useProtocolConsoleSnapshot();
   const genesisTemplateMode = isGenesisProtectAcuteTemplate(searchParams.get("template"));
-  const rwaPolicyLaunchEnabled = isRwaPolicyLaunchEnabled();
+  const phase0Profile = useMemo(
+    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork }),
+    [selectedNetwork],
+  );
+  const rewardLaunchEnabled = isGenesisPhase0SurfaceActionable(phase0Profile, "rewardLaunch");
+  const hybridLaunchEnabled = isGenesisPhase0SurfaceActionable(phase0Profile, "hybridLaunch");
+  const rwaPolicyLaunchEnabled = isGenesisPhase0SurfaceActionable(phase0Profile, "rwaPolicyLaunch")
+    && isRwaPolicyLaunchEnabled();
   const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
-  const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("hybrid");
+  const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("insurance");
   const [stepIndex, setStepIndex] = useState(0);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"ok" | "error" | null>(null);
@@ -491,6 +504,24 @@ export function PlanCreationWizard() {
   const copy = STEP_COPY[activeStep.id];
   const rewardLaneRequired = !genesisTemplateMode && requiresRewardLane(launchIntent);
   const protectionLaneRequired = !genesisTemplateMode && requiresProtectionLane(launchIntent);
+  const launchIntentOptions = useMemo(
+    () => (["rewards", "insurance", "hybrid"] as const).map((intent) => {
+      const enabled =
+        intent === "insurance"
+          ? true
+          : intent === "rewards"
+            ? rewardLaunchEnabled
+            : hybridLaunchEnabled;
+      return {
+        intent,
+        enabled,
+        reason: enabled
+          ? ""
+          : `${intent === "rewards" ? "Reward" : "Hybrid"} launch creation is a Phase 0 preview surface on ${selectedNetwork === "mainnet-beta" ? "mainnet" : "this network"}.`,
+      };
+    }),
+    [hybridLaunchEnabled, rewardLaunchEnabled, selectedNetwork],
+  );
   const payoutAssetAddress = payoutAssetMode === "spl" ? payoutMint : ZERO_PUBKEY;
   const reserveDomainPk = toAssetPublicKey(reserveDomainAddress);
   const payoutMintPk = toAssetPublicKey(payoutAssetAddress);
@@ -549,6 +580,18 @@ export function PlanCreationWizard() {
     if (rwaPolicyLaunchEnabled || coveragePathway !== "rwa_policy") return;
     handleCoveragePathwayChange("defi_native");
   }, [coveragePathway, handleCoveragePathwayChange, rwaPolicyLaunchEnabled]);
+
+  useEffect(() => {
+    if (launchIntent === "insurance") return;
+    if (launchIntent === "rewards" && rewardLaunchEnabled) return;
+    if (launchIntent === "hybrid" && hybridLaunchEnabled) return;
+    setLaunchIntent("insurance");
+  }, [hybridLaunchEnabled, launchIntent, rewardLaunchEnabled]);
+
+  useEffect(() => {
+    if (hybridLaunchEnabled || defiSettlementMode !== "hybrid_rails") return;
+    setDefiSettlementMode("onchain_programmatic");
+  }, [defiSettlementMode, hybridLaunchEnabled]);
 
   const closeActiveDetail = useCallback(() => {
     if (!activeDetail) return;
@@ -2269,18 +2312,34 @@ export function PlanCreationWizard() {
                 ) : null}
                 <FieldGroup label="Launch Intent">
                   <div className="flex flex-wrap gap-2">
-                    {(["rewards", "insurance", "hybrid"] as const).map((intent) => (
-                      <button
-                        key={intent}
-                        type="button"
-                        className={cn("plans-wizard-chip", launchIntent === intent && "plans-wizard-chip-active")}
-                        onClick={() => setLaunchIntent(intent)}
-                        disabled={genesisTemplateMode}
-                      >
-                        {intent.toUpperCase()}
-                      </button>
-                    ))}
+                    {launchIntentOptions.map(({ intent, enabled, reason }) => {
+                      const disabled = genesisTemplateMode || !enabled;
+                      return (
+                        <button
+                          key={intent}
+                          type="button"
+                          className={cn(
+                            "plans-wizard-chip",
+                            launchIntent === intent && "plans-wizard-chip-active",
+                            disabled && "plans-wizard-chip-disabled",
+                          )}
+                          onClick={() => {
+                            if (!enabled) return;
+                            setLaunchIntent(intent);
+                          }}
+                          disabled={disabled}
+                          title={reason || undefined}
+                        >
+                          {intent.toUpperCase()}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {phase0Profile.disabledSurfaces.length > 0 ? (
+                    <p className="field-help">
+                      Phase 0 keeps {phase0Profile.disabledSurfaces.join(", ")} preview-only on this network.
+                    </p>
+                  ) : null}
                 </FieldGroup>
 
                 <div className="plans-wizard-row">
@@ -2406,15 +2465,22 @@ export function PlanCreationWizard() {
                         >
                           DEFI_NATIVE
                         </button>
-                        {rwaPolicyLaunchEnabled ? (
-                          <button
-                            type="button"
-                            className={cn("plans-wizard-chip", coveragePathway === "rwa_policy" && "plans-wizard-chip-active")}
-                            onClick={() => handleCoveragePathwayChange("rwa_policy")}
-                          >
-                            RWA_POLICY
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          className={cn(
+                            "plans-wizard-chip",
+                            coveragePathway === "rwa_policy" && "plans-wizard-chip-active",
+                            !rwaPolicyLaunchEnabled && "plans-wizard-chip-disabled",
+                          )}
+                          onClick={() => {
+                            if (!rwaPolicyLaunchEnabled) return;
+                            handleCoveragePathwayChange("rwa_policy");
+                          }}
+                          disabled={!rwaPolicyLaunchEnabled}
+                          title={rwaPolicyLaunchEnabled ? undefined : "RWA policy launch is preview-only in Phase 0."}
+                        >
+                          RWA_POLICY
+                        </button>
                       </div>
                     </FieldGroup>
 
@@ -2431,8 +2497,17 @@ export function PlanCreationWizard() {
                             </button>
                             <button
                               type="button"
-                              className={cn("plans-wizard-chip", defiSettlementMode === "hybrid_rails" && "plans-wizard-chip-active")}
-                              onClick={() => setDefiSettlementMode("hybrid_rails")}
+                              className={cn(
+                                "plans-wizard-chip",
+                                defiSettlementMode === "hybrid_rails" && "plans-wizard-chip-active",
+                                !hybridLaunchEnabled && "plans-wizard-chip-disabled",
+                              )}
+                              onClick={() => {
+                                if (!hybridLaunchEnabled) return;
+                                setDefiSettlementMode("hybrid_rails");
+                              }}
+                              disabled={!hybridLaunchEnabled}
+                              title={hybridLaunchEnabled ? undefined : "Hybrid rails are preview-only in Phase 0."}
                             >
                               HYBRID_RAILS
                             </button>
