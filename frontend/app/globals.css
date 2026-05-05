@@ -8853,6 +8853,37 @@
     }
   }
 
+  @media (max-width: 899px) {
+    .plans-kpi-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.55rem;
+      padding: 0.15rem 0.2rem;
+    }
+
+    .plans-kpi-metric,
+    .plans-kpi-metric:first-child {
+      gap: 0.3rem;
+      padding: 0.7rem 0.78rem;
+      border: 1px solid color-mix(in oklab, var(--border) 56%, transparent);
+      border-radius: 0.95rem;
+      background: color-mix(in oklab, var(--surface-elevated) 36%, transparent);
+    }
+
+    .plans-kpi-label {
+      font-size: 0.54rem;
+      letter-spacing: 0.14em;
+      line-height: 1.2;
+      white-space: normal;
+    }
+
+    .plans-kpi-meta {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      line-height: 1.35;
+    }
+  }
+
   @media (max-width: 767px) {
     .plans-hero {
       padding: 0.4rem 0.65rem 0;
@@ -8883,35 +8914,6 @@
       min-height: 2.5rem;
       padding: 0.58rem 0.9rem;
       font-size: 0.74rem;
-    }
-
-    .plans-kpi-strip {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.55rem;
-      padding: 0.15rem 0.2rem;
-    }
-
-    .plans-kpi-metric,
-    .plans-kpi-metric:first-child {
-      gap: 0.3rem;
-      padding: 0.7rem 0.78rem;
-      border: 1px solid color-mix(in oklab, var(--border) 56%, transparent);
-      border-radius: 0.95rem;
-      background: color-mix(in oklab, var(--surface-elevated) 36%, transparent);
-    }
-
-    .plans-kpi-label {
-      font-size: 0.54rem;
-      letter-spacing: 0.14em;
-      line-height: 1.2;
-      white-space: normal;
-    }
-
-    .plans-kpi-meta {
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-      line-height: 1.35;
     }
 
     .plans-member-grid {
