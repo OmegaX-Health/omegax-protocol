@@ -79,9 +79,9 @@
     "bs58": "^6.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.37",
+    "@types/node": "^20.19.39",
     "license-checker": "25.0.1",
-    "playwright": "^1.58.2",
+    "playwright": "^1.59.1",
     "tsx": "^4.19.2"
   },
   "engines": {
