@@ -142,7 +142,9 @@ function stableHash(label: string): string {
 function redactRpcUrl(value: string): string {
   try {
     const url = new URL(value);
+    if (url.pathname && url.pathname !== "/") url.pathname = "/...";
     if (url.search) url.search = "?...";
+    if (url.hash) url.hash = "#...";
     if (url.username || url.password) {
       url.username = "...";
       url.password = "";
