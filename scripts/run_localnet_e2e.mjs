@@ -278,6 +278,7 @@ async function main() {
           "--test-concurrency=1",
           "e2e/localnet_protocol_surface.test.ts",
           "e2e/localnet_adversarial_matrix.test.ts",
+          "e2e/localnet_omegax_commitment_balance.test.ts",
         ],
         {
           cwd: repoRoot,
