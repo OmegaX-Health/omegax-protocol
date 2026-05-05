@@ -139,6 +139,17 @@ export function CapitalLpSelfServicePanel(props: CapitalLpSelfServicePanelProps)
     && Boolean(props.selectedPool)
     && Boolean(props.selectedClass)
     && Boolean(selectedVault?.vaultTokenAccount);
+  const actionPrerequisite = !publicKey
+    ? "Connect a wallet to enable LP deposits and redemption requests."
+    : !props.selectedPool
+      ? "Choose a pool before LP actions are available."
+      : !props.selectedClass
+        ? "Choose a capital class before LP actions are available."
+        : !selectedVault?.vaultTokenAccount
+          ? "The selected pool is missing a visible vault token account."
+          : null;
+  const depositDisabled = !canSubmit || !sourceTokenAccount.trim() || !depositAmount.trim() || busy === "Deposit LP capital";
+  const redemptionDisabled = !canSubmit || !redemptionShares.trim() || busy === "Request LP redemption";
 
   return (
     <article className="plans-card heavy-glass">
@@ -166,6 +177,13 @@ export function CapitalLpSelfServicePanel(props: CapitalLpSelfServicePanelProps)
             {status.tone === "ok" ? "verified" : "error"}
           </span>
           <p>{status.message}</p>
+        </div>
+      ) : null}
+
+      {actionPrerequisite ? (
+        <div className="plans-notice liquid-glass" role="status" id="capital-lp-action-help">
+          <span className="material-symbols-outlined plans-notice-icon" aria-hidden="true">lock</span>
+          <p>{actionPrerequisite}</p>
         </div>
       ) : null}
 
@@ -232,7 +250,8 @@ export function CapitalLpSelfServicePanel(props: CapitalLpSelfServicePanelProps)
         <button
           type="button"
           className="plans-primary-cta"
-          disabled={!canSubmit || !sourceTokenAccount.trim() || !depositAmount.trim() || busy === "Deposit LP capital"}
+          disabled={depositDisabled}
+          aria-describedby={actionPrerequisite ? "capital-lp-action-help" : undefined}
           onClick={() =>
             run("Deposit LP capital", async () => {
               const { blockhash } = await connection.getLatestBlockhash("confirmed");
@@ -274,7 +293,8 @@ export function CapitalLpSelfServicePanel(props: CapitalLpSelfServicePanelProps)
         <button
           type="button"
           className="plans-secondary-cta"
-          disabled={!canSubmit || !redemptionShares.trim() || busy === "Request LP redemption"}
+          disabled={redemptionDisabled}
+          aria-describedby={actionPrerequisite ? "capital-lp-action-help" : undefined}
           onClick={() =>
             run("Request LP redemption", async () => {
               const { blockhash } = await connection.getLatestBlockhash("confirmed");

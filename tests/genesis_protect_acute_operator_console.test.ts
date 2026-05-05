@@ -422,9 +422,17 @@ test("Genesis reserve console summarizes lanes by funding path and flags degrade
   assert.equal(selectedLane?.skuKey, "travel30");
   assert.equal(selectedLane?.hasVisibilityGap, true);
   assert.ok(selectedLane?.warningReasons.some((warning) => /missing/i.test(warning)));
+  assert.equal(model.summary.claimsPayingCapital, model.setupModel.claimsPayingCapital);
+  assert.equal(
+    model.summary.diagnosticLaneFundedAmount,
+    model.lanes.reduce((sum, lane) => sum + lane.claimsPayingCapital, 0n),
+  );
   assert.equal(model.summary.visibilityGapCount, 1);
   assert.ok(
     model.warnings.includes("One or more Genesis reserve lanes are missing live balance-sheet or allocation context."),
+  );
+  assert.ok(
+    model.warnings.includes("Visible lane funding is diagnostic until Genesis posting rules recognize it as claims-paying reserve."),
   );
   assert.ok(model.warnings.some((warning) => model.setupModel.posture.reasons.includes(warning)));
 

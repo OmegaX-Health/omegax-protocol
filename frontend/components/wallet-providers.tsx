@@ -7,6 +7,7 @@ import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { ConnectionProvider, WalletProvider, useWallet } from "@solana/wallet-adapter-react";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
+import { type ConnectionConfig } from "@solana/web3.js";
 import {
   ArrowLeft,
   Check,
@@ -86,9 +87,16 @@ type StatusTone = "error" | "success";
 export function WalletProviders({ children }: { children: React.ReactNode }) {
   const { resolvedEndpoint } = useNetworkContext();
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
+  const connectionConfig = useMemo(
+    () => ({
+      commitment: "confirmed",
+      disableRetryOnRateLimit: true,
+    }) satisfies ConnectionConfig,
+    [],
+  );
 
   return (
-    <ConnectionProvider endpoint={resolvedEndpoint}>
+    <ConnectionProvider endpoint={resolvedEndpoint} config={connectionConfig}>
       <WalletProvider wallets={wallets} autoConnect>
         {children}
       </WalletProvider>

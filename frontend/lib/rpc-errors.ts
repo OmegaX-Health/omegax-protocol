@@ -13,6 +13,14 @@ const RATE_LIMIT_PATTERNS: ReadonlyArray<RegExp> = [
   /\bquota(?:\s+exceeded)?\b/i,
 ];
 
+const ACCESS_FORBIDDEN_PATTERNS: ReadonlyArray<RegExp> = [
+  /\b403\b/i,
+  /access forbidden/i,
+  /\bforbidden\b/i,
+  /\bpermission denied\b/i,
+  /\bunauthorized\b/i,
+];
+
 const RETRY_AFTER_KEYS = new Set([
   "retryafter",
   "retry_after",
@@ -144,7 +152,18 @@ export function isRpcRateLimitError(cause: unknown): boolean {
   return RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(message));
 }
 
+export function isRpcAccessForbiddenError(cause: unknown): boolean {
+  const message = toErrorMessage(cause);
+  return ACCESS_FORBIDDEN_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 export function formatRpcError(cause: unknown, options: RpcErrorFormatOptions = {}): string {
+  if (isRpcAccessForbiddenError(cause)) {
+    const endpoint = rpcEndpointLabel(options.rpcEndpoint);
+    const endpointHint = endpoint ? ` Endpoint: ${endpoint}.` : "";
+    return `RPC endpoint rejected this request.${endpointHint} Switch to a configured RPC endpoint or add a valid custom RPC URL in connection settings.`;
+  }
+
   if (!isRpcRateLimitError(cause)) {
     const message = toErrorMessage(cause);
     return message || options.fallback || "RPC request failed. Please retry.";

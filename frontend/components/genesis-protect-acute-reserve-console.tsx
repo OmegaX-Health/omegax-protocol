@@ -65,7 +65,12 @@ export function GenesisProtectAcuteReserveConsolePanel(props: GenesisProtectAcut
             <strong className="text-2xl font-semibold text-[var(--foreground)]">
               {formatAmount(props.model.summary.claimsPayingCapital)}
             </strong>
-            <p className="plans-wizard-support-note">Posted premium, sponsor, and liquidity capital visible across Genesis reserve lanes.</p>
+            <p className="plans-wizard-support-note">
+              Recognized posted reserve only; pending commitments and diagnostic lane balances stay excluded until posting rules pass.
+              {props.model.summary.diagnosticLaneFundedAmount !== props.model.summary.claimsPayingCapital
+                ? ` Visible lane funding: ${formatAmount(props.model.summary.diagnosticLaneFundedAmount)}.`
+                : ""}
+            </p>
           </article>
           <article className="plans-wizard-support-card">
             <p className="plans-card-eyebrow">Reserved amount</p>

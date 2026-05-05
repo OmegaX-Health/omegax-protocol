@@ -471,6 +471,10 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
     if (stepId === "capabilities") return capabilitiesError;
     return basicsError ?? capabilitiesError;
   }, [basicsError, capabilitiesError]);
+  const activeStepIssue = validateStep(activeStep.id);
+  const reviewStepIssue = validateStep("review");
+  const nextDisabled = Boolean(busyAction || claimBusy || activeStepIssue);
+  const submitDisabled = Boolean(busyAction || claimBusy || reviewStepIssue);
 
   const goToStep = useCallback((nextIndex: number) => {
     if (nextIndex <= stepIndex) {
@@ -1220,6 +1224,7 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
             ) : null}
 
             {claimError ? <p className="field-error">{claimError}</p> : null}
+            {activeStepIssue ? <p id="oracle-wizard-step-issue" className="field-help">{activeStepIssue}</p> : null}
 
             <footer className="plans-wizard-footer">
               <button
@@ -1237,7 +1242,8 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
                   type="button"
                   className="plans-wizard-next"
                   onClick={() => goToStep(stepIndex + 1)}
-                  disabled={Boolean(busyAction) || claimBusy}
+                  disabled={nextDisabled}
+                  aria-describedby={activeStepIssue ? "oracle-wizard-step-issue" : undefined}
                 >
                   <span className="plans-wizard-next-label">NEXT_STEP</span>
                   <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
@@ -1247,7 +1253,8 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
                   type="button"
                   className="plans-wizard-next"
                   onClick={() => void submitProfile()}
-                  disabled={Boolean(busyAction) || claimBusy}
+                  disabled={submitDisabled}
+                  aria-describedby={reviewStepIssue ? "oracle-wizard-step-issue" : undefined}
                 >
                   <span className="plans-wizard-next-label">
                     {busyAction

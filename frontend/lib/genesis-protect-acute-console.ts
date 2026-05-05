@@ -147,6 +147,7 @@ export type GenesisProtectAcuteReserveConsoleModel = {
   selectedLane: GenesisProtectAcuteReserveLaneSummary | null;
   summary: {
     claimsPayingCapital: bigint;
+    diagnosticLaneFundedAmount: bigint;
     reservedAmount: bigint;
     pendingPayoutAmount: bigint;
     reserveUtilizationBps: bigint | null;
@@ -640,8 +641,12 @@ export function buildGenesisProtectAcuteReserveConsoleModel(
     ?? visibleLanes[0]
     ?? null;
   const warnings = [...input.setupModel.posture.reasons];
+  const diagnosticLaneFundedAmount = lanes.reduce((sum, lane) => sum + lane.claimsPayingCapital, 0n);
   if (lanes.some((lane) => lane.hasVisibilityGap)) {
     warnings.push("One or more Genesis reserve lanes are missing live balance-sheet or allocation context.");
+  }
+  if (diagnosticLaneFundedAmount !== input.setupModel.claimsPayingCapital) {
+    warnings.push("Visible lane funding is diagnostic until Genesis posting rules recognize it as claims-paying reserve.");
   }
 
   return {
@@ -651,7 +656,8 @@ export function buildGenesisProtectAcuteReserveConsoleModel(
     visibleLanes,
     selectedLane,
     summary: {
-      claimsPayingCapital: lanes.reduce((sum, lane) => sum + lane.claimsPayingCapital, 0n),
+      claimsPayingCapital: input.setupModel.claimsPayingCapital,
+      diagnosticLaneFundedAmount,
       reservedAmount: lanes.reduce((sum, lane) => sum + lane.reservedAmount, 0n),
       pendingPayoutAmount: lanes.reduce((sum, lane) => sum + lane.pendingPayoutAmount, 0n),
       reserveUtilizationBps: input.setupModel.reserveUtilizationBps,

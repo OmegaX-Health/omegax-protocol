@@ -54,6 +54,7 @@ export function useProtocolConsoleSnapshot() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [snapshotEndpoint, setSnapshotEndpoint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -62,6 +63,7 @@ export function useProtocolConsoleSnapshot() {
       const nextSnapshot = await loadProtocolConsoleSnapshot(connection);
       setSnapshot(nextSnapshot);
       setLastUpdatedAt(new Date());
+      setSnapshotEndpoint(connection.rpcEndpoint);
     } catch (cause) {
       setError(
         formatRpcError(cause, {
@@ -77,6 +79,10 @@ export function useProtocolConsoleSnapshot() {
   useEffect(() => {
     let cancelled = false;
 
+    setSnapshot(EMPTY_PROTOCOL_CONSOLE_SNAPSHOT);
+    setLastUpdatedAt(null);
+    setSnapshotEndpoint(null);
+
     async function load() {
       setLoading(true);
       setError(null);
@@ -85,6 +91,7 @@ export function useProtocolConsoleSnapshot() {
         if (cancelled) return;
         setSnapshot(nextSnapshot);
         setLastUpdatedAt(new Date());
+        setSnapshotEndpoint(connection.rpcEndpoint);
       } catch (cause) {
         if (cancelled) return;
         setError(
@@ -146,5 +153,7 @@ export function useProtocolConsoleSnapshot() {
     error,
     refresh,
     lastUpdatedAt,
+    hasCurrentSnapshot: Boolean(lastUpdatedAt && snapshotEndpoint === connection.rpcEndpoint),
+    snapshotEndpoint,
   };
 }
