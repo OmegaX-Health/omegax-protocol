@@ -1999,12 +1999,9 @@ export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): 
       && params.snapshot.fundingLines.some((line) => line.address === allocation.fundingLine && line.assetMint === settlementMint),
     )
     .reduce((sum, allocation) => {
-      const capAmount = toBigIntAmount(allocation.capAmount);
-      const encumbered =
-        toBigIntAmount(allocation.allocatedAmount)
-        + toBigIntAmount(allocation.reservedCapacity)
-        + toBigIntAmount(allocation.utilizedAmount);
-      return sum + (capAmount > encumbered ? capAmount - encumbered : 0n);
+      const allocatedAmount = toBigIntAmount(allocation.allocatedAmount);
+      const reservedCapacity = toBigIntAmount(allocation.reservedCapacity);
+      return sum + (allocatedAmount > reservedCapacity ? allocatedAmount - reservedCapacity : 0n);
     }, 0n);
 
   const railsByMint = new Map(

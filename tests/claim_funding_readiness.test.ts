@@ -296,3 +296,46 @@ test("claim approval evidence stays separate from settlement funding readiness",
   assert.equal(model.immediatelySettleableAmount, 100n);
   assert.notEqual(model.readiness, "settle_now");
 });
+
+test("claim funding readiness does not treat allocation cap headroom as reserve capacity", () => {
+  const model = protocol.buildClaimFundingReadiness({
+    snapshot: emptySnapshot({
+      allocationPositions: [{
+        address: pk(),
+        reserveDomain,
+        healthPlan,
+        policySeries,
+        fundingLine,
+        liquidityPool: pool,
+        capitalClass,
+        capAmount: 1_000n,
+        allocatedAmount: 0n,
+        reservedCapacity: 0n,
+        utilizedAmount: 0n,
+        active: true,
+      }],
+      fundingLines: [{
+        address: fundingLine,
+        reserveDomain,
+        healthPlan,
+        policySeries,
+        lineId: "line-1",
+        assetMint: settlementMint,
+        lpPolicyId: "policy",
+        maxNotional: 1_000n,
+        utilizedNotional: 0n,
+        status: protocol.FUNDING_LINE_STATUS_OPEN,
+      }],
+    }),
+    reserveDomainAddress: reserveDomain,
+    healthPlanAddress: healthPlan,
+    policySeriesAddress: policySeries,
+    fundingLineAddress: fundingLine,
+    settlementMint,
+    requestedAmount: 500n,
+    nowTs,
+  });
+
+  assert.equal(model.availableLpAllocationCapacityAmount, 0n);
+  assert.equal(model.readiness, "queue_or_refund");
+});
