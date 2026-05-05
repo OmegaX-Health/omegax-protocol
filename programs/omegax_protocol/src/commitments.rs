@@ -628,21 +628,39 @@ pub(crate) fn activate_waterfall_commitment(
     )?;
 
     let amount = ctx.accounts.position.amount;
+    let capacity_amount = reserve_capacity_amount(
+        amount,
+        ctx.accounts.reserve_asset_rail.haircut_bps,
+        ctx.accounts.reserve_asset_rail.max_exposure_bps,
+    )?;
     let funding_line_key = ctx.accounts.coverage_funding_line.key();
     let funding_line = &mut ctx.accounts.coverage_funding_line;
-    funding_line.funded_amount = checked_add(funding_line.funded_amount, amount)?;
-    book_inflow_sheet(&mut ctx.accounts.coverage_domain_asset_ledger.sheet, amount)?;
-    book_inflow_sheet(&mut ctx.accounts.coverage_plan_reserve_ledger.sheet, amount)?;
-    book_inflow_sheet(&mut ctx.accounts.coverage_funding_line_ledger.sheet, amount)?;
+    let exposure_cap = checked_mul_div_u64(
+        funding_line.committed_amount,
+        u64::from(ctx.accounts.reserve_asset_rail.max_exposure_bps),
+        u64::from(BASIS_POINTS_DENOMINATOR),
+    )?;
+    let next_funded = checked_add(funding_line.funded_amount, capacity_amount)?;
+    require!(
+        next_funded <= exposure_cap,
+        OmegaXProtocolError::InsufficientFreeReserveCapacity
+    );
+    funding_line.funded_amount = next_funded;
+    book_inflow_sheet(&mut ctx.accounts.coverage_domain_asset_ledger.sheet, capacity_amount)?;
+    book_inflow_sheet(&mut ctx.accounts.coverage_plan_reserve_ledger.sheet, capacity_amount)?;
+    book_inflow_sheet(
+        &mut ctx.accounts.coverage_funding_line_ledger.sheet,
+        capacity_amount,
+    )?;
     if let Some(series_ledger) = ctx.accounts.coverage_series_reserve_ledger.as_deref_mut() {
-        book_inflow_sheet(&mut series_ledger.sheet, amount)?;
+        book_inflow_sheet(&mut series_ledger.sheet, capacity_amount)?;
     }
 
     activate_commitment_position(
         &mut ctx.accounts.ledger,
         &mut ctx.accounts.position,
         COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
-        amount,
+        capacity_amount,
     )?;
 
     emit!(FundingFlowRecordedEvent {
@@ -660,6 +678,33 @@ pub(crate) fn activate_waterfall_commitment(
     });
 
     Ok(())
+}
+
+fn reserve_capacity_amount(amount: u64, haircut_bps: u16, max_exposure_bps: u16) -> Result<u64> {
+    require!(max_exposure_bps > 0, OmegaXProtocolError::InvalidBps);
+    let net_bps = u64::from(BASIS_POINTS_DENOMINATOR)
+        .checked_sub(u64::from(haircut_bps))
+        .ok_or(error!(OmegaXProtocolError::ArithmeticError))?;
+    let capacity_amount = checked_mul_div_u64(
+        amount,
+        net_bps,
+        u64::from(BASIS_POINTS_DENOMINATOR),
+    )?;
+    require!(
+        capacity_amount > 0,
+        OmegaXProtocolError::InsufficientFreeReserveCapacity
+    );
+    Ok(capacity_amount)
+}
+
+fn checked_mul_div_u64(value: u64, numerator: u64, denominator: u64) -> Result<u64> {
+    let product = u128::from(value)
+        .checked_mul(u128::from(numerator))
+        .ok_or(error!(OmegaXProtocolError::ArithmeticError))?;
+    let result = product
+        .checked_div(u128::from(denominator))
+        .ok_or(error!(OmegaXProtocolError::ArithmeticError))?;
+    u64::try_from(result).map_err(|_| error!(OmegaXProtocolError::ArithmeticError))
 }
 
 pub(crate) fn refund_commitment(
