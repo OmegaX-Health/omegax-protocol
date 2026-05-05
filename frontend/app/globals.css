@@ -5422,6 +5422,7 @@
   .genesis-disclosure-grid {
     display: grid;
     gap: clamp(0.85rem, 1.2vw, 1.25rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .genesis-disclosure-list {
@@ -5438,6 +5439,221 @@
     max-width: min(100%, 34rem);
     white-space: normal;
     text-wrap: balance;
+  }
+
+  .genesis-disclosure-page {
+    gap: 1rem;
+  }
+
+  .genesis-disclosure-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.42fr);
+    align-items: stretch;
+    gap: 1.25rem;
+    min-height: auto;
+    padding: 1.35rem;
+  }
+
+  .genesis-disclosure-hero .plans-hero-glow {
+    background: radial-gradient(
+      ellipse 46% 88% at 18% 20%,
+      rgba(0, 229, 255, 0.12) 0%,
+      rgba(0, 229, 255, 0.07) 31%,
+      transparent 68%
+    );
+  }
+
+  .genesis-disclosure-hero .plans-hero-copy {
+    justify-content: center;
+    gap: 0.7rem;
+    max-width: 43rem;
+  }
+
+  .genesis-disclosure-page .plans-hero-eyebrow {
+    margin: 0;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+  }
+
+  .genesis-disclosure-page .plans-hero-title {
+    max-width: 16ch;
+    min-height: 0;
+    font-family: var(--font-sans), "Space Grotesk", system-ui, sans-serif;
+    font-size: 3rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .genesis-disclosure-page .plans-hero-subtitle {
+    max-width: 64ch;
+    min-height: 0;
+    font-size: 0.9rem;
+    line-height: 1.62;
+  }
+
+  .genesis-disclosure-hero-panel {
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 44%, transparent);
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 76%, transparent), color-mix(in oklab, var(--status-surface) 62%, transparent));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  }
+
+  .dark .genesis-disclosure-hero-panel {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .genesis-disclosure-hero-panel-label {
+    margin: 0;
+    color: var(--accent);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .genesis-disclosure-hero-facts {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+
+  .genesis-disclosure-hero-fact {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid color-mix(in oklab, var(--border) 44%, transparent);
+  }
+
+  .genesis-disclosure-hero-fact:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .genesis-disclosure-hero-fact:last-child {
+    padding-bottom: 0;
+  }
+
+  .genesis-disclosure-hero-fact dt {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), "Fira Code", monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .genesis-disclosure-hero-fact dd {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .genesis-disclosure-route-card {
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(18rem, 1fr);
+    align-items: start;
+    gap: 1.4rem;
+  }
+
+  .genesis-disclosure-page .protocol-section-head {
+    align-items: flex-start;
+  }
+
+  .genesis-disclosure-page .protocol-section-title,
+  .genesis-disclosure-page .plans-card-title-display {
+    font-family: var(--font-sans), "Space Grotesk", system-ui, sans-serif;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+
+  .genesis-disclosure-page .protocol-section-title {
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 1.12;
+  }
+
+  .genesis-disclosure-page .plans-card-title-display {
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1.16;
+  }
+
+  .genesis-disclosure-page .plans-card {
+    gap: 1rem;
+    border-radius: 1.05rem;
+  }
+
+  .genesis-disclosure-page .plans-card-body {
+    max-width: 62ch;
+    font-size: 0.9rem;
+    line-height: 1.62;
+  }
+
+  .genesis-disclosure-page .plans-wizard-review-row {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 0.32fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .genesis-disclosure-page .plans-wizard-review-value {
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 1023px) {
+    .genesis-disclosure-hero,
+    .genesis-disclosure-route-card,
+    .genesis-disclosure-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .genesis-disclosure-hero-panel {
+      justify-content: flex-start;
+    }
+
+    .genesis-disclosure-hero-facts {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .genesis-disclosure-hero-fact {
+      border-top: none;
+      padding: 0;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .genesis-disclosure-hero {
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .genesis-disclosure-page .plans-hero-title {
+      max-width: none;
+      font-size: 2.15rem;
+    }
+
+    .genesis-disclosure-hero-facts,
+    .genesis-disclosure-page .plans-wizard-review-row {
+      grid-template-columns: 1fr;
+    }
+
+    .genesis-disclosure-page .plans-wizard-review-value {
+      text-align: left;
+    }
   }
 
   /* ── Cards (shared) ── */

@@ -9,9 +9,15 @@ export function GenesisProtectDisclosurePage({
 }: {
   content: GenesisProtectDisclosurePageContent;
 }) {
+  const heroFacts = [
+    { label: "Route", value: content.path },
+    { label: "Status", value: content.statusLabel },
+    { label: "Scope", value: "Shared protection metadata" },
+  ];
+
   return (
-    <div className="protocol-page">
-      <section className="plans-hero heavy-glass">
+    <div className="protocol-page genesis-disclosure-page">
+      <section className="plans-hero genesis-disclosure-hero heavy-glass">
         <div className="plans-hero-glow" aria-hidden="true" />
         <div className="plans-hero-copy">
           <p className="plans-hero-eyebrow">{content.heroEyebrow}</p>
@@ -23,6 +29,17 @@ export function GenesisProtectDisclosurePage({
           </h1>
           <p className="plans-hero-subtitle">{content.heroSubtitle}</p>
         </div>
+        <aside className="genesis-disclosure-hero-panel" aria-label="Disclosure route record">
+          <p className="genesis-disclosure-hero-panel-label">Route record</p>
+          <dl className="genesis-disclosure-hero-facts">
+            {heroFacts.map((fact) => (
+              <div key={fact.label} className="genesis-disclosure-hero-fact">
+                <dt>{fact.label}</dt>
+                <dd>{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </aside>
       </section>
 
       <section className="protocol-section">
@@ -32,7 +49,7 @@ export function GenesisProtectDisclosurePage({
             <h2 className="protocol-section-title">Current canonical disclosure route</h2>
           </div>
         </div>
-        <article className="plans-card heavy-glass">
+        <article className="plans-card genesis-disclosure-route-card heavy-glass">
           <p className="plans-card-body">{content.description}</p>
           <div className="plans-wizard-review-grid">
             <div className="plans-wizard-review-row">
