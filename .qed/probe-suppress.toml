@@ -1,0 +1,9 @@
+# QEDGen auditor suppressions for accepted false positives.
+# This is documented for the auditor lane; keep the repo wrapper's accepted
+# warning list in sync until qedgen consumes suppression files directly.
+
+[[suppression]]
+rule = "missing_cpi_for_token_context"
+subject = "create_domain_asset_vault"
+reason = "token_program is used for Anchor token-account initialization only; this handler does not transfer SPL tokens."
+date = "2026-05-07"
