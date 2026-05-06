@@ -66,6 +66,20 @@ function resolveQedgen() {
   );
 }
 
+function qedgenEnv() {
+  const elanBin = join(homedir(), '.elan/bin');
+  const path = process.env.PATH?.split(':').includes(elanBin)
+    ? process.env.PATH
+    : `${elanBin}:${process.env.PATH ?? ''}`;
+
+  return {
+    ...process.env,
+    PATH: path,
+    CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+    GIT_CONFIG_GLOBAL: '/dev/null',
+  };
+}
+
 function argsFor(commandName) {
   switch (commandName) {
     case 'check':
@@ -223,11 +237,7 @@ function runReconcile(qedgen) {
     cwd: process.cwd(),
     encoding: 'utf8',
     maxBuffer: 50 * 1024 * 1024,
-    env: {
-      ...process.env,
-      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-      GIT_CONFIG_GLOBAL: '/dev/null',
-    },
+    env: qedgenEnv(),
     shell: false,
   });
 
@@ -701,11 +711,7 @@ if (command === 'reconcile') {
 const result = spawnSync(qedgen, [...argsFor(command), ...extraArgs], {
   cwd: process.cwd(),
   stdio: 'inherit',
-  env: {
-    ...process.env,
-    CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-    GIT_CONFIG_GLOBAL: '/dev/null',
-  },
+  env: qedgenEnv(),
   shell: false,
 });
 
