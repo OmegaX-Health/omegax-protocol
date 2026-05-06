@@ -174,12 +174,12 @@ actual settlement-asset reserve/funding/allocation capacity.
 
 | Field | Value |
 |-------|-------|
-| Devnet bootstrap | PASS against merged hardened binary at `BtLPiswEfzwxenWM3GR6hihViZHpXLU6Pygw3nmH3B2s`; `OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=100000000 npm run protocol:bootstrap:devnet-live` |
+| Devnet bootstrap | PASS against post-PR `#70` merged binary at `mBQYJkivNJFT5egjQ2VGFb8sBMiaZMUr5GDNvKkxp1f`; `OMEGAX_DEVNET_ROLE_MIN_LAMPORTS=100000000 npm run protocol:bootstrap:devnet-live` |
 | Canary seeding | PASS, all required treasury canaries seeded against the new devnet program |
-| Strict pen-test | PASS, `npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security-rehearsal-hardened-2026-05-05` |
+| Strict pen-test | PASS, `npm run devnet:treasury:pen-test -- --strict --out-dir artifacts/devnet-security-rehearsal-post-merge-2026-05-06` |
 | Strict result | `8 blocked`, `0 vulnerable`, `0 skipped`, `0 inconclusive` |
-| Evidence | `artifacts/devnet-security-rehearsal-hardened-2026-05-05/devnet-treasury-pen-test-2026-05-04T18-49-38-251Z.json`, `artifacts/devnet-security-rehearsal-hardened-2026-05-05/devnet-treasury-pen-test-2026-05-04T18-49-38-251Z.md`, tracked summary `docs/security/devnet-treasury-pen-test-2026-05-05.md` |
-| Hardened binary replay | PASS: merged hardened binary was redeployed, bootstrapped, seeded, and strict-tested on devnet |
+| Evidence | `artifacts/devnet-security-rehearsal-post-merge-2026-05-06/devnet-treasury-pen-test-2026-05-06T05-01-11-114Z.json`, `artifacts/devnet-security-rehearsal-post-merge-2026-05-06/devnet-treasury-pen-test-2026-05-06T05-01-11-114Z.md`, tracked summary `docs/security/devnet-treasury-pen-test-2026-05-06.md` |
+| Hardened binary replay | PASS: PR `#70` merge commit `63e6f4cc7a7a3b59ab1b8fa39cfa607cb78f9bfb` was redeployed, bootstrapped, seeded, and strict-tested on devnet |
 
 ## 9. Mainnet Preflight
 
