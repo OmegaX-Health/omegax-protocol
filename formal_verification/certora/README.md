@@ -11,7 +11,7 @@ Install the local tools:
 
 ```bash
 pip3 install certora-cli
-cargo +1.81 install cargo-certora-sbf
+cargo install cargo-certora-sbf
 ```
 
 Register for Certora's free personal access key and export it locally:
@@ -48,6 +48,11 @@ repo shape and should be tightened as concrete CVLR rules are added. A passing
 run is internal formal-verification evidence; it is not a third-party audit and
 must not be described publicly as "Certora audited" unless Certora has actually
 performed and published that review.
+
+The npm wrapper temporarily rewrites the local `Cargo.lock` metadata version
+from `4` to `3` while Certora builds because the Certora Solana platform-tools
+metadata parser does not yet accept lockfile version 4. It restores the file
+before exiting and does not change dependency resolution.
 
 ## Relationship To QEDGen
 

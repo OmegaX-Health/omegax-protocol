@@ -31,7 +31,7 @@
     "qedgen:verify": "node scripts/run_qedgen.mjs verify",
     "qedgen:reconcile": "node scripts/run_qedgen.mjs reconcile",
     "certora:solana:check": "node scripts/check_certora_solana.mjs",
-    "certora:solana:sanity": "certoraSolanaProver formal_verification/certora/configs/sanity.conf",
+    "certora:solana:sanity": "node scripts/run_certora_solana_sanity.mjs",
     "protocol:contract": "node --import tsx scripts/generate_protocol_contract.ts",
     "protocol:contract:check": "node scripts/check_protocol_contract.mjs",
     "beta:consistency:check": "node scripts/check_beta_consistency.mjs",

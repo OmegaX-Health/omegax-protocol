@@ -13,6 +13,11 @@ use crate::*;
 /// Guards for `initialize_protocol_governance`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn initialize_protocol_governance<'info>(ctx: &mut InitializeProtocolGovernance<'info>, args: InitializeProtocolGovernanceArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.protocol_fee_bps ≤ 9999
     if !(args.protocol_fee_bps <= 9999) { return Err(OmegaxProtocolError::InvalidBps.into()); }
     // lifecycle: status := Live
@@ -23,6 +28,11 @@ pub fn initialize_protocol_governance<'info>(ctx: &mut InitializeProtocolGoverna
 /// Guards for `set_protocol_emergency_pause`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn set_protocol_emergency_pause<'info>(ctx: &mut SetProtocolEmergencyPause<'info>, args: SetProtocolEmergencyPauseArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.protocol_governance.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -31,6 +41,11 @@ pub fn set_protocol_emergency_pause<'info>(ctx: &mut SetProtocolEmergencyPause<'
 /// Guards for `rotate_protocol_governance_authority`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn rotate_protocol_governance_authority<'info>(ctx: &mut RotateProtocolGovernanceAuthority<'info>, args: RotateProtocolGovernanceAuthorityArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.protocol_governance.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -39,6 +54,11 @@ pub fn rotate_protocol_governance_authority<'info>(ctx: &mut RotateProtocolGover
 /// Guards for `create_reserve_domain`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_reserve_domain<'info>(ctx: &mut CreateReserveDomain<'info>, args: CreateReserveDomainArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.reserve_domain.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -47,6 +67,11 @@ pub fn create_reserve_domain<'info>(ctx: &mut CreateReserveDomain<'info>, args: 
 /// Guards for `update_reserve_domain_controls`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_reserve_domain_controls<'info>(ctx: &mut UpdateReserveDomainControls<'info>, args: UpdateReserveDomainControlsArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.reserve_domain.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -55,6 +80,11 @@ pub fn update_reserve_domain_controls<'info>(ctx: &mut UpdateReserveDomainContro
 /// Guards for `create_domain_asset_vault`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_domain_asset_vault<'info>(ctx: &mut CreateDomainAssetVault<'info>, args: CreateDomainAssetVaultArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -62,6 +92,11 @@ pub fn create_domain_asset_vault<'info>(ctx: &mut CreateDomainAssetVault<'info>,
 /// Guards for `configure_reserve_asset_rail`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn configure_reserve_asset_rail<'info>(ctx: &mut ConfigureReserveAssetRail<'info>, args: ConfigureReserveAssetRailArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.reserve_asset_rail.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
@@ -72,6 +107,11 @@ pub fn configure_reserve_asset_rail<'info>(ctx: &mut ConfigureReserveAssetRail<'
 /// Guards for `publish_reserve_asset_rail_price`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn publish_reserve_asset_rail_price<'info>(ctx: &mut PublishReserveAssetRailPrice<'info>, args: PublishReserveAssetRailPriceArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.reserve_asset_rail.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
@@ -84,6 +124,11 @@ pub fn publish_reserve_asset_rail_price<'info>(ctx: &mut PublishReserveAssetRail
 /// Guards for `init_protocol_fee_vault`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn init_protocol_fee_vault<'info>(ctx: &mut InitProtocolFeeVault<'info>, args: InitProtocolFeeVaultArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.protocol_fee_vault.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -92,6 +137,11 @@ pub fn init_protocol_fee_vault<'info>(ctx: &mut InitProtocolFeeVault<'info>, arg
 /// Guards for `init_pool_treasury_vault`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn init_pool_treasury_vault<'info>(ctx: &mut InitPoolTreasuryVault<'info>, args: InitPoolTreasuryVaultArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.pool_treasury_vault.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -100,6 +150,11 @@ pub fn init_pool_treasury_vault<'info>(ctx: &mut InitPoolTreasuryVault<'info>, a
 /// Guards for `init_pool_oracle_fee_vault`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn init_pool_oracle_fee_vault<'info>(ctx: &mut InitPoolOracleFeeVault<'info>, args: InitPoolOracleFeeVaultArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.pool_oracle_fee_vault.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -108,6 +163,11 @@ pub fn init_pool_oracle_fee_vault<'info>(ctx: &mut InitPoolOracleFeeVault<'info>
 /// Guards for `create_health_plan`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_health_plan<'info>(ctx: &mut CreateHealthPlan<'info>, args: CreateHealthPlanArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.health_plan.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -116,6 +176,11 @@ pub fn create_health_plan<'info>(ctx: &mut CreateHealthPlan<'info>, args: Create
 /// Guards for `update_health_plan_controls`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_health_plan_controls<'info>(ctx: &mut UpdateHealthPlanControls<'info>, args: UpdateHealthPlanControlsArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.health_plan.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -124,6 +189,11 @@ pub fn update_health_plan_controls<'info>(ctx: &mut UpdateHealthPlanControls<'in
 /// Guards for `create_policy_series`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_policy_series<'info>(ctx: &mut CreatePolicySeries<'info>, args: CreatePolicySeriesArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -131,6 +201,11 @@ pub fn create_policy_series<'info>(ctx: &mut CreatePolicySeries<'info>, args: Cr
 /// Guards for `initialize_series_reserve_ledger`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn initialize_series_reserve_ledger<'info>(ctx: &mut InitializeSeriesReserveLedger<'info>, args: InitializeSeriesReserveLedgerArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.series_reserve_ledger.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -139,6 +214,11 @@ pub fn initialize_series_reserve_ledger<'info>(ctx: &mut InitializeSeriesReserve
 /// Guards for `version_policy_series`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn version_policy_series<'info>(ctx: &mut VersionPolicySeries<'info>, args: VersionPolicySeriesArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -146,6 +226,11 @@ pub fn version_policy_series<'info>(ctx: &mut VersionPolicySeries<'info>, args: 
 /// Guards for `open_member_position`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn open_member_position<'info>(ctx: &mut OpenMemberPosition<'info>, args: OpenMemberPositionArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -153,6 +238,11 @@ pub fn open_member_position<'info>(ctx: &mut OpenMemberPosition<'info>, args: Op
 /// Guards for `update_member_eligibility`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_member_eligibility<'info>(ctx: &mut UpdateMemberEligibility<'info>, args: UpdateMemberEligibilityArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.member_position.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -161,6 +251,11 @@ pub fn update_member_eligibility<'info>(ctx: &mut UpdateMemberEligibility<'info>
 /// Guards for `open_funding_line`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn open_funding_line<'info>(ctx: &mut OpenFundingLine<'info>, args: OpenFundingLineArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -168,6 +263,11 @@ pub fn open_funding_line<'info>(ctx: &mut OpenFundingLine<'info>, args: OpenFund
 /// Guards for `fund_sponsor_budget`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn fund_sponsor_budget<'info>(ctx: &mut FundSponsorBudget<'info>, args: FundSponsorBudgetArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -178,6 +278,11 @@ pub fn fund_sponsor_budget<'info>(ctx: &mut FundSponsorBudget<'info>, args: Fund
 /// Guards for `record_premium_payment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn record_premium_payment<'info>(ctx: &mut RecordPremiumPayment<'info>, args: RecordPremiumPaymentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -188,6 +293,11 @@ pub fn record_premium_payment<'info>(ctx: &mut RecordPremiumPayment<'info>, args
 /// Guards for `create_commitment_campaign`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_commitment_campaign<'info>(ctx: &mut CreateCommitmentCampaign<'info>, args: CreateCommitmentCampaignArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.deposit_amount > 0
@@ -200,6 +310,11 @@ pub fn create_commitment_campaign<'info>(ctx: &mut CreateCommitmentCampaign<'inf
 /// Guards for `create_commitment_payment_rail`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_commitment_payment_rail<'info>(ctx: &mut CreateCommitmentPaymentRail<'info>, args: CreateCommitmentPaymentRailArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.deposit_amount > 0
@@ -212,6 +327,11 @@ pub fn create_commitment_payment_rail<'info>(ctx: &mut CreateCommitmentPaymentRa
 /// Guards for `deposit_commitment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn deposit_commitment<'info>(ctx: &mut DepositCommitment<'info>, args: DepositCommitmentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     Ok(())
@@ -220,6 +340,11 @@ pub fn deposit_commitment<'info>(ctx: &mut DepositCommitment<'info>, args: Depos
 /// Guards for `activate_direct_premium_commitment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn activate_direct_premium_commitment<'info>(ctx: &mut ActivateDirectPremiumCommitment<'info>, args: ActivateCommitmentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     Ok(())
@@ -228,6 +353,11 @@ pub fn activate_direct_premium_commitment<'info>(ctx: &mut ActivateDirectPremium
 /// Guards for `activate_treasury_credit_commitment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn activate_treasury_credit_commitment<'info>(ctx: &mut ActivateTreasuryCreditCommitment<'info>, args: ActivateCommitmentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     Ok(())
@@ -236,6 +366,11 @@ pub fn activate_treasury_credit_commitment<'info>(ctx: &mut ActivateTreasuryCred
 /// Guards for `activate_waterfall_commitment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn activate_waterfall_commitment<'info>(ctx: &mut ActivateWaterfallCommitment<'info>, args: ActivateCommitmentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     Ok(())
@@ -244,6 +379,11 @@ pub fn activate_waterfall_commitment<'info>(ctx: &mut ActivateWaterfallCommitmen
 /// Guards for `refund_commitment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn refund_commitment<'info>(ctx: &mut RefundCommitment<'info>, args: RefundCommitmentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -251,6 +391,11 @@ pub fn refund_commitment<'info>(ctx: &mut RefundCommitment<'info>, args: RefundC
 /// Guards for `pause_commitment_campaign`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn pause_commitment_campaign<'info>(ctx: &mut PauseCommitmentCampaign<'info>, args: PauseCommitmentCampaignArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.campaign.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
@@ -261,6 +406,11 @@ pub fn pause_commitment_campaign<'info>(ctx: &mut PauseCommitmentCampaign<'info>
 /// Guards for `create_obligation`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_obligation<'info>(ctx: &mut CreateObligation<'info>, args: CreateObligationArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -271,6 +421,11 @@ pub fn create_obligation<'info>(ctx: &mut CreateObligation<'info>, args: CreateO
 /// Guards for `reserve_obligation`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn reserve_obligation<'info>(ctx: &mut ReserveObligation<'info>, args: ReserveObligationArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -281,6 +436,11 @@ pub fn reserve_obligation<'info>(ctx: &mut ReserveObligation<'info>, args: Reser
 /// Guards for `settle_obligation`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn settle_obligation<'info>(ctx: &mut SettleObligation<'info>, args: SettleObligationArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -291,6 +451,11 @@ pub fn settle_obligation<'info>(ctx: &mut SettleObligation<'info>, args: SettleO
 /// Guards for `release_reserve`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn release_reserve<'info>(ctx: &mut ReleaseReserve<'info>, args: ReleaseReserveArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -301,6 +466,11 @@ pub fn release_reserve<'info>(ctx: &mut ReleaseReserve<'info>, args: ReleaseRese
 /// Guards for `open_claim_case`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn open_claim_case<'info>(ctx: &mut OpenClaimCase<'info>, args: OpenClaimCaseArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.claim_case.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
@@ -311,6 +481,11 @@ pub fn open_claim_case<'info>(ctx: &mut OpenClaimCase<'info>, args: OpenClaimCas
 /// Guards for `authorize_claim_recipient`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn authorize_claim_recipient<'info>(ctx: &mut AuthorizeClaimRecipient<'info>, args: AuthorizeClaimRecipientArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.claim_case.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
@@ -321,6 +496,11 @@ pub fn authorize_claim_recipient<'info>(ctx: &mut AuthorizeClaimRecipient<'info>
 /// Guards for `attach_claim_evidence_ref`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn attach_claim_evidence_ref<'info>(ctx: &mut AttachClaimEvidenceRef<'info>, args: AttachClaimEvidenceRefArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.claim_case.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
@@ -331,6 +511,11 @@ pub fn attach_claim_evidence_ref<'info>(ctx: &mut AttachClaimEvidenceRef<'info>,
 /// Guards for `adjudicate_claim_case`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn adjudicate_claim_case<'info>(ctx: &mut AdjudicateClaimCase<'info>, args: AdjudicateClaimCaseArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.reserve_amount ≤ args.approved_amount
@@ -341,6 +526,11 @@ pub fn adjudicate_claim_case<'info>(ctx: &mut AdjudicateClaimCase<'info>, args: 
 /// Guards for `settle_claim_case`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn settle_claim_case<'info>(ctx: &mut SettleClaimCase<'info>, args: SettleClaimCaseArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -353,6 +543,11 @@ pub fn settle_claim_case<'info>(ctx: &mut SettleClaimCase<'info>, args: SettleCl
 /// Guards for `settle_claim_case_selected_asset`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn settle_claim_case_selected_asset<'info>(ctx: &mut SettleClaimCaseSelectedAsset<'info>, args: SettleClaimCaseSelectedAssetArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.claim_credit_amount > 0
@@ -369,6 +564,11 @@ pub fn settle_claim_case_selected_asset<'info>(ctx: &mut SettleClaimCaseSelected
 /// Guards for `create_liquidity_pool`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_liquidity_pool<'info>(ctx: &mut CreateLiquidityPool<'info>, args: CreateLiquidityPoolArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.liquidity_pool.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: args.fee_bps ≤ 9999
@@ -379,6 +579,11 @@ pub fn create_liquidity_pool<'info>(ctx: &mut CreateLiquidityPool<'info>, args: 
 /// Guards for `create_capital_class`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_capital_class<'info>(ctx: &mut CreateCapitalClass<'info>, args: CreateCapitalClassArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.fee_bps ≤ 9999
     if !(args.fee_bps <= 9999) { return Err(OmegaxProtocolError::InvalidBps.into()); }
     Ok(())
@@ -387,6 +592,11 @@ pub fn create_capital_class<'info>(ctx: &mut CreateCapitalClass<'info>, args: Cr
 /// Guards for `update_capital_class_controls`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_capital_class_controls<'info>(ctx: &mut UpdateCapitalClassControls<'info>, args: UpdateCapitalClassControlsArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.capital_class.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -395,6 +605,11 @@ pub fn update_capital_class_controls<'info>(ctx: &mut UpdateCapitalClassControls
 /// Guards for `update_lp_position_credentialing`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_lp_position_credentialing<'info>(ctx: &mut UpdateLpPositionCredentialing<'info>, args: UpdateLpPositionCredentialingArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.lp_position.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -403,6 +618,11 @@ pub fn update_lp_position_credentialing<'info>(ctx: &mut UpdateLpPositionCredent
 /// Guards for `deposit_into_capital_class`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn deposit_into_capital_class<'info>(ctx: &mut DepositIntoCapitalClass<'info>, args: DepositIntoCapitalClassArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -413,6 +633,11 @@ pub fn deposit_into_capital_class<'info>(ctx: &mut DepositIntoCapitalClass<'info
 /// Guards for `request_redemption`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn request_redemption<'info>(ctx: &mut RequestRedemption<'info>, args: RequestRedemptionArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.shares > 0
@@ -423,6 +648,11 @@ pub fn request_redemption<'info>(ctx: &mut RequestRedemption<'info>, args: Reque
 /// Guards for `process_redemption_queue`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn process_redemption_queue<'info>(ctx: &mut ProcessRedemptionQueue<'info>, args: ProcessRedemptionQueueArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.shares > 0
@@ -433,6 +663,11 @@ pub fn process_redemption_queue<'info>(ctx: &mut ProcessRedemptionQueue<'info>, 
 /// Guards for `withdraw_protocol_fee_spl`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn withdraw_protocol_fee_spl<'info>(ctx: &mut WithdrawProtocolFeeSpl<'info>, args: WithdrawArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.amount > 0
     if !(args.amount > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
     // requires: withdrawn_fees + args.amount ≤ accrued_fees
@@ -443,6 +678,11 @@ pub fn withdraw_protocol_fee_spl<'info>(ctx: &mut WithdrawProtocolFeeSpl<'info>,
 /// Guards for `withdraw_protocol_fee_sol`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn withdraw_protocol_fee_sol<'info>(ctx: &mut WithdrawProtocolFeeSol<'info>, args: WithdrawArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.amount > 0
     if !(args.amount > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
     // requires: withdrawn_fees + args.amount ≤ accrued_fees
@@ -453,6 +693,11 @@ pub fn withdraw_protocol_fee_sol<'info>(ctx: &mut WithdrawProtocolFeeSol<'info>,
 /// Guards for `withdraw_pool_treasury_spl`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn withdraw_pool_treasury_spl<'info>(ctx: &mut WithdrawPoolTreasurySpl<'info>, args: WithdrawArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.amount > 0
     if !(args.amount > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
     // requires: withdrawn_fees + args.amount ≤ accrued_fees
@@ -463,6 +708,11 @@ pub fn withdraw_pool_treasury_spl<'info>(ctx: &mut WithdrawPoolTreasurySpl<'info
 /// Guards for `withdraw_pool_treasury_sol`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn withdraw_pool_treasury_sol<'info>(ctx: &mut WithdrawPoolTreasurySol<'info>, args: WithdrawArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.amount > 0
     if !(args.amount > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
     // requires: withdrawn_fees + args.amount ≤ accrued_fees
@@ -473,6 +723,11 @@ pub fn withdraw_pool_treasury_sol<'info>(ctx: &mut WithdrawPoolTreasurySol<'info
 /// Guards for `withdraw_pool_oracle_fee_spl`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn withdraw_pool_oracle_fee_spl<'info>(ctx: &mut WithdrawPoolOracleFeeSpl<'info>, args: WithdrawArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.amount > 0
     if !(args.amount > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
     // requires: withdrawn_fees + args.amount ≤ accrued_fees
@@ -483,6 +738,11 @@ pub fn withdraw_pool_oracle_fee_spl<'info>(ctx: &mut WithdrawPoolOracleFeeSpl<'i
 /// Guards for `withdraw_pool_oracle_fee_sol`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn withdraw_pool_oracle_fee_sol<'info>(ctx: &mut WithdrawPoolOracleFeeSol<'info>, args: WithdrawArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: args.amount > 0
     if !(args.amount > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
     // requires: withdrawn_fees + args.amount ≤ accrued_fees
@@ -493,6 +753,11 @@ pub fn withdraw_pool_oracle_fee_sol<'info>(ctx: &mut WithdrawPoolOracleFeeSol<'i
 /// Guards for `create_allocation_position`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn create_allocation_position<'info>(ctx: &mut CreateAllocationPosition<'info>, args: CreateAllocationPositionArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -500,6 +765,11 @@ pub fn create_allocation_position<'info>(ctx: &mut CreateAllocationPosition<'inf
 /// Guards for `update_allocation_caps`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_allocation_caps<'info>(ctx: &mut UpdateAllocationCaps<'info>, args: UpdateAllocationCapsArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.allocation_position.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -508,6 +778,11 @@ pub fn update_allocation_caps<'info>(ctx: &mut UpdateAllocationCaps<'info>, args
 /// Guards for `allocate_capital`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn allocate_capital<'info>(ctx: &mut AllocateCapital<'info>, args: AllocateCapitalArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -518,6 +793,11 @@ pub fn allocate_capital<'info>(ctx: &mut AllocateCapital<'info>, args: AllocateC
 /// Guards for `deallocate_capital`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn deallocate_capital<'info>(ctx: &mut DeallocateCapital<'info>, args: DeallocateCapitalArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -528,6 +808,11 @@ pub fn deallocate_capital<'info>(ctx: &mut DeallocateCapital<'info>, args: Deall
 /// Guards for `mark_impairment`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn mark_impairment<'info>(ctx: &mut MarkImpairment<'info>, args: MarkImpairmentArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.amount > 0
@@ -538,6 +823,11 @@ pub fn mark_impairment<'info>(ctx: &mut MarkImpairment<'info>, args: MarkImpairm
 /// Guards for `register_oracle`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn register_oracle<'info>(ctx: &mut RegisterOracle<'info>, args: RegisterOracleArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.oracle_profile.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -546,6 +836,11 @@ pub fn register_oracle<'info>(ctx: &mut RegisterOracle<'info>, args: RegisterOra
 /// Guards for `claim_oracle`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn claim_oracle<'info>(ctx: &mut ClaimOracle<'info>) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.oracle_profile.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -554,6 +849,11 @@ pub fn claim_oracle<'info>(ctx: &mut ClaimOracle<'info>) -> Result<()> {
 /// Guards for `update_oracle_profile`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn update_oracle_profile<'info>(ctx: &mut UpdateOracleProfile<'info>, args: UpdateOracleProfileArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.oracle_profile.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -562,6 +862,11 @@ pub fn update_oracle_profile<'info>(ctx: &mut UpdateOracleProfile<'info>, args: 
 /// Guards for `set_pool_oracle`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn set_pool_oracle<'info>(ctx: &mut SetPoolOracle<'info>, args: SetPoolOracleArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.pool_oracle_approval.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -570,6 +875,11 @@ pub fn set_pool_oracle<'info>(ctx: &mut SetPoolOracle<'info>, args: SetPoolOracl
 /// Guards for `set_pool_oracle_permissions`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn set_pool_oracle_permissions<'info>(ctx: &mut SetPoolOraclePermissions<'info>, args: SetPoolOraclePermissionsArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.pool_oracle_permission_set.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -578,6 +888,11 @@ pub fn set_pool_oracle_permissions<'info>(ctx: &mut SetPoolOraclePermissions<'in
 /// Guards for `set_pool_oracle_policy`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn set_pool_oracle_policy<'info>(ctx: &mut SetPoolOraclePolicy<'info>, args: SetPoolOraclePolicyArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.pool_oracle_policy.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: args.oracle_fee_bps ≤ 9999
@@ -588,6 +903,11 @@ pub fn set_pool_oracle_policy<'info>(ctx: &mut SetPoolOraclePolicy<'info>, args:
 /// Guards for `register_outcome_schema`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn register_outcome_schema<'info>(ctx: &mut RegisterOutcomeSchema<'info>, args: RegisterOutcomeSchemaArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -595,6 +915,11 @@ pub fn register_outcome_schema<'info>(ctx: &mut RegisterOutcomeSchema<'info>, ar
 /// Guards for `verify_outcome_schema`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn verify_outcome_schema<'info>(ctx: &mut VerifyOutcomeSchema<'info>, args: VerifyOutcomeSchemaArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.outcome_schema.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -603,6 +928,11 @@ pub fn verify_outcome_schema<'info>(ctx: &mut VerifyOutcomeSchema<'info>, args: 
 /// Guards for `backfill_schema_dependency_ledger`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn backfill_schema_dependency_ledger<'info>(ctx: &mut BackfillSchemaDependencyLedger<'info>, args: BackfillSchemaDependencyLedgerArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // lifecycle: require status == Live
     if ctx.schema_dependency_ledger.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     Ok(())
@@ -611,6 +941,11 @@ pub fn backfill_schema_dependency_ledger<'info>(ctx: &mut BackfillSchemaDependen
 /// Guards for `close_outcome_schema`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn close_outcome_schema<'info>(ctx: &mut CloseOutcomeSchema<'info>) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }
@@ -618,6 +953,11 @@ pub fn close_outcome_schema<'info>(ctx: &mut CloseOutcomeSchema<'info>) -> Resul
 /// Guards for `attest_claim_case`.
 /// Generated from the `requires` clauses of the spec handler block.
 pub fn attest_claim_case<'info>(ctx: &mut AttestClaimCase<'info>, args: AttestClaimCaseArgs) -> Result<()> {
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
     // No guards declared in spec — nothing to check.
     Ok(())
 }

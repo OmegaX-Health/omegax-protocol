@@ -82,7 +82,7 @@ const certoraSbf = run('cargo', ['certora-sbf', '--help']);
 if (certoraSbf.status === 0) {
   pass('cargo certora-sbf', 'subcommand available');
 } else {
-  fail('cargo certora-sbf', 'install with `cargo +1.81 install cargo-certora-sbf` before submitting Solana proofs');
+  fail('cargo certora-sbf', 'install with `cargo install cargo-certora-sbf` before submitting Solana proofs');
 }
 
 if (process.env.CERTORAKEY) {

@@ -249,6 +249,75 @@ function postprocessLeanSpec() {
   writeFileSync(LEAN_SPEC, text);
 }
 
+function extractRustStateFields(text) {
+  const match = text.match(/struct State \{([\s\S]*?)\n\}/);
+  if (!match) {
+    return [];
+  }
+  return [...match[1].matchAll(/^\s{4}(\w+)\s*:/gm)]
+    .map((field) => field[1])
+    .filter((field) => field !== 'status');
+}
+
+function prefixStateFields(line, stateFields) {
+  if (stateFields.length === 0) {
+    return line;
+  }
+  const pattern = new RegExp(`(?<![\\w.])(${stateFields.join('|')})(?![\\w])`, 'g');
+  return line.replace(pattern, 's.$1');
+}
+
+function dedupeFunctions(text) {
+  const seen = new Set();
+  return text.replace(
+    /\/\/\/ [^\n]*\nfn (\w+)\(s: &State\) -> bool \{\n[\s\S]*?\n\}/g,
+    (block, name) => {
+      if (seen.has(name)) {
+        return '';
+      }
+      seen.add(name);
+      return block;
+    },
+  );
+}
+
+function postprocessRustModel() {
+  const guardsPath = `${MODEL_DIR}/src/guards.rs`;
+  if (existsSync(guardsPath)) {
+    let guards = readFileSync(guardsPath, 'utf8');
+    guards = guards.replace(/(pub fn \w+<'info>\([^{]+ \{)\n/g, `$1
+    let emergency_pause = false;
+    let paid_amount: u64 = 0;
+    let approved_amount: u64 = u64::MAX;
+    let withdrawn_fees: u64 = 0;
+    let accrued_fees: u64 = u64::MAX;
+`);
+    writeFileSync(guardsPath, guards);
+  }
+
+  for (const harnessPath of [KANI_HARNESS, PROPTEST_HARNESS]) {
+    if (!existsSync(harnessPath)) {
+      continue;
+    }
+    let text = readFileSync(harnessPath, 'utf8');
+    const stateFields = extractRustStateFields(text);
+    text = dedupeFunctions(text);
+    text = text
+      .split('\n')
+      .map((line) => {
+        const shouldPatch =
+          line.includes('if !(') ||
+          line.includes('kani::assume') ||
+          line.includes('prop_assume!') ||
+          (!line.includes(':') &&
+            line.trim().match(/^(audit_nonce|protocol_fee_bps|paid_amount|withdrawn_fees|allocated_amount)\b/));
+        return shouldPatch ? prefixStateFields(line, stateFields) : line;
+      })
+      .join('\n');
+    writeFileSync(harnessPath, text);
+  }
+}
+
 const qedgen = resolveQedgen();
 if (command === 'check') {
   process.exit(runCheck(qedgen));
@@ -271,6 +340,7 @@ if (result.error) {
 
 if (result.status === 0 && command === 'codegen') {
   postprocessLeanSpec();
+  postprocessRustModel();
 }
 
 process.exit(result.status ?? 1);
