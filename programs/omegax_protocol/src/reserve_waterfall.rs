@@ -26,11 +26,12 @@ pub(crate) fn configure_reserve_asset_rail(
     require_valid_reserve_oracle_source(args.oracle_source)?;
     require_bps(args.haircut_bps)?;
     require_bps(args.max_exposure_bps)?;
+    let price_required = args.capacity_enabled || args.payout_enabled;
     require!(
         args.max_staleness_seconds >= 0,
         OmegaXProtocolError::ReserveAssetPriceInvalid
     );
-    if args.capacity_enabled {
+    if price_required {
         require!(
             args.oracle_source != RESERVE_ORACLE_SOURCE_NONE,
             OmegaXProtocolError::InvalidReserveOracleSource
@@ -38,6 +39,10 @@ pub(crate) fn configure_reserve_asset_rail(
         require!(
             args.oracle_authority != ZERO_PUBKEY,
             OmegaXProtocolError::Unauthorized
+        );
+        require!(
+            args.max_staleness_seconds > 0,
+            OmegaXProtocolError::ReserveAssetPriceInvalid
         );
     }
 
@@ -104,7 +109,8 @@ pub(crate) fn publish_reserve_asset_rail_price(
     );
     require_reserve_asset_rail_active(&ctx.accounts.reserve_asset_rail)?;
     require!(
-        ctx.accounts.reserve_asset_rail.capacity_enabled,
+        ctx.accounts.reserve_asset_rail.capacity_enabled
+            || ctx.accounts.reserve_asset_rail.payout_enabled,
         OmegaXProtocolError::ReserveAssetRailCapacityDisabled
     );
 
@@ -182,28 +188,130 @@ pub(crate) fn require_reserve_asset_rail_payout_enabled(rail: &ReserveAssetRail)
 }
 
 pub(crate) fn require_fresh_reserve_asset_price(rail: &ReserveAssetRail) -> Result<()> {
+    let now = Clock::get()?.unix_timestamp;
+    require_fresh_reserve_asset_price_at(rail, now)
+}
+
+pub(crate) fn require_fresh_reserve_asset_price_at(
+    rail: &ReserveAssetRail,
+    now: i64,
+) -> Result<()> {
     require!(
         rail.last_price_usd_1e8 > 0,
         OmegaXProtocolError::ReserveAssetPriceInvalid
     );
-    if rail.max_staleness_seconds > 0 {
-        let now = Clock::get()?.unix_timestamp;
-        require!(
-            rail.last_price_published_at_ts > 0 && rail.last_price_published_at_ts <= now,
-            OmegaXProtocolError::ReserveAssetPriceStale
-        );
-        let age = checked_sub_i64(now, rail.last_price_published_at_ts)?;
-        require!(
-            age <= rail.max_staleness_seconds,
-            OmegaXProtocolError::ReserveAssetPriceStale
-        );
-    }
+    require!(
+        rail.max_staleness_seconds > 0,
+        OmegaXProtocolError::ReserveAssetPriceInvalid
+    );
+    require!(
+        rail.last_price_published_at_ts > 0 && rail.last_price_published_at_ts <= now,
+        OmegaXProtocolError::ReserveAssetPriceStale
+    );
+    let age = checked_sub_i64(now, rail.last_price_published_at_ts)?;
+    require!(
+        age <= rail.max_staleness_seconds,
+        OmegaXProtocolError::ReserveAssetPriceStale
+    );
+    Ok(())
+}
+
+pub(crate) fn reserve_asset_value_usd_1e8_at(
+    amount: u64,
+    mint_decimals: u8,
+    rail: &ReserveAssetRail,
+    now: i64,
+) -> Result<u128> {
+    require_fresh_reserve_asset_price_at(rail, now)?;
+    let decimal_scale = checked_pow10_u128(mint_decimals)?;
+    let scaled = (amount as u128)
+        .checked_mul(rail.last_price_usd_1e8 as u128)
+        .ok_or(error!(OmegaXProtocolError::ArithmeticError))?;
+    scaled
+        .checked_div(decimal_scale)
+        .ok_or(error!(OmegaXProtocolError::ArithmeticError))
+}
+
+pub(crate) fn require_selected_asset_payout_value(
+    claim_credit_amount: u64,
+    claim_mint_decimals: u8,
+    claim_asset_rail: &ReserveAssetRail,
+    payout_amount: u64,
+    payout_mint_decimals: u8,
+    payout_asset_rail: &ReserveAssetRail,
+    max_overpay_bps: u16,
+) -> Result<()> {
+    let now = Clock::get()?.unix_timestamp;
+    require_selected_asset_payout_value_at(
+        claim_credit_amount,
+        claim_mint_decimals,
+        claim_asset_rail,
+        payout_amount,
+        payout_mint_decimals,
+        payout_asset_rail,
+        max_overpay_bps,
+        now,
+    )
+}
+
+pub(crate) fn require_selected_asset_payout_value_at(
+    claim_credit_amount: u64,
+    claim_mint_decimals: u8,
+    claim_asset_rail: &ReserveAssetRail,
+    payout_amount: u64,
+    payout_mint_decimals: u8,
+    payout_asset_rail: &ReserveAssetRail,
+    max_overpay_bps: u16,
+    now: i64,
+) -> Result<()> {
+    require!(
+        max_overpay_bps <= MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS,
+        OmegaXProtocolError::SelectedAssetOverpayBpsTooHigh
+    );
+    let claim_value = reserve_asset_value_usd_1e8_at(
+        claim_credit_amount,
+        claim_mint_decimals,
+        claim_asset_rail,
+        now,
+    )?;
+    let payout_value = reserve_asset_value_usd_1e8_at(
+        payout_amount,
+        payout_mint_decimals,
+        payout_asset_rail,
+        now,
+    )?;
+    require!(
+        payout_value >= claim_value,
+        OmegaXProtocolError::SelectedAssetPayoutUnderpaid
+    );
+    let max_value = claim_value
+        .checked_mul((BASIS_POINTS_DENOMINATOR as u128) + (max_overpay_bps as u128))
+        .and_then(|value| value.checked_div(BASIS_POINTS_DENOMINATOR as u128))
+        .ok_or(error!(OmegaXProtocolError::ArithmeticError))?;
+    require!(
+        payout_value <= max_value,
+        OmegaXProtocolError::SelectedAssetPayoutOverpaid
+    );
     Ok(())
 }
 
 fn require_bps(value: u16) -> Result<()> {
     require!(value <= 10_000, OmegaXProtocolError::InvalidBps);
     Ok(())
+}
+
+fn checked_pow10_u128(decimals: u8) -> Result<u128> {
+    require!(
+        decimals <= 18,
+        OmegaXProtocolError::ReserveAssetMintDecimalsUnsupported
+    );
+    let mut value = 1u128;
+    for _ in 0..decimals {
+        value = value
+            .checked_mul(10)
+            .ok_or(error!(OmegaXProtocolError::ArithmeticError))?;
+    }
+    Ok(value)
 }
 
 fn checked_sub_i64(left: i64, right: i64) -> Result<i64> {

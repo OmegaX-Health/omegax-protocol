@@ -72,6 +72,7 @@ test("[PT-02 defense] settle_claim_case + process_redemption_queue + settle_obli
   // excluded from this defense test.
   const wired = [
     "settle_claim_case",
+    "settle_claim_case_selected_asset",
     "process_redemption_queue",
     "settle_obligation",
   ];

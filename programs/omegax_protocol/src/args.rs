@@ -384,6 +384,14 @@ pub struct SettleClaimCaseArgs {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct SettleClaimCaseSelectedAssetArgs {
+    pub claim_credit_amount: u64,
+    pub payout_amount: u64,
+    pub max_overpay_bps: u16,
+    pub settlement_reason_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct CreateLiquidityPoolArgs {
     #[max_len(MAX_ID_LEN)]
     pub pool_id: String,

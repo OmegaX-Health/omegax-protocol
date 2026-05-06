@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -10,6 +10,7 @@ import test from "node:test";
 import { Keypair } from "@solana/web3.js";
 
 const MAINNET_USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const OMEGAX_MINT = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
 
 function writeKeypair(path: string): Keypair {
   const keypair = Keypair.generate();
@@ -67,6 +68,16 @@ test("Genesis live plan mode validates oracle keypair before no-send output", ()
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.roles.oracleAuthority, oracle.publicKey.toBase58());
   assert.equal(parsed.settlementMint, MAINNET_USDC);
+});
+
+test("release evidence uses USDC as preferred mainnet settlement mint", () => {
+  const evidence = readFileSync(
+    new URL("../docs/operations/release-v0.3.2-evidence.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(evidence, new RegExp(`OMEGAX_LIVE_SETTLEMENT_MINT=${MAINNET_USDC}`));
+  assert.match(evidence, /not the\s+default claims settlement mint/);
+  assert.doesNotMatch(evidence, new RegExp(`OMEGAX_LIVE_SETTLEMENT_MINT=${OMEGAX_MINT}`));
 });
 
 test("Genesis live plan mode rejects a missing oracle keypair before any send path", () => {

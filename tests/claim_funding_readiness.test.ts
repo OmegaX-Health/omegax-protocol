@@ -85,6 +85,9 @@ function rail(params: {
   priceUsd1e8?: bigint;
   haircutBps?: number;
   publishedAtTs?: number;
+  maxStalenessSeconds?: number;
+  payoutEnabled?: boolean;
+  capacityEnabled?: boolean;
 }): ReserveAssetRailSnapshot {
   return {
     address: pk(),
@@ -96,12 +99,12 @@ function rail(params: {
     payoutPriority: 0,
     oracleSource: 0,
     oracleFeedIdHex: "11".repeat(32),
-    maxStalenessSeconds: 3_600,
+    maxStalenessSeconds: params.maxStalenessSeconds ?? 3_600,
     haircutBps: params.haircutBps ?? 0,
     maxExposureBps: 10_000,
     depositEnabled: true,
-    payoutEnabled: true,
-    capacityEnabled: true,
+    payoutEnabled: params.payoutEnabled ?? true,
+    capacityEnabled: params.capacityEnabled ?? true,
     active: true,
     lastPriceUsd1e8: params.priceUsd1e8 ?? 100_000_000n,
     lastPriceConfidenceBps: 25,
@@ -155,7 +158,11 @@ test("claim funding readiness shows other priced assets without treating them as
   assert.equal(model.otherReserveAssets.length, 1);
   assert.equal(model.otherReserveAssets[0]!.assetMint, wbtcMint);
   assert.equal(model.otherReserveAssets[0]!.immediatelySettleable, false);
+  assert.equal(model.otherReserveAssets[0]!.selectedForPayout, true);
+  assert.equal(model.selectedPayoutAsset?.assetMint, wbtcMint);
+  assert.equal(model.estimatedSelectedPayoutAmountRaw, 1n);
   assert(model.warnings.some((warning) => warning.includes("selected-asset payout")));
+  assert(model.warnings.some((warning) => warning.includes("not a swap")));
 });
 
 test("claim funding readiness refuses to count non-settlement assets without a fresh price", () => {
@@ -180,6 +187,30 @@ test("claim funding readiness refuses to count non-settlement assets without a f
   assert.equal(model.readiness, "queue_or_refund");
   assert.equal(model.otherReserveAssets[0]!.haircutAdjustedValueUsd1e8, null);
   assert(model.otherReserveAssets[0]!.warnings.some((warning) => warning.includes("No fresh published price")));
+});
+
+test("claim funding readiness rejects zero-staleness fallback prices", () => {
+  const model = protocol.buildClaimFundingReadiness({
+    snapshot: emptySnapshot({
+      domainAssetLedgers: [
+        { address: pk(), reserveDomain, assetMint: settlementMint, sheet: { funded: 100n } },
+        { address: pk(), reserveDomain, assetMint: wbtcMint, sheet: { funded: 1n } },
+      ],
+      reserveAssetRails: [
+        rail({ assetMint: settlementMint, symbol: "USDC" }),
+        rail({ assetMint: wbtcMint, symbol: "WBTC", priceUsd1e8: 5_000_000_000_000n, maxStalenessSeconds: 0 }),
+      ],
+    }),
+    reserveDomainAddress: reserveDomain,
+    settlementMint,
+    requestedAmount: 500n,
+    assetDecimalsByMint: { [settlementMint]: 0, [wbtcMint]: 0 },
+    nowTs,
+  });
+
+  assert.equal(model.readiness, "queue_or_refund");
+  assert.equal(model.selectedPayoutAsset, null);
+  assert.equal(model.otherReserveAssets[0]!.priceFresh, false);
 });
 
 test("claim funding readiness reduces fallback vault capacity by pending obligations", () => {

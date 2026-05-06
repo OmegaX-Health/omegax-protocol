@@ -670,3 +670,42 @@ pub(crate) fn book_settlement_from_delivery(
     funding_line.spent_amount = checked_add(funding_line.spent_amount, amount)?;
     Ok(())
 }
+
+pub(crate) fn book_selected_asset_claim_payout(
+    domain_assets: &mut u64,
+    domain_sheet: &mut ReserveBalanceSheet,
+    plan_sheet: &mut ReserveBalanceSheet,
+    line_sheet: &mut ReserveBalanceSheet,
+    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
+    funding_line: &mut FundingLine,
+    amount: u64,
+) -> Result<()> {
+    require_free_reserve_capacity(domain_sheet, amount)?;
+    require_free_reserve_capacity(plan_sheet, amount)?;
+    require_free_reserve_capacity(line_sheet, amount)?;
+    if let Some(series) = series_sheet.as_ref() {
+        require_free_reserve_capacity(&series.sheet, amount)?;
+    }
+
+    domain_sheet.funded = checked_sub(domain_sheet.funded, amount)?;
+    domain_sheet.settled = checked_add(domain_sheet.settled, amount)?;
+    recompute_sheet(domain_sheet)?;
+
+    plan_sheet.funded = checked_sub(plan_sheet.funded, amount)?;
+    plan_sheet.settled = checked_add(plan_sheet.settled, amount)?;
+    recompute_sheet(plan_sheet)?;
+
+    line_sheet.funded = checked_sub(line_sheet.funded, amount)?;
+    line_sheet.settled = checked_add(line_sheet.settled, amount)?;
+    recompute_sheet(line_sheet)?;
+
+    if let Some(series) = series_sheet {
+        series.sheet.funded = checked_sub(series.sheet.funded, amount)?;
+        series.sheet.settled = checked_add(series.sheet.settled, amount)?;
+        recompute_sheet(&mut series.sheet)?;
+    }
+
+    *domain_assets = checked_sub(*domain_assets, amount)?;
+    funding_line.spent_amount = checked_add(funding_line.spent_amount, amount)?;
+    Ok(())
+}

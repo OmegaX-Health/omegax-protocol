@@ -390,6 +390,128 @@ pub(crate) fn settle_claim_case(
     Ok(())
 }
 
+pub(crate) fn settle_claim_case_selected_asset(
+    ctx: Context<SettleClaimCaseSelectedAsset>,
+    args: SettleClaimCaseSelectedAssetArgs,
+) -> Result<()> {
+    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+    require_claim_operator(
+        &ctx.accounts.authority.key(),
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+    require_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
+    require_positive_amount(args.claim_credit_amount)?;
+    require_positive_amount(args.payout_amount)?;
+    require!(
+        args.claim_credit_amount <= remaining_claim_amount(&ctx.accounts.claim_case),
+        OmegaXProtocolError::AmountExceedsApprovedClaim
+    );
+    require!(
+        args.max_overpay_bps <= MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS,
+        OmegaXProtocolError::SelectedAssetOverpayBpsTooHigh
+    );
+    require_keys_eq!(
+        ctx.accounts.payout_funding_line.health_plan,
+        ctx.accounts.health_plan.key(),
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+    require_keys_eq!(
+        ctx.accounts.payout_funding_line.policy_series,
+        ctx.accounts.claim_case.policy_series,
+        OmegaXProtocolError::PolicySeriesMismatch
+    );
+    require!(
+        ctx.accounts.payout_funding_line.status == FUNDING_LINE_STATUS_OPEN,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require_keys_neq!(
+        ctx.accounts.claim_case.asset_mint,
+        ctx.accounts.payout_funding_line.asset_mint,
+        OmegaXProtocolError::SelectedAssetPayoutSameMint
+    );
+    validate_optional_series_ledger(
+        ctx.accounts.payout_series_reserve_ledger.as_deref(),
+        ctx.accounts.claim_case.policy_series,
+        ctx.accounts.payout_funding_line.asset_mint,
+    )?;
+    crate::reserve_waterfall::require_reserve_asset_rail_active(&ctx.accounts.claim_asset_rail)?;
+    crate::reserve_waterfall::require_reserve_asset_rail_payout_enabled(
+        &ctx.accounts.payout_asset_rail,
+    )?;
+    require_classic_spl_token(&ctx.accounts.claim_asset_mint, &ctx.accounts.token_program)?;
+    crate::reserve_waterfall::require_selected_asset_payout_value(
+        args.claim_credit_amount,
+        ctx.accounts.claim_asset_mint.decimals,
+        &ctx.accounts.claim_asset_rail,
+        args.payout_amount,
+        ctx.accounts.payout_asset_mint.decimals,
+        &ctx.accounts.payout_asset_rail,
+        args.max_overpay_bps,
+    )?;
+
+    let resolved_recipient =
+        resolve_claim_settlement_recipient(&ctx.accounts.claim_case, &ctx.accounts.member_position);
+    require_keys_eq!(
+        ctx.accounts.recipient_token_account.owner,
+        resolved_recipient,
+        OmegaXProtocolError::Unauthorized
+    );
+
+    let now_ts = Clock::get()?.unix_timestamp;
+    let claim_case = &mut ctx.accounts.claim_case;
+    claim_case.paid_amount = checked_add(claim_case.paid_amount, args.claim_credit_amount)?;
+    claim_case.reserved_amount = claim_case
+        .reserved_amount
+        .saturating_sub(args.claim_credit_amount);
+    claim_case.intake_status = if claim_case.paid_amount >= claim_case.approved_amount {
+        CLAIM_INTAKE_SETTLED
+    } else {
+        CLAIM_INTAKE_APPROVED
+    };
+    claim_case.closed_at = if claim_case.intake_status == CLAIM_INTAKE_SETTLED {
+        now_ts
+    } else {
+        0
+    };
+    claim_case.updated_at = now_ts;
+
+    book_selected_asset_claim_payout(
+        &mut ctx.accounts.payout_domain_asset_vault.total_assets,
+        &mut ctx.accounts.payout_domain_asset_ledger.sheet,
+        &mut ctx.accounts.payout_plan_reserve_ledger.sheet,
+        &mut ctx.accounts.payout_funding_line_ledger.sheet,
+        ctx.accounts.payout_series_reserve_ledger.as_deref_mut(),
+        &mut ctx.accounts.payout_funding_line,
+        args.payout_amount,
+    )?;
+
+    transfer_from_domain_vault(
+        args.payout_amount,
+        &ctx.accounts.payout_domain_asset_vault,
+        &ctx.accounts.payout_vault_token_account,
+        &ctx.accounts.recipient_token_account,
+        &ctx.accounts.payout_asset_mint,
+        &ctx.accounts.token_program,
+    )?;
+
+    emit!(ClaimCaseSelectedAssetPayoutEvent {
+        claim_case: ctx.accounts.claim_case.key(),
+        claim_asset_mint: ctx.accounts.claim_case.asset_mint,
+        payout_asset_mint: ctx.accounts.payout_funding_line.asset_mint,
+        claim_credit_amount: args.claim_credit_amount,
+        payout_amount: args.payout_amount,
+        settlement_reason_hash: args.settlement_reason_hash,
+    });
+    emit!(ClaimCaseStateChangedEvent {
+        claim_case: ctx.accounts.claim_case.key(),
+        intake_status: ctx.accounts.claim_case.intake_status,
+        approved_amount: ctx.accounts.claim_case.approved_amount,
+    });
+
+    Ok(())
+}
+
 pub(crate) fn attest_claim_case(
     ctx: Context<AttestClaimCase>,
     args: AttestClaimCaseArgs,
@@ -948,6 +1070,91 @@ pub struct SettleClaimCase<'info> {
         constraint = vault_token_account.key() == domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
     )]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+pub struct SettleClaimCaseSelectedAsset<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: Box<Account<'info, HealthPlan>>,
+    #[account(
+        seeds = [SEED_RESERVE_ASSET_RAIL, health_plan.reserve_domain.as_ref(), claim_case.asset_mint.as_ref()],
+        bump = claim_asset_rail.bump,
+        constraint = claim_asset_rail.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::ReserveAssetRailMismatch,
+        constraint = claim_asset_rail.asset_mint == claim_case.asset_mint @ OmegaXProtocolError::ReserveAssetRailMismatch,
+    )]
+    pub claim_asset_rail: Box<Account<'info, ReserveAssetRail>>,
+    #[account(
+        seeds = [SEED_RESERVE_ASSET_RAIL, health_plan.reserve_domain.as_ref(), payout_funding_line.asset_mint.as_ref()],
+        bump = payout_asset_rail.bump,
+        constraint = payout_asset_rail.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::ReserveAssetRailMismatch,
+        constraint = payout_asset_rail.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::ReserveAssetRailMismatch,
+    )]
+    pub payout_asset_rail: Box<Account<'info, ReserveAssetRail>>,
+    #[account(
+        mut,
+        seeds = [SEED_DOMAIN_ASSET_VAULT, health_plan.reserve_domain.as_ref(), payout_funding_line.asset_mint.as_ref()],
+        bump = payout_domain_asset_vault.bump,
+        constraint = payout_domain_asset_vault.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::ReserveDomainMismatch,
+        constraint = payout_domain_asset_vault.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub payout_domain_asset_vault: Box<Account<'info, DomainAssetVault>>,
+    #[account(
+        mut,
+        seeds = [SEED_DOMAIN_ASSET_LEDGER, health_plan.reserve_domain.as_ref(), payout_funding_line.asset_mint.as_ref()],
+        bump = payout_domain_asset_ledger.bump,
+        constraint = payout_domain_asset_ledger.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::ReserveDomainMismatch,
+        constraint = payout_domain_asset_ledger.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub payout_domain_asset_ledger: Box<Account<'info, DomainAssetLedger>>,
+    #[account(
+        mut,
+        seeds = [SEED_FUNDING_LINE, health_plan.key().as_ref(), payout_funding_line.line_id.as_bytes()],
+        bump = payout_funding_line.bump,
+    )]
+    pub payout_funding_line: Box<Account<'info, FundingLine>>,
+    #[account(
+        mut,
+        seeds = [SEED_FUNDING_LINE_LEDGER, payout_funding_line.key().as_ref(), payout_funding_line.asset_mint.as_ref()],
+        bump = payout_funding_line_ledger.bump,
+        constraint = payout_funding_line_ledger.funding_line == payout_funding_line.key() @ OmegaXProtocolError::FundingLineMismatch,
+        constraint = payout_funding_line_ledger.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub payout_funding_line_ledger: Box<Account<'info, FundingLineLedger>>,
+    #[account(
+        mut,
+        seeds = [SEED_PLAN_RESERVE_LEDGER, health_plan.key().as_ref(), payout_funding_line.asset_mint.as_ref()],
+        bump = payout_plan_reserve_ledger.bump,
+        constraint = payout_plan_reserve_ledger.health_plan == health_plan.key() @ OmegaXProtocolError::HealthPlanMismatch,
+        constraint = payout_plan_reserve_ledger.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub payout_plan_reserve_ledger: Box<Account<'info, PlanReserveLedger>>,
+    #[account(mut)]
+    pub payout_series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
+    #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
+    pub claim_case: Box<Account<'info, ClaimCase>>,
+    #[account(
+        constraint = member_position.key() == claim_case.member_position @ OmegaXProtocolError::Unauthorized,
+    )]
+    pub member_position: Box<Account<'info, MemberPosition>>,
+    #[account(
+        constraint = claim_asset_mint.key() == claim_case.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub claim_asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        constraint = payout_asset_mint.key() == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub payout_asset_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        constraint = payout_vault_token_account.key() == payout_domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
+    )]
+    pub payout_vault_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(mut)]
     pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
     pub token_program: Interface<'info, TokenInterface>,

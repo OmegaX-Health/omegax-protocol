@@ -25,6 +25,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   const initPoolOracleFeeVaultArgs = idl.types.find((entry) => entry.name === "InitPoolOracleFeeVaultArgs");
   const requestRedemptionArgs = idl.types.find((entry) => entry.name === "RequestRedemptionArgs");
   const processRedemptionArgs = idl.types.find((entry) => entry.name === "ProcessRedemptionQueueArgs");
+  const selectedAssetPayoutArgs = idl.types.find((entry) => entry.name === "SettleClaimCaseSelectedAssetArgs");
   const claimCaseAccount = idl.types.find((entry) => entry.name === "ClaimCase");
   const claimAttestationAccount = idl.types.find((entry) => entry.name === "ClaimAttestation");
 
@@ -47,6 +48,7 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(instructionNames.includes("verify_outcome_schema"));
   assert(instructionNames.includes("close_outcome_schema"));
   assert(instructionNames.includes("attest_claim_case"));
+  assert(instructionNames.includes("settle_claim_case_selected_asset"));
 
   // Phase 1.6 — fee-vault init instructions
   assert(instructionNames.includes("init_protocol_fee_vault"));
@@ -188,6 +190,20 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_obligation.some((account) => account.name === "claim_case"));
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_obligation.some((account) => account.name === "reserve_asset_rail"));
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_claim_case.some((account) => account.name === "reserve_asset_rail"));
+  for (const accountName of [
+    "claim_asset_rail",
+    "payout_asset_rail",
+    "payout_domain_asset_vault",
+    "payout_domain_asset_ledger",
+    "payout_funding_line",
+    "payout_vault_token_account",
+    "recipient_token_account",
+  ]) {
+    assert(
+      PROTOCOL_INSTRUCTION_ACCOUNTS.settle_claim_case_selected_asset.some((account) => account.name === accountName),
+      `settle_claim_case_selected_asset missing ${accountName}`,
+    );
+  }
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.reserve_obligation.find((account) => account.name === "claim_case")?.pdaSeeds);
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.release_reserve.find((account) => account.name === "claim_case")?.pdaSeeds);
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.settle_obligation.find((account) => account.name === "claim_case")?.pdaSeeds);
@@ -220,6 +236,10 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert.deepEqual(
     processRedemptionArgs?.type.fields?.map((field) => field.name),
     ["shares"],
+  );
+  assert.deepEqual(
+    selectedAssetPayoutArgs?.type.fields?.map((field) => field.name),
+    ["claim_credit_amount", "payout_amount", "max_overpay_bps", "settlement_reason_hash"],
   );
   assert(claimCaseAccount?.type.fields?.some((field) => field.name === "attestation_count"));
   for (const fieldName of [

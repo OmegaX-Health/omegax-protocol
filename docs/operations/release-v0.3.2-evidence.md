@@ -41,12 +41,12 @@ CodeQL after merge.
 
 | Artifact | SHA-256 |
 |----------|---------|
-| `idl/omegax_protocol.json` | `c56e25b8e21240a053fac835ab148f2973aa7311a7fe2230ce4c70c3adee736b` |
-| `idl/omegax_protocol.source-hash` file | `b8378b8f1bb9decba25052a6a4d0ba3c4ea9374087f7e48a22be1741ef68ac61` |
-| `idl/omegax_protocol.source-hash` value | `a4a4063ad62ed6d2398a0562a2045bde7c88ac449a11bbffcf6adaa355a342df` |
-| `shared/protocol_contract.json` | `14157588296844e66f7618fd96e46a5031c53e3c0207b6e6de193d8d96aa0082` |
-| `frontend/lib/generated/protocol-contract.ts` | `4a0153cdfc5a4513cf3cd0a680a1e797b910c08449b9d95da9165f97bc83a8fa` |
-| `frontend/lib/generated/protocol-contract.js` | `aba0d1fdf84bf9aa1f3c26405baef2174a05c12227d977ac99120aae78ce1e0c` |
+| `idl/omegax_protocol.json` | `8f125d44dd7d3a42b8e97dbc95ed5644cd2bb69b10ed30481dce8fd118dabf82` |
+| `idl/omegax_protocol.source-hash` file | `91217de7d3d43b83ebec95ac27edbd6a02a97207831198d00b953ad48cee2b66` |
+| `idl/omegax_protocol.source-hash` value | `b6b759e8d453ff0b03ee3e0b56de3758d9a697fc5a71aa182bb0c64e3aaecf1c` |
+| `shared/protocol_contract.json` | `d4d46a73a199bfa2035785856bc9d4badf3d3326a307200c651d7046766f3076` |
+| `frontend/lib/generated/protocol-contract.ts` | `ecdb19541f8457ec721739f1e2911662631e8266e754402eb1cf59c9617d7933` |
+| `frontend/lib/generated/protocol-contract.js` | `5c682f1fd138654cedf5dbd21a966edb6624c50c00dddec07096313dfb90e5e1` |
 
 | Drift gate | Result |
 |------------|--------|
@@ -137,14 +137,14 @@ with repository review permission.
 
 | Lane | Command | Result | Artifact |
 |------|---------|--------|----------|
-| Liability-state Rust regression | `npm run rust:test` | PASS: `80 passed`, `0 failed` | console output |
-| Liability-state Node/static regression | `npm run test:node` | PASS: `245 passed`, `0 failed` | console output |
+| Liability-state Rust regression | `npm run rust:test` | PASS: `84 passed`, `0 failed` | console output |
+| Liability-state Node/static regression | `npm run test:node` | PASS: `251 passed`, `0 failed` | console output |
 | Repo baseline health | `npm run verify:public` | PASS | SBOM under `artifacts/sbom/` |
-| Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS | `artifacts/localnet-e2e-summary-2026-05-05T16-44-18-251Z.json` |
-| Asset-agnostic commitment custody | included in localnet E2E | PASS: `3 payment assets`, `300 exact refunds`, `27 blocked custody/outflow probes`, `9 activation checks` | `artifacts/localnet-commitment-custody-2026-05-05T16-44-18-251Z.json` |
-| Executable adversarial localnet | included in localnet E2E | PASS: `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-05T16-44-18-252Z.json` |
+| Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS: `68/68` live instructions owned | `artifacts/localnet-e2e-summary-2026-05-06T07-38-44-043Z.json` |
+| Asset-agnostic commitment custody | included in localnet E2E | PASS: `3 payment assets`, `300 exact refunds`, `27 blocked custody/outflow probes`, `9 activation checks` | `artifacts/localnet-commitment-custody-2026-05-06T07-38-44-043Z.json` |
+| Executable adversarial localnet | included in localnet E2E | PASS: `62 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-06T07-38-44-044Z.json` |
 | Operator drawer simulation | `SOLANA_KEYPAIR=<devnet governance keypair> npm run devnet:operator:drawer:sim` | PASS: `FAIL=0`; expected idempotent collisions and fixture skips only | console output |
-| Mainnet preflight, no sends | `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 OMEGAX_LIVE_SETTLEMENT_MINT=4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump npm run protocol:bootstrap:genesis-live -- --plan` | BLOCKER: current operator env is missing `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH`; command failed before send path | console error; no transactions sent |
+| Mainnet preflight, no sends | `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 OMEGAX_LIVE_SETTLEMENT_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v npm run protocol:bootstrap:genesis-live -- --plan` | BLOCKER: current operator env is missing `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH`; command failed before send path | console error; no transactions sent |
 | Mainnet unsafe config tests | `npm run verify:public` node suite | PASS | `tests/genesis_live_bootstrap_config.test.ts`, `tests/genesis_live_bootstrap_plan_cli.test.ts` |
 
 ## 6. Dependency Scan
@@ -195,7 +195,7 @@ oracle keypair path and final role-map inputs.
 |-------|-------|
 | RPC | `https://api.mainnet-beta.solana.com` |
 | Program ID planned | `Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B` |
-| Settlement mint supplied for current replay | `4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump` |
+| Settlement mint supplied for current replay | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` (mainnet USDC) |
 | Governance authority used for plan | `AiNPYZQkbfcTkSh3r9vPKAMgMa3TbU47Jk3TaKTCB4Sg` |
 | Governance config address | `CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU` |
 | Reserve domain | `WfQ7PjCTwuTCn3KM4mxUmyjQSw3RvcnyT3Gfdg2WUoq` |
@@ -212,7 +212,7 @@ Current no-send replay:
 
 ```sh
 OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 \
-OMEGAX_LIVE_SETTLEMENT_MINT=4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump \
+OMEGAX_LIVE_SETTLEMENT_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v \
 npm run protocol:bootstrap:genesis-live -- --plan
 ```
 
@@ -248,6 +248,11 @@ and the on-chain settlement path requires that asset's active, payout-enabled,
 fresh-priced `ReserveAssetRail`. The program does not silently mutate a USDC
 claim ledger while draining a WBTC/SOL/WETH vault and does not perform DEX
 swaps in this pass.
+
+`$OMEGAX` (`4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump`) is not the
+default claims settlement mint. It may be configured as a commitment payment
+rail or a last-resort selected payout rail only when explicitly enabled,
+payout-enabled, and fresh-priced.
 
 ## 11. Liability-State Hardening Addendum
 

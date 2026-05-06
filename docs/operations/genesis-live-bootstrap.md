@@ -34,7 +34,7 @@ Set these in the shell before running the command:
 
 ```bash
 export SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-export OMEGAX_LIVE_SETTLEMENT_MINT=<usdc_mint>
+export OMEGAX_LIVE_SETTLEMENT_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 export OMEGAX_LIVE_ORACLE_WALLET=<oracle_pubkey>
 export OMEGAX_LIVE_ORACLE_KEYPAIR_PATH=/absolute/path/to/oracle-keypair.json
 export OMEGAX_GENESIS_SETTLEMENT_VAULT_TOKEN_ACCOUNT=<treasury_token_account>

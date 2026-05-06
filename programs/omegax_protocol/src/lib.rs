@@ -55,6 +55,7 @@ pub(crate) use capital::{
     __client_accounts_update_capital_class_controls,
     __client_accounts_update_lp_position_credentialing,
 };
+pub(crate) use claims::__client_accounts_settle_claim_case_selected_asset;
 pub(crate) use commitments::{
     __client_accounts_activate_direct_premium_commitment,
     __client_accounts_activate_treasury_credit_commitment,
@@ -343,6 +344,13 @@ pub mod omegax_protocol {
         args: SettleClaimCaseArgs,
     ) -> Result<()> {
         crate::claims::settle_claim_case(ctx, args)
+    }
+
+    pub fn settle_claim_case_selected_asset(
+        ctx: Context<SettleClaimCaseSelectedAsset>,
+        args: SettleClaimCaseSelectedAssetArgs,
+    ) -> Result<()> {
+        crate::claims::settle_claim_case_selected_asset(ctx, args)
     }
 
     pub fn create_liquidity_pool(

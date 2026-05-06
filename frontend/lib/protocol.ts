@@ -51,6 +51,7 @@ export const ZERO_PUBKEY_KEY = new PublicKey(ZERO_PUBKEY);
 export const NATIVE_SOL_MINT = "So11111111111111111111111111111111111111112";
 export const NATIVE_SOL_MINT_KEY = new PublicKey(NATIVE_SOL_MINT);
 export const MAX_ID_SEED_BYTES = 32;
+export const MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS = 50;
 
 export function classicTokenProgramId(tokenProgramId?: PublicKeyish | null): PublicKey {
   const candidate = toPublicKey(tokenProgramId ?? TOKEN_PROGRAM_ID);
@@ -850,12 +851,15 @@ export type ClaimFundingReadinessOtherReserveAsset = {
   reserveDomain: string;
   assetMint: string;
   assetSymbol: string;
+  payoutEnabled: boolean;
+  payoutPriority: number;
   freeAmountRaw: bigint;
   priceFresh: boolean;
   priceUsd1e8: bigint | null;
   haircutBps: number;
   estimatedValueUsd1e8: bigint | null;
   haircutAdjustedValueUsd1e8: bigint | null;
+  selectedForPayout: boolean;
   immediatelySettleable: false;
   warnings: string[];
 };
@@ -872,6 +876,8 @@ export type ClaimFundingReadiness = {
   queuedRedemptionsAmount: bigint;
   availableLpAllocationCapacityAmount: bigint;
   otherReserveAssets: ClaimFundingReadinessOtherReserveAsset[];
+  selectedPayoutAsset: ClaimFundingReadinessOtherReserveAsset | null;
+  estimatedSelectedPayoutAmountRaw: bigint | null;
   readiness: ClaimFundingReadinessState;
   warnings: string[];
 };
@@ -1830,12 +1836,12 @@ function clampDecimals(value: number | undefined): number {
 }
 
 function freshRailPrice(rail: ReserveAssetRailSnapshot | null | undefined, nowTs: number): boolean {
-  if (!rail || !rail.active || !rail.capacityEnabled) return false;
+  if (!rail || !rail.active || (!rail.capacityEnabled && !rail.payoutEnabled)) return false;
   const price = toBigIntAmount(rail.lastPriceUsd1e8);
   if (price <= 0n) return false;
   const publishedAt = Number(rail.lastPricePublishedAtTs ?? 0);
   const maxStaleness = Number(rail.maxStalenessSeconds ?? 0);
-  return maxStaleness === 0 || (publishedAt > 0 && nowTs - publishedAt <= maxStaleness);
+  return maxStaleness > 0 && publishedAt > 0 && publishedAt <= nowTs && nowTs - publishedAt <= maxStaleness;
 }
 
 function amountToUsd1e8(params: {
@@ -1848,6 +1854,24 @@ function amountToUsd1e8(params: {
   const price = toBigIntAmount(params.rail?.lastPriceUsd1e8);
   const decimalFactor = 10n ** BigInt(clampDecimals(params.decimals));
   return (params.amountRaw * price) / decimalFactor;
+}
+
+function ceilDivBigInt(numerator: bigint, denominator: bigint): bigint {
+  if (denominator <= 0n) return 0n;
+  return numerator === 0n ? 0n : ((numerator - 1n) / denominator) + 1n;
+}
+
+function usd1e8ToAmountRaw(params: {
+  usd1e8: bigint;
+  rail: ReserveAssetRailSnapshot | null | undefined;
+  decimals: number;
+  nowTs: number;
+}): bigint | null {
+  if (!freshRailPrice(params.rail, params.nowTs)) return null;
+  const price = toBigIntAmount(params.rail?.lastPriceUsd1e8);
+  if (price <= 0n) return null;
+  const decimalFactor = 10n ** BigInt(clampDecimals(params.decimals));
+  return ceilDivBigInt(params.usd1e8 * decimalFactor, price);
 }
 
 function fundingLineFreeForReadiness(line: FundingLineSnapshot): bigint {
@@ -2046,6 +2070,8 @@ export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): 
       ];
       if (!rail) {
         assetWarnings.push("No reserve asset rail exists for this asset.");
+      } else if (!rail.payoutEnabled) {
+        assetWarnings.push("Payout rail is disabled for this asset.");
       } else if (!freshRailPrice(rail, nowTs)) {
         assetWarnings.push("No fresh published price is available, so haircut-adjusted value is not counted.");
       }
@@ -2054,12 +2080,15 @@ export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): 
         reserveDomain: reserveDomain ?? rail?.reserveDomain ?? "",
         assetMint,
         assetSymbol: rail?.assetSymbol ?? assetMint.slice(0, 4),
+        payoutEnabled: Boolean(rail?.payoutEnabled),
+        payoutPriority: rail?.payoutPriority ?? 255,
         freeAmountRaw,
         priceFresh: freshRailPrice(rail, nowTs),
         priceUsd1e8: rail ? toBigIntAmount(rail.lastPriceUsd1e8) : null,
         haircutBps,
         estimatedValueUsd1e8,
         haircutAdjustedValueUsd1e8,
+        selectedForPayout: false,
         immediatelySettleable: false,
         warnings: assetWarnings,
       };
@@ -2079,6 +2108,37 @@ export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): 
     (sum, asset) => sum + (asset.haircutAdjustedValueUsd1e8 ?? 0n),
     0n,
   );
+  const eligibleSelectedAsset = shortfallUsd1e8 === null
+    ? null
+    : otherReserveAssets
+      .filter((asset) =>
+        asset.payoutEnabled
+        && asset.priceFresh
+        && asset.haircutAdjustedValueUsd1e8 !== null
+        && asset.haircutAdjustedValueUsd1e8 >= shortfallUsd1e8,
+      )
+      .sort((left, right) => {
+        const priorityDelta = left.payoutPriority - right.payoutPriority;
+        if (priorityDelta !== 0) return priorityDelta;
+        const leftValue = left.haircutAdjustedValueUsd1e8 ?? 0n;
+        const rightValue = right.haircutAdjustedValueUsd1e8 ?? 0n;
+        return rightValue > leftValue ? 1 : rightValue < leftValue ? -1 : 0;
+      })[0] ?? null;
+  const estimatedSelectedPayoutAmountRaw = eligibleSelectedAsset && shortfallUsd1e8 !== null
+    ? usd1e8ToAmountRaw({
+      usd1e8: shortfallUsd1e8,
+      rail: railsByMint.get(eligibleSelectedAsset.assetMint) ?? null,
+      decimals: clampDecimals(params.assetDecimalsByMint?.[eligibleSelectedAsset.assetMint]),
+      nowTs,
+    })
+    : null;
+  const otherReserveAssetsWithSelection = otherReserveAssets.map((asset) => ({
+    ...asset,
+    selectedForPayout: eligibleSelectedAsset?.assetMint === asset.assetMint,
+  }));
+  const selectedPayoutAsset = eligibleSelectedAsset
+    ? otherReserveAssetsWithSelection.find((asset) => asset.assetMint === eligibleSelectedAsset.assetMint) ?? null
+    : null;
 
   if (shortfallAmount > 0n) {
     warnings.push("Settlement-mint capacity is below the requested amount.");
@@ -2089,13 +2149,16 @@ export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): 
   if (shortfallAmount > 0n && shortfallUsd1e8 === null && otherReserveHaircutValueUsd1e8 > 0n) {
     warnings.push("Settlement-mint shortfall cannot be compared to other assets without a fresh settlement asset price.");
   }
+  if (selectedPayoutAsset) {
+    warnings.push(`Selected-asset payout candidate: ${selectedPayoutAsset.assetSymbol}. This pays that token directly; it is not a swap or USDC conversion.`);
+  }
 
   let readiness: ClaimFundingReadinessState;
   if (requestedAmount <= immediatelySettleableAmount) {
     readiness = "settle_now";
   } else if (requestedAmount <= immediatelySettleableAmount + availableLpAllocationCapacityAmount) {
     readiness = "reserve_then_settle";
-  } else if (otherReserveHaircutValueUsd1e8 > 0n && (shortfallUsd1e8 === null || otherReserveHaircutValueUsd1e8 >= shortfallUsd1e8)) {
+  } else if (selectedPayoutAsset || (otherReserveHaircutValueUsd1e8 > 0n && (shortfallUsd1e8 === null || otherReserveHaircutValueUsd1e8 >= shortfallUsd1e8))) {
     readiness = "operator_action_required";
   } else {
     readiness = "queue_or_refund";
@@ -2112,7 +2175,9 @@ export function buildClaimFundingReadiness(params: ClaimFundingReadinessInput): 
     pendingObligationsAmount,
     queuedRedemptionsAmount,
     availableLpAllocationCapacityAmount,
-    otherReserveAssets,
+    otherReserveAssets: otherReserveAssetsWithSelection,
+    selectedPayoutAsset,
+    estimatedSelectedPayoutAmountRaw,
     readiness,
     warnings,
   };
@@ -6244,6 +6309,98 @@ export function buildSettleClaimCaseTx(params: {
       optionalProtocolAccount(params.vaultTokenAccountAddress, true),
       optionalProtocolAccount(params.recipientTokenAccountAddress, true),
       { pubkey: params.memberPositionAddress && params.vaultTokenAccountAddress && params.recipientTokenAccountAddress ? tokenProgramId : getProgramId() },
+    ],
+  });
+}
+
+export function buildSettleClaimCaseSelectedAssetTx(params: {
+  authority: PublicKeyish;
+  healthPlanAddress: PublicKeyish;
+  reserveDomainAddress: PublicKeyish;
+  payoutFundingLineAddress: PublicKeyish;
+  claimAssetMint: PublicKeyish;
+  payoutAssetMint: PublicKeyish;
+  claimCaseAddress: PublicKeyish;
+  memberPositionAddress: PublicKeyish;
+  payoutVaultTokenAccountAddress: PublicKeyish;
+  recipientTokenAccountAddress: PublicKeyish;
+  recentBlockhash: string;
+  claimCreditAmount: bigint;
+  payoutAmount: bigint;
+  maxOverpayBps?: number | null;
+  policySeriesAddress?: PublicKeyish | null;
+  settlementReasonHashHex?: string | null;
+  tokenProgramId?: PublicKeyish | null;
+}): Transaction {
+  const authority = toPublicKey(params.authority);
+  const tokenProgramId = classicTokenProgramId(params.tokenProgramId);
+  const maxOverpayBps = params.maxOverpayBps ?? MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS;
+  if (maxOverpayBps > MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS) {
+    throw new Error(`maxOverpayBps cannot exceed ${MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS}`);
+  }
+  return buildProtocolTransactionFromInstruction({
+    feePayer: authority,
+    recentBlockhash: params.recentBlockhash,
+    instructionName: "settle_claim_case_selected_asset",
+    args: {
+      claim_credit_amount: params.claimCreditAmount,
+      payout_amount: params.payoutAmount,
+      max_overpay_bps: maxOverpayBps,
+      settlement_reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.settlementReasonHashHex), 32)),
+    },
+    accounts: [
+      { pubkey: authority, isSigner: true },
+      { pubkey: deriveProtocolGovernancePda() },
+      { pubkey: params.healthPlanAddress },
+      {
+        pubkey: deriveReserveAssetRailPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.claimAssetMint,
+        }),
+      },
+      {
+        pubkey: deriveReserveAssetRailPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.payoutAssetMint,
+        }),
+      },
+      {
+        pubkey: deriveDomainAssetVaultPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.payoutAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: deriveDomainAssetLedgerPda({
+          reserveDomain: params.reserveDomainAddress,
+          assetMint: params.payoutAssetMint,
+        }),
+        isWritable: true,
+      },
+      { pubkey: params.payoutFundingLineAddress, isWritable: true },
+      {
+        pubkey: deriveFundingLineLedgerPda({
+          fundingLine: params.payoutFundingLineAddress,
+          assetMint: params.payoutAssetMint,
+        }),
+        isWritable: true,
+      },
+      {
+        pubkey: derivePlanReserveLedgerPda({
+          healthPlan: params.healthPlanAddress,
+          assetMint: params.payoutAssetMint,
+        }),
+        isWritable: true,
+      },
+      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.payoutAssetMint),
+      { pubkey: params.claimCaseAddress, isWritable: true },
+      { pubkey: params.memberPositionAddress },
+      { pubkey: params.claimAssetMint },
+      { pubkey: params.payoutAssetMint },
+      { pubkey: params.payoutVaultTokenAccountAddress, isWritable: true },
+      { pubkey: params.recipientTokenAccountAddress, isWritable: true },
+      { pubkey: tokenProgramId },
     ],
   });
 }

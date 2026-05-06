@@ -613,7 +613,7 @@ fn reserve_asset_capacity_requires_published_price() {
         payout_priority: 4,
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [7u8; 32],
-        max_staleness_seconds: 0,
+        max_staleness_seconds: 3_600,
         haircut_bps: 5_000,
         max_exposure_bps: 1_000,
         deposit_enabled: true,
@@ -632,7 +632,9 @@ fn reserve_asset_capacity_requires_published_price() {
     assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_err());
 
     rail.last_price_usd_1e8 = 42_000_000;
-    assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_ok());
+    rail.last_price_published_at_ts = 1_000;
+    assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 1_100).is_ok());
+    assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 5_000).is_err());
 }
 
 #[test]
@@ -646,7 +648,7 @@ fn reserve_asset_payout_requires_enabled_fresh_price() {
         payout_priority: 5,
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [9u8; 32],
-        max_staleness_seconds: 0,
+        max_staleness_seconds: 3_600,
         haircut_bps: 2_500,
         max_exposure_bps: 1_000,
         deposit_enabled: true,
@@ -668,7 +670,148 @@ fn reserve_asset_payout_requires_enabled_fresh_price() {
     assert!(reserve_waterfall::require_reserve_asset_rail_payout_enabled(&rail).is_err());
 
     rail.last_price_usd_1e8 = 6_500_000_000_000;
-    assert!(reserve_waterfall::require_reserve_asset_rail_payout_enabled(&rail).is_ok());
+    rail.last_price_published_at_ts = 1_000;
+    assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 1_100).is_ok());
+}
+
+#[test]
+fn reserve_asset_price_zero_staleness_is_invalid_for_payout() {
+    let rail = ReserveAssetRail {
+        reserve_domain: Pubkey::new_unique(),
+        asset_mint: Pubkey::new_unique(),
+        oracle_authority: Pubkey::new_unique(),
+        asset_symbol: "WBTC".to_string(),
+        role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
+        payout_priority: 5,
+        oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+        oracle_feed_id: [9u8; 32],
+        max_staleness_seconds: 0,
+        haircut_bps: 2_500,
+        max_exposure_bps: 1_000,
+        deposit_enabled: true,
+        payout_enabled: true,
+        capacity_enabled: false,
+        active: true,
+        last_price_usd_1e8: 6_500_000_000_000,
+        last_price_confidence_bps: 0,
+        last_price_published_at_ts: 1_000,
+        last_price_slot: 0,
+        last_price_proof_hash: [0u8; 32],
+        audit_nonce: 0,
+        bump: 1,
+    };
+
+    assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 1_100).is_err());
+}
+
+#[test]
+fn selected_asset_payout_value_bounds_are_enforced() {
+    let mut usdc_rail = ReserveAssetRail {
+        reserve_domain: Pubkey::new_unique(),
+        asset_mint: Pubkey::new_unique(),
+        oracle_authority: Pubkey::new_unique(),
+        asset_symbol: "USDC".to_string(),
+        role: RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+        payout_priority: 0,
+        oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+        oracle_feed_id: [1u8; 32],
+        max_staleness_seconds: 3_600,
+        haircut_bps: 0,
+        max_exposure_bps: 10_000,
+        deposit_enabled: true,
+        payout_enabled: true,
+        capacity_enabled: true,
+        active: true,
+        last_price_usd_1e8: 100_000_000,
+        last_price_confidence_bps: 0,
+        last_price_published_at_ts: 1_000,
+        last_price_slot: 0,
+        last_price_proof_hash: [0u8; 32],
+        audit_nonce: 0,
+        bump: 1,
+    };
+    let wbtc_rail = ReserveAssetRail {
+        reserve_domain: usdc_rail.reserve_domain,
+        asset_mint: Pubkey::new_unique(),
+        oracle_authority: Pubkey::new_unique(),
+        asset_symbol: "WBTC".to_string(),
+        role: RESERVE_ASSET_ROLE_VOLATILE_COLLATERAL,
+        payout_priority: 5,
+        oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
+        oracle_feed_id: [2u8; 32],
+        max_staleness_seconds: 3_600,
+        haircut_bps: 2_500,
+        max_exposure_bps: 1_000,
+        deposit_enabled: true,
+        payout_enabled: true,
+        capacity_enabled: false,
+        active: true,
+        last_price_usd_1e8: 5_000_000_000_000,
+        last_price_confidence_bps: 0,
+        last_price_published_at_ts: 1_000,
+        last_price_slot: 0,
+        last_price_proof_hash: [0u8; 32],
+        audit_nonce: 0,
+        bump: 1,
+    };
+
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        1_000_000,
+        8,
+        &wbtc_rail,
+        50,
+        1_100,
+    )
+    .is_ok());
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        999_999,
+        8,
+        &wbtc_rail,
+        50,
+        1_100,
+    )
+    .is_err());
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        1_010_000,
+        8,
+        &wbtc_rail,
+        50,
+        1_100,
+    )
+    .is_err());
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        1_000_000,
+        8,
+        &wbtc_rail,
+        51,
+        1_100,
+    )
+    .is_err());
+
+    usdc_rail.last_price_published_at_ts = 0;
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        1_000_000,
+        8,
+        &wbtc_rail,
+        50,
+        1_100,
+    )
+    .is_err());
 }
 
 #[test]
@@ -2299,6 +2442,71 @@ fn settlement_origin_fee_withdrawal_does_not_double_debit_domain_sheet() {
     assert_eq!(domain_assets, 900);
     assert_eq!(domain_sheet.funded, 900);
     assert_eq!(domain_sheet.settled, 100);
+}
+
+#[test]
+fn selected_asset_claim_payout_debits_only_selected_asset_free_reserve() {
+    let reserve_domain = Pubkey::new_unique();
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let payout_asset_mint = Pubkey::new_unique();
+    let mut funding_line = sample_funding_line(
+        reserve_domain,
+        health_plan,
+        policy_series,
+        payout_asset_mint,
+        FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+    );
+
+    let mut domain_assets = 1_000;
+    let mut domain_sheet = ReserveBalanceSheet {
+        funded: 1_000,
+        free: 1_000,
+        redeemable: 1_000,
+        ..ReserveBalanceSheet::default()
+    };
+    let mut plan_sheet = domain_sheet;
+    let mut line_sheet = domain_sheet;
+
+    book_selected_asset_claim_payout(
+        &mut domain_assets,
+        &mut domain_sheet,
+        &mut plan_sheet,
+        &mut line_sheet,
+        None,
+        &mut funding_line,
+        250,
+    )
+    .unwrap();
+
+    assert_eq!(domain_assets, 750);
+    assert_eq!(domain_sheet.funded, 750);
+    assert_eq!(domain_sheet.settled, 250);
+    assert_eq!(domain_sheet.free, 750);
+    assert_eq!(plan_sheet.funded, 750);
+    assert_eq!(line_sheet.funded, 750);
+    assert_eq!(funding_line.spent_amount, 250);
+
+    let mut insufficient_sheet = ReserveBalanceSheet {
+        funded: 100,
+        reserved: 80,
+        free: 20,
+        redeemable: 20,
+        ..ReserveBalanceSheet::default()
+    };
+    let mut plan_sheet = insufficient_sheet;
+    let mut line_sheet = insufficient_sheet;
+    let mut domain_assets = 100;
+    assert!(book_selected_asset_claim_payout(
+        &mut domain_assets,
+        &mut insufficient_sheet,
+        &mut plan_sheet,
+        &mut line_sheet,
+        None,
+        &mut funding_line,
+        50,
+    )
+    .is_err());
 }
 
 #[test]

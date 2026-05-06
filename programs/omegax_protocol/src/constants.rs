@@ -14,6 +14,7 @@ pub const MAX_SCHEMA_KEY_LEN: usize = 96;
 pub const MAX_SCHEMA_DEPENDENCY_RULES: usize = 32;
 pub const BASIS_POINTS_DENOMINATOR: u16 = 10_000;
 pub const MAX_CONFIGURED_FEE_BPS: u16 = BASIS_POINTS_DENOMINATOR - 1;
+pub const MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS: u16 = 50;
 
 pub const SEED_PROTOCOL_GOVERNANCE: &[u8] = b"protocol_governance";
 pub const SEED_RESERVE_DOMAIN: &[u8] = b"reserve_domain";

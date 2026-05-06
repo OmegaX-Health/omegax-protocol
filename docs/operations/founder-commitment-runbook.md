@@ -20,8 +20,8 @@ Founder Travel30 commitments are a temporary launch flow for collecting intent a
 - `ReserveAssetRail` accounts define the mixed-reserve waterfall for each accepted asset: role, payout priority, oracle source, freshness window, haircut, exposure cap, and whether deposits/payout/capacity are enabled.
 - Stable rails should be ordered first. Launch priority is USDC first, PUSD second, USDT third, SOL/WSOL fourth, WBTC fifth, WETH sixth, and OMEGAX last.
 - `WATERFALL_RESERVE` payment rails accept USDC, PUSD, USDT, SOL/WSOL, WBTC, WETH, or OMEGAX into the same reserve domain and later activate into reserve accounting only after the rail controls are valid.
-- OMEGAX is not swapped or sold by the v1 protocol. It can only count as active claims capacity when a configured reserve rail has a fresh approved price, an explicit haircut, an exposure cap, and payout priority after stable rails.
-- If an OMEGAX Chainlink feed is unavailable at launch, set the OMEGAX rail `capacity_enabled=false` until governance configures the feed or an approved oracle authority publishes a governance-attested price.
+- OMEGAX is not swapped or sold by the v1 protocol. It can be a commitment payment rail, and it can be a last-resort selected payout rail only when explicitly `payout_enabled`, fresh-priced, and ordered after stable/SOL/WBTC/WETH rails. It should only count as active claims capacity when `capacity_enabled=true`, a fresh approved price exists, haircut/exposure limits are set, and governance has accepted that capacity posture.
+- If an OMEGAX Chainlink feed is unavailable at launch, set the OMEGAX rail `capacity_enabled=false`; leave `payout_enabled=false` unless governance intentionally accepts fresh governance-attested pricing for selected-token payouts.
 - Legacy `DIRECT_PREMIUM` and `TREASURY_CREDIT` modes remain available for old/operator workflows, but new public Founder Travel30 rails should use `WATERFALL_RESERVE`.
 
 ## Protocol Console Scope
@@ -44,9 +44,9 @@ Founder Travel30 commitments are a temporary launch flow for collecting intent a
 ## Operator Checklist
 
 1. Create or confirm the target reserve domain, payment vault, health plan, Travel30 policy series, and Travel30 premium funding line.
-2. Configure reserve rails for accepted assets. Start with USDC/PUSD/USDT stable rails, add SOL/WSOL, WBTC, and WETH only with live price sources, and add OMEGAX last with `capacity_enabled=false` until its price feed/attestation is ready.
+2. Configure reserve rails for accepted assets. Start with USDC/PUSD/USDT stable rails, add SOL/WSOL, WBTC, and WETH only with live price sources, and add OMEGAX last with `capacity_enabled=false` until its price feed/attestation is ready. Any rail with `capacity_enabled=true` or `payout_enabled=true` must have a non-`NONE` oracle source, nonzero oracle authority, and nonzero staleness window.
 3. Create the Founder Travel30 campaign once, then add `CommitmentPaymentRail` accounts for each accepted mint under that same campaign.
 4. Keep public CTAs pointed at `/protect/founder` while commitment mode is live.
 5. Monitor commitment ledgers separately from reserve funding ledgers.
-6. Before activation, verify each payment rail maps to an active reserve asset rail with fresh price data when capacity is enabled.
-7. Keep OMEGAX PDA-held and unsold; if used for capacity, use it last in the waterfall after stable rails and SOL/WBTC/WETH.
+6. Before activation, verify each payment rail maps to an active reserve asset rail with fresh price data when capacity or payout is enabled.
+7. Keep OMEGAX PDA-held and unsold; if used for selected-token payout or capacity, use it last in the waterfall after stable rails and SOL/WBTC/WETH.

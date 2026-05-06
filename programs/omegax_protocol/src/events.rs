@@ -191,6 +191,16 @@ pub struct ClaimCaseStateChangedEvent {
 }
 
 #[event]
+pub struct ClaimCaseSelectedAssetPayoutEvent {
+    pub claim_case: Pubkey,
+    pub claim_asset_mint: Pubkey,
+    pub payout_asset_mint: Pubkey,
+    pub claim_credit_amount: u64,
+    pub payout_amount: u64,
+    pub settlement_reason_hash: [u8; 32],
+}
+
+#[event]
 pub struct ClaimCaseAttestedEvent {
     pub claim_attestation: Pubkey,
     pub claim_case: Pubkey,

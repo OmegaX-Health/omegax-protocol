@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 6d33f9edc6649ade5187ff585fd488688ed3e46121a59f2092e22107aba1f05e
+// contract_sha256: d4d46a73a199bfa2035785856bc9d4badf3d3326a307200c651d7046766f3076
 
 export type ProtocolInstructionName =
   | "activate_direct_premium_commitment"
@@ -54,6 +54,7 @@ export type ProtocolInstructionName =
   | "set_pool_oracle_policy"
   | "set_protocol_emergency_pause"
   | "settle_claim_case"
+  | "settle_claim_case_selected_asset"
   | "settle_obligation"
   | "update_allocation_caps"
   | "update_capital_class_controls"
@@ -139,6 +140,7 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "set_pool_oracle_policy": Uint8Array.from([190, 13, 51, 113, 230, 140, 103, 82]),
   "set_protocol_emergency_pause": Uint8Array.from([180, 209, 92, 144, 227, 14, 97, 94]),
   "settle_claim_case": Uint8Array.from([178, 123, 229, 204, 50, 204, 91, 71]),
+  "settle_claim_case_selected_asset": Uint8Array.from([21, 218, 248, 73, 41, 97, 47, 212]),
   "settle_obligation": Uint8Array.from([209, 166, 218, 35, 147, 139, 238, 208]),
   "update_allocation_caps": Uint8Array.from([224, 101, 103, 146, 78, 5, 48, 132]),
   "update_capital_class_controls": Uint8Array.from([34, 4, 113, 70, 79, 197, 244, 109]),
@@ -310,6 +312,9 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   ],
   "settle_claim_case": [
       { name: "args", type: {"defined":{"name":"SettleClaimCaseArgs"}} },
+  ],
+  "settle_claim_case_selected_asset": [
+      { name: "args", type: {"defined":{"name":"SettleClaimCaseSelectedAssetArgs"}} },
   ],
   "settle_obligation": [
       { name: "args", type: {"defined":{"name":"SettleObligationArgs"}} },
@@ -875,6 +880,26 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "member_position", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "recipient_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "token_program", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+  ],
+  "settle_claim_case_selected_asset": [
+      { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
+      { name: "health_plan", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
+      { name: "claim_asset_rail", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [114, 101, 115, 101, 114, 118, 101, 95, 97, 115, 115, 101, 116, 95, 114, 97, 105, 108] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "claim_case.asset_mint" }] },
+      { name: "payout_asset_rail", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [114, 101, 115, 101, 114, 118, 101, 95, 97, 115, 115, 101, 116, 95, 114, 97, 105, 108] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "payout_funding_line.asset_mint" }] },
+      { name: "payout_domain_asset_vault", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 118, 97, 117, 108, 116] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "payout_funding_line.asset_mint" }] },
+      { name: "payout_domain_asset_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [100, 111, 109, 97, 105, 110, 95, 97, 115, 115, 101, 116, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "payout_funding_line.asset_mint" }] },
+      { name: "payout_funding_line", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [102, 117, 110, 100, 105, 110, 103, 95, 108, 105, 110, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "payout_funding_line.line_id" }] },
+      { name: "payout_funding_line_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [102, 117, 110, 100, 105, 110, 103, 95, 108, 105, 110, 101, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "payout_funding_line" }, { kind: "account", path: "payout_funding_line.asset_mint" }] },
+      { name: "payout_plan_reserve_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 108, 97, 110, 95, 114, 101, 115, 101, 114, 118, 101, 95, 108, 101, 100, 103, 101, 114] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "payout_funding_line.asset_mint" }] },
+      { name: "payout_series_reserve_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
+      { name: "claim_case", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
+      { name: "member_position", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "claim_asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "payout_asset_mint", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
+      { name: "payout_vault_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "recipient_token_account", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "token_program", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: undefined },
   ],
