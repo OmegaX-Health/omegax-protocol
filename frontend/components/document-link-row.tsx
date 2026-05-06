@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { resolveSafeDocumentHref } from "@/lib/safe-external-url";
+
 type DocumentLinkRowProps = {
   href: string;
   label: string;
@@ -19,20 +21,33 @@ function formatDocumentSource(value: string, fallback?: string): string {
 }
 
 export function DocumentLinkRow({ href, label, sourceLabel }: DocumentLinkRowProps) {
-  const normalizedHref = href.trim();
+  const safeHref = resolveSafeDocumentHref(href);
+  const displayHref = safeHref ?? href.trim();
+  const documentSource = formatDocumentSource(displayHref, sourceLabel);
+  const documentCopy = (
+    <div className="plans-review-document-copy">
+      <span className="plans-review-document-label">{label}</span>
+      <span className="plans-review-document-host">{documentSource}</span>
+      <span className="plans-review-document-url" title={displayHref}>{displayHref || "Unavailable"}</span>
+    </div>
+  );
+
+  if (!safeHref) {
+    return (
+      <div className="plans-review-document" aria-disabled="true">
+        {documentCopy}
+      </div>
+    );
+  }
 
   return (
     <a
       className="plans-review-document"
-      href={normalizedHref}
-      target={normalizedHref.startsWith("/") ? undefined : "_blank"}
-      rel={normalizedHref.startsWith("/") ? undefined : "noreferrer"}
+      href={safeHref}
+      target={safeHref.startsWith("/") ? undefined : "_blank"}
+      rel={safeHref.startsWith("/") ? undefined : "noreferrer"}
     >
-      <div className="plans-review-document-copy">
-        <span className="plans-review-document-label">{label}</span>
-        <span className="plans-review-document-host">{formatDocumentSource(normalizedHref, sourceLabel)}</span>
-        <span className="plans-review-document-url" title={normalizedHref}>{normalizedHref}</span>
-      </div>
+      {documentCopy}
     </a>
   );
 }

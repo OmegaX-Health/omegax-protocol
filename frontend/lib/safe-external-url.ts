@@ -63,8 +63,34 @@ export function resolveSafeExternalHref(value: string | null | undefined): strin
   return null;
 }
 
+export function resolveSafeDocumentHref(value: string | null | undefined): string | null {
+  const normalized = normalize(value);
+  if (!normalized) return null;
+
+  if (normalized.startsWith("/")) {
+    try {
+      const parsed = new URL(normalized, "https://protocol.omegax.health");
+      if (parsed.origin !== "https://protocol.omegax.health") return null;
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return null;
+    }
+  }
+
+  const external = resolveSafeExternalHref(normalized);
+  if (!external) return null;
+
+  try {
+    const parsed = new URL(external);
+    return parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 const safeExternalUrl = {
   resolveSafeExternalHref,
+  resolveSafeDocumentHref,
 };
 
 export default safeExternalUrl;
