@@ -96,7 +96,11 @@ test("[CSO-2026-05-05] waterfall activation books only haircut and cap bounded r
   assert.ok(exposureCapIndex < fundedMutationIndex, "exposure cap must be computed before funding mutation");
   assert.ok(fundedMutationIndex < ledgerMutationIndex, "cap check must run before reserve ledger booking");
   assert.match(body, /next_funded <= exposure_cap[\s\S]+InsufficientFreeReserveCapacity/);
-  assert.match(body, /activate_commitment_position\([\s\S]+capacity_amount/);
+  assert.match(
+    body,
+    /activate_commitment_position\(\s*&mut ctx\.accounts\.ledger,\s*&mut ctx\.accounts\.position,\s*COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,\s*amount,/,
+  );
+  assert.doesNotMatch(body, /COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,\s*capacity_amount/);
   assert.match(programSource, /fn reserve_capacity_amount\(amount: u64, haircut_bps: u16, max_exposure_bps: u16\)/);
   assert.match(programSource, /checked_sub\(u64::from\(haircut_bps\)\)/);
   assert.match(programSource, /fn checked_mul_div_u64\(value: u64, numerator: u64, denominator: u64\)/);

@@ -42,8 +42,8 @@ CodeQL after merge.
 | Artifact | SHA-256 |
 |----------|---------|
 | `idl/omegax_protocol.json` | `c56e25b8e21240a053fac835ab148f2973aa7311a7fe2230ce4c70c3adee736b` |
-| `idl/omegax_protocol.source-hash` file | `081a79ef7df8b521e913efd5de3f1a136fe741adad423ce961e4a865e98b01f6` |
-| `idl/omegax_protocol.source-hash` value | `18e706864b7fb32783c27a380107c3ebff786a5cbac4b341867d990b1e10c61c` |
+| `idl/omegax_protocol.source-hash` file | `b8378b8f1bb9decba25052a6a4d0ba3c4ea9374087f7e48a22be1741ef68ac61` |
+| `idl/omegax_protocol.source-hash` value | `a4a4063ad62ed6d2398a0562a2045bde7c88ac449a11bbffcf6adaa355a342df` |
 | `shared/protocol_contract.json` | `14157588296844e66f7618fd96e46a5031c53e3c0207b6e6de193d8d96aa0082` |
 | `frontend/lib/generated/protocol-contract.ts` | `4a0153cdfc5a4513cf3cd0a680a1e797b910c08449b9d95da9165f97bc83a8fa` |
 | `frontend/lib/generated/protocol-contract.js` | `aba0d1fdf84bf9aa1f3c26405baef2174a05c12227d977ac99120aae78ce1e0c` |
@@ -138,10 +138,11 @@ with repository review permission.
 | Lane | Command | Result | Artifact |
 |------|---------|--------|----------|
 | Liability-state Rust regression | `npm run rust:test` | PASS: `80 passed`, `0 failed` | console output |
-| Liability-state Node/static regression | `npm run test:node` | PASS: `243 passed`, `0 failed` | console output |
+| Liability-state Node/static regression | `npm run test:node` | PASS: `245 passed`, `0 failed` | console output |
 | Repo baseline health | `npm run verify:public` | PASS | SBOM under `artifacts/sbom/` |
-| Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS | `artifacts/localnet-e2e-summary-2026-05-05T08-38-38-317Z.json` |
-| Executable adversarial localnet | included in localnet E2E | PASS: `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-05T08-38-38-317Z.json` |
+| Localnet protocol-surface audit | `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet` | PASS | `artifacts/localnet-e2e-summary-2026-05-05T16-44-18-251Z.json` |
+| Asset-agnostic commitment custody | included in localnet E2E | PASS: `3 payment assets`, `300 exact refunds`, `27 blocked custody/outflow probes`, `9 activation checks` | `artifacts/localnet-commitment-custody-2026-05-05T16-44-18-251Z.json` |
+| Executable adversarial localnet | included in localnet E2E | PASS: `57 blocked`, `0 unexpectedSuccess`, `0 inconclusive` | `artifacts/localnet-adversarial-matrix-2026-05-05T16-44-18-252Z.json` |
 | Operator drawer simulation | `SOLANA_KEYPAIR=<devnet governance keypair> npm run devnet:operator:drawer:sim` | PASS: `FAIL=0`; expected idempotent collisions and fixture skips only | console output |
 | Mainnet preflight, no sends | `OMEGAX_REQUIRE_DISTINCT_OPERATOR_KEYS=1 OMEGAX_LIVE_SETTLEMENT_MINT=4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump npm run protocol:bootstrap:genesis-live -- --plan` | BLOCKER: current operator env is missing `OMEGAX_LIVE_ORACLE_KEYPAIR_PATH`; command failed before send path | console error; no transactions sent |
 | Mainnet unsafe config tests | `npm run verify:public` node suite | PASS | `tests/genesis_live_bootstrap_config.test.ts`, `tests/genesis_live_bootstrap_plan_cli.test.ts` |
@@ -264,7 +265,29 @@ These fixes are locally proven by `npm run rust:test`, `npm run test:node`,
 `OMEGAX_E2E_KEEP_ARTIFACTS=1 npm run test:e2e:localnet`. Remote PR CI is also
 green on `d9fa872dc289dcba6886f81551d21ba0d2016bb7`.
 
-## 12. Sign-off
+## 12. Asset-Agnostic Commitment Custody Addendum
+
+The preorder custody closure was refreshed on `2026-05-06T04:02:51Z` across
+three localnet payment rails: an OMEGAX-like token, a stable/settlement-like SPL
+token, and a non-settlement reserve asset. The suite proves the pooled
+`DomainAssetVault` custody model before activation without relying on
+OMEGAX-specific names or decimals.
+
+- Each asset seeded `100` pending commitment positions and verified exact
+  equality across the SPL vault balance, `DomainAssetVault.total_assets`, and
+  `CommitmentLedger.pending_amount`.
+- The refund matrix returned `300` exact user refunds and rejected attacker
+  refund, wrong recipient, wrong mint, wrong token program, fake vault token
+  account, and zero-accrual fee-withdrawal probes.
+- The same-mint outflow matrix rejected fee-withdrawal, claim-settlement,
+  obligation-settlement, and LP-redemption attempts against vaults containing
+  pending commitment deposits.
+- Activation coverage now checks `DIRECT_PREMIUM`, `TREASURY_CREDIT`, and
+  `WATERFALL_RESERVE` for every payment rail. Waterfall activation decrements
+  pending token liability by the full deposited token amount while reserve
+  funding/capacity accounting remains haircut-adjusted.
+
+## 13. Sign-off
 
 This evidence is sufficient for local pre-mainnet readiness review only. It is
 not sufficient for public mainnet funding until Squads V4 2-of-3 governance and

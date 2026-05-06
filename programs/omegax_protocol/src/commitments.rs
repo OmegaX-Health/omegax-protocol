@@ -666,7 +666,7 @@ pub(crate) fn activate_waterfall_commitment(
         &mut ctx.accounts.ledger,
         &mut ctx.accounts.position,
         COMMITMENT_POSITION_WATERFALL_RESERVE_ACTIVATED,
-        capacity_amount,
+        amount,
     )?;
 
     emit!(FundingFlowRecordedEvent {
