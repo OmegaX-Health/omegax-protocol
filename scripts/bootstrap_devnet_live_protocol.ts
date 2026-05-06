@@ -697,6 +697,119 @@ async function main() {
     });
   }
 
+  const ensureReserveAssetRail = async (params: {
+    label: string;
+    reserveDomain: string;
+    assetMint: string;
+    assetSymbol: string;
+    role: number;
+    payoutPriority: number;
+    priceUsd1e8: bigint;
+    depositEnabled: boolean;
+    payoutEnabled: boolean;
+    capacityEnabled: boolean;
+  }) => {
+    const nowTs = BigInt(Math.floor(Date.now() / 1000));
+    await sendProtocolInstruction({
+      protocol,
+      connection,
+      feePayer: governance,
+      label: `configure_reserve_asset_rail:${params.label}`,
+      instructionName: "configure_reserve_asset_rail",
+      args: {
+        asset_mint: new PublicKey(params.assetMint),
+        oracle_authority: governance.publicKey,
+        asset_symbol: params.assetSymbol,
+        role: params.role,
+        payout_priority: params.payoutPriority,
+        oracle_source: protocol.RESERVE_ORACLE_SOURCE_GOVERNANCE_ATTESTED,
+        oracle_feed_id: sha256Bytes(`devnet-reserve-rail:${params.label}:feed`),
+        max_staleness_seconds: 86_400n,
+        haircut_bps: 0,
+        max_exposure_bps: 10_000,
+        deposit_enabled: params.depositEnabled,
+        payout_enabled: params.payoutEnabled,
+        capacity_enabled: params.capacityEnabled,
+        active: true,
+        reason_hash: sha256Bytes(`devnet-reserve-rail:${params.label}:configure`),
+      },
+      accounts: [
+        { pubkey: governance.publicKey, isSigner: true, isWritable: true },
+        { pubkey: governanceAddress },
+        { pubkey: params.reserveDomain },
+        {
+          pubkey: protocol.deriveReserveAssetRailPda({
+            reserveDomain: params.reserveDomain,
+            assetMint: params.assetMint,
+          }),
+          isWritable: true,
+        },
+        { pubkey: SystemProgram.programId },
+      ],
+    });
+    await sendProtocolInstruction({
+      protocol,
+      connection,
+      feePayer: governance,
+      label: `publish_reserve_asset_rail_price:${params.label}`,
+      instructionName: "publish_reserve_asset_rail_price",
+      args: {
+        price_usd_1e8: params.priceUsd1e8,
+        confidence_bps: 25,
+        published_at_ts: nowTs,
+        proof_hash: sha256Bytes(`devnet-reserve-rail:${params.label}:price:${nowTs}`),
+      },
+      accounts: [
+        { pubkey: governance.publicKey, isSigner: true },
+        { pubkey: governanceAddress },
+        {
+          pubkey: protocol.deriveReserveAssetRailPda({
+            reserveDomain: params.reserveDomain,
+            assetMint: params.assetMint,
+          }),
+          isWritable: true,
+        },
+      ],
+    });
+  };
+
+  await ensureReserveAssetRail({
+    label: "open-settlement",
+    reserveDomain: openReserveDomain.address,
+    assetMint: fixtureState.settlementMint,
+    assetSymbol: "USDC",
+    role: protocol.RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+    payoutPriority: 0,
+    priceUsd1e8: 100_000_000n,
+    depositEnabled: true,
+    payoutEnabled: true,
+    capacityEnabled: true,
+  });
+  await ensureReserveAssetRail({
+    label: "open-reward",
+    reserveDomain: openReserveDomain.address,
+    assetMint: fixtureState.rewardMint,
+    assetSymbol: "OMEGAX",
+    role: protocol.RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
+    payoutPriority: 20,
+    priceUsd1e8: 100_000_000n,
+    depositEnabled: true,
+    payoutEnabled: true,
+    capacityEnabled: true,
+  });
+  await ensureReserveAssetRail({
+    label: "wrapper-settlement",
+    reserveDomain: wrapperReserveDomain.address,
+    assetMint: fixtureState.wrapperSettlementMint,
+    assetSymbol: "USDC",
+    role: protocol.RESERVE_ASSET_ROLE_PRIMARY_STABLE,
+    payoutPriority: 0,
+    priceUsd1e8: 100_000_000n,
+    depositEnabled: true,
+    payoutEnabled: true,
+    capacityEnabled: true,
+  });
+
   const planSpecs = [
     {
       fixture: seekerPlan,
@@ -1620,6 +1733,12 @@ async function main() {
           { pubkey: governance.publicKey, isSigner: true },
           { pubkey: governanceAddress },
           { pubkey: seekerPlan.address },
+          {
+            pubkey: protocol.deriveReserveAssetRailPda({
+              reserveDomain: openReserveDomain.address,
+              assetMint: fixtureState.rewardMint,
+            }),
+          },
           { pubkey: openRewardDomainVault, isWritable: true },
           { pubkey: openRewardDomainLedger, isWritable: true },
           { pubkey: seekerSponsorLine.address, isWritable: true },
@@ -1661,6 +1780,12 @@ async function main() {
           { pubkey: governance.publicKey, isSigner: true },
           { pubkey: governanceAddress },
           { pubkey: seekerPlan.address },
+          {
+            pubkey: protocol.deriveReserveAssetRailPda({
+              reserveDomain: openReserveDomain.address,
+              assetMint: fixtureState.rewardMint,
+            }),
+          },
           { pubkey: openRewardDomainVault, isWritable: true },
           { pubkey: openRewardDomainLedger, isWritable: true },
           { pubkey: seekerSponsorLine.address, isWritable: true },
@@ -1862,6 +1987,12 @@ async function main() {
           { pubkey: governance.publicKey, isSigner: true },
           { pubkey: governanceAddress },
           { pubkey: blendedPlan.address },
+          {
+            pubkey: protocol.deriveReserveAssetRailPda({
+              reserveDomain: openReserveDomain.address,
+              assetMint: fixtureState.settlementMint,
+            }),
+          },
           { pubkey: fixtureState.domainAssetVaults[0]!.address, isWritable: true },
           { pubkey: fixtureState.domainAssetLedgers[0]!.address, isWritable: true },
           { pubkey: blendedPremiumLine.address, isWritable: true },
@@ -1901,6 +2032,12 @@ async function main() {
           { pubkey: governance.publicKey, isSigner: true },
           { pubkey: governanceAddress },
           { pubkey: blendedPlan.address },
+          {
+            pubkey: protocol.deriveReserveAssetRailPda({
+              reserveDomain: openReserveDomain.address,
+              assetMint: fixtureState.settlementMint,
+            }),
+          },
           { pubkey: fixtureState.domainAssetVaults[0]!.address, isWritable: true },
           { pubkey: fixtureState.domainAssetLedgers[0]!.address, isWritable: true },
           { pubkey: blendedPremiumLine.address, isWritable: true },
