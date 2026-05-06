@@ -84,3 +84,27 @@ npm run rust:lint
 npm run anchor:idl
 npm run protocol:contract
 ```
+
+## QEDGen onboarding
+
+The repo now has a brownfield QEDGen spec at
+[`../../omegax_protocol.qedspec`](../../omegax_protocol.qedspec), with
+project metadata in [`../../.qed/config.json`](../../.qed/config.json).
+
+Run the current spec sanity check from the repository root:
+
+```bash
+qedgen check --anchor-project programs/omegax_protocol --coverage --json
+```
+
+The current pass records the public handler surface, program id, selected
+constants, account contexts, source-derived signer bindings, an abstract
+aggregate `State.Live`, first-order handler effects, initial properties, and
+the obvious SPL transfer directions. Remaining modeling work is deliberately
+called out inline as `SPEC-REFINE` comments where exact per-account right-hand
+sides, fee carve-outs, PDA derivations, emitted events, and deeper conservation
+equations still need to be tightened.
+
+The current QEDGen check is expected to report one token-CPI warning for
+`create_domain_asset_vault`: that handler accepts `token_program` for vault
+account initialization but does not move tokens.

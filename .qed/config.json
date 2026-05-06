@@ -1,0 +1,6 @@
+{
+  "name": "omegax_protocol",
+  "spec": "omegax_protocol.qedspec",
+  "interfaces_dir": ".qed/interfaces",
+  "created_at": "1778056183s-since-epoch"
+}
