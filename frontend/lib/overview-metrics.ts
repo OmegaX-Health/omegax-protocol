@@ -10,12 +10,14 @@ import {
   describeSeriesStatus,
   isActiveClaimStatus,
   REDEMPTION_POLICY_QUEUE_ONLY,
+  hasPendingRedemptionQueue,
   toBigIntAmount,
   type CapitalClassSnapshot,
   type ClaimCaseSnapshot,
   type AllocationPositionSnapshot,
   type HealthPlanSnapshot,
   type LiquidityPoolSnapshot,
+  type LPPositionSnapshot,
   type MemberPositionSnapshot,
   type ObligationSnapshot,
   type PolicySeriesSnapshot,
@@ -30,6 +32,7 @@ export type OverviewStatsSource = Pick<
   | "claimCases"
   | "healthPlans"
   | "liquidityPools"
+  | "lpPositions"
   | "memberPositions"
   | "obligations"
   | "policySeries"
@@ -84,6 +87,7 @@ export const EMPTY_OVERVIEW_STATS_SOURCE: OverviewStatsSource = {
   claimCases: [] as ClaimCaseSnapshot[],
   healthPlans: [] as HealthPlanSnapshot[],
   liquidityPools: [] as LiquidityPoolSnapshot[],
+  lpPositions: [] as LPPositionSnapshot[],
   memberPositions: [] as MemberPositionSnapshot[],
   obligations: [] as ObligationSnapshot[],
   policySeries: [] as PolicySeriesSnapshot[],
@@ -103,6 +107,73 @@ export function resolveOverviewStatsSource(params: {
   return params.demo ? DEVNET_PROTOCOL_FIXTURE_STATE : params.snapshot;
 }
 
+export function countPendingRedemptionSources(
+  source: Pick<ProtocolConsoleSnapshot, "capitalClasses" | "liquidityPools"> & {
+    lpPositions?: LPPositionSnapshot[];
+  },
+): number {
+  const pendingPositions = source.lpPositions?.filter(hasPendingRedemptionQueue) ?? [];
+  const pendingPositionClassIds = new Set(pendingPositions.map((position) => position.capitalClass));
+  const pendingClassIds = new Set<string>();
+  const pendingPoolIds = new Set<string>();
+
+  for (const capitalClass of source.capitalClasses) {
+    if (toBigIntAmount(capitalClass.pendingRedemptions) <= 0n) continue;
+    pendingClassIds.add(capitalClass.address);
+    pendingPoolIds.add(capitalClass.liquidityPool);
+  }
+
+  let sourceCount = pendingPositions.length;
+  for (const capitalClassId of pendingClassIds) {
+    if (!pendingPositionClassIds.has(capitalClassId)) {
+      sourceCount += 1;
+    }
+  }
+
+  for (const pool of source.liquidityPools) {
+    if (toBigIntAmount(pool.totalPendingRedemptions) <= 0n) continue;
+    if (pendingPoolIds.has(pool.address)) continue;
+    if (pendingPositions.some((position) => {
+      const capitalClass = source.capitalClasses.find((candidate) => candidate.address === position.capitalClass);
+      return capitalClass?.liquidityPool === pool.address;
+    })) continue;
+    sourceCount += 1;
+  }
+
+  return sourceCount;
+}
+
+function sumPendingRedemptions(source: Pick<ProtocolConsoleSnapshot, "capitalClasses" | "liquidityPools">): bigint {
+  const classesByPool = new Map<string, CapitalClassSnapshot[]>();
+  for (const capitalClass of source.capitalClasses) {
+    const rows = classesByPool.get(capitalClass.liquidityPool) ?? [];
+    rows.push(capitalClass);
+    classesByPool.set(capitalClass.liquidityPool, rows);
+  }
+
+  const seenPools = new Set<string>();
+  let total = 0n;
+  for (const pool of source.liquidityPools) {
+    seenPools.add(pool.address);
+    const poolPending = toBigIntAmount(pool.totalPendingRedemptions);
+    if (poolPending > 0n) {
+      total += poolPending;
+      continue;
+    }
+    total += (classesByPool.get(pool.address) ?? []).reduce(
+      (sum, capitalClass) => sum + toBigIntAmount(capitalClass.pendingRedemptions),
+      0n,
+    );
+  }
+
+  for (const capitalClass of source.capitalClasses) {
+    if (seenPools.has(capitalClass.liquidityPool)) continue;
+    total += toBigIntAmount(capitalClass.pendingRedemptions);
+  }
+
+  return total;
+}
+
 export function buildOverviewStats(source: OverviewStatsSource): OverviewStats {
   const pools = source.liquidityPools;
   const classes = source.capitalClasses;
@@ -116,7 +187,7 @@ export function buildOverviewStats(source: OverviewStatsSource): OverviewStats {
   const allocated = pools.reduce((sum, pool) => sum + toBigIntAmount(pool.totalAllocated), 0n);
   const available = tvl - allocated;
   const utilization = tvl > 0n ? Number((allocated * 100n) / tvl) : 0;
-  const pendingRedemptions = pools.reduce((sum, pool) => sum + toBigIntAmount(pool.totalPendingRedemptions), 0n);
+  const pendingRedemptions = sumPendingRedemptions(source);
 
   const seriesModes: Record<string, number> = {};
   const seriesStatuses: Record<string, number> = {};
@@ -146,10 +217,7 @@ export function buildOverviewStats(source: OverviewStatsSource): OverviewStats {
   }
   const activeClaimCount = claims.filter((claim) => isActiveClaimStatus(claim.intakeStatus)).length;
   const approvedClaimCount = claims.filter((claim) => claim.intakeStatus === CLAIM_INTAKE_APPROVED).length;
-  const pendingRedemptionCount = source.liquidityPools.reduce(
-    (sum, pool) => sum + (toBigIntAmount(pool.totalPendingRedemptions) > 0n ? 1 : 0),
-    0,
-  );
+  const pendingRedemptionCount = countPendingRedemptionSources(source);
   const reservedObligationCount = obligations.filter((obligation) =>
     obligation.status === OBLIGATION_STATUS_RESERVED || obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
   ).length;

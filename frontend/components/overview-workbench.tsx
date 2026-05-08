@@ -351,11 +351,11 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
   const signalMetrics = useMemo(() => [
     { label: "Utilization", value: `${stats.utilization}%` },
     { label: "Capacity", value: formatCompact(stats.available) },
-    { label: "Queue", value: governanceQueueStatus.metricValue },
+    { label: "Queue", value: String(stats.pendingRedemptionCount) },
     { label: "Reserves", value: String(stats.reservedObligationCount) },
   ], [
     stats.available,
-    governanceQueueStatus.metricValue,
+    stats.pendingRedemptionCount,
     stats.reservedObligationCount,
     stats.utilization,
   ]);

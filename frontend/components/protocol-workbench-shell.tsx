@@ -84,11 +84,17 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const [epoch, setEpoch] = useState("--");
   const [slot, setSlot] = useState("--");
   const [isLive, setIsLive] = useState(false);
+  const [themeToggleHydrated, setThemeToggleHydrated] = useState(false);
 
-  const isDarkTheme = mounted && theme === "dark";
-  const ThemeIcon = isDarkTheme ? SunMedium : MoonStar;
+  const isDarkTheme = themeToggleHydrated && mounted && theme === "dark";
+  const ThemeIcon = themeToggleHydrated && isDarkTheme ? SunMedium : MoonStar;
   const nextThemeLabel = isDarkTheme ? "light" : "dark";
+  const themeToggleLabel = themeToggleHydrated ? `Switch to ${nextThemeLabel} mode` : "Switch color theme";
   const footerMetadata = buildFooterMetadata(selectedNetwork);
+
+  useEffect(() => {
+    setThemeToggleHydrated(true);
+  }, []);
 
   useEffect(() => {
     setIsMobileNavOpen(false);
@@ -308,8 +314,8 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
               type="button"
               className="protocol-toolbar-icon-button"
               onClick={toggleTheme}
-              aria-label={`Switch to ${nextThemeLabel} mode`}
-              title={`Switch to ${nextThemeLabel} mode`}
+              aria-label={themeToggleLabel}
+              title={themeToggleLabel}
             >
               <ThemeIcon className="h-3.5 w-3.5" strokeWidth={1.9} aria-hidden="true" />
             </button>

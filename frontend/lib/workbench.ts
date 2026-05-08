@@ -3,7 +3,7 @@
 import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureRole } from "./devnet-fixtures";
 import { GENESIS_PROTECT_ACUTE_PLAN_ID } from "./genesis-protect-acute";
 import { GENESIS_PROTECT_ACUTE_PRIMARY_SKU } from "./genesis-protect-acute-operator";
-import { buildOverviewStats, type OverviewStatsSource } from "./overview-metrics";
+import { buildOverviewStats, countPendingRedemptionSources, type OverviewStatsSource } from "./overview-metrics";
 import {
   availableFundingLineBalance,
   CLAIM_INTAKE_APPROVED,
@@ -16,7 +16,6 @@ import {
   describeObligationStatus,
   describeSeriesMode,
   describeSeriesStatus,
-  hasPendingRedemptionQueue,
   isActiveClaimStatus,
   isObligationOnDisputeWatch,
   toBigIntAmount,
@@ -543,7 +542,7 @@ export function buildGovernanceQueue(proposals: GovernanceProposalSummary[] = []
 
 export function computeWorkbenchMetrics(source: WorkbenchProtocolSource = DEVNET_PROTOCOL_FIXTURE_STATE) {
   const activeClaims = source.claimCases.filter((claim) => isActiveClaimStatus(claim.intakeStatus)).length;
-  const pendingRedemptions = source.lpPositions.filter(hasPendingRedemptionQueue).length;
+  const pendingRedemptions = countPendingRedemptionSources(source);
   const reservedObligations = source.obligations.filter(
     (obligation) =>
       obligation.status === OBLIGATION_STATUS_RESERVED || obligation.status === OBLIGATION_STATUS_CLAIMABLE_PAYABLE,
@@ -643,7 +642,7 @@ function buildOverviewAuditTrail(
         index: 0,
         label: metrics.pendingRedemptionCount > 0 ? "Queue watch" : "Queue clear",
         tone: metrics.pendingRedemptionCount > 0 ? "pending" : "verified",
-        detail: `${metrics.pendingRedemptionCount} LP queue records still need action across ${metrics.queueOnlyPoolCount} queue-only pool lane${metrics.queueOnlyPoolCount === 1 ? "" : "s"}.`,
+        detail: `${metrics.pendingRedemptionCount} redemption source${metrics.pendingRedemptionCount === 1 ? "" : "s"} ${countRemain(metrics.pendingRedemptionCount)} across ${metrics.queueOnlyPoolCount} queue-only pool lane${metrics.queueOnlyPoolCount === 1 ? "" : "s"}.`,
       }),
       createAuditItem({
         seed: `overview:${persona}:routing`,
@@ -716,7 +715,7 @@ function buildOverviewAuditTrail(
       index: 2,
       label: metrics.pendingRedemptionCount > 0 ? "Capital queue" : "Capital clear",
       tone: metrics.pendingRedemptionCount > 0 ? "pending" : "verified",
-      detail: `${metrics.pendingRedemptionCount} LP queue record${metrics.pendingRedemptionCount === 1 ? "" : "s"} ${metrics.pendingRedemptionCount === 1 ? "still needs" : "still need"} processing across active capital classes.`,
+      detail: `${metrics.pendingRedemptionCount} redemption source${metrics.pendingRedemptionCount === 1 ? "" : "s"} ${metrics.pendingRedemptionCount === 1 ? "still needs" : "still need"} processing across active capital classes.`,
     }),
   ];
 }

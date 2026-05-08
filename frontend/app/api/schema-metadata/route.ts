@@ -2,18 +2,15 @@
 
 import { NextResponse } from "next/server";
 
+import { fetchSchemaMetadata } from "@/lib/schema-metadata";
+
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  return NextResponse.json(
-    {
-      retired: true,
-      message:
-        "Legacy schema-metadata fetches were retired in the health-capital-markets redesign. Use PolicySeries comparability metadata instead.",
-    },
-    {
-      status: 410,
-      headers: { "cache-control": "no-store" },
-    },
-  );
+export async function GET(request: Request) {
+  const uri = new URL(request.url).searchParams.get("uri") ?? "";
+  const payload = await fetchSchemaMetadata(uri);
+
+  return NextResponse.json(payload, {
+    headers: { "cache-control": "no-store" },
+  });
 }
