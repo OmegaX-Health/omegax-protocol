@@ -1,0 +1,153 @@
+// Generated from Anchor IDL — review and complete TODO items.
+// Audit note: this adjunct spec is scaffold-only until the private review
+// authority and delegated-session guards are modeled.
+
+spec OmegaxPrivateClaimReview
+
+program_id "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn"
+
+const REVIEW_STATUS_OPENED = 0
+const REVIEW_STATUS_DELEGATED = 1
+const REVIEW_STATUS_REVIEWED = 2
+const REVIEW_STATUS_APPROVED = 3
+const REVIEW_STATUS_NEEDS_MORE_INFO = 4
+const REVIEW_STATUS_ESCALATED = 5
+const REVIEW_STATUS_FAILED = 6
+
+type PrivateClaimReviewSession
+  | Active of {
+      session_id               : String,
+      claim_case               : Pubkey,
+      health_plan              : Pubkey,
+      policy_series            : Pubkey,
+      evidence_ref_hash        : U64,
+      decision_support_hash    : U64,
+      schema_key_hash          : U64,
+      schema_hash              : U64,
+      review_result_hash       : U64,
+      review_artifact_hash     : U64,
+      review_binary_hash       : U64,
+      tee_attestation_digest   : U64,
+      operator                 : Pubkey,
+      private_payment_ref_hash : U64,
+      status                   : U8,
+      opened_at                : I64,
+      delegated_at             : I64,
+      reviewed_at              : I64,
+      payment_recorded_at      : I64,
+      committed_at             : I64,
+      failed_at                : I64,
+      bump                     : U8
+    }
+  | Closed
+
+pda review_session ["private_claim_review", session_id]
+pda buffer_review_session ["buffer", review_session]
+pda delegation_record_review_session ["delegation", review_session]
+pda delegation_metadata_review_session ["delegation-metadata", review_session]
+
+type Error
+  | EmptySessionId
+  | SessionIdTooLong
+  | ZeroEvidenceRefHash
+  | ZeroSchemaKeyHash
+  | ZeroSchemaHash
+  | ZeroReviewResultHash
+  | ZeroReviewArtifactHash
+  | ZeroReviewBinaryHash
+  | ZeroTeeAttestationDigest
+  | ZeroPrivatePaymentRefHash
+  | ZeroFailureRefHash
+  | InvalidReviewStatus
+  | ReviewNotWritable
+  | ReviewAlreadyRecorded
+  | PaymentRefNotAllowed
+  | PaymentRefAlreadyRecorded
+  | ReviewNotReadyToCommit
+  | ApprovedReviewCannotFail
+
+handler open_review_session : State.Active -> State.Active {
+  auth payer
+  // TODO: non-empty session id, bounded session id, nonzero evidence/schema hashes.
+  // TODO: effect initializes status=opened and zeroes review/payment result hashes.
+  accounts {
+    payer : signer, writable
+    review_session : writable, pda [review_session]
+    system_program : program
+  }
+}
+
+handler delegate_review_session (session_id : String) : State.Active -> State.Active {
+  auth payer
+  // TODO: status must be opened; effect should set status=delegated and delegated_at.
+  accounts {
+    payer : signer, writable
+    buffer_review_session : writable, pda [buffer_review_session]
+    delegation_record_review_session : writable, pda [delegation_record_review_session]
+    delegation_metadata_review_session : writable, pda [delegation_metadata_review_session]
+    review_session : writable, pda [review_session]
+    owner_program : readonly
+    delegation_program : readonly
+    system_program : program
+  }
+}
+
+handler record_private_review : State.Active -> State.Active {
+  auth reviewer
+  // TODO: reviewer must equal the session's expected reviewer/operator once that
+  // field exists in state.
+  // TODO: status must be delegated, review_result_hash must be zero, and all
+  // result/proof hashes must be nonzero.
+  accounts {
+    reviewer : signer, writable
+    review_session : writable, pda [review_session]
+  }
+}
+
+handler record_private_payment_ref : State.Active -> State.Active {
+  auth payer
+  // TODO: payer must equal the session authority or expected reviewer.
+  // TODO: status must be reviewed/approved and private_payment_ref_hash must be zero.
+  accounts {
+    payer : signer, writable
+    review_session : writable, pda [review_session]
+  }
+}
+
+handler commit_and_close_review_session : State.Active -> State.Closed {
+  auth payer
+  // TODO: payer must equal the session authority or expected reviewer.
+  // TODO: status must be a terminal review status.
+  accounts {
+    payer : signer, writable
+    review_session : writable, pda [review_session]
+    magic_program : readonly
+    magic_context : writable
+  }
+}
+
+handler mark_review_failed : State.Active -> State.Active {
+  auth payer
+  // TODO: payer must equal the session authority or expected reviewer.
+  // TODO: only opened/delegated sessions with no recorded result can fail here.
+  accounts {
+    payer : signer, writable
+    review_session : writable, pda [review_session]
+  }
+}
+
+handler process_undelegation : State.Active -> State.Active {
+  // MagicBlock generated helper; model once ER lifecycle is finalized.
+  accounts {
+    base_account : writable
+    buffer : readonly
+    payer : writable
+    system_program : program
+  }
+}
+
+// TODO: Add properties:
+// - terminal review hashes cannot be written by an unbound signer.
+// - review_result_hash is one-shot.
+// - private_payment_ref_hash is one-shot.
+// - opened -> delegated -> terminal -> committed is monotonic.
