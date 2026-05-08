@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const REVIEW_PROGRAM_ID = "5eMhMgdweRhrucbxkFgw1FijRQEHqv8fxhriHBttf9xU";
+const REVIEW_PROGRAM_ID = "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn";
 
 const proofSteps = [
   {

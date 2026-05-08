@@ -11,10 +11,14 @@ use ephemeral_rollups_sdk::anchor::{commit, delegate, ephemeral};
 use ephemeral_rollups_sdk::cpi::DelegateConfig;
 use ephemeral_rollups_sdk::ephem::commit_and_undelegate_accounts;
 
-declare_id!("5eMhMgdweRhrucbxkFgw1FijRQEHqv8fxhriHBttf9xU");
+declare_id!("FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn");
 
 pub const SEED_REVIEW_SESSION: &[u8] = b"private_claim_review";
 pub const MAX_SESSION_ID_LEN: usize = 64;
+pub const MAGICBLOCK_DEVNET_TEE_VALIDATOR: Pubkey = Pubkey::new_from_array([
+    5, 61, 71, 26, 133, 158, 115, 46, 104, 11, 201, 88, 248, 65, 7, 43, 143, 63, 188, 25, 115, 155,
+    230, 151, 196, 198, 129, 18, 111, 140, 31, 116,
+]);
 
 pub const REVIEW_STATUS_OPENED: u8 = 0;
 pub const REVIEW_STATUS_DELEGATED: u8 = 1;
@@ -105,7 +109,10 @@ pub mod omegax_private_claim_review {
         ctx.accounts.delegate_review_session(
             &ctx.accounts.payer,
             &[SEED_REVIEW_SESSION, session_id.as_bytes()],
-            DelegateConfig::default(),
+            DelegateConfig {
+                validator: Some(MAGICBLOCK_DEVNET_TEE_VALIDATOR),
+                ..DelegateConfig::default()
+            },
         )?;
 
         emit!(ReviewSessionDelegated {

@@ -6,11 +6,11 @@ members = ["programs/omegax_protocol", "programs/omegax_private_claim_review"]
 
 [programs.localnet]
 omegax_protocol = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
-omegax_private_claim_review = "5eMhMgdweRhrucbxkFgw1FijRQEHqv8fxhriHBttf9xU"
+omegax_private_claim_review = "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn"
 
 [programs.devnet]
 omegax_protocol = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
-omegax_private_claim_review = "5eMhMgdweRhrucbxkFgw1FijRQEHqv8fxhriHBttf9xU"
+omegax_private_claim_review = "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn"
 
 [registry]
 url = "https://api.apr.dev"
