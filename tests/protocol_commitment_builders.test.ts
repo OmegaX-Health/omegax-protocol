@@ -157,6 +157,7 @@ test("reserve asset rail builders expose the mixed-treasury oracle controls", ()
     oracleSource: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
     oracleFeedIdHex: "aa".repeat(32),
     maxStalenessSeconds: 300n,
+    maxConfidenceBps: 50,
     haircutBps: 0,
     maxExposureBps: 10_000,
     depositEnabled: true,

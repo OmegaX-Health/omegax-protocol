@@ -93,8 +93,11 @@ test("[CSO-2026-05-06] payout-only rails can publish prices but zero staleness i
 
   assert.match(configureBody, /let price_required = args\.capacity_enabled \|\| args\.payout_enabled/);
   assert.match(configureBody, /args\.max_staleness_seconds > 0/);
+  assert.match(configureBody, /args\.max_confidence_bps > 0/);
+  assert.match(publishBody, /args\.confidence_bps <= ctx\.accounts\.reserve_asset_rail\.max_confidence_bps/);
   assert.match(publishBody, /capacity_enabled[\s\S]+\|\|[\s\S]+payout_enabled/);
   assert.match(freshnessBody, /rail\.max_staleness_seconds > 0/);
+  assert.match(freshnessBody, /rail\.last_price_confidence_bps <= rail\.max_confidence_bps/);
 });
 
 test("[CSO-2026-05-04] redemption settlement rejects zero-net LP payouts", () => {

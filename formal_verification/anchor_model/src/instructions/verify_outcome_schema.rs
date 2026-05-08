@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{VerifyOutcomeSchema, VerifyOutcomeSchemaArgs};
 
 impl<'info> VerifyOutcomeSchema<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "verify_outcome_schema", hash = "0e8a05ee4b37e42e", spec_hash = "6118f7e1dac62283")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "verify_outcome_schema", hash = "0e8a05ee4b37e42e", spec_hash = "65a147af77f0a217")]
     #[inline(always)]
     pub fn handler(&mut self, args: VerifyOutcomeSchemaArgs) -> Result<()> {
         guards::verify_outcome_schema(self, args)?;

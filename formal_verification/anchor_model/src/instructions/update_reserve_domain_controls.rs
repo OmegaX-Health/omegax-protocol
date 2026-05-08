@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{UpdateReserveDomainControls, UpdateReserveDomainControlsArgs};
 
 impl<'info> UpdateReserveDomainControls<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_reserve_domain_controls", hash = "cf1f22ddd2eb3177", spec_hash = "5f44e0aec293d77e")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_reserve_domain_controls", hash = "cf1f22ddd2eb3177", spec_hash = "c1896d55c64866c9")]
     #[inline(always)]
     pub fn handler(&mut self, args: UpdateReserveDomainControlsArgs) -> Result<()> {
         guards::update_reserve_domain_controls(self, args)?;

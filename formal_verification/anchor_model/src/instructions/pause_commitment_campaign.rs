@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{PauseCommitmentCampaign, PauseCommitmentCampaignArgs};
 
 impl<'info> PauseCommitmentCampaign<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "pause_commitment_campaign", hash = "1de21e628da41479", spec_hash = "5857a6850ff5c8c2")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "pause_commitment_campaign", hash = "1de21e628da41479", spec_hash = "fbd6825eeb6b6ccf")]
     #[inline(always)]
     pub fn handler(&mut self, args: PauseCommitmentCampaignArgs) -> Result<()> {
         guards::pause_commitment_campaign(self, args)?;

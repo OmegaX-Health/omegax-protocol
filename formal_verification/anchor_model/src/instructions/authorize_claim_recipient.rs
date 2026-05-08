@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{AuthorizeClaimRecipient, AuthorizeClaimRecipientArgs};
 
 impl<'info> AuthorizeClaimRecipient<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "authorize_claim_recipient", hash = "e8ddab55b537f47b", spec_hash = "279388839e0a99e7")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "authorize_claim_recipient", hash = "e8ddab55b537f47b", spec_hash = "3452c49e09ad894e")]
     #[inline(always)]
     pub fn handler(&mut self, args: AuthorizeClaimRecipientArgs) -> Result<()> {
         guards::authorize_claim_recipient(self, args)?;

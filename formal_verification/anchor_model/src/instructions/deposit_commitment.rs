@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{DepositCommitment, DepositCommitmentArgs};
 
 impl<'info> DepositCommitment<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "deposit_commitment", hash = "a565148caeb38715", spec_hash = "3d493c3fdb1bf916")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "deposit_commitment", hash = "a565148caeb38715", spec_hash = "deee6f9921118b94")]
     #[inline(always)]
     pub fn handler(&mut self, args: DepositCommitmentArgs) -> Result<()> {
         guards::deposit_commitment(self, args)?;

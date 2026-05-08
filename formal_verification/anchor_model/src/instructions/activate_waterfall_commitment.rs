@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{ActivateWaterfallCommitment, ActivateCommitmentArgs};
 
 impl<'info> ActivateWaterfallCommitment<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "activate_waterfall_commitment", hash = "d678511be911a583", spec_hash = "bef0cd72b78534aa")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "activate_waterfall_commitment", hash = "d678511be911a583", spec_hash = "8d5a13eb320da3df")]
     #[inline(always)]
     pub fn handler(&mut self, args: ActivateCommitmentArgs) -> Result<()> {
         guards::activate_waterfall_commitment(self, args)?;

@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{MarkImpairment, MarkImpairmentArgs};
 
 impl<'info> MarkImpairment<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "mark_impairment", hash = "89b12df147ffb503", spec_hash = "d3be599ade183bf6")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "mark_impairment", hash = "89b12df147ffb503", spec_hash = "abb568aaf1328245")]
     #[inline(always)]
     pub fn handler(&mut self, args: MarkImpairmentArgs) -> Result<()> {
         guards::mark_impairment(self, args)?;

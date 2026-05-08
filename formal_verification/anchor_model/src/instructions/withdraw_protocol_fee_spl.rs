@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{WithdrawProtocolFeeSpl, WithdrawArgs};
 
 impl<'info> WithdrawProtocolFeeSpl<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "withdraw_protocol_fee_spl", hash = "0f417e7577f3afc1", spec_hash = "c334349d64fcdd23")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "withdraw_protocol_fee_spl", hash = "0f417e7577f3afc1", spec_hash = "642a83462b10718e")]
     #[inline(always)]
     pub fn handler(&mut self, args: WithdrawArgs) -> Result<()> {
         guards::withdraw_protocol_fee_spl(self, args)?;

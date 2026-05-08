@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{DeallocateCapital, DeallocateCapitalArgs};
 
 impl<'info> DeallocateCapital<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "deallocate_capital", hash = "075c513b2021aa89", spec_hash = "5db7fa0739b951e6")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "deallocate_capital", hash = "075c513b2021aa89", spec_hash = "35c78c7c89eaa4f1")]
     #[inline(always)]
     pub fn handler(&mut self, args: DeallocateCapitalArgs) -> Result<()> {
         guards::deallocate_capital(self, args)?;

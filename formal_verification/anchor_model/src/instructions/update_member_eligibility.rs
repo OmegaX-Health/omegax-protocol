@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{UpdateMemberEligibility, UpdateMemberEligibilityArgs};
 
 impl<'info> UpdateMemberEligibility<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_member_eligibility", hash = "ed0c6f0793fc283b", spec_hash = "1cf969b04ab453ca")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_member_eligibility", hash = "ed0c6f0793fc283b", spec_hash = "65d85d7bcf4a064e")]
     #[inline(always)]
     pub fn handler(&mut self, args: UpdateMemberEligibilityArgs) -> Result<()> {
         guards::update_member_eligibility(self, args)?;

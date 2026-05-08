@@ -946,6 +946,7 @@ async function ensureReserveAssetRail(
       payoutPriority: asset.payoutPriority,
       haircutBps: asset.haircutBps,
       maxExposureBps: asset.maxExposureBps,
+      maxConfidenceBps: asset.maxConfidenceBps,
       capacityEnabled: asset.capacityEnabled,
       active: true,
     },
@@ -966,6 +967,7 @@ async function ensureReserveAssetRail(
           `devnet-rehearsal-price-feed:${asset.symbol}`,
         ),
         maxStalenessSeconds: 7n * 86_400n,
+        maxConfidenceBps: asset.maxConfidenceBps,
         haircutBps: asset.haircutBps,
         maxExposureBps: asset.maxExposureBps,
         depositEnabled: asset.depositEnabled,
@@ -984,6 +986,9 @@ async function ensureReserveAssetRail(
     (row) => row.address === asset.reserveAssetRail.toBase58(),
   );
   const nowTs = Math.floor(Date.now() / 1000);
+  if (!asset.capacityEnabled && !asset.payoutEnabled) {
+    return;
+  }
   const needsPrice =
     !rail ||
     BigInt(String(rail.lastPriceUsd1e8 ?? 0)) !== asset.priceUsd1e8 ||
@@ -1001,7 +1006,7 @@ async function ensureReserveAssetRail(
           asset.symbol === "PUSD" ||
           asset.symbol === "USDT"
             ? 5
-            : 250,
+            : 100,
         publishedAtTs: BigInt(nowTs),
         proofHashHex: sha256Hex(
           `devnet rehearsal price evidence:${asset.symbol}:${asset.priceUsd1e8}`,
@@ -1419,6 +1424,12 @@ async function runCommitmentsAndClaims(
   });
 
   for (const asset of assets) {
+    if (!asset.capacityEnabled || !asset.payoutEnabled) {
+      console.log(
+        `[founder-rehearsal] skip-positive:${asset.symbol}: rail is not claims-paying by default`,
+      );
+      continue;
+    }
     const members = await memberSetForAsset(ctx, asset.symbol);
     if (
       ctx.resume &&

@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{RecordPremiumPayment, RecordPremiumPaymentArgs};
 
 impl<'info> RecordPremiumPayment<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "record_premium_payment", hash = "53ee87c0406b5799", spec_hash = "a5c752edcd1199c8")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "record_premium_payment", hash = "53ee87c0406b5799", spec_hash = "adcab2f6de45cffc")]
     #[inline(always)]
     pub fn handler(&mut self, args: RecordPremiumPaymentArgs) -> Result<()> {
         guards::record_premium_payment(self, args)?;

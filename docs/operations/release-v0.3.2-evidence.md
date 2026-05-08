@@ -244,14 +244,14 @@ Public messaging must not claim audited, fully decentralized claims, or uncapped
 solvency. Multi-asset payout support is explicit selected-asset settlement:
 the router/oracle service chooses an approved payout asset before settlement,
 and the on-chain settlement path requires that asset's active, payout-enabled,
-fresh-priced `ReserveAssetRail`. The program does not silently mutate a USDC
+fresh confidence-bounded `ReserveAssetRail`. The program does not silently mutate a USDC
 claim ledger while draining a WBTC/SOL/WETH vault and does not perform DEX
 swaps in this pass.
 
 `$OMEGAX` (`4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump`) is not the
 default claims settlement mint. It may be configured as a commitment payment
 rail or a last-resort selected payout rail only when explicitly enabled,
-payout-enabled, and fresh-priced.
+payout-enabled, and fresh confidence-bounded.
 
 ## 11. Liability-State Hardening Addendum
 

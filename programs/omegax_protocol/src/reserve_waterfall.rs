@@ -26,6 +26,7 @@ pub(crate) fn configure_reserve_asset_rail(
     require_valid_reserve_oracle_source(args.oracle_source)?;
     require_bps(args.haircut_bps)?;
     require_bps(args.max_exposure_bps)?;
+    require_bps(args.max_confidence_bps)?;
     let price_required = args.capacity_enabled || args.payout_enabled;
     require!(
         args.max_staleness_seconds >= 0,
@@ -42,6 +43,10 @@ pub(crate) fn configure_reserve_asset_rail(
         );
         require!(
             args.max_staleness_seconds > 0,
+            OmegaXProtocolError::ReserveAssetPriceInvalid
+        );
+        require!(
+            args.max_confidence_bps > 0,
             OmegaXProtocolError::ReserveAssetPriceInvalid
         );
     }
@@ -70,6 +75,7 @@ pub(crate) fn configure_reserve_asset_rail(
     rail.oracle_source = args.oracle_source;
     rail.oracle_feed_id = args.oracle_feed_id;
     rail.max_staleness_seconds = args.max_staleness_seconds;
+    rail.max_confidence_bps = args.max_confidence_bps;
     rail.haircut_bps = args.haircut_bps;
     rail.max_exposure_bps = args.max_exposure_bps;
     rail.deposit_enabled = args.deposit_enabled;
@@ -112,6 +118,14 @@ pub(crate) fn publish_reserve_asset_rail_price(
         ctx.accounts.reserve_asset_rail.capacity_enabled
             || ctx.accounts.reserve_asset_rail.payout_enabled,
         OmegaXProtocolError::ReserveAssetRailCapacityDisabled
+    );
+    require!(
+        ctx.accounts.reserve_asset_rail.max_confidence_bps > 0,
+        OmegaXProtocolError::ReserveAssetPriceInvalid
+    );
+    require!(
+        args.confidence_bps <= ctx.accounts.reserve_asset_rail.max_confidence_bps,
+        OmegaXProtocolError::ReserveAssetPriceConfidenceTooWide
     );
 
     let rail = &mut ctx.accounts.reserve_asset_rail;
@@ -203,6 +217,14 @@ pub(crate) fn require_fresh_reserve_asset_price_at(
     require!(
         rail.max_staleness_seconds > 0,
         OmegaXProtocolError::ReserveAssetPriceInvalid
+    );
+    require!(
+        rail.max_confidence_bps > 0,
+        OmegaXProtocolError::ReserveAssetPriceInvalid
+    );
+    require!(
+        rail.last_price_confidence_bps <= rail.max_confidence_bps,
+        OmegaXProtocolError::ReserveAssetPriceConfidenceTooWide
     );
     require!(
         rail.last_price_published_at_ts > 0 && rail.last_price_published_at_ts <= now,

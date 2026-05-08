@@ -16585,61 +16585,66 @@
     },
     {
       "code": 6111,
+      "name": "ReserveAssetPriceConfidenceTooWide",
+      "msg": "Reserve asset oracle price confidence exceeds rail threshold"
+    },
+    {
+      "code": 6112,
       "name": "CommitmentPaymentRailMismatch",
       "msg": "Commitment payment rail mismatch"
     },
     {
-      "code": 6112,
+      "code": 6113,
       "name": "CommitmentPaymentRailInactive",
       "msg": "Commitment payment rail is inactive"
     },
     {
-      "code": 6113,
+      "code": 6114,
       "name": "PartialObligationTransitionUnsupported",
       "msg": "Partial obligation lifecycle transitions are not supported"
     },
     {
-      "code": 6114,
+      "code": 6115,
       "name": "InvalidObligationDeliveryMode",
       "msg": "Invalid obligation delivery mode"
     },
     {
-      "code": 6115,
+      "code": 6116,
       "name": "ClaimAdjudicationLocked",
       "msg": "Claim adjudication is locked after payout or terminal state"
     },
     {
-      "code": 6116,
+      "code": 6117,
       "name": "SelectedAssetPayoutSameMint",
       "msg": "Selected-asset claim payout must use a different mint from the claim denomination"
     },
     {
-      "code": 6117,
+      "code": 6118,
       "name": "SelectedAssetPayoutUnderpaid",
       "msg": "Selected-asset claim payout value is below the credited claim amount"
     },
     {
-      "code": 6118,
+      "code": 6119,
       "name": "SelectedAssetPayoutOverpaid",
       "msg": "Selected-asset claim payout value exceeds the configured overpay tolerance"
     },
     {
-      "code": 6119,
+      "code": 6120,
       "name": "SelectedAssetOverpayBpsTooHigh",
       "msg": "Selected-asset claim payout overpay bps exceeds the protocol maximum"
     },
     {
-      "code": 6120,
+      "code": 6121,
       "name": "ReserveAssetMintDecimalsUnsupported",
       "msg": "Reserve asset mint decimals are unsupported"
     },
     {
-      "code": 6121,
+      "code": 6122,
       "name": "HealthPlanInactive",
       "msg": "Health plan is inactive"
     },
     {
-      "code": 6122,
+      "code": 6123,
       "name": "CapitalClassInactive",
       "msg": "Capital class is inactive"
     }
@@ -17913,6 +17918,10 @@
           {
             "name": "max_staleness_seconds",
             "type": "i64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u16"
           },
           {
             "name": "haircut_bps",
@@ -21112,6 +21121,10 @@
           {
             "name": "max_staleness_seconds",
             "type": "i64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u16"
           },
           {
             "name": "haircut_bps",

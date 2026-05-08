@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{ActivateDirectPremiumCommitment, ActivateCommitmentArgs};
 
 impl<'info> ActivateDirectPremiumCommitment<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "activate_direct_premium_commitment", hash = "eb9bb09153605aa4", spec_hash = "13ddab5d9ccca2af")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "activate_direct_premium_commitment", hash = "eb9bb09153605aa4", spec_hash = "2cbb973e391abb05")]
     #[inline(always)]
     pub fn handler(&mut self, args: ActivateCommitmentArgs) -> Result<()> {
         guards::activate_direct_premium_commitment(self, args)?;

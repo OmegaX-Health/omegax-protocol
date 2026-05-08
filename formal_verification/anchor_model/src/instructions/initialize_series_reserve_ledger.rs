@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{InitializeSeriesReserveLedger, InitializeSeriesReserveLedgerArgs};
 
 impl<'info> InitializeSeriesReserveLedger<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "initialize_series_reserve_ledger", hash = "68e1bf5ac4751717", spec_hash = "4ecf2e0b876228c6")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "initialize_series_reserve_ledger", hash = "68e1bf5ac4751717", spec_hash = "ed26d5ab533f58bc")]
     #[inline(always)]
     pub fn handler(&mut self, args: InitializeSeriesReserveLedgerArgs) -> Result<()> {
         guards::initialize_series_reserve_ledger(self, args)?;

@@ -228,6 +228,8 @@ pub enum OmegaXProtocolError {
     ReserveAssetPriceStale,
     #[msg("Reserve asset oracle price is invalid")]
     ReserveAssetPriceInvalid,
+    #[msg("Reserve asset oracle price confidence exceeds rail threshold")]
+    ReserveAssetPriceConfidenceTooWide,
     #[msg("Commitment payment rail mismatch")]
     CommitmentPaymentRailMismatch,
     #[msg("Commitment payment rail is inactive")]

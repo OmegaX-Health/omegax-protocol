@@ -35,7 +35,8 @@ type AuthorizeClaimRecipientArgs = {}
 type BackfillSchemaDependencyLedgerArgs = {}
 
 type ConfigureReserveAssetRailArgs = {
-  active : Bool
+  active : Bool,
+  max_confidence_bps : U16
 }
 
 type CreateAllocationPositionArgs = {
@@ -261,6 +262,7 @@ type State
       total_assets : U64,
       last_price_usd_1e8 : U64,
       last_price_confidence_bps : U64,
+      max_confidence_bps : U64,
       last_price_published_at_ts : U64,
       accrued_fees : U64,
       withdrawn_fees : U64,
@@ -638,6 +640,7 @@ handler configure_reserve_asset_rail (args : ConfigureReserveAssetRailArgs) : St
 
   // SPEC-REFINE: replace abstract deltas with exact account-field RHS where needed.
   effect {
+    max_confidence_bps := args.max_confidence_bps
     audit_nonce +=! 1
   }
 }
@@ -655,6 +658,8 @@ handler publish_reserve_asset_rail_price (args : PublishReserveAssetRailPriceArg
 
   requires emergency_pause == false else ProtocolEmergencyPaused
   requires args.price_usd_1e8 > 0 else AmountMustBePositive
+  requires max_confidence_bps > 0 else ReserveAssetPriceInvalid
+  requires args.confidence_bps <= max_confidence_bps else ReserveAssetPriceConfidenceTooWide
 
   // SPEC-REFINE: replace abstract deltas with exact account-field RHS where needed.
   effect {

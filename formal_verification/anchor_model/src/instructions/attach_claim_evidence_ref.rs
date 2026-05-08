@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{AttachClaimEvidenceRef, AttachClaimEvidenceRefArgs};
 
 impl<'info> AttachClaimEvidenceRef<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "attach_claim_evidence_ref", hash = "7d05001981864461", spec_hash = "9eb858da94214602")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "attach_claim_evidence_ref", hash = "7d05001981864461", spec_hash = "d1227e0710b83368")]
     #[inline(always)]
     pub fn handler(&mut self, args: AttachClaimEvidenceRefArgs) -> Result<()> {
         guards::attach_claim_evidence_ref(self, args)?;

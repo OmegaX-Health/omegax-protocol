@@ -707,6 +707,7 @@ async function main() {
     role: number;
     payoutPriority: number;
     priceUsd1e8: bigint;
+    maxConfidenceBps: number;
     depositEnabled: boolean;
     payoutEnabled: boolean;
     capacityEnabled: boolean;
@@ -727,6 +728,7 @@ async function main() {
         oracle_source: protocol.RESERVE_ORACLE_SOURCE_GOVERNANCE_ATTESTED,
         oracle_feed_id: sha256Bytes(`devnet-reserve-rail:${params.label}:feed`),
         max_staleness_seconds: 86_400n,
+        max_confidence_bps: params.maxConfidenceBps,
         haircut_bps: 0,
         max_exposure_bps: 10_000,
         deposit_enabled: params.depositEnabled,
@@ -749,6 +751,9 @@ async function main() {
         { pubkey: SystemProgram.programId },
       ],
     });
+    if (!params.capacityEnabled && !params.payoutEnabled) {
+      return;
+    }
     await sendProtocolInstruction({
       protocol,
       connection,
@@ -757,7 +762,7 @@ async function main() {
       instructionName: "publish_reserve_asset_rail_price",
       args: {
         price_usd_1e8: params.priceUsd1e8,
-        confidence_bps: 25,
+        confidence_bps: Math.min(25, params.maxConfidenceBps),
         published_at_ts: nowTs,
         proof_hash: sha256Bytes(`devnet-reserve-rail:${params.label}:price:${nowTs}`),
       },
@@ -783,6 +788,7 @@ async function main() {
     role: protocol.RESERVE_ASSET_ROLE_PRIMARY_STABLE,
     payoutPriority: 0,
     priceUsd1e8: 100_000_000n,
+    maxConfidenceBps: 50,
     depositEnabled: true,
     payoutEnabled: true,
     capacityEnabled: true,
@@ -795,9 +801,10 @@ async function main() {
     role: protocol.RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
     payoutPriority: 20,
     priceUsd1e8: 100_000_000n,
+    maxConfidenceBps: 500,
     depositEnabled: true,
-    payoutEnabled: true,
-    capacityEnabled: true,
+    payoutEnabled: false,
+    capacityEnabled: false,
   });
   await ensureReserveAssetRail({
     label: "wrapper-settlement",
@@ -807,6 +814,7 @@ async function main() {
     role: protocol.RESERVE_ASSET_ROLE_PRIMARY_STABLE,
     payoutPriority: 0,
     priceUsd1e8: 100_000_000n,
+    maxConfidenceBps: 50,
     depositEnabled: true,
     payoutEnabled: true,
     capacityEnabled: true,

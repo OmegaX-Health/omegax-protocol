@@ -920,6 +920,7 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
         oracleSource: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracleFeedIdHex: "56".repeat(32),
         maxStalenessSeconds: 300n,
+        maxConfidenceBps: rail.symbol === "USDC" ? 50 : 150,
         haircutBps: rail.haircutBps,
         maxExposureBps: rail.maxExposureBps,
         depositEnabled: true,

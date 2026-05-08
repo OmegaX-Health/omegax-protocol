@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{UpdateLpPositionCredentialing, UpdateLpPositionCredentialingArgs};
 
 impl<'info> UpdateLpPositionCredentialing<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_lp_position_credentialing", hash = "f060083f62eca1ff", spec_hash = "f218d078a02f71b6")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_lp_position_credentialing", hash = "f060083f62eca1ff", spec_hash = "b69105dd65b7c39d")]
     #[inline(always)]
     pub fn handler(&mut self, args: UpdateLpPositionCredentialingArgs) -> Result<()> {
         guards::update_lp_position_credentialing(self, args)?;

@@ -416,6 +416,7 @@ test("localnet commitment custody is asset-agnostic across payment rails", async
         payoutPriority: asset.payoutPriority,
         oracleSource: RESERVE_ORACLE_SOURCE_GOVERNANCE_ATTESTED,
         maxStalenessSeconds: 86_400n,
+        maxConfidenceBps: 150,
         haircutBps: asset.haircutBps,
         maxExposureBps: 10_000,
         depositEnabled: true,

@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{OpenFundingLine, OpenFundingLineArgs};
 
 impl<'info> OpenFundingLine<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "open_funding_line", hash = "a3d0582003d20081", spec_hash = "bce1e6488031fd18")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "open_funding_line", hash = "a3d0582003d20081", spec_hash = "518e032cc4727a54")]
     #[inline(always)]
     pub fn handler(&mut self, args: OpenFundingLineArgs) -> Result<()> {
         guards::open_funding_line(self, args)?;

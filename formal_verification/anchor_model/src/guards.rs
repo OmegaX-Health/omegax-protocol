@@ -148,12 +148,17 @@ pub fn publish_reserve_asset_rail_price<'info>(ctx: &mut PublishReserveAssetRail
     let approved_amount: u64 = u64::MAX;
     let withdrawn_fees: u64 = 0;
     let accrued_fees: u64 = u64::MAX;
+    let max_confidence_bps = ctx.reserve_asset_rail.max_confidence_bps;
     // lifecycle: require status == Live
     if ctx.reserve_asset_rail.status != Status::Live as u8 { return Err(crate::errors::OmegaxProtocolError::InvalidLifecycle.into()); }
     // requires: emergency_pause = false
     if !(emergency_pause == false) { return Err(OmegaxProtocolError::ProtocolEmergencyPaused.into()); }
     // requires: args.price_usd_1e8 > 0
     if !(args.price_usd_1e8 > 0) { return Err(OmegaxProtocolError::AmountMustBePositive.into()); }
+    // requires: max_confidence_bps > 0
+    if !(max_confidence_bps > 0) { return Err(OmegaxProtocolError::ReserveAssetPriceInvalid.into()); }
+    // requires: args.confidence_bps ≤ max_confidence_bps
+    if !((args.confidence_bps as u64) <= max_confidence_bps) { return Err(OmegaxProtocolError::ReserveAssetPriceConfidenceTooWide.into()); }
     Ok(())
 }
 

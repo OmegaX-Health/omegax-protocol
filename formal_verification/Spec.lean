@@ -67,10 +67,12 @@ instance : Inhabited BackfillSchemaDependencyLedgerArgs := ⟨{
 
 structure ConfigureReserveAssetRailArgs where
   active : Bool
+  max_confidence_bps : Nat
   deriving Repr, DecidableEq, BEq
 
 instance : Inhabited ConfigureReserveAssetRailArgs := ⟨{
   active := false,
+  max_confidence_bps := 0,
 }⟩
 
 structure CreateAllocationPositionArgs where
@@ -525,6 +527,7 @@ structure State where
   total_assets : Nat
   last_price_usd_1e8 : Nat
   last_price_confidence_bps : Nat
+  max_confidence_bps : Nat
   last_price_published_at_ts : Nat
   accrued_fees : Nat
   withdrawn_fees : Nat
@@ -624,11 +627,11 @@ def create_domain_asset_vaultTransition (s : State) (signer : Pubkey) (args : Cr
 
 def configure_reserve_asset_railTransition (s : State) (signer : Pubkey) (args : ConfigureReserveAssetRailArgs) : Option State :=
   if signer = s.authority ∧ s.status = .Live ∧ (s.emergency_pause = false) then
-    some { s with status := .Live }
+    some { s with max_confidence_bps := args.max_confidence_bps, status := .Live }
   else none
 
 def publish_reserve_asset_rail_priceTransition (s : State) (signer : Pubkey) (args : PublishReserveAssetRailPriceArgs) : Option State :=
-  if signer = s.authority ∧ s.status = .Live ∧ (s.emergency_pause = false) ∧ (args.price_usd_1e8 > 0) then
+  if signer = s.authority ∧ s.status = .Live ∧ (s.emergency_pause = false) ∧ (args.price_usd_1e8 > 0) ∧ (s.max_confidence_bps > 0) ∧ (args.confidence_bps ≤ s.max_confidence_bps) then
     some { s with last_price_usd_1e8 := args.price_usd_1e8, last_price_confidence_bps := args.confidence_bps, last_price_published_at_ts := args.published_at_ts, status := .Live }
   else none
 

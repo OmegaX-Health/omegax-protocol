@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{CreateDomainAssetVault, CreateDomainAssetVaultArgs};
 
 impl<'info> CreateDomainAssetVault<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "create_domain_asset_vault", hash = "d2851e3b0794b44e", spec_hash = "3c14f8c99d4bd9a7")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "create_domain_asset_vault", hash = "d2851e3b0794b44e", spec_hash = "02a17bc6ddba02fa")]
     #[inline(always)]
     pub fn handler(&mut self, args: CreateDomainAssetVaultArgs) -> Result<()> {
         guards::create_domain_asset_vault(self, args)?;

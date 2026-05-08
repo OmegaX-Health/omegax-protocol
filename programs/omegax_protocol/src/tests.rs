@@ -839,6 +839,7 @@ fn reserve_asset_capacity_requires_published_price() {
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [7u8; 32],
         max_staleness_seconds: 3_600,
+        max_confidence_bps: 50,
         haircut_bps: 5_000,
         max_exposure_bps: 1_000,
         deposit_enabled: true,
@@ -857,9 +858,13 @@ fn reserve_asset_capacity_requires_published_price() {
     assert!(reserve_waterfall::require_reserve_asset_rail_capacity_enabled(&rail).is_err());
 
     rail.last_price_usd_1e8 = 42_000_000;
+    rail.last_price_confidence_bps = 50;
     rail.last_price_published_at_ts = 1_000;
     assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 1_100).is_ok());
     assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 5_000).is_err());
+
+    rail.last_price_confidence_bps = 51;
+    assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 1_100).is_err());
 }
 
 #[test]
@@ -874,6 +879,7 @@ fn reserve_asset_payout_requires_enabled_fresh_price() {
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [9u8; 32],
         max_staleness_seconds: 3_600,
+        max_confidence_bps: 100,
         haircut_bps: 2_500,
         max_exposure_bps: 1_000,
         deposit_enabled: true,
@@ -895,6 +901,7 @@ fn reserve_asset_payout_requires_enabled_fresh_price() {
     assert!(reserve_waterfall::require_reserve_asset_rail_payout_enabled(&rail).is_err());
 
     rail.last_price_usd_1e8 = 6_500_000_000_000;
+    rail.last_price_confidence_bps = 100;
     rail.last_price_published_at_ts = 1_000;
     assert!(reserve_waterfall::require_fresh_reserve_asset_price_at(&rail, 1_100).is_ok());
 }
@@ -911,6 +918,7 @@ fn reserve_asset_price_zero_staleness_is_invalid_for_payout() {
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [9u8; 32],
         max_staleness_seconds: 0,
+        max_confidence_bps: 100,
         haircut_bps: 2_500,
         max_exposure_bps: 1_000,
         deposit_enabled: true,
@@ -941,6 +949,7 @@ fn selected_asset_payout_value_bounds_are_enforced() {
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [1u8; 32],
         max_staleness_seconds: 3_600,
+        max_confidence_bps: 50,
         haircut_bps: 0,
         max_exposure_bps: 10_000,
         deposit_enabled: true,
@@ -955,7 +964,7 @@ fn selected_asset_payout_value_bounds_are_enforced() {
         audit_nonce: 0,
         bump: 1,
     };
-    let wbtc_rail = ReserveAssetRail {
+    let mut wbtc_rail = ReserveAssetRail {
         reserve_domain: usdc_rail.reserve_domain,
         asset_mint: Pubkey::new_unique(),
         oracle_authority: Pubkey::new_unique(),
@@ -965,6 +974,7 @@ fn selected_asset_payout_value_bounds_are_enforced() {
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,
         oracle_feed_id: [2u8; 32],
         max_staleness_seconds: 3_600,
+        max_confidence_bps: 150,
         haircut_bps: 2_500,
         max_exposure_bps: 1_000,
         deposit_enabled: true,
@@ -1026,6 +1036,34 @@ fn selected_asset_payout_value_bounds_are_enforced() {
     .is_err());
 
     usdc_rail.last_price_published_at_ts = 0;
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        1_000_000,
+        8,
+        &wbtc_rail,
+        50,
+        1_100,
+    )
+    .is_err());
+
+    usdc_rail.last_price_published_at_ts = 1_000;
+    usdc_rail.last_price_confidence_bps = 51;
+    assert!(reserve_waterfall::require_selected_asset_payout_value_at(
+        500_000_000,
+        6,
+        &usdc_rail,
+        1_000_000,
+        8,
+        &wbtc_rail,
+        50,
+        1_100,
+    )
+    .is_err());
+
+    usdc_rail.last_price_confidence_bps = 0;
+    wbtc_rail.last_price_confidence_bps = 151;
     assert!(reserve_waterfall::require_selected_asset_payout_value_at(
         500_000_000,
         6,

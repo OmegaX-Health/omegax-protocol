@@ -295,6 +295,7 @@ export type ReserveAssetRailSnapshot = {
   oracleSource: number;
   oracleFeedIdHex: string;
   maxStalenessSeconds: number;
+  maxConfidenceBps: number;
   haircutBps: number;
   maxExposureBps: number;
   depositEnabled: boolean;
@@ -1795,10 +1796,17 @@ export function buildMixedReserveWaterfallModel(params: {
     const price = toBigIntAmount(rail.lastPriceUsd1e8);
     const publishedAt = Number(rail.lastPricePublishedAtTs ?? 0);
     const maxStaleness = Number(rail.maxStalenessSeconds ?? 0);
+    const confidenceBps = Number(rail.lastPriceConfidenceBps ?? 0);
+    const maxConfidenceBps = Number(rail.maxConfidenceBps ?? 0);
     const priceFresh =
       rail.capacityEnabled
       && price > 0n
-      && (maxStaleness === 0 || (publishedAt > 0 && nowTs - publishedAt <= maxStaleness));
+      && maxStaleness > 0
+      && maxConfidenceBps > 0
+      && confidenceBps <= maxConfidenceBps
+      && publishedAt > 0
+      && publishedAt <= nowTs
+      && nowTs - publishedAt <= maxStaleness;
     const decimals = Math.max(0, Math.min(18, params.assetDecimalsByMint?.[rail.assetMint] ?? 6));
     const decimalFactor = 10n ** BigInt(decimals);
     const haircutNumerator = BigInt(Math.max(0, 10_000 - rail.haircutBps));
@@ -1859,7 +1867,16 @@ function freshRailPrice(rail: ReserveAssetRailSnapshot | null | undefined, nowTs
   if (price <= 0n) return false;
   const publishedAt = Number(rail.lastPricePublishedAtTs ?? 0);
   const maxStaleness = Number(rail.maxStalenessSeconds ?? 0);
-  return maxStaleness > 0 && publishedAt > 0 && publishedAt <= nowTs && nowTs - publishedAt <= maxStaleness;
+  const confidenceBps = Number(rail.lastPriceConfidenceBps ?? 0);
+  const maxConfidenceBps = Number(rail.maxConfidenceBps ?? 0);
+  return (
+    maxStaleness > 0 &&
+    maxConfidenceBps > 0 &&
+    confidenceBps <= maxConfidenceBps &&
+    publishedAt > 0 &&
+    publishedAt <= nowTs &&
+    nowTs - publishedAt <= maxStaleness
+  );
 }
 
 function amountToUsd1e8(params: {
@@ -2845,6 +2862,7 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           oracleSource: Number(decodedField(decoded, "oracleSource", "oracle_source") ?? 0),
           oracleFeedIdHex: bytesToHex(decodedField(decoded, "oracleFeedId", "oracle_feed_id")),
           maxStalenessSeconds: numberFromAnchorValue(decodedField(decoded, "maxStalenessSeconds", "max_staleness_seconds")),
+          maxConfidenceBps: Number(decodedField(decoded, "maxConfidenceBps", "max_confidence_bps") ?? 0),
           haircutBps: Number(decodedField(decoded, "haircutBps", "haircut_bps") ?? 0),
           maxExposureBps: Number(decodedField(decoded, "maxExposureBps", "max_exposure_bps") ?? 0),
           depositEnabled: Boolean(decodedField(decoded, "depositEnabled", "deposit_enabled")),
@@ -4425,6 +4443,7 @@ export function buildConfigureReserveAssetRailTx(params: {
   oracleSource: number;
   oracleFeedIdHex?: string | null;
   maxStalenessSeconds: bigint;
+  maxConfidenceBps: number;
   haircutBps: number;
   maxExposureBps: number;
   depositEnabled: boolean;
@@ -4449,6 +4468,7 @@ export function buildConfigureReserveAssetRailTx(params: {
       oracle_source: params.oracleSource,
       oracle_feed_id: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.oracleFeedIdHex), 32)),
       max_staleness_seconds: params.maxStalenessSeconds,
+      max_confidence_bps: params.maxConfidenceBps,
       haircut_bps: params.haircutBps,
       max_exposure_bps: params.maxExposureBps,
       deposit_enabled: params.depositEnabled,

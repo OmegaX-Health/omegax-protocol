@@ -60,6 +60,7 @@ pub struct ConfigureReserveAssetRailArgs {
     pub oracle_source: u8,
     pub oracle_feed_id: [u8; 32],
     pub max_staleness_seconds: i64,
+    pub max_confidence_bps: u16,
     pub haircut_bps: u16,
     pub max_exposure_bps: u16,
     pub deposit_enabled: bool,

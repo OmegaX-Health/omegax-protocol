@@ -68,7 +68,13 @@ unless the rail is:
 - bound to the same reserve domain and asset mint as the claim or obligation;
 - active;
 - payout-enabled;
-- backed by a non-zero fresh published price under the rail's freshness window.
+- backed by a non-zero fresh published price under the rail's freshness window;
+- backed by a price confidence value at or below the rail's `max_confidence_bps`.
+
+Unsafe oracle quality fails closed: the asset counts as zero claims-paying
+capacity and cannot be selected for payout. Frontend and backend services may
+route candidate assets, but the Solana program enforces freshness and
+confidence before value leaves custody.
 
 This makes USDC the preferred Genesis settlement rail while still allowing an
 approved fallback rail such as PUSD, USDT, SOL, WBTC, or WETH to pay a claim
@@ -76,6 +82,10 @@ when the router selects it. The program does not swap assets, does not mutate a
 USDC claim ledger while draining a WBTC vault, and does not treat pending
 commitment custody as claims-paying reserve until activation/posting rules have
 made that true.
+
+Selected-asset payouts additionally require both the claim-denomination rail
+and the selected payout rail to pass the same freshness and confidence checks
+before the value-comparison bounds run.
 
 ## Commitment Visibility
 

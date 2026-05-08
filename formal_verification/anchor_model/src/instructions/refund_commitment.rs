@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{RefundCommitment, RefundCommitmentArgs};
 
 impl<'info> RefundCommitment<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "refund_commitment", hash = "25c2ccff20b375f0", spec_hash = "e5e72579f4364139")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "refund_commitment", hash = "25c2ccff20b375f0", spec_hash = "30673c8ccbb5dae6")]
     #[inline(always)]
     pub fn handler(&mut self, args: RefundCommitmentArgs) -> Result<()> {
         guards::refund_commitment(self, args)?;

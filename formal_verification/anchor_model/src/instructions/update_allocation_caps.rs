@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{UpdateAllocationCaps, UpdateAllocationCapsArgs};
 
 impl<'info> UpdateAllocationCaps<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_allocation_caps", hash = "249a91df1e5fa879", spec_hash = "ce2f251aeca1e04d")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "update_allocation_caps", hash = "249a91df1e5fa879", spec_hash = "66b6065c41a835db")]
     #[inline(always)]
     pub fn handler(&mut self, args: UpdateAllocationCapsArgs) -> Result<()> {
         guards::update_allocation_caps(self, args)?;

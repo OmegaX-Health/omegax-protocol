@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{OpenClaimCase, OpenClaimCaseArgs};
 
 impl<'info> OpenClaimCase<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "open_claim_case", hash = "ebcaa5b2db72932d", spec_hash = "4d599576bf63749d")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "open_claim_case", hash = "ebcaa5b2db72932d", spec_hash = "740f9d0db202a52b")]
     #[inline(always)]
     pub fn handler(&mut self, args: OpenClaimCaseArgs) -> Result<()> {
         guards::open_claim_case(self, args)?;

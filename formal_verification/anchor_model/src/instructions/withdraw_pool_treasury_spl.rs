@@ -10,7 +10,7 @@ use qedgen_macros::qed;
 use crate::{WithdrawPoolTreasurySpl, WithdrawArgs};
 
 impl<'info> WithdrawPoolTreasurySpl<'info> {
-    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "withdraw_pool_treasury_spl", hash = "885d8f307f04628f", spec_hash = "7e02add31fd11059")]
+    #[qed(verified, spec = "../../omegax_protocol.qedspec", handler = "withdraw_pool_treasury_spl", hash = "885d8f307f04628f", spec_hash = "f8d923b2ad452405")]
     #[inline(always)]
     pub fn handler(&mut self, args: WithdrawArgs) -> Result<()> {
         guards::withdraw_pool_treasury_spl(self, args)?;

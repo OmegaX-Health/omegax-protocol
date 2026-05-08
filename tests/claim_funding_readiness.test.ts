@@ -86,6 +86,8 @@ function rail(params: {
   haircutBps?: number;
   publishedAtTs?: number;
   maxStalenessSeconds?: number;
+  maxConfidenceBps?: number;
+  lastPriceConfidenceBps?: number;
   payoutEnabled?: boolean;
   capacityEnabled?: boolean;
 }): ReserveAssetRailSnapshot {
@@ -100,6 +102,7 @@ function rail(params: {
     oracleSource: 0,
     oracleFeedIdHex: "11".repeat(32),
     maxStalenessSeconds: params.maxStalenessSeconds ?? 3_600,
+    maxConfidenceBps: params.maxConfidenceBps ?? 50,
     haircutBps: params.haircutBps ?? 0,
     maxExposureBps: 10_000,
     depositEnabled: true,
@@ -107,7 +110,7 @@ function rail(params: {
     capacityEnabled: params.capacityEnabled ?? true,
     active: true,
     lastPriceUsd1e8: params.priceUsd1e8 ?? 100_000_000n,
-    lastPriceConfidenceBps: 25,
+    lastPriceConfidenceBps: params.lastPriceConfidenceBps ?? 25,
     lastPricePublishedAtTs: params.publishedAtTs ?? nowTs,
     lastPriceSlot: 1n,
     lastPriceProofHashHex: "22".repeat(32),
@@ -199,6 +202,36 @@ test("claim funding readiness rejects zero-staleness fallback prices", () => {
       reserveAssetRails: [
         rail({ assetMint: settlementMint, symbol: "USDC" }),
         rail({ assetMint: wbtcMint, symbol: "WBTC", priceUsd1e8: 5_000_000_000_000n, maxStalenessSeconds: 0 }),
+      ],
+    }),
+    reserveDomainAddress: reserveDomain,
+    settlementMint,
+    requestedAmount: 500n,
+    assetDecimalsByMint: { [settlementMint]: 0, [wbtcMint]: 0 },
+    nowTs,
+  });
+
+  assert.equal(model.readiness, "queue_or_refund");
+  assert.equal(model.selectedPayoutAsset, null);
+  assert.equal(model.otherReserveAssets[0]!.priceFresh, false);
+});
+
+test("claim funding readiness rejects unsafe reserve price confidence", () => {
+  const model = protocol.buildClaimFundingReadiness({
+    snapshot: emptySnapshot({
+      domainAssetLedgers: [
+        { address: pk(), reserveDomain, assetMint: settlementMint, sheet: { funded: 100n } },
+        { address: pk(), reserveDomain, assetMint: wbtcMint, sheet: { funded: 1n } },
+      ],
+      reserveAssetRails: [
+        rail({ assetMint: settlementMint, symbol: "USDC" }),
+        rail({
+          assetMint: wbtcMint,
+          symbol: "WBTC",
+          priceUsd1e8: 5_000_000_000_000n,
+          maxConfidenceBps: 50,
+          lastPriceConfidenceBps: 51,
+        }),
       ],
     }),
     reserveDomainAddress: reserveDomain,
