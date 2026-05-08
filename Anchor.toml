@@ -2,13 +2,15 @@
 anchor_version = "0.32.1"
 
 [workspace]
-members = ["programs/omegax_protocol"]
+members = ["programs/omegax_protocol", "programs/omegax_private_claim_review"]
 
 [programs.localnet]
 omegax_protocol = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+omegax_private_claim_review = "5eMhMgdweRhrucbxkFgw1FijRQEHqv8fxhriHBttf9xU"
 
 [programs.devnet]
 omegax_protocol = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B"
+omegax_private_claim_review = "5eMhMgdweRhrucbxkFgw1FijRQEHqv8fxhriHBttf9xU"
 
 [registry]
 url = "https://api.apr.dev"
