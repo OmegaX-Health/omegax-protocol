@@ -432,7 +432,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
             <article className="plans-card liquid-glass">
               <div className="plans-card-head">
                 <div>
-                  <p className="plans-card-eyebrow">LIVE_PROTOCOL_STATE</p>
+                  <p className="plans-card-eyebrow">Live protocol state</p>
                   <h2 className="plans-card-title plans-card-title-display">
                     {protocolLoading ? <>Syncing <em>authorities</em></> : <>RPC <em>attention</em></>}
                   </h2>
@@ -456,7 +456,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 (queue.length === 0 || showQueueSkeleton) && "plans-hero-select-disabled",
               )}
             >
-              <span className="plans-hero-select-eyebrow">ACTIVE_PROPOSAL</span>
+              <span className="plans-hero-select-eyebrow">Active proposal</span>
               <div className="plans-hero-select-body">
                 <div className="plans-hero-select-copy">
                   <span className="plans-hero-select-label">
@@ -610,7 +610,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 <article className="plans-card plans-vitality heavy-glass">
                   <div className="plans-card-head">
                     <div>
-                      <p className="plans-card-eyebrow">PROPOSAL_PULSE</p>
+                      <p className="plans-card-eyebrow">Proposal pulse</p>
                       <h2 className="plans-card-title plans-card-title-display">
                         {showQueueSkeleton ? "Loading proposal pulse" : selectedProposal?.title ?? queueStatus.emptyTitle}
                       </h2>
@@ -658,7 +658,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                   {!showQueueSkeleton && queueStateCounts.length > 0 ? (
                     <div className="plans-vitality-chart" aria-label="Proposal queue state distribution">
                       <div className="plans-vitality-chart-head">
-                        <span className="plans-chart-label">QUEUE_STATE</span>
+                        <span className="plans-chart-label">Queue state</span>
                         <span className="plans-chart-legend">Status · Share</span>
                       </div>
                       <div className="plans-vitality-bars">
@@ -690,7 +690,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 <article className="plans-card plans-pressure heavy-glass">
                   <div className="plans-card-head">
                     <div>
-                      <p className="plans-card-eyebrow">EXECUTION_POSTURE</p>
+                      <p className="plans-card-eyebrow">Execution posture</p>
                       <h2 className="plans-card-title plans-card-title-display">
                         Timelock<span className="plans-pressure-unit"> · on</span>
                       </h2>
@@ -699,15 +699,15 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                   </div>
                   <div className="plans-data-grid">
                     <div className="plans-data-row">
-                      <span className="plans-data-label">REVIEW</span>
+                      <span className="plans-data-label">Review</span>
                       <span className="plans-data-value">Timelock active</span>
                     </div>
                     <div className="plans-data-row">
-                      <span className="plans-data-label">EXECUTION</span>
+                      <span className="plans-data-label">Execution</span>
                       <span className="plans-data-value">Sequential</span>
                     </div>
                     <div className="plans-data-row">
-                      <span className="plans-data-label">AUDIT</span>
+                      <span className="plans-data-label">Audit</span>
                       <span className="plans-data-value">On-chain</span>
                     </div>
                   </div>
@@ -716,12 +716,12 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 <article className="plans-card plans-velocity heavy-glass">
                   <div className="plans-card-head">
                     <div>
-                      <p className="plans-card-eyebrow">CONTROL_SCOPE</p>
+                      <p className="plans-card-eyebrow">Control scope</p>
                       <h2 className="plans-card-title plans-card-title-display">
                         {GOVERNANCE_TEMPLATE_ROWS.length} <em>templates</em>
                       </h2>
                     </div>
-                    <span className="plans-card-meta">BOUNDED</span>
+                    <span className="plans-card-meta">Bounded</span>
                   </div>
                   <p className="plans-card-body">
                     Every governance action is bounded by a published template — no untyped instructions reach the protocol.
@@ -731,7 +731,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                     className="plans-inline-action"
                     onClick={() => handleTabChange("templates")}
                   >
-                    INSPECT_TEMPLATES
+                    Inspect templates
                     <span className="material-symbols-outlined">arrow_forward</span>
                   </button>
                 </article>
@@ -739,7 +739,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 <article className="plans-card plans-lanes heavy-glass">
                   <div className="plans-card-head">
                     <div>
-                      <p className="plans-card-eyebrow">PROPOSAL_LANES</p>
+                      <p className="plans-card-eyebrow">Proposal lanes</p>
                       <h2 className="plans-card-title">Live queue</h2>
                     </div>
                     <span className="plans-card-meta">{queue.length} {queue.length === 1 ? "proposal" : "proposals"}</span>
@@ -781,7 +781,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
               <article className="plans-card heavy-glass">
                 <div className="plans-card-head">
                   <div>
-                    <p className="plans-card-eyebrow">PROPOSAL_REGISTER</p>
+                    <p className="plans-card-eyebrow">Proposal register</p>
                     <h2 className="plans-card-title plans-card-title-display">
                       {showQueueSkeleton ? <>Loading <em>proposals</em></> : <>{queue.length} live <em>{queue.length === 1 ? "proposal" : "proposals"}</em></>}
                     </h2>
@@ -850,7 +850,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
               <article className="plans-card heavy-glass">
                 <div className="plans-card-head">
                   <div>
-                    <p className="plans-card-eyebrow">AUTHORITY_MATRIX</p>
+                    <p className="plans-card-eyebrow">Authority matrix</p>
                     <h2 className="plans-card-title plans-card-title-display">
                       Control <em>wallets</em>
                     </h2>
@@ -893,7 +893,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 <article className="plans-card heavy-glass">
                   <div className="plans-card-head">
                     <div>
-                      <p className="plans-card-eyebrow">CONTROL_TEMPLATES</p>
+                      <p className="plans-card-eyebrow">Control templates</p>
                       <h2 className="plans-card-title plans-card-title-display">
                         Bounded <em>actions</em>
                       </h2>
@@ -935,7 +935,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
           <aside className="plans-rail">
             <section className="plans-rail-card heavy-glass">
               <div className="plans-rail-head">
-                <span className="plans-rail-tag">SELECTED_PROPOSAL</span>
+                <span className="plans-rail-tag">Selected proposal</span>
                 <span className="plans-rail-subtag">
                   <span className="plans-live-dot" aria-hidden="true" />
                   {showQueueSkeleton ? "SYNCING" : selectedProposal ? selectedProposal.status : queueLiveLabel}
@@ -961,7 +961,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                     href={`/governance/proposals/${encodeURIComponent(selectedProposal.proposal)}`}
                     className="plans-inline-action"
                   >
-                    OPEN_PROPOSAL
+                    Open proposal
                     <span className="material-symbols-outlined">arrow_forward</span>
                   </Link>
                 </>
@@ -972,7 +972,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
 
             <section className="plans-rail-card heavy-glass">
               <div className="plans-rail-head">
-                <span className="plans-rail-tag">AUTHORITY_ALERTS</span>
+                <span className="plans-rail-tag">Authority alerts</span>
                 <span className="plans-rail-subtag">CONTROL</span>
               </div>
               <div className="plans-rail-row">
@@ -991,8 +991,8 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
 
             <section className="plans-rail-card heavy-glass">
               <div className="plans-rail-head">
-                <span className="plans-rail-tag">FIELD_LOG</span>
-                <span className="plans-rail-subtag">LIVE_AUDIT</span>
+                <span className="plans-rail-tag">Field log</span>
+                <span className="plans-rail-subtag">Live audit</span>
               </div>
               <div className="plans-rail-trail">
                 {auditTrail.map((item) => (

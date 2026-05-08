@@ -89,8 +89,8 @@ function OverviewFieldLogCard(props: {
   return (
     <section className="ov-log-card liquid-glass" aria-label={props.mode === "demo" ? "Field log demo audit" : "Field log live audit"}>
       <div className="ov-log-card-head">
-        <span className="ov-panel-tag">FIELD_LOG</span>
-        <span className="ov-panel-subtag">{props.mode === "demo" ? "DEMO_AUDIT" : "LIVE_AUDIT"}</span>
+        <span className="ov-panel-tag">Field log</span>
+        <span className="ov-panel-subtag">{props.mode === "demo" ? "Demo audit" : "Live audit"}</span>
       </div>
 
       <div className="ov-audit-list" role="list" aria-label="Field log events">
@@ -141,7 +141,7 @@ function OverviewEntryCard(props: {
         <p className="ov-entry-summary">{props.summary}</p>
 
         <div className="ov-entry-preview" aria-hidden="true">
-          <span className="ov-entry-preview-label">Inspect surface</span>
+          <span className="ov-entry-preview-label">Open</span>
           <span className="material-symbols-outlined ov-entry-preview-icon">south</span>
         </div>
 
@@ -175,7 +175,7 @@ function OverviewEntryCard(props: {
             <div className="ov-entry-footer">
               <span className="ov-entry-note">{props.note}</span>
               <span className="ov-entry-link">
-                Access surface
+                Open {props.title}
                 <span className="material-symbols-outlined ov-entry-link-icon" aria-hidden="true">north_east</span>
               </span>
             </div>
@@ -255,12 +255,12 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
     return [
       {
         align: "start" as const,
-        entry: "ENTRY_01",
+        entry: "Surface 01",
         href: "/plans?setup=genesis-protect-acute",
         status: `${stats.planCount} plans`,
         title: "Plans",
         summary: "Coverage series, member exposure, and sponsor operations across the public OmegaX protocol surface.",
-        highlightLabel: "Claim-active coverage lanes",
+        highlightLabel: `Active claim ${stats.activeClaimCount === 1 ? "case" : "cases"}`,
         highlightValue: String(stats.activeClaimCount),
         metrics: [
           { label: "Plans", value: String(stats.planCount) },
@@ -272,7 +272,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
       },
       {
         align: "end" as const,
-        entry: "ENTRY_02",
+        entry: "Surface 02",
         href: "/capital",
         status: `${stats.poolCount} pools`,
         title: "Capital",
@@ -289,7 +289,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
       },
       {
         align: "start" as const,
-        entry: "ENTRY_03",
+        entry: "Surface 03",
         href: "/governance",
         status: governanceQueueError ? "degraded" : governanceQueueLoaded ? "live" : "syncing",
         title: "Governance",
@@ -306,7 +306,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
       },
       {
         align: "end" as const,
-        entry: "ENTRY_04",
+        entry: "Surface 04",
         href: "/oracles",
         status: `${stats.oracleCount} operators`,
         title: "Oracles",
@@ -351,7 +351,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
   const signalMetrics = useMemo(() => [
     { label: "Utilization", value: `${stats.utilization}%` },
     { label: "Capacity", value: formatCompact(stats.available) },
-    { label: "Queue", value: String(stats.pendingRedemptionCount) },
+    { label: "Pending exits", value: String(stats.pendingRedemptionCount) },
     { label: "Reserves", value: String(stats.reservedObligationCount) },
   ], [
     stats.available,
@@ -442,7 +442,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
           ) : null}
 
           <div className="ov-stream-group">
-            <span className="ov-stream-label">ACCESS_SURFACES</span>
+            <span className="ov-stream-label">Protocol surfaces</span>
             <div className="ov-stream-stack">
               {overviewCards.map((card) => (
                 <OverviewEntryCard key={card.href} {...card} />
@@ -451,7 +451,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
           </div>
 
           <div className="ov-stream-group">
-            <span className="ov-stream-label">FIELD_LOG</span>
+            <span className="ov-stream-label">Field log</span>
             <OverviewFieldLogCard items={auditTrail} mode={statsMode} />
           </div>
         </section>

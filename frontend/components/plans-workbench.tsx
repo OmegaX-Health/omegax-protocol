@@ -1293,7 +1293,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
                           <PlansEmptyState
                             title="No claim cases"
                             copy={selectedSeries
-                              ? `This coverage product does not currently expose claim cases. Choose "${allSeriesSelectorLabel}" in the selector above to see plan-wide claims.`
+                              ? `This series does not currently expose claim cases. Choose "${allSeriesSelectorLabel}" in the selector above to see plan-wide claims.`
                               : "This plan does not currently expose claim cases."}
                           />
                         )}

@@ -238,6 +238,17 @@ function protocolToken(value: string): string {
   return normalized || "PENDING";
 }
 
+function humanizeChoice(value: string): string {
+  const normalized = normalize(value).replace(/[_-]+/g, " ").trim();
+  if (!normalized) return "Pending";
+  if (normalized === "defi native") return "DeFi native";
+  if (normalized === "rwa policy") return "RWA policy";
+  if (normalized === "spl") return "SPL";
+  if (normalized === "sol") return "SOL";
+  if (normalized === "nft anchor") return "NFT anchor";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 function seedDefault(value: string, fallback: string): string {
   const normalized = normalize(value)
     .toLowerCase()
@@ -271,7 +282,7 @@ function toUiAmountBaseUnits(value: string, mode: PayoutAssetMode, splDecimals: 
 
 function baseUnitsPreview(value: string, mode: PayoutAssetMode, splDecimals: number | null): string {
   try {
-    return toUiAmountBaseUnits(value, mode, splDecimals).toString();
+    return `${toUiAmountBaseUnits(value, mode, splDecimals).toLocaleString()} base units`;
   } catch {
     return "n/a";
   }
@@ -1016,7 +1027,7 @@ export function PlanCreationWizard() {
     ];
 
     if (!walletLaunchReady) {
-      errors.push("Connect a wallet with plan-control authority before creating this plan.");
+      errors.push("Connect an authorized plan wallet before creating this plan.");
     }
     if (!addressPreview.healthPlanAddress) {
       errors.push("Plan address preview is unavailable. Check the plan ID and reserve domain.");
@@ -2244,14 +2255,14 @@ export function PlanCreationWizard() {
         : "bolt"
     : "arrow_forward";
   const nextButtonLabel = busyAction
-    ? busyAction.toUpperCase()
+    ? "Working..."
     : activeStep.id === "review"
       ? createdArtifacts
-        ? "OPEN_WORKSPACE"
+        ? "Open workspace"
         : reviewLaunchBlocked
-          ? "CONNECT_WALLET_TO_CREATE_PLAN"
-          : "CREATE_PLAN_ONCHAIN"
-      : `NEXT · ${steps[stepIndex + 1]!.label.toUpperCase()}`;
+          ? "Connect wallet to create plan"
+          : "Create plan on-chain"
+      : `Next · ${steps[stepIndex + 1]!.label}`;
 
   return (
     <div className="plans-shell">
@@ -2484,7 +2495,7 @@ export function PlanCreationWizard() {
                           className={cn("plans-wizard-chip", coveragePathway === "defi_native" && "plans-wizard-chip-active")}
                           onClick={() => handleCoveragePathwayChange("defi_native")}
                         >
-                          DEFI_NATIVE
+                          DeFi native
                         </button>
                         <button
                           type="button"
@@ -2500,7 +2511,7 @@ export function PlanCreationWizard() {
                           disabled={!rwaPolicyLaunchEnabled}
                           title={rwaPolicyLaunchEnabled ? undefined : "RWA policy launch is preview-only in Phase 0."}
                         >
-                          RWA_POLICY
+                          RWA policy
                         </button>
                       </div>
                     </FieldGroup>
@@ -2514,7 +2525,7 @@ export function PlanCreationWizard() {
                               className={cn("plans-wizard-chip", defiSettlementMode === "onchain_programmatic" && "plans-wizard-chip-active")}
                               onClick={() => setDefiSettlementMode("onchain_programmatic")}
                             >
-                              ONCHAIN_PROGRAMMATIC
+                              On-chain programmatic
                             </button>
                             <button
                               type="button"
@@ -2530,7 +2541,7 @@ export function PlanCreationWizard() {
                               disabled={!hybridLaunchEnabled}
                               title={hybridLaunchEnabled ? undefined : "Hybrid rails are preview-only in Phase 0."}
                             >
-                              HYBRID_RAILS
+                              Hybrid rails
                             </button>
                           </div>
                         </FieldGroup>
@@ -2630,7 +2641,7 @@ export function PlanCreationWizard() {
                         className={cn("plans-wizard-chip", membershipMode === mode && "plans-wizard-chip-active")}
                         onClick={() => handleMembershipModeChange(mode)}
                       >
-                        {mode.toUpperCase()}
+                        {mode === "token_gate" ? "Token gate" : mode === "invite_only" ? "Invite only" : "Open"}
                       </button>
                     ))}
                   </div>
@@ -2703,16 +2714,16 @@ export function PlanCreationWizard() {
                 ) : null}
 
                 <div className="plans-wizard-review-grid">
-                  <ReviewRow label="MEMBERSHIP_POSTURE" value={membershipMode.toUpperCase()} />
-                  <ReviewRow label="GATE_CLASS" value={membershipGateKind.toUpperCase()} />
+                  <ReviewRow label="Membership posture" value={humanizeChoice(membershipMode)} />
+                  <ReviewRow label="Gate class" value={humanizeChoice(membershipGateKind)} />
                   <ReviewRow
-                    label="JOIN_GATING"
+                    label="Join gating"
                     value={
                       membershipMode === "token_gate"
-                        ? `${membershipGateKind.toUpperCase()} · ${shortAddress(tokenGateMint)} · ${tokenGateMinBalance}`
+                        ? `${humanizeChoice(membershipGateKind)} · ${shortAddress(tokenGateMint)} · ${tokenGateMinBalance}`
                         : membershipMode === "invite_only"
                           ? shortAddress(inviteIssuer)
-                          : "OPEN"
+                          : "Open"
                     }
                   />
                 </div>
@@ -3146,7 +3157,7 @@ export function PlanCreationWizard() {
                       <p className="plans-wizard-support-copy">
                         {genesisTemplateMode
                           ? "Bootstrap transactions only create the canonical Genesis shell. Reserve posting, pool settings, and final operator sign-off still happen from the live workspace before any bounded launch window opens."
-                          : "Protection enrollment gates decide who can activate coverage seats. Active-cycle claim rights follow coverage and premium status, not live wallet possession checks at claim time."}
+                          : "Enrollment rules decide who can activate coverage. Once coverage is active, claim rights follow coverage and premium status."}
                       </p>
                     </div>
                     {createdArtifacts ? (
@@ -3176,7 +3187,7 @@ export function PlanCreationWizard() {
                       <div className="space-y-2">
                         {!walletLaunchReady ? (
                           <p id="plans-wizard-wallet-required-note" className="plans-wizard-support-note">
-                            Connect a wallet with plan-control authority to create this plan on-chain.
+                            Connect an authorized plan wallet to create this plan on-chain.
                           </p>
                         ) : null}
                         <p className="plans-wizard-support-note">No create-plan transactions yet.</p>
@@ -3217,7 +3228,7 @@ export function PlanCreationWizard() {
                 onClick={handleNext}
                 disabled={nextButtonDisabled}
                 aria-describedby={reviewLaunchBlocked ? "plans-wizard-wallet-required-note" : undefined}
-                title={reviewLaunchBlocked ? "Connect a wallet with plan-control authority to create this plan on-chain." : undefined}
+                title={reviewLaunchBlocked ? "Connect an authorized plan wallet to create this plan on-chain." : undefined}
               >
                 <span className="material-symbols-outlined" aria-hidden="true">{nextButtonIcon}</span>
                 <span className="plans-wizard-next-label">{nextButtonLabel}</span>

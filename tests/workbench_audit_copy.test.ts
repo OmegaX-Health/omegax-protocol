@@ -23,7 +23,7 @@ test("governance audit trail enumerates every visible queue state", () => {
   assert(queueItem, "expected queue summary audit item");
   assert.equal(
     queueItem.detail,
-    "4 proposal lanes are visible: 1 voting, 1 executing, 1 completed, and 1 cancelled.",
+    "4 proposals are visible: 1 voting, 1 executing, 1 completed, and 1 cancelled.",
   );
 });
 
@@ -32,7 +32,7 @@ test("overview audit trail keeps singular grammar for one approved claim", () =>
 
   assert.equal(
     auditTrail[0]?.detail,
-    "1 claim lane is approved and waiting for reserve or settlement execution.",
+    "1 claim case is approved and waiting for reserve or settlement execution.",
   );
 });
 
@@ -46,7 +46,7 @@ test("overview audit trail uses live source when supplied instead of fixture fal
 
   assert.equal(
     auditTrail[0]?.detail,
-    "0 claim lanes are approved and waiting for reserve or settlement execution.",
+    "0 claim cases are approved and waiting for reserve or settlement execution.",
   );
   assert.equal(auditTrail.some((item) => item.detail.includes("fixture set")), false);
 });
@@ -98,6 +98,6 @@ test("overview audit trail names class-ledger queue state as redemption sources"
   const queueItem = auditTrail.find((item) => item.label === "Queue watch");
 
   assert(queueItem, "expected overview queue audit item");
-  assert.equal(queueItem.detail, "1 redemption source remains across 1 queue-only pool lane.");
+  assert.equal(queueItem.detail, "1 redemption source remains across 1 pool using queued redemptions.");
   assert.doesNotMatch(queueItem.detail, /LP queue record/);
 });

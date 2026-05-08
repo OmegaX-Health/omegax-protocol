@@ -73,6 +73,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
     "/governance",
     "/oracles",
     "/coverage",
+    "/magicblock-claim-room",
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   const networkMenuRef = useRef<HTMLDivElement | null>(null);

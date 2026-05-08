@@ -49,6 +49,24 @@ function shortAddress(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
+function formatBasisPoints(value: string | number): string {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return `${value} bps`;
+  const percent = parsed / 100;
+  return `${parsed} bps (${percent.toLocaleString(undefined, { maximumFractionDigits: 2 })}%)`;
+}
+
+function formatDurationSeconds(value: bigint | number | string): string {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds)) return `${value.toString()} seconds`;
+  if (seconds === 0) return "0 seconds";
+  const days = seconds / 86400;
+  if (Number.isInteger(days)) return `${days} ${days === 1 ? "day" : "days"}`;
+  const hours = seconds / 3600;
+  if (Number.isInteger(hours)) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  return `${seconds.toLocaleString()} seconds`;
+}
+
 function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -439,15 +457,15 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         <p className="metric-label">Policy</p>
         {policy ? (
           <div className="flex flex-wrap gap-2">
-            <span className="status-pill status-off">Quorum {policy.quorumM}/{policy.quorumN}</span>
+            <span className="status-pill status-off">Quorum {policy.quorumM} of {policy.quorumN}</span>
             <span className={`status-pill ${policy.requireVerifiedSchema ? "status-ok" : "status-off"}`}>
               Verified schemas {policy.requireVerifiedSchema ? "required" : "optional"}
             </span>
             <span className={`status-pill ${policy.allowDelegateClaim ? "status-ok" : "status-off"}`}>
               Delegate claims {policy.allowDelegateClaim ? "allowed" : "not allowed"}
             </span>
-            <span className="status-pill status-off">Oracle fee {policy.oracleFeeBps} bps</span>
-            <span className="status-pill status-off">Challenge window {policy.challengeWindowSecs.toString()}s</span>
+            <span className="status-pill status-off">Oracle fee {formatBasisPoints(policy.oracleFeeBps)}</span>
+            <span className="status-pill status-off">Challenge window {formatDurationSeconds(policy.challengeWindowSecs)}</span>
           </div>
         ) : (
           <p className="field-help">No oracle policy found for this pool yet. Configure it here before outcome voting starts.</p>
@@ -455,19 +473,19 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <label className="space-y-1">
-            <span className="metric-label">Quorum M</span>
+            <span className="metric-label">Required approvals</span>
             <input className="field-input" value={quorumM} onChange={(event) => setQuorumM(event.target.value)} />
           </label>
           <label className="space-y-1">
-            <span className="metric-label">Quorum N</span>
+            <span className="metric-label">Eligible oracles</span>
             <input className="field-input" value={quorumN} onChange={(event) => setQuorumN(event.target.value)} />
           </label>
           <label className="space-y-1">
-            <span className="metric-label">Oracle fee bps</span>
+            <span className="metric-label">Oracle fee (bps)</span>
             <input className="field-input" value={oracleFeeBps} onChange={(event) => setOracleFeeBps(event.target.value)} />
           </label>
           <label className="space-y-1 xl:col-span-3">
-            <span className="metric-label">Challenge window secs</span>
+            <span className="metric-label">Challenge window (seconds)</span>
             <input
               className="field-input"
               value={challengeWindowSecs}
@@ -498,7 +516,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
           onClick={() => void onSetOraclePolicy()}
           disabled={!canAct || busy === "policy"}
         >
-          {busy === "policy" ? "Saving..." : policy ? "Save oracle policy" : "Create oracle policy"}
+          {!canAct ? "Connect wallet to save policy" : busy === "policy" ? "Saving..." : policy ? "Save oracle policy" : "Create oracle policy"}
         </button>
       </section>
 
@@ -506,7 +524,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
         <div>
           <p className="metric-label">Operator controls</p>
           <p className="field-help">
-            Manage per-pool oracle approvals and permission masks inline. Legacy raw-address workflows stay out of the default path.
+            Approve named oracle profiles for this pool. Address-only updates stay secondary when no registry profile exists.
           </p>
         </div>
 
@@ -543,7 +561,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
                     {selectedApproval?.active ? "Pool approved" : "Pool inactive"}
                   </span>
                   <span className="status-pill status-off">
-                    Permissions {selectedPermissionSet?.permissions ?? 0}
+                    Permission set {selectedPermissionSet?.permissions ?? 0}
                   </span>
                 </div>
                 {selectedOracle.profile?.websiteUrl ? (
@@ -570,7 +588,7 @@ export function PoolOraclesPanel({ poolAddress, sectionMode = "standalone" }: Po
                 <span className="metric-label">Pool approval active</span>
               </label>
               <label className="space-y-1">
-                <span className="metric-label">Permission mask</span>
+                <span className="metric-label">Permission set</span>
                 <input className="field-input" value={permissionMask} onChange={(event) => setPermissionMask(event.target.value)} />
               </label>
               <div className="flex flex-wrap gap-2">

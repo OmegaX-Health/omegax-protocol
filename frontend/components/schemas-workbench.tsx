@@ -625,10 +625,10 @@ export function SchemasWorkbench({ searchParams = {} }: SchemasWorkbenchProps) {
             <aside className="plans-rail">
               <section className="plans-rail-card heavy-glass">
                 <div className="plans-rail-head">
-                  <span className="plans-rail-tag">SELECTED_SCHEMA</span>
+                  <span className="plans-rail-tag">Selected schema</span>
                   <span className="plans-rail-subtag">
                     <span className="plans-live-dot" aria-hidden="true" />
-                    LIVE
+                    Live
                   </span>
                 </div>
                 <div className="plans-rail-hero">
@@ -651,8 +651,8 @@ export function SchemasWorkbench({ searchParams = {} }: SchemasWorkbenchProps) {
 
               <section className="plans-rail-card heavy-glass">
                 <div className="plans-rail-head">
-                  <span className="plans-rail-tag">FIELD_LOG</span>
-                  <span className="plans-rail-subtag">LIVE_AUDIT</span>
+                  <span className="plans-rail-tag">Field log</span>
+                  <span className="plans-rail-subtag">Live audit</span>
                 </div>
                 <div className="plans-rail-trail">
                   {auditTrail.map((item) => (

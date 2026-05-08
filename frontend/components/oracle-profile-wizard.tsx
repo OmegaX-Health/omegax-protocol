@@ -728,13 +728,13 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
         <div className="plans-wizard-scroll">
           <header className="plans-wizard-header">
             <div className="plans-wizard-header-ident">
-              <span className="plans-wizard-wordmark">PROTOCOL_CONSOLE</span>
+              <span className="plans-wizard-wordmark">OmegaX Protocol</span>
               <span className="plans-wizard-header-divider" aria-hidden="true" />
               <span className="plans-wizard-header-label">{mode === "register" ? "Oracle Profile Register" : "Oracle Profile Update"}</span>
             </div>
             <Link href="/oracles?tab=registry" className="plans-wizard-cancel">
               <span className="material-symbols-outlined" aria-hidden="true">close</span>
-              CANCEL_FLOW
+              Exit wizard
             </Link>
           </header>
 
@@ -765,13 +765,13 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
         <div className="plans-wizard-scroll">
           <header className="plans-wizard-header">
             <div className="plans-wizard-header-ident">
-              <span className="plans-wizard-wordmark">PROTOCOL_CONSOLE</span>
+              <span className="plans-wizard-wordmark">OmegaX Protocol</span>
               <span className="plans-wizard-header-divider" aria-hidden="true" />
               <span className="plans-wizard-header-label">{mode === "register" ? "Oracle Profile Register" : "Oracle Profile Update"}</span>
             </div>
             <Link href="/oracles?tab=registry" className="plans-wizard-cancel">
               <span className="material-symbols-outlined" aria-hidden="true">close</span>
-              CANCEL_FLOW
+              Exit wizard
             </Link>
           </header>
 
@@ -815,13 +815,13 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
       <div className="plans-wizard-scroll">
         <header className="plans-wizard-header">
           <div className="plans-wizard-header-ident">
-            <span className="plans-wizard-wordmark">PROTOCOL_CONSOLE</span>
+            <span className="plans-wizard-wordmark">OmegaX Protocol</span>
             <span className="plans-wizard-header-divider" aria-hidden="true" />
             <span className="plans-wizard-header-label">{mode === "register" ? "Oracle Profile Register" : "Oracle Profile Update"}</span>
           </div>
           <Link href="/oracles?tab=registry" className="plans-wizard-cancel">
             <span className="material-symbols-outlined" aria-hidden="true">close</span>
-            CANCEL_FLOW
+            Exit wizard
           </Link>
         </header>
 
@@ -862,7 +862,7 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
             </h1>
             <p className="plans-wizard-body-text">{copy.body}</p>
             <div className="plans-wizard-tip">
-              <span className="plans-wizard-tip-label">[ORACLE_TIP]</span>
+              <span className="plans-wizard-tip-label">Operator tip</span>
               <p>{copy.tip}</p>
             </div>
           </aside>
@@ -1245,7 +1245,7 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
                   disabled={nextDisabled}
                   aria-describedby={activeStepIssue ? "oracle-wizard-step-issue" : undefined}
                 >
-                  <span className="plans-wizard-next-label">NEXT_STEP</span>
+                  <span className="plans-wizard-next-label">Next step</span>
                   <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
                 </button>
               ) : (
@@ -1258,10 +1258,10 @@ export function OracleProfileWizard({ mode, oracleAddress = "" }: OracleProfileW
                 >
                   <span className="plans-wizard-next-label">
                     {busyAction
-                      ? "SUBMITTING"
+                      ? "Submitting"
                       : mode === "register"
-                        ? "REGISTER_ORACLE"
-                        : "SAVE_PROFILE"}
+                        ? "Register oracle"
+                        : "Save profile"}
                   </span>
                   <ShieldCheck className="h-4 w-4" />
                 </button>
