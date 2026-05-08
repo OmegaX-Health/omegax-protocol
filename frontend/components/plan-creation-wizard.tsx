@@ -199,9 +199,9 @@ const STEP_COPY: Record<StepId, StepCopy> = {
   },
   review: {
     headline: "Review and",
-    emphasis: "launch.",
+    emphasis: "create.",
     body: "Final check before the plan, series, and funding lines are created on-chain.",
-    tip: "If launch partially succeeds, rerunning is safe — existing accounts are skipped.",
+    tip: "If creation partially succeeds, rerunning is safe — existing accounts are skipped.",
   },
 };
 
@@ -395,6 +395,7 @@ export function PlanCreationWizard() {
   const rwaPolicyLaunchEnabled = isGenesisPhase0SurfaceActionable(phase0Profile, "rwaPolicyLaunch")
     && isRwaPolicyLaunchEnabled();
   const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
+  const walletLaunchReady = Boolean(connected && publicKey && sendTransaction);
 
   const [launchIntent, setLaunchIntent] = useState<LaunchIntent>("insurance");
   const [stepIndex, setStepIndex] = useState(0);
@@ -1014,8 +1015,8 @@ export function PlanCreationWizard() {
       ...protectionLaneErrors,
     ];
 
-    if (!connected || !publicKey || !sendTransaction) {
-      errors.push("Connect a wallet with plan-control authority before launch.");
+    if (!walletLaunchReady) {
+      errors.push("Connect a wallet with plan-control authority before creating this plan.");
     }
     if (!addressPreview.healthPlanAddress) {
       errors.push("Plan address preview is unavailable. Check the plan ID and reserve domain.");
@@ -1039,21 +1040,19 @@ export function PlanCreationWizard() {
   }, [
     addressPreview.healthPlanAddress,
     basicsErrors,
-    connected,
     membershipErrors,
     payoutAssetMode,
     payoutMintPk,
     protectionLaneErrors,
-    publicKey,
     reserveDomainAddress,
     reserveDomainPk,
     availableRailMints,
     rewardLaneErrors,
     rewardLaneRequired,
-    sendTransaction,
     selectedSchema,
     splDecimals,
     verificationErrors,
+    walletLaunchReady,
   ]);
 
   const currentStepErrors = useMemo(() => {
@@ -1247,12 +1246,12 @@ export function PlanCreationWizard() {
     }
     if (!publicKey || !sendTransaction || !reserveDomainPk || !payoutMintPk) {
       setStatusTone("error");
-      setStatusMessage("Connect a wallet and resolve the reserve domain and payout mint before launch.");
+      setStatusMessage("Connect a wallet and resolve the reserve domain and payout mint before creating this plan.");
       return;
     }
     if (rewardLaneRequired && !selectedSchema) {
       setStatusTone("error");
-      setStatusMessage("Select a live outcome schema before launching a reward lane.");
+      setStatusMessage("Select a live outcome schema before creating a reward lane.");
       return;
     }
     if (!addressPreview.healthPlanAddress) {
@@ -1354,7 +1353,7 @@ export function PlanCreationWizard() {
     const nextRecentBlockhash = async () => (await connection.getLatestBlockhash("confirmed")).blockhash;
 
     try {
-      setBusyAction("Launching canonical health plan");
+      setBusyAction("Creating canonical health plan");
       setStatusMessage(null);
       setStatusTone(null);
 
@@ -2235,6 +2234,25 @@ export function PlanCreationWizard() {
     setStepIndex((current) => Math.max(0, current - 1));
   }, [isFirstStep]);
 
+  const reviewLaunchBlocked = activeStep.id === "review" && !createdArtifacts && !walletLaunchReady;
+  const nextButtonDisabled = Boolean(busyAction) || reviewLaunchBlocked;
+  const nextButtonIcon = activeStep.id === "review"
+    ? createdArtifacts
+      ? "open_in_new"
+      : reviewLaunchBlocked
+        ? "account_balance_wallet"
+        : "bolt"
+    : "arrow_forward";
+  const nextButtonLabel = busyAction
+    ? busyAction.toUpperCase()
+    : activeStep.id === "review"
+      ? createdArtifacts
+        ? "OPEN_WORKSPACE"
+        : reviewLaunchBlocked
+          ? "CONNECT_WALLET_TO_CREATE_PLAN"
+          : "CREATE_PLAN_ONCHAIN"
+      : `NEXT · ${steps[stepIndex + 1]!.label.toUpperCase()}`;
+
   return (
     <div className="plans-shell">
       {reviewPrompt}
@@ -3098,7 +3116,7 @@ export function PlanCreationWizard() {
                       <p className="plans-wizard-support-copy">
                         {genesisTemplateMode
                           ? "Genesis template runs land in the bounded-launch workspace so the remaining treasury, reserve, and oracle items stay visible."
-                          : "New artifacts open with the created plan and series context after the launch confirms."}
+                          : "New artifacts open with the created plan and series context after the create-plan transaction confirms."}
                       </p>
                     </div>
                     {reviewLinks ? (
@@ -3118,7 +3136,7 @@ export function PlanCreationWizard() {
                         ) : null}
                       </div>
                     ) : (
-                      <p className="plans-wizard-support-note">Links appear after the launch confirms.</p>
+                      <p className="plans-wizard-support-note">Links appear after the create-plan transaction confirms.</p>
                     )}
                   </section>
 
@@ -3155,7 +3173,14 @@ export function PlanCreationWizard() {
                     ) : null}
 
                     {actionLog.length === 0 ? (
-                      <p className="plans-wizard-support-note">No launch transactions yet.</p>
+                      <div className="space-y-2">
+                        {!walletLaunchReady ? (
+                          <p id="plans-wizard-wallet-required-note" className="plans-wizard-support-note">
+                            Connect a wallet with plan-control authority to create this plan on-chain.
+                          </p>
+                        ) : null}
+                        <p className="plans-wizard-support-note">No create-plan transactions yet.</p>
+                      </div>
                     ) : (
                       <div className="plans-wizard-log-list">
                         {actionLog.map((entry) => (
@@ -3190,20 +3215,12 @@ export function PlanCreationWizard() {
                 type="button"
                 className="plans-wizard-next"
                 onClick={handleNext}
-                disabled={Boolean(busyAction)}
+                disabled={nextButtonDisabled}
+                aria-describedby={reviewLaunchBlocked ? "plans-wizard-wallet-required-note" : undefined}
+                title={reviewLaunchBlocked ? "Connect a wallet with plan-control authority to create this plan on-chain." : undefined}
               >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {activeStep.id === "review" ? (createdArtifacts ? "open_in_new" : "bolt") : "arrow_forward"}
-                </span>
-                <span className="plans-wizard-next-label">
-                  {busyAction
-                    ? busyAction.toUpperCase()
-                    : activeStep.id === "review"
-                      ? createdArtifacts
-                        ? "OPEN_WORKSPACE"
-                        : "LAUNCH_CANONICAL_PLAN"
-                      : `NEXT · ${steps[stepIndex + 1]!.label.toUpperCase()}`}
-                </span>
+                <span className="material-symbols-outlined" aria-hidden="true">{nextButtonIcon}</span>
+                <span className="plans-wizard-next-label">{nextButtonLabel}</span>
               </button>
             </div>
           </div>
