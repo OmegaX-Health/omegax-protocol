@@ -303,7 +303,8 @@ function resolveMetadataFetchUrl(metadataUri: string): { urls: URL[]; error: Sch
 
 async function fetchMetadataFromUrl(url: URL): Promise<SchemaMetadataFetchResult> {
   try {
-    // codeql[js/request-forgery] Resolved schema metadata URLs are limited to HTTPS allowlisted hosts before fetch.
+    // Resolved schema metadata URLs are limited to HTTPS allowlisted hosts before fetch.
+    // codeql[js/request-forgery]
     const response = await fetch(url, { method: "GET", cache: "no-store" });
     if (!response.ok) {
       return {
