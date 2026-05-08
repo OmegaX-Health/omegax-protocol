@@ -53,7 +53,6 @@ export type SchemaOutcomeTemplateOption = {
 
 export type SchemaMetadataFetchErrorCode =
   | "invalid_uri"
-  | "unsupported_protocol"
   | "unsupported_host"
   | "fetch_failed"
   | "http_error"
@@ -83,21 +82,6 @@ const COMPARATORS = new Set([">=", "<=", ">", "<", "=="]);
 const METRIC_WINDOWS = new Set(["latest", "7d", "14d", "28d"]);
 const SEVERITIES = new Set(["primary", "secondary", "informational"]);
 const EVIDENCE_QUALITIES = new Set(["ok", "good"]);
-const DEFAULT_IPFS_GATEWAY_BASES = [
-  "https://ipfs.io/ipfs",
-  "https://gateway.pinata.cloud/ipfs",
-  "https://cloudflare-ipfs.com/ipfs",
-  "https://dweb.link/ipfs",
-];
-const SAFE_SCHEMA_METADATA_HOSTS = new Set([
-  "protocol.omegax.health",
-  "omegax.health",
-  "www.omegax.health",
-  "ipfs.io",
-  "gateway.pinata.cloud",
-  "cloudflare-ipfs.com",
-  "dweb.link",
-]);
 const LOCAL_SCHEMA_METADATA_BY_PATH: Record<string, unknown> = {
   "/schemas/genesis-protect-acute-claim-v1.json": genesisProtectAcuteClaimV1,
   "/schemas/health_outcomes.json": healthOutcomes,
@@ -118,136 +102,6 @@ function normalize(value: string): string {
 
 function isHex32(value: string): boolean {
   return /^[0-9a-f]{64}$/i.test(value.trim().replace(/^0x/, ""));
-}
-
-function splitGatewayBases(rawValue: string): string[] {
-  return rawValue
-    .split(",")
-    .map((entry) => normalize(entry).replace(/\/+$/, ""))
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
-
-function dedupe(values: string[]): string[] {
-  const seen = new Set<string>();
-  const next: string[] = [];
-  for (const value of values) {
-    const normalized = value.trim().replace(/\/+$/, "");
-    if (!normalized) continue;
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    next.push(normalized);
-  }
-  return next;
-}
-
-function configuredGatewayHosts(): Set<string> {
-  const hosts = new Set<string>();
-  for (const gatewayBase of splitGatewayBases(process.env.NEXT_PUBLIC_IPFS_GATEWAY_BASE || "")) {
-    try {
-      const parsed = new URL(gatewayBase);
-      if (parsed.protocol === "https:") {
-        hosts.add(parsed.hostname.toLowerCase());
-      }
-    } catch {
-      continue;
-    }
-  }
-  return hosts;
-}
-
-function safeSchemaMetadataUrl(value: string): URL | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return null;
-  }
-  if (parsed.protocol !== "https:") return null;
-
-  const host = parsed.hostname.toLowerCase();
-  if (SAFE_SCHEMA_METADATA_HOSTS.has(host) || configuredGatewayHosts().has(host)) {
-    return parsed;
-  }
-  return null;
-}
-
-function safeSchemaMetadataUrls(values: string[]): URL[] {
-  const urls: URL[] = [];
-  const seen = new Set<string>();
-  for (const value of values) {
-    const parsed = safeSchemaMetadataUrl(value);
-    if (!parsed) continue;
-    const key = parsed.toString();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    urls.push(parsed);
-  }
-  return urls;
-}
-
-function parseIpfsUri(uri: string): string[] {
-  const trimmed = normalize(uri);
-  if (!trimmed.toLowerCase().startsWith("ipfs://")) return [];
-  const withoutScheme = trimmed.slice("ipfs://".length).replace(/^\/+/, "");
-  if (!withoutScheme) return [];
-  const cidPath = withoutScheme.toLowerCase().startsWith("ipfs/")
-    ? withoutScheme.slice("ipfs/".length)
-    : withoutScheme;
-  const sanitized = cidPath.replace(/^\/+/, "");
-  if (!sanitized) return [];
-
-  const configured = splitGatewayBases(process.env.NEXT_PUBLIC_IPFS_GATEWAY_BASE || "");
-  const gatewayBases = dedupe(
-    configured.length > 0 ? [...configured, ...DEFAULT_IPFS_GATEWAY_BASES] : DEFAULT_IPFS_GATEWAY_BASES,
-  );
-  return gatewayBases.map((gatewayBase) => `${gatewayBase}/${sanitized}`);
-}
-
-function parseIpfsGatewayHttpUri(uri: string): string[] {
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(uri);
-  } catch {
-    return [];
-  }
-  if (!["http:", "https:"].includes(parsedUrl.protocol)) return [];
-
-  const pathname = parsedUrl.pathname.replace(/^\/+/, "");
-  let cidPath = "";
-  if (pathname.toLowerCase().startsWith("ipfs/")) {
-    cidPath = pathname.slice("ipfs/".length);
-  } else {
-    const hostParts = parsedUrl.hostname.split(".");
-    const ipfsIndex = hostParts.findIndex((part) => part.toLowerCase() === "ipfs");
-    if (ipfsIndex > 0) {
-      const cid = hostParts[0]?.trim() ?? "";
-      const suffixPath = pathname ? `/${pathname}` : "";
-      cidPath = `${cid}${suffixPath}`;
-    }
-  }
-
-  const sanitized = cidPath.replace(/^\/+/, "");
-  if (!sanitized) return [];
-
-  const configured = splitGatewayBases(process.env.NEXT_PUBLIC_IPFS_GATEWAY_BASE || "");
-  const gatewayBases = dedupe(
-    configured.length > 0 ? [...configured, ...DEFAULT_IPFS_GATEWAY_BASES] : DEFAULT_IPFS_GATEWAY_BASES,
-  );
-  const suffix = `${sanitized}${parsedUrl.search || ""}${parsedUrl.hash || ""}`;
-  return dedupe([parsedUrl.toString(), ...gatewayBases.map((gatewayBase) => `${gatewayBase}/${suffix}`)]);
-}
-
-function resolveKnownSchemaMirrorUrls(uri: URL): string[] {
-  const host = uri.hostname.toLowerCase();
-  const path = uri.pathname || "";
-  if ((host === "omegax.health" || host === "www.omegax.health") && path.toLowerCase().startsWith("/schemas/")) {
-    const mirror = new URL(uri.toString());
-    mirror.hostname = "protocol.omegax.health";
-    return dedupe([uri.toString(), mirror.toString()]);
-  }
-  return [];
 }
 
 function localSchemaPathFromMetadataUri(metadataUri: string): string | null {
@@ -289,147 +143,6 @@ function bundledSchemaMetadataForUri(metadataUri: string): SchemaMetadataFetchRe
   return {
     metadata: LOCAL_SCHEMA_METADATA_BY_PATH[schemaPath],
     error: null,
-  };
-}
-
-function resolveMetadataFetchUrl(metadataUri: string): { urls: URL[]; error: SchemaMetadataFetchError | null } {
-  const uri = normalize(metadataUri);
-  if (!uri) {
-    return {
-      urls: [],
-      error: {
-        code: "invalid_uri",
-        message: "Schema metadata URI is missing or empty.",
-      },
-    };
-  }
-
-  const ipfsResolved = parseIpfsUri(uri);
-  if (ipfsResolved.length > 0) {
-    return { urls: safeSchemaMetadataUrls(ipfsResolved), error: null };
-  }
-
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(uri);
-  } catch {
-    return {
-      urls: [],
-      error: {
-        code: "invalid_uri",
-        message: "Schema metadata URI is invalid.",
-      },
-    };
-  }
-
-  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-    return {
-      urls: [],
-      error: {
-        code: "unsupported_protocol",
-        message: `Unsupported schema metadata URI protocol: ${parsedUrl.protocol}`,
-      },
-    };
-  }
-
-  const ipfsGatewayResolved = parseIpfsGatewayHttpUri(parsedUrl.toString());
-  if (ipfsGatewayResolved.length > 0) {
-    return { urls: safeSchemaMetadataUrls(ipfsGatewayResolved), error: null };
-  }
-
-  const knownMirrors = resolveKnownSchemaMirrorUrls(parsedUrl);
-  if (knownMirrors.length > 0) {
-    return { urls: safeSchemaMetadataUrls(knownMirrors), error: null };
-  }
-
-  const safeUrl = safeSchemaMetadataUrl(parsedUrl.toString());
-  if (safeUrl) {
-    return { urls: [safeUrl], error: null };
-  }
-
-  return {
-    urls: [],
-    error: {
-      code: "unsupported_host",
-      message: "Schema metadata URI host is not on the public allowlist.",
-    },
-  };
-}
-
-async function fetchMetadataFromUrl(url: URL): Promise<SchemaMetadataFetchResult> {
-  try {
-    const response = await fetch(url, { method: "GET", cache: "no-store" });
-    if (!response.ok) {
-      return {
-        metadata: null,
-        error: {
-          code: "http_error",
-          message: `Schema metadata request failed with HTTP ${response.status}.`,
-          status: response.status,
-        },
-      };
-    }
-
-    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-    const hasJsonContentType = contentType.includes("application/json") || contentType.includes("+json");
-    const body = await response.text();
-
-    try {
-      return {
-        metadata: JSON.parse(body) as unknown,
-        error: null,
-      };
-    } catch {
-      if (!hasJsonContentType) {
-        return {
-          metadata: null,
-          error: {
-            code: "non_json_content_type",
-            message: `Schema metadata endpoint returned non-JSON content type: ${contentType || "unknown"}.`,
-            status: response.status,
-            contentType,
-          },
-        };
-      }
-      return {
-        metadata: null,
-        error: {
-          code: "invalid_json",
-          message: "Schema metadata response body is not valid JSON.",
-          status: response.status,
-          contentType,
-        },
-      };
-    }
-  } catch {
-    return {
-      metadata: null,
-      error: {
-        code: "fetch_failed",
-        message: "Schema metadata request failed before receiving a response.",
-      },
-    };
-  }
-}
-
-async function fetchSchemaMetadataBrowserDirect(metadataUri: string): Promise<SchemaMetadataFetchResult> {
-  const resolved = resolveMetadataFetchUrl(metadataUri);
-  if (resolved.error || resolved.urls.length === 0) {
-    return { metadata: null, error: resolved.error };
-  }
-
-  let lastError: SchemaMetadataFetchError | null = null;
-  for (const currentUrl of resolved.urls) {
-    const result = await fetchMetadataFromUrl(currentUrl);
-    if (!result.error) return result;
-    lastError = result.error;
-  }
-
-  return {
-    metadata: null,
-    error:
-      lastError
-      ?? { code: "fetch_failed", message: "Schema metadata request failed for all candidate endpoints." },
   };
 }
 
@@ -571,15 +284,12 @@ export async function fetchSchemaMetadata(metadataUri: string): Promise<SchemaMe
           && Object.prototype.hasOwnProperty.call(payload, "metadata")
           && Object.prototype.hasOwnProperty.call(payload, "error")
         ) {
-          if (!payload.error || payload.error.code !== "unsupported_host") {
-            return payload;
-          }
+          return payload;
         }
       }
     } catch {
-      // Fall through to direct fetch for local/dev resilience.
+      // Fall through to bundled metadata for local/dev resilience.
     }
-    return fetchSchemaMetadataBrowserDirect(uri);
   }
 
   return fetchSchemaMetadataDirect(uri);
