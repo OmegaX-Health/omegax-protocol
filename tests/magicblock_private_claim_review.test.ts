@@ -53,6 +53,17 @@ test("MagicBlock adjunct keeps the main settlement kernel out of delegation scop
   assert.doesNotMatch(programSource, /omegax_protocol::/);
 });
 
+test("MagicBlock private claim review mutations require the stored operator", () => {
+  assert.match(programSource, /session\.operator = ctx\.accounts\.payer\.key\(\)/);
+  assert.match(programSource, /fn require_session_operator\(/);
+  assert.match(programSource, /UnauthorizedReviewOperator/);
+
+  for (const signer of ["reviewer", "payer"]) {
+    const operatorCheck = `require_session_operator(session, &ctx.accounts.${signer}.key())?`;
+    assert.ok(programSource.includes(operatorCheck));
+  }
+});
+
 test("MagicBlock private claim review program id is valid", () => {
   const match = anchorToml.match(/omegax_private_claim_review = "([^"]+)"/);
   assert.ok(match?.[1]);

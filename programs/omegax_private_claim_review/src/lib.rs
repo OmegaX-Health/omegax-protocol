@@ -72,7 +72,7 @@ pub mod omegax_private_claim_review {
         session.review_artifact_hash = [0; 32];
         session.review_binary_hash = [0; 32];
         session.tee_attestation_digest = [0; 32];
-        session.operator = Pubkey::default();
+        session.operator = ctx.accounts.payer.key();
         session.private_payment_ref_hash = [0; 32];
         session.status = REVIEW_STATUS_OPENED;
         session.opened_at = now_ts;
@@ -148,6 +148,7 @@ pub mod omegax_private_claim_review {
         );
 
         let session = &mut ctx.accounts.review_session;
+        require_session_operator(session, &ctx.accounts.reviewer.key())?;
         require!(
             session.status == REVIEW_STATUS_OPENED || session.status == REVIEW_STATUS_DELEGATED,
             PrivateClaimReviewError::ReviewNotWritable
@@ -187,6 +188,7 @@ pub mod omegax_private_claim_review {
         );
 
         let session = &mut ctx.accounts.review_session;
+        require_session_operator(session, &ctx.accounts.payer.key())?;
         require!(
             session.status == REVIEW_STATUS_APPROVED || session.status == REVIEW_STATUS_REVIEWED,
             PrivateClaimReviewError::PaymentRefNotAllowed
@@ -211,6 +213,7 @@ pub mod omegax_private_claim_review {
         ctx: Context<CommitAndCloseReviewSession>,
     ) -> Result<()> {
         let session = &mut ctx.accounts.review_session;
+        require_session_operator(session, &ctx.accounts.payer.key())?;
         require!(
             session.status == REVIEW_STATUS_REVIEWED
                 || session.status == REVIEW_STATUS_APPROVED
@@ -248,6 +251,7 @@ pub mod omegax_private_claim_review {
         );
 
         let session = &mut ctx.accounts.review_session;
+        require_session_operator(session, &ctx.accounts.payer.key())?;
         require!(
             session.status != REVIEW_STATUS_APPROVED,
             PrivateClaimReviewError::ApprovedReviewCannotFail
@@ -489,6 +493,17 @@ pub enum PrivateClaimReviewError {
     ReviewNotReadyToCommit,
     #[msg("approved private review cannot be marked failed")]
     ApprovedReviewCannotFail,
+    #[msg("signer is not the private review session operator")]
+    UnauthorizedReviewOperator,
+}
+
+fn require_session_operator(session: &PrivateClaimReviewSession, signer: &Pubkey) -> Result<()> {
+    require_keys_eq!(
+        session.operator,
+        *signer,
+        PrivateClaimReviewError::UnauthorizedReviewOperator
+    );
+    Ok(())
 }
 
 fn is_zero_hash(hash: &[u8; 32]) -> bool {

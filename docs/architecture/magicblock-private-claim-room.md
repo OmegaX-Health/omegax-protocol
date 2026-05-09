@@ -9,7 +9,7 @@ The adjunct program is `omegax_private_claim_review`. It stores only public-safe
 - evidence and schema hashes
 - review result and artifact hashes
 - review binary and TEE attestation digests
-- reviewer/operator key
+- reviewer/operator key captured when the session is opened
 - private payment reference hash
 - lifecycle status and timestamps
 
@@ -18,17 +18,17 @@ Raw medical evidence, encrypted evidence payloads, OCR text, storage paths, and 
 ## Demo Flow
 
 1. `omegax-health` prepares a redacted Genesis Protect Acute claim packet and hashes the private evidence bundle.
-2. `omegax_private_claim_review::open_review_session` creates a public review-session PDA on base Solana.
+2. `omegax_private_claim_review::open_review_session` creates a public review-session PDA on base Solana and stores the opener as the authorized reviewer/operator.
 3. `delegate_review_session` delegates that session PDA to MagicBlock ER.
 4. A TEE/private reviewer checks the private packet and emits a hash-bounded review artifact.
-5. `record_private_review` records only review hashes and status on the delegated session.
-6. The MagicBlock Private Payments API builds a devnet reimbursement preview; `record_private_payment_ref` stores only its reference hash.
-7. `commit_and_close_review_session` commits and undelegates the review session back to Solana.
+5. `record_private_review` records only review hashes and status on the delegated session, and it must be signed by the stored reviewer/operator.
+6. The MagicBlock Private Payments API builds a devnet reimbursement preview; `record_private_payment_ref` stores only its reference hash when signed by the stored reviewer/operator.
+7. `commit_and_close_review_session` commits and undelegates the review session back to Solana when signed by the stored reviewer/operator.
 8. The existing `omegax_protocol::attest_claim_case` consumes the committed review artifact hash through the normal claim attestation path.
 
 ## Boundaries
 
 - The main `omegax_protocol` program is not delegated to MagicBlock.
 - `ClaimCase`, reserves, vaults, funding lines, obligations, and payout accounts are not delegated.
-- The private reviewer may inspect plaintext inside the TEE path, but public Solana only receives hashes and status.
+- The private reviewer/operator may inspect plaintext inside the TEE path, but public Solana only receives hashes and status; state-changing review, payment-reference, failure, and commit instructions require that stored operator signer.
 - The hackathon reimbursement preview demonstrates MagicBlock private payments; it does not replace the production reserve kernel.
