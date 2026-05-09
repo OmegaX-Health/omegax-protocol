@@ -27,6 +27,7 @@ export type NetworkContextValue = {
   canSelectRpcProfile: (profile: RpcProfile, network?: NetworkMode) => boolean;
   rpcProfileOptions: RpcProfileOption[];
   resolvedEndpoint: string;
+  executionClusterVerified: boolean;
   customRpcUrl: string;
   applyCustomRpcUrl: (value: string) => { ok: true } | { ok: false; error: string };
   resetConnectionSettings: () => void;
@@ -144,6 +145,10 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
     }));
   }
 
+  // Custom RPC URLs are syntactically validated, but this console does not verify
+  // their Solana genesis hash/cluster. Keep Phase 0 write gates fail-closed on them.
+  const executionClusterVerified = resolvedConnection.rpcProfile !== "custom";
+
   const value = useMemo(
     () => ({
       selectedNetwork,
@@ -155,6 +160,7 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
       canSelectRpcProfile,
       rpcProfileOptions,
       resolvedEndpoint: resolvedConnection.endpoint,
+      executionClusterVerified,
       customRpcUrl: customRpcEndpoints[selectedNetwork],
       applyCustomRpcUrl,
       resetConnectionSettings,
@@ -163,6 +169,7 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
       customRpcEndpoints,
       resolvedConnection.endpoint,
       resolvedConnection.rpcProfile,
+      executionClusterVerified,
       rpcProfileOptions,
       selectedNetwork,
       selectedRpcProfile,

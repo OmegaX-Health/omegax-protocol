@@ -104,12 +104,38 @@ test("Genesis Phase 0 mainnet future surfaces require a second explicit allow fl
   assert.equal(allowed.hybridLaunch, "live");
 });
 
+test("Genesis Phase 0 launch profile fails closed when execution cluster is unverified", () => {
+  const profile = resolveGenesisPhase0LaunchProfile({
+    network: "devnet",
+    executionClusterVerified: false,
+    env: {
+      NEXT_PUBLIC_ENABLE_REWARD_LAUNCH: "1",
+      NEXT_PUBLIC_ENABLE_RWA_POLICY: "1",
+      NEXT_PUBLIC_ENABLE_HYBRID_LAUNCH: "1",
+      NEXT_PUBLIC_ENABLE_PROTOCOL_OPERATOR_ACTIONS: "1",
+      NEXT_PUBLIC_ALLOW_MAINNET_FUTURE_SURFACES: "1",
+    },
+  });
+
+  assert.equal(profile.rewardLaunch, "disabled_preview");
+  assert.equal(profile.rwaPolicyLaunch, "disabled_preview");
+  assert.equal(profile.hybridLaunch, "disabled_preview");
+  assert.equal(profile.capitalAdminActions, "hidden");
+  assert.equal(profile.policyAdminActions, "hidden");
+  assert.equal(isGenesisPhase0SurfaceActionable(profile, "rewardLaunch"), false);
+});
+
 test("Phase 0 UI keeps public LP self-service separate from hidden admin drawers", () => {
   const capitalWorkbench = readFileSync("frontend/components/capital-workbench.tsx", "utf8");
+  const planCreationWizard = readFileSync("frontend/components/plan-creation-wizard.tsx", "utf8");
+  const plansWorkbench = readFileSync("frontend/components/plans-workbench.tsx", "utf8");
   const lpPanel = readFileSync("frontend/components/capital-lp-self-service-panel.tsx", "utf8");
 
   assert.match(capitalWorkbench, /CapitalLpSelfServicePanel/);
   assert.match(capitalWorkbench, /capitalAdminActions/);
+  assert.match(capitalWorkbench, /executionClusterVerified/);
+  assert.match(planCreationWizard, /executionClusterVerified/);
+  assert.match(plansWorkbench, /executionClusterVerified/);
   assert.match(lpPanel, /buildDepositIntoCapitalClassTx/);
   assert.match(lpPanel, /buildRequestRedemptionTx/);
   assert.doesNotMatch(lpPanel, /buildProcessRedemptionQueueTx/);

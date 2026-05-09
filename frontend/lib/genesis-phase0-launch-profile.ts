@@ -108,12 +108,14 @@ function hiddenLabels(profile: Omit<
 export function resolveGenesisPhase0LaunchProfile(params: {
   network?: NetworkMode | string | null;
   env?: EnvLike;
+  executionClusterVerified?: boolean;
 } = {}): GenesisPhase0LaunchProfile {
   const env = params.env ?? GENESIS_PHASE0_CLIENT_ENV;
   const network = normalizeNetwork(params.network);
+  const executionClusterVerified = params.executionClusterVerified ?? true;
   const mainnet = network === "mainnet-beta";
-  const capitalAdminActions = adminSurfaceState({ env, mainnet });
-  const policyAdminActions = adminSurfaceState({ env, mainnet });
+  const capitalAdminActions = executionClusterVerified ? adminSurfaceState({ env, mainnet }) : "hidden";
+  const policyAdminActions = executionClusterVerified ? adminSurfaceState({ env, mainnet }) : "hidden";
   const base = {
     id: "genesis-phase0" as const,
     network,
@@ -128,10 +130,18 @@ export function resolveGenesisPhase0LaunchProfile(params: {
     oracleDashboard: "read_only" as const,
     commitmentsDashboard: "read_only" as const,
     operatorSettlementVisibility: "read_only" as const,
-    rewardLaunch: productSurfaceState({ enabledFlag: GENESIS_PHASE0_REWARD_FLAG, env, mainnet }),
-    rwaPolicyLaunch: productSurfaceState({ enabledFlag: GENESIS_PHASE0_RWA_FLAG, env, mainnet }),
-    hybridLaunch: productSurfaceState({ enabledFlag: GENESIS_PHASE0_HYBRID_FLAG, env, mainnet }),
-    daoFallback: productSurfaceState({ enabledFlag: GENESIS_PHASE0_DAO_FLAG, env, mainnet }),
+    rewardLaunch: executionClusterVerified
+      ? productSurfaceState({ enabledFlag: GENESIS_PHASE0_REWARD_FLAG, env, mainnet })
+      : "disabled_preview" as const,
+    rwaPolicyLaunch: executionClusterVerified
+      ? productSurfaceState({ enabledFlag: GENESIS_PHASE0_RWA_FLAG, env, mainnet })
+      : "disabled_preview" as const,
+    hybridLaunch: executionClusterVerified
+      ? productSurfaceState({ enabledFlag: GENESIS_PHASE0_HYBRID_FLAG, env, mainnet })
+      : "disabled_preview" as const,
+    daoFallback: executionClusterVerified
+      ? productSurfaceState({ enabledFlag: GENESIS_PHASE0_DAO_FLAG, env, mainnet })
+      : "disabled_preview" as const,
     capitalAdminActions,
     policyAdminActions,
     futureLaunchChoices: mainnet ? "disabled_preview" as const : "disabled_preview" as const,

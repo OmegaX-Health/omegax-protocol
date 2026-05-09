@@ -383,12 +383,12 @@ export function PlanCreationWizard() {
   const searchParams = useSearchParams();
   const { connection } = useConnection();
   const { connected, publicKey, sendTransaction } = useWallet();
-  const { selectedNetwork } = useNetworkContext();
+  const { selectedNetwork, executionClusterVerified } = useNetworkContext();
   const { snapshot } = useProtocolConsoleSnapshot();
   const genesisTemplateMode = isGenesisProtectAcuteTemplate(searchParams.get("template"));
   const phase0Profile = useMemo(
-    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork }),
-    [selectedNetwork],
+    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork, executionClusterVerified }),
+    [executionClusterVerified, selectedNetwork],
   );
   const rewardLaunchEnabled = isGenesisPhase0SurfaceActionable(phase0Profile, "rewardLaunch");
   const hybridLaunchEnabled = isGenesisPhase0SurfaceActionable(phase0Profile, "hybridLaunch");

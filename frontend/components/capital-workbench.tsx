@@ -209,11 +209,11 @@ export function CapitalWorkbench({ searchParams = {} }: CapitalWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
-  const { selectedNetwork } = useNetworkContext();
+  const { selectedNetwork, executionClusterVerified } = useNetworkContext();
   const { snapshot, loading, error, refresh } = useProtocolConsoleSnapshot();
   const phase0Profile = useMemo(
-    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork }),
-    [selectedNetwork],
+    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork, executionClusterVerified }),
+    [executionClusterVerified, selectedNetwork],
   );
   const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
   const wallet = useWallet();

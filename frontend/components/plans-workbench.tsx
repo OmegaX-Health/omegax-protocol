@@ -332,11 +332,11 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { effectivePersona } = useWorkspacePersona();
-  const { selectedNetwork } = useNetworkContext();
+  const { selectedNetwork, executionClusterVerified } = useNetworkContext();
   const { snapshot, loading, error, refresh, lastUpdatedAt, hasCurrentSnapshot } = useProtocolConsoleSnapshot();
   const phase0Profile = useMemo(
-    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork }),
-    [selectedNetwork],
+    () => resolveGenesisPhase0LaunchProfile({ network: selectedNetwork, executionClusterVerified }),
+    [executionClusterVerified, selectedNetwork],
   );
   const consoleState = useMemo(() => buildCanonicalConsoleStateFromSnapshot(snapshot), [snapshot]);
   const routeMode: PlansRouteMode = pathname === "/claims" ? "claims" : "plans";
