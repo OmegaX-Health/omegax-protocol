@@ -199,6 +199,10 @@ npm run qedgen:reconcile
 `formal_verification/Spec.lean`, and the generated Kani/proptest harnesses to
 `formal_verification/anchor_model/tests/`.
 
+`npm run qedgen:reconcile` fails on Rust drift, orphan Lean proofs, or missing
+Lean proof obligations so CI cannot report a complete verification lane while
+proof obligations remain unresolved.
+
 The only currently accepted warning is
 `missing_cpi_for_token_context` on `create_domain_asset_vault`.
 That handler uses `token_program` for token-account initialization, not for a

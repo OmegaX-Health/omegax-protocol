@@ -297,9 +297,10 @@ function runReconcile(qedgen) {
   }
 
   if (leanMissing > 0) {
-    console.log(
-      `qedgen reconcile: ${leanMissing} Lean proof obligation(s) remain user-owned; no Rust drift or orphan proofs found.`,
+    console.error(
+      `qedgen reconcile: ${leanMissing} missing Lean proof obligation(s) must be resolved before verification can pass.`,
     );
+    return 1;
   }
 
   return 0;
