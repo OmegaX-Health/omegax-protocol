@@ -358,6 +358,13 @@
           }
         },
         {
+          "name": "program",
+          "address": "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn"
+        },
+        {
+          "name": "program_data"
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -1554,6 +1561,11 @@
       "code": 6038,
       "name": "TerminalReviewCannotFail",
       "msg": "terminal private review cannot be marked failed"
+    },
+    {
+      "code": 6039,
+      "name": "UnauthorizedRegistryInitializer",
+      "msg": "signer is not the private review program upgrade authority"
     }
   ],
   "types": [

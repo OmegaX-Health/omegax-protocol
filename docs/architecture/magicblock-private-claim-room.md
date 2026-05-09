@@ -20,7 +20,7 @@ Raw medical evidence, encrypted evidence payloads, OCR text, storage paths, and 
 ## Demo Flow
 
 1. `omegax-health` prepares a redacted Genesis Protect Acute claim packet and hashes the private evidence bundle.
-2. The demo operator initializes `PrivateReviewRegistry` and registers an active `PrivateReviewOperator` with the expected review binary hash.
+2. The private-review program upgrade authority initializes `PrivateReviewRegistry` and registers an active `PrivateReviewOperator` with the expected review binary hash.
 3. `omegax_private_claim_review::open_review_session` creates a public review-session PDA on base Solana. The PDA is seeded by session authority, claim case, and session id to prevent third-party squatting.
 4. `delegate_review_session` verifies the session authority, marks the session delegated, and delegates that session PDA to MagicBlock ER.
 5. A TEE/private reviewer checks the private packet and emits a hash-bounded review artifact.
@@ -36,3 +36,4 @@ Raw medical evidence, encrypted evidence payloads, OCR text, storage paths, and 
 - The private reviewer may inspect plaintext inside the TEE path, but public Solana only receives hashes and status.
 - The hackathon reimbursement preview demonstrates MagicBlock private payments; it does not replace the production reserve kernel.
 - The adjunct is not authoritative by itself. Consumers must verify registry binding, reviewer binding, expected hashes, payment reference, and committed ownership before treating it as claim-attestation input.
+- The registry is a singleton PDA, so first initialization is deliberately restricted to the private-review program upgrade authority via the program `ProgramData` account. This prevents public first-writer takeover of the canonical review registry.

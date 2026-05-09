@@ -118,9 +118,12 @@ type Error
   | ApprovedReviewMissingPaymentRef
   | ReviewAlreadyCommitted
   | TerminalReviewCannotFail
+  | UnauthorizedRegistryInitializer
 
 handler initialize_review_registry : State.Active -> State.Active {
   auth authority
+  requires program.programdata == program_data else UnauthorizedRegistryInitializer
+  requires program_data.upgrade_authority == authority else UnauthorizedRegistryInitializer
   requires session_authority != default_pubkey else InvalidSessionAuthority
   requires payment_attestor != default_pubkey else InvalidPaymentAttestor
   effect {
@@ -132,6 +135,8 @@ handler initialize_review_registry : State.Active -> State.Active {
   accounts {
     authority : signer, writable
     registry : writable, pda [review_registry]
+    program : program
+    program_data : readonly
     system_program : program
   }
 }

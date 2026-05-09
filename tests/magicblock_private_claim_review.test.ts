@@ -6,6 +6,7 @@ import { PublicKey } from "@solana/web3.js";
 const anchorToml = readFileSync("Anchor.toml", "utf8");
 const cargoToml = readFileSync("programs/omegax_private_claim_review/Cargo.toml", "utf8");
 const programSource = readFileSync("programs/omegax_private_claim_review/src/lib.rs", "utf8");
+const privateReviewIdl = JSON.parse(readFileSync("idl/omegax_private_claim_review.json", "utf8"));
 const architectureDoc = readFileSync(
   "docs/architecture/magicblock-private-claim-room.md",
   "utf8",
@@ -60,6 +61,29 @@ test("MagicBlock adjunct uses an authority registry for review sessions", () => 
   assert.match(programSource, /SEED_REVIEW_OPERATOR/);
   assert.match(programSource, /registry\.session_authority == payer\.key\(\)/);
   assert.match(programSource, /operator\.active @ PrivateClaimReviewError::OperatorInactive/);
+});
+
+test("review registry initialization is anchored to the program upgrade authority", () => {
+  assert.match(programSource, /pub program: Program<'info, OmegaxPrivateClaimReview>/);
+  assert.match(programSource, /pub program_data: Account<'info, ProgramData>/);
+  assert.match(
+    programSource,
+    /program\.programdata_address\(\)\? == Some\(program_data\.key\(\)\)/,
+  );
+  assert.match(
+    programSource,
+    /program_data\.upgrade_authority_address == Some\(authority\.key\(\)\)/,
+  );
+  assert.match(programSource, /UnauthorizedRegistryInitializer/);
+
+  const initializeInstruction = privateReviewIdl.instructions.find(
+    (instruction: { name: string }) => instruction.name === "initialize_review_registry",
+  );
+  assert.ok(initializeInstruction);
+  assert.deepEqual(
+    initializeInstruction.accounts.map((account: { name: string }) => account.name),
+    ["authority", "registry", "program", "program_data", "system_program"],
+  );
 });
 
 test("review session PDA seeds bind session authority and claim case", () => {

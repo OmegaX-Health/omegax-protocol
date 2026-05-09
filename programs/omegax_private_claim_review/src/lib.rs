@@ -11,6 +11,8 @@ use ephemeral_rollups_sdk::anchor::{commit, delegate, ephemeral};
 use ephemeral_rollups_sdk::cpi::DelegateConfig;
 use ephemeral_rollups_sdk::ephem::commit_and_undelegate_accounts;
 
+use crate::program::OmegaxPrivateClaimReview;
+
 declare_id!("FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn");
 
 pub const SEED_REVIEW_REGISTRY: &[u8] = b"private_review_registry";
@@ -607,6 +609,14 @@ pub struct InitializeReviewRegistry<'info> {
         bump,
     )]
     pub registry: Account<'info, PrivateReviewRegistry>,
+    #[account(
+        constraint = program.programdata_address()? == Some(program_data.key()) @ PrivateClaimReviewError::UnauthorizedRegistryInitializer
+    )]
+    pub program: Program<'info, OmegaxPrivateClaimReview>,
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(authority.key()) @ PrivateClaimReviewError::UnauthorizedRegistryInitializer
+    )]
+    pub program_data: Account<'info, ProgramData>,
     pub system_program: Program<'info, System>,
 }
 
@@ -966,6 +976,8 @@ pub enum PrivateClaimReviewError {
     ReviewAlreadyCommitted,
     #[msg("terminal private review cannot be marked failed")]
     TerminalReviewCannotFail,
+    #[msg("signer is not the private review program upgrade authority")]
+    UnauthorizedRegistryInitializer,
 }
 
 fn is_zero_hash(hash: &[u8; 32]) -> bool {
