@@ -3328,6 +3328,96 @@
     background: linear-gradient(90deg, color-mix(in oklab, var(--border) 40%, transparent), color-mix(in oklab, var(--accent) 45%, transparent));
   }
 
+  .claim-room-posture-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.9rem;
+    padding: 0.72rem 1.18rem;
+    border: 1px solid color-mix(in oklab, var(--border-strong) 18%, var(--border));
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 96%, white 4%), color-mix(in oklab, var(--surface) 98%, var(--background) 2%));
+    box-shadow:
+      0 12px 24px -20px rgba(10, 21, 37, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -1px 0 rgba(10, 21, 37, 0.04);
+    color: var(--muted-foreground);
+    font-family: var(--font-sans), "Space Grotesk", system-ui, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .claim-room-posture-badge svg {
+    color: var(--accent);
+  }
+
+  .claim-room-posture-badge-closed {
+    border-color: color-mix(in oklab, var(--warning) 24%, var(--border));
+    background: color-mix(in oklab, var(--warning) 8%, var(--surface-elevated));
+    color: color-mix(in oklab, var(--warning) 82%, var(--foreground));
+  }
+
+  .claim-room-posture-badge-closed svg {
+    color: var(--warning);
+  }
+
+  .claim-room-flow-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid color-mix(in oklab, var(--border) 48%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 34%, transparent);
+  }
+
+  .claim-room-flow-item {
+    min-width: 0;
+    min-height: 12rem;
+    padding: 1.05rem 1rem 1.15rem;
+    border-left: 1px solid color-mix(in oklab, var(--border) 38%, transparent);
+  }
+
+  .claim-room-flow-item:nth-child(3n + 1) {
+    border-left: none;
+  }
+
+  .claim-room-flow-item:nth-child(n + 4) {
+    border-top: 1px solid color-mix(in oklab, var(--border) 38%, transparent);
+  }
+
+  .claim-room-flow-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 1.9rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .claim-room-flow-title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .claim-room-flow-copy {
+    margin-top: 0.75rem;
+    color: var(--muted-foreground);
+    font-size: 0.88rem;
+    line-height: 1.62;
+  }
+
   .governance-queue-skeleton,
   .governance-queue-skeleton-list,
   .governance-queue-skeleton-table {
@@ -9278,6 +9368,23 @@
   }
 
   @media (max-width: 899px) {
+    .claim-room-flow-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .claim-room-flow-item,
+    .claim-room-flow-item:nth-child(3n + 1) {
+      border-left: 1px solid color-mix(in oklab, var(--border) 38%, transparent);
+    }
+
+    .claim-room-flow-item:nth-child(2n + 1) {
+      border-left: none;
+    }
+
+    .claim-room-flow-item:nth-child(n + 3) {
+      border-top: 1px solid color-mix(in oklab, var(--border) 38%, transparent);
+    }
+
     .plans-kpi-strip {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.55rem;
@@ -9309,6 +9416,32 @@
   }
 
   @media (max-width: 767px) {
+    .claim-room-posture-badge {
+      width: 100%;
+      min-height: 2.75rem;
+      padding-inline: 0.95rem;
+    }
+
+    .claim-room-flow-list {
+      grid-template-columns: 1fr;
+    }
+
+    .claim-room-flow-item,
+    .claim-room-flow-item:nth-child(2n + 1),
+    .claim-room-flow-item:nth-child(3n + 1) {
+      min-height: 0;
+      padding: 1rem 0.25rem;
+      border-left: none;
+    }
+
+    .claim-room-flow-item + .claim-room-flow-item {
+      border-top: 1px solid color-mix(in oklab, var(--border) 38%, transparent);
+    }
+
+    .claim-room-flow-copy {
+      font-size: 0.86rem;
+    }
+
     .plans-hero {
       padding: 0.4rem 0.65rem 0;
     }

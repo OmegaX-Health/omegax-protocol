@@ -15,7 +15,7 @@ import { useNetworkContext } from "@/components/network-context";
 
 const DEVNET_REVIEW_PROGRAM_ID = "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn";
 
-const proofSignals = [
+const devnetProofSignals = [
   {
     icon: <EyeOff className="h-4 w-4" strokeWidth={1.9} />,
     label: "Evidence privacy",
@@ -42,7 +42,34 @@ const proofSignals = [
   },
 ] as const;
 
-const proofSteps = [
+const mainnetProofSignals = [
+  {
+    icon: <EyeOff className="h-4 w-4" strokeWidth={1.9} />,
+    label: "Evidence privacy",
+    value: "Private docs",
+    meta: "Raw files stay off-chain",
+  },
+  {
+    icon: <LockKeyhole className="h-4 w-4" strokeWidth={1.9} />,
+    label: "Review lane",
+    value: "Not configured",
+    meta: "No mainnet ER",
+  },
+  {
+    icon: <CheckCircle2 className="h-4 w-4" strokeWidth={1.9} />,
+    label: "Public output",
+    value: "No demo receipt",
+    meta: "Fail-closed",
+  },
+  {
+    icon: <ReceiptText className="h-4 w-4" strokeWidth={1.9} />,
+    label: "Settlement",
+    value: "Solana kernel",
+    meta: "Standard reserve path",
+  },
+] as const;
+
+const devnetProofSteps = [
   {
     label: "Prepare",
     title: "Evidence packet",
@@ -81,6 +108,45 @@ const proofSteps = [
   },
 ] as const;
 
+const mainnetProofSteps = [
+  {
+    label: "Prepare",
+    title: "Private evidence remains off-chain",
+    detail:
+      "Medical documents still belong inside the private review workspace. This page never asks for or stores claim documents.",
+  },
+  {
+    label: "Open",
+    title: "No mainnet review session",
+    detail:
+      "No MagicBlock review-session PDA is configured for mainnet. Production claim cases use the standard base-layer protocol surface.",
+  },
+  {
+    label: "Delegate",
+    title: "No mainnet delegation",
+    detail:
+      "MagicBlock delegation is disabled here. Claim cases, reserves, vaults, and obligations remain on the standard protocol.",
+  },
+  {
+    label: "Review",
+    title: "Operator review stays private",
+    detail:
+      "Any real review workflow must be approved separately before a public mainnet receipt can be shown.",
+  },
+  {
+    label: "Reference",
+    title: "No payment-reference preview",
+    detail:
+      "Payment-reference storage is devnet demo evidence only. Production reimbursement still uses the normal reserve and claim-settlement kernel.",
+  },
+  {
+    label: "Commit",
+    title: "Fail-closed public posture",
+    detail:
+      "The public page shows that no MagicBlock receipt is live on mainnet instead of implying a production review lane exists.",
+  },
+] as const;
+
 const visibleRecords = [
   {
     label: "Devnet review program",
@@ -104,9 +170,19 @@ export function MagicBlockClaimRoomWorkbench() {
   const isMainnet = selectedNetwork === "mainnet-beta";
   const networkLabel = isMainnet ? "Mainnet" : "Devnet";
   const postureLabel = isMainnet ? "Mainnet preview" : "Devnet demo";
+  const proofSignals = isMainnet ? mainnetProofSignals : devnetProofSignals;
+  const proofSteps = isMainnet ? mainnetProofSteps : devnetProofSteps;
   const postureCopy = isMainnet
     ? "No MagicBlock private-review program is configured on mainnet. Production claims stay on the standard Solana claim, oracle, and reserve-settlement path."
     : "The MagicBlock adjunct is available as a devnet-only private-review demo. It is not an authoritative public claim action surface.";
+  const flowTitle = isMainnet ? "Closed review posture" : "Private review, public receipt";
+  const flowCopy = isMainnet
+    ? "This public page is a fail-closed receipt posture for mainnet. It does not create claims, upload documents, delegate sessions, or move reimbursement funds."
+    : "This public page is a receipt-inspection and architecture surface. It does not create claims, upload documents, or move reimbursement funds.";
+  const railTitle = isMainnet ? "No live review trail" : "Claim review trail";
+  const railCopy = isMainnet
+    ? "Mainnet has no MagicBlock receipt program configured. Settlement stays on Solana."
+    : "Private evidence in. Public receipt out. Settlement stays on Solana.";
 
   const auditRows = isMainnet
     ? [
@@ -120,7 +196,7 @@ export function MagicBlockClaimRoomWorkbench() {
     : visibleRecords;
 
   return (
-    <div className="plans-shell">
+    <div className="plans-shell claim-room-shell">
       <div className="plans-scroll">
         <header className="plans-hero">
           <div className="plans-hero-glow" aria-hidden="true" />
@@ -135,7 +211,10 @@ export function MagicBlockClaimRoomWorkbench() {
               </p>
             </div>
             <div className="plans-hero-actions">
-              <span className="plans-secondary-cta plans-action-disabled" aria-disabled="true">
+              <span
+                className={`claim-room-posture-badge${isMainnet ? " claim-room-posture-badge-closed" : ""}`}
+                role="status"
+              >
                 <LockKeyhole className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
                 {postureLabel}
               </span>
@@ -163,7 +242,15 @@ export function MagicBlockClaimRoomWorkbench() {
                 <div>
                   <p className="plans-card-eyebrow">Review flow</p>
                   <h2 className="plans-card-title plans-card-title-display">
-                    Private review, <em>public receipt</em>
+                    {isMainnet ? (
+                      <>
+                        Closed review <em>posture</em>
+                      </>
+                    ) : (
+                      <>
+                        Private review, <em>public receipt</em>
+                      </>
+                    )}
                   </h2>
                 </div>
                 <span className="plans-card-meta">
@@ -172,14 +259,19 @@ export function MagicBlockClaimRoomWorkbench() {
                 </span>
               </div>
               <p className="plans-card-body">
-                This public page is a receipt-inspection and architecture surface. It does not create claims, upload documents, or move reimbursement funds.
+                {flowCopy}
               </p>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <ol className="claim-room-flow-list" aria-label={flowTitle}>
                 {proofSteps.map((step, index) => (
-                  <ProofStep key={step.label} step={step} index={index} />
+                  <ProofStep
+                    key={step.label}
+                    step={step}
+                    index={index}
+                    isLast={index === proofSteps.length - 1}
+                  />
                 ))}
-              </div>
+              </ol>
             </article>
           </section>
 
@@ -190,9 +282,9 @@ export function MagicBlockClaimRoomWorkbench() {
                 <span className="plans-rail-subtag">{postureLabel}</span>
               </div>
               <div className="plans-rail-hero">
-                <span className="plans-rail-hero-val">Claim review trail</span>
+                <span className="plans-rail-hero-val">{railTitle}</span>
                 <span className="plans-rail-hero-sub">
-                  Private evidence in. Public receipt out. Settlement stays on Solana.
+                  {railCopy}
                 </span>
               </div>
             </section>
@@ -232,30 +324,32 @@ export function MagicBlockClaimRoomWorkbench() {
 function ProofStep({
   step,
   index,
+  isLast,
 }: {
-  step: (typeof proofSteps)[number];
+  step: (typeof devnetProofSteps)[number] | (typeof mainnetProofSteps)[number];
   index: number;
+  isLast: boolean;
 }) {
   return (
-    <div className="workbench-inline-card">
-      <div className="flex items-center justify-between gap-3">
+    <li className="claim-room-flow-item">
+      <div className="claim-room-flow-topline">
         <span className="workbench-card-meta">{String(index + 1).padStart(2, "0")}</span>
-        {index < proofSteps.length - 1 ? (
-          <span className="claim-room-step-rule" aria-hidden="true" />
-        ) : (
+        {isLast ? (
           <ReceiptText
             className="h-4 w-4 text-[color:var(--accent)]"
             strokeWidth={1.8}
             aria-hidden="true"
           />
+        ) : (
+          <span className="claim-room-step-rule" aria-hidden="true" />
         )}
       </div>
-      <p className="mt-4 workbench-panel-eyebrow">{step.label}</p>
-      <h3 className="mt-1 text-base font-semibold">{step.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-[color:var(--muted-foreground)]">
+      <p className="workbench-panel-eyebrow">{step.label}</p>
+      <h3 className="claim-room-flow-title">{step.title}</h3>
+      <p className="claim-room-flow-copy">
         {step.detail}
       </p>
-    </div>
+    </li>
   );
 }
 

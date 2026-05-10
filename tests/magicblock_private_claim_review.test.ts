@@ -136,6 +136,9 @@ test("MagicBlock claim room frontend fails closed outside the devnet demo", () =
   assert.match(claimRoomPage, /devnet-only MagicBlock private-review demo surface/);
   assert.match(claimRoomWorkbench, /selectedNetwork === "mainnet-beta"/);
   assert.match(claimRoomWorkbench, /No MagicBlock private-review program is configured on mainnet/);
+  assert.match(claimRoomWorkbench, /No mainnet delegation/);
+  assert.match(claimRoomWorkbench, /No mainnet ER/);
+  assert.match(claimRoomWorkbench, /claim-room-posture-badge/);
   assert.match(claimRoomWorkbench, /Production reimbursement still uses the normal reserve and claim-settlement kernel/);
   assert.doesNotMatch(claimRoomWorkbench, /mainnet.*FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn/is);
 });
