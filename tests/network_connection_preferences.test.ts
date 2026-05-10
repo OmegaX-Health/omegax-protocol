@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import networkConfigModule from "../frontend/lib/network-config.ts";
@@ -9,6 +10,9 @@ const {
   resolveRpcEndpoint,
   validateCustomRpcUrl,
 } = networkConfigModule as typeof import("../frontend/lib/network-config.ts");
+
+const protocolWorkbenchShell = readFileSync("frontend/components/protocol-workbench-shell.tsx", "utf8");
+const protocolConsoleSnapshotHook = readFileSync("frontend/lib/use-protocol-console-snapshot.ts", "utf8");
 
 test("connection preferences default to public RPC profiles and the explorer cluster", () => {
   const environment = buildRpcEnvironment({
@@ -105,4 +109,12 @@ test("custom RPC validation accepts http/https endpoints only", () => {
   assert.match(validateCustomRpcUrl(""), /http:\/\/ or https:\/\//);
   assert.match(validateCustomRpcUrl("wss://rpc.example.com"), /http:\/\/ or https:\/\//);
   assert.match(validateCustomRpcUrl("not-a-url"), /http:\/\/ or https:\/\//);
+});
+
+test("protocol shell skips public mainnet browser status polling", () => {
+  assert.match(protocolWorkbenchShell, /selectedNetwork === "mainnet-beta" && resolvedRpcProfile === "public"/);
+  assert.match(protocolWorkbenchShell, /if \(isPublicMainnetStatusPollingDisabled\) return;/);
+  assert.match(protocolWorkbenchShell, /RPC Required/);
+  assert.match(protocolConsoleSnapshotHook, /selectedNetwork === "mainnet-beta" && resolvedRpcProfile === "public"/);
+  assert.match(protocolConsoleSnapshotHook, /Mainnet protocol snapshots require a configured RPC profile/);
 });

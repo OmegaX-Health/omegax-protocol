@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 
+import { useNetworkContext } from "@/components/network-context";
 import { loadProtocolConsoleSnapshot, type ProtocolConsoleSnapshot } from "@/lib/protocol";
 import { formatRpcError, isRpcRateLimitError } from "@/lib/rpc-errors";
 
@@ -13,6 +14,7 @@ const SNAPSHOT_CACHE_TTL_MS = 1_000;
 const RATE_LIMIT_BACKOFF_MS = 12_000;
 const RATE_LIMIT_BACKOFF_STORAGE_KEY = "omegax-rpc-rate-limit-backoffs";
 const STORED_RATE_LIMIT_MESSAGE = "429 RPC rate limit; waiting before retrying protocol snapshot loads.";
+const PUBLIC_MAINNET_SNAPSHOT_DISABLED_MESSAGE = "Mainnet protocol snapshots require a configured RPC profile.";
 
 const EMPTY_PROTOCOL_CONSOLE_SNAPSHOT: ProtocolConsoleSnapshot = {
   protocolGovernance: null,
@@ -169,13 +171,24 @@ async function loadSharedProtocolConsoleSnapshot(
 
 export function useProtocolConsoleSnapshot() {
   const { connection } = useConnection();
+  const { selectedNetwork, resolvedRpcProfile } = useNetworkContext();
   const [snapshot, setSnapshot] = useState<ProtocolConsoleSnapshot>(EMPTY_PROTOCOL_CONSOLE_SNAPSHOT);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [snapshotEndpoint, setSnapshotEndpoint] = useState<string | null>(null);
+  const isPublicMainnetSnapshotDisabled = selectedNetwork === "mainnet-beta" && resolvedRpcProfile === "public";
 
   const refresh = useCallback(async () => {
+    if (isPublicMainnetSnapshotDisabled) {
+      setSnapshot(EMPTY_PROTOCOL_CONSOLE_SNAPSHOT);
+      setLastUpdatedAt(null);
+      setSnapshotEndpoint(null);
+      setLoading(false);
+      setError(PUBLIC_MAINNET_SNAPSHOT_DISABLED_MESSAGE);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -193,7 +206,7 @@ export function useProtocolConsoleSnapshot() {
     } finally {
       setLoading(false);
     }
-  }, [connection]);
+  }, [connection, isPublicMainnetSnapshotDisabled]);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,6 +214,12 @@ export function useProtocolConsoleSnapshot() {
     setSnapshot(EMPTY_PROTOCOL_CONSOLE_SNAPSHOT);
     setLastUpdatedAt(null);
     setSnapshotEndpoint(null);
+
+    if (isPublicMainnetSnapshotDisabled) {
+      setLoading(false);
+      setError(PUBLIC_MAINNET_SNAPSHOT_DISABLED_MESSAGE);
+      return;
+    }
 
     async function load() {
       setLoading(true);
@@ -264,7 +283,7 @@ export function useProtocolConsoleSnapshot() {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
       }
     };
-  }, [connection]);
+  }, [connection, isPublicMainnetSnapshotDisabled]);
 
   return {
     snapshot,

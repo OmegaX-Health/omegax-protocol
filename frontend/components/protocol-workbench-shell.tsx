@@ -60,7 +60,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const pathname = usePathname();
   const { connection } = useConnection();
   const { mounted, theme, toggleTheme } = useTheme();
-  const { selectedNetwork, setSelectedNetwork, canSelectNetwork } = useNetworkContext();
+  const { selectedNetwork, setSelectedNetwork, canSelectNetwork, resolvedRpcProfile } = useNetworkContext();
   const { effectivePersona, previewPersona, setPreviewPersona, canPreviewPersona } = useWorkspacePersona();
   const { snapshot } = useProtocolConsoleSnapshot();
   const workbenchMetrics = computeWorkbenchMetrics(snapshot);
@@ -92,6 +92,8 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const nextThemeLabel = isDarkTheme ? "light" : "dark";
   const themeToggleLabel = themeToggleHydrated ? `Switch to ${nextThemeLabel} mode` : "Switch color theme";
   const footerMetadata = buildFooterMetadata(selectedNetwork);
+  const isPublicMainnetStatusPollingDisabled = selectedNetwork === "mainnet-beta" && resolvedRpcProfile === "public";
+  const statusLabel = isLive ? "System Synced" : isPublicMainnetStatusPollingDisabled ? "RPC Required" : "Retrying";
 
   useEffect(() => {
     setThemeToggleHydrated(true);
@@ -134,7 +136,15 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   useEffect(() => {
     let cancelled = false;
 
+    setSlot("--");
+    setEpoch("--");
+    setIsLive(false);
+
+    if (isPublicMainnetStatusPollingDisabled) return;
+
     async function refreshStatus() {
+      if (isPublicMainnetStatusPollingDisabled) return;
+
       try {
         const [nextSlot, nextEpochInfo] = await Promise.all([
           connection.getSlot("confirmed"),
@@ -160,7 +170,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [connection, selectedNetwork]);
+  }, [connection, isPublicMainnetStatusPollingDisabled, selectedNetwork]);
 
   return (
     <div
@@ -340,7 +350,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
             <div className="protocol-topbar-status-right">
               <span className={cn("protocol-topbar-sync-dot", isLive && "is-live")} aria-hidden="true" />
               <span className={cn("protocol-topbar-sync-label", isLive && "is-live")}>
-                {isLive ? "System Synced" : "Retrying"}
+                {statusLabel}
               </span>
               {isLive ? (
                 <span className="material-symbols-outlined protocol-topbar-sync-icon" aria-hidden="true">sync</span>
