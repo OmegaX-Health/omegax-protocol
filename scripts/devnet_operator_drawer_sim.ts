@@ -11,10 +11,11 @@
 // Usage:
 //   npm run devnet:operator:drawer:sim
 //
-// Keypair is read from SOLANA_KEYPAIR (falls back to ~/.config/solana/id.json).
-// The pubkey must equal the devnet governance wallet configured in
-// NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET; mismatch aborts before any
-// RPC work.
+// Keypair is read from OMEGAX_DEVNET_PROTOCOL_GOVERNANCE_KEYPAIR_PATH
+// (falling back to SOLANA_KEYPAIR, then ~/.config/solana/id.json). The pubkey
+// must equal the devnet governance wallet configured in
+// NEXT_PUBLIC_DEVNET_PROTOCOL_GOVERNANCE_WALLET; mismatch aborts before any RPC
+// work.
 
 import { Buffer } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
@@ -39,6 +40,18 @@ type FixturesModule = typeof import("../frontend/lib/devnet-fixtures.ts");
 const FRONTEND_ENV_PATH = resolve(process.cwd(), "frontend/.env.local");
 const DEFAULT_KEYPAIR_PATH = resolve(homedir(), ".config/solana/id.json");
 const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
+
+function expandHome(path: string): string {
+  return path.replace(/^~(?=\/|$)/, homedir());
+}
+
+function configuredGovernanceKeypairPath(): string {
+  return expandHome(
+    process.env.OMEGAX_DEVNET_PROTOCOL_GOVERNANCE_KEYPAIR_PATH?.trim()
+      || process.env.SOLANA_KEYPAIR?.trim()
+      || DEFAULT_KEYPAIR_PATH,
+  );
+}
 
 type FlowResult = {
   name: string;
@@ -221,7 +234,7 @@ async function simulate(
 async function main(): Promise<void> {
   loadEnvFile(FRONTEND_ENV_PATH);
 
-  const keypairPath = process.env.SOLANA_KEYPAIR?.trim() || DEFAULT_KEYPAIR_PATH;
+  const keypairPath = configuredGovernanceKeypairPath();
   const signer = keypairFromFile(keypairPath);
   const signerAddress = signer.publicKey.toBase58();
 
