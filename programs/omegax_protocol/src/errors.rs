@@ -230,4 +230,6 @@ pub enum OmegaXProtocolError {
     HealthPlanInactive,
     #[msg("Capital class is inactive")]
     CapitalClassInactive,
+    #[msg("Direct claim reserves require linked obligation settlement")]
+    DirectClaimReserveUnsupported,
 }

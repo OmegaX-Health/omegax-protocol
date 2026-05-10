@@ -1338,6 +1338,31 @@ fn adjudication_resets_direct_claim_reserve_to_requested_amount() {
 }
 
 #[test]
+fn direct_claim_adjudication_rejects_unbooked_reserve_amounts() {
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let funding_line = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let claim_case_key = Pubkey::new_unique();
+
+    let mut claim_case = sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+
+    let result = sync_adjudicated_claim_liability(
+        &mut claim_case,
+        claim_case_key,
+        None,
+        health_plan,
+        100,
+        1,
+    );
+
+    let error = result.unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Direct claim reserves require linked obligation settlement"));
+}
+
+#[test]
 fn adjudication_rejects_linked_obligation_reserve_above_approved_amount() {
     let health_plan = Pubkey::new_unique();
     let policy_series = Pubkey::new_unique();
@@ -2720,6 +2745,74 @@ fn selected_asset_claim_payout_debits_only_selected_asset_free_reserve() {
     let mut line_sheet = insufficient_sheet;
     let mut domain_assets = 100;
     assert!(book_selected_asset_claim_payout(
+        &mut domain_assets,
+        &mut insufficient_sheet,
+        &mut plan_sheet,
+        &mut line_sheet,
+        None,
+        &mut funding_line,
+        50,
+    )
+    .is_err());
+}
+
+#[test]
+fn direct_claim_payout_debits_free_reserve_without_delivery_buckets() {
+    let reserve_domain = Pubkey::new_unique();
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut funding_line = sample_funding_line(
+        reserve_domain,
+        health_plan,
+        policy_series,
+        asset_mint,
+        FUNDING_LINE_TYPE_SPONSOR_BUDGET,
+    );
+    funding_line.reserved_amount = 80;
+
+    let mut domain_assets = 1_000;
+    let mut domain_sheet = ReserveBalanceSheet {
+        funded: 1_000,
+        free: 1_000,
+        redeemable: 1_000,
+        ..ReserveBalanceSheet::default()
+    };
+    let mut plan_sheet = domain_sheet;
+    let mut line_sheet = domain_sheet;
+
+    book_direct_claim_payout(
+        &mut domain_assets,
+        &mut domain_sheet,
+        &mut plan_sheet,
+        &mut line_sheet,
+        None,
+        &mut funding_line,
+        250,
+    )
+    .unwrap();
+
+    assert_eq!(domain_assets, 750);
+    assert_eq!(domain_sheet.funded, 750);
+    assert_eq!(domain_sheet.claimable, 0);
+    assert_eq!(domain_sheet.payable, 0);
+    assert_eq!(domain_sheet.settled, 250);
+    assert_eq!(plan_sheet.funded, 750);
+    assert_eq!(line_sheet.funded, 750);
+    assert_eq!(funding_line.reserved_amount, 80);
+    assert_eq!(funding_line.spent_amount, 250);
+
+    let mut insufficient_sheet = ReserveBalanceSheet {
+        funded: 100,
+        reserved: 80,
+        free: 20,
+        redeemable: 20,
+        ..ReserveBalanceSheet::default()
+    };
+    let mut plan_sheet = insufficient_sheet;
+    let mut line_sheet = insufficient_sheet;
+    let mut domain_assets = 100;
+    assert!(book_direct_claim_payout(
         &mut domain_assets,
         &mut insufficient_sheet,
         &mut plan_sheet,

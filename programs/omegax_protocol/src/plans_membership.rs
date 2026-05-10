@@ -26,6 +26,11 @@ pub(crate) fn create_health_plan(
         ctx.accounts.reserve_domain.active,
         OmegaXProtocolError::ReserveDomainInactive
     );
+    require_domain_control(
+        &ctx.accounts.plan_admin.key(),
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.reserve_domain,
+    )?;
     validate_membership_gate_config(&args)?;
 
     let plan = &mut ctx.accounts.health_plan;
@@ -515,5 +520,6 @@ pub struct UpdateMemberEligibility<'info> {
     pub health_plan: Account<'info, HealthPlan>,
     #[account(mut, seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()], bump = member_position.bump)]
     pub member_position: Account<'info, MemberPosition>,
+    #[account(mut)]
     pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,
 }

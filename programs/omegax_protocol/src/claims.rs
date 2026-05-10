@@ -322,21 +322,15 @@ pub(crate) fn settle_claim_case(
     };
     claim_case.updated_at = Clock::get()?.unix_timestamp;
 
-    // Book the full obligation settlement. This decrements
-    // domain_asset_vault.total_assets by `amount`, but only
-    // `net_to_recipient` physically leaves the vault. The fee tokens
-    // remain in the SPL token account as treasury claims; we add them
-    // back to total_assets immediately below to keep the counter in
-    // sync with the physical balance.
-    book_settlement_from_delivery(
+    // Book the full direct-claim payout from free reserve. Only linked
+    // obligations may consume claimable/payable delivery buckets; direct
+    // claims have no reserved delivery ledger to settle from.
+    book_direct_claim_payout(
         &mut ctx.accounts.domain_asset_vault.total_assets,
         &mut ctx.accounts.domain_asset_ledger.sheet,
         &mut ctx.accounts.plan_reserve_ledger.sheet,
         &mut ctx.accounts.funding_line_ledger.sheet,
         ctx.accounts.series_reserve_ledger.as_deref_mut(),
-        ctx.accounts.pool_class_ledger.as_deref_mut(),
-        ctx.accounts.allocation_position.as_deref_mut(),
-        ctx.accounts.allocation_ledger.as_deref_mut(),
         &mut ctx.accounts.funding_line,
         amount,
     )?;

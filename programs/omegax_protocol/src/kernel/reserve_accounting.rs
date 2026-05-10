@@ -201,7 +201,11 @@ pub(crate) fn sync_adjudicated_claim_liability(
             claim_case.linked_obligation == ZERO_PUBKEY,
             OmegaXProtocolError::ClaimCaseLinkMismatch
         );
-        claim_case.reserved_amount = reserve_amount;
+        require!(
+            reserve_amount == 0,
+            OmegaXProtocolError::DirectClaimReserveUnsupported
+        );
+        claim_case.reserved_amount = 0;
     }
     Ok(())
 }
@@ -634,6 +638,7 @@ pub(crate) fn cancel_outstanding(
     Ok(())
 }
 
+#[cfg(test)]
 pub(crate) fn book_settlement_from_delivery(
     domain_assets: &mut u64,
     domain_sheet: &mut ReserveBalanceSheet,
@@ -709,4 +714,24 @@ pub(crate) fn book_selected_asset_claim_payout(
     *domain_assets = checked_sub(*domain_assets, amount)?;
     funding_line.spent_amount = checked_add(funding_line.spent_amount, amount)?;
     Ok(())
+}
+
+pub(crate) fn book_direct_claim_payout(
+    domain_assets: &mut u64,
+    domain_sheet: &mut ReserveBalanceSheet,
+    plan_sheet: &mut ReserveBalanceSheet,
+    line_sheet: &mut ReserveBalanceSheet,
+    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
+    funding_line: &mut FundingLine,
+    amount: u64,
+) -> Result<()> {
+    book_selected_asset_claim_payout(
+        domain_assets,
+        domain_sheet,
+        plan_sheet,
+        line_sheet,
+        series_sheet,
+        funding_line,
+        amount,
+    )
 }

@@ -92,6 +92,26 @@ function parseJsonObjects(text) {
   return docs;
 }
 
+function flattenJsonDocs(docs) {
+  return docs.flatMap((doc) => (Array.isArray(doc) ? doc : [doc]));
+}
+
+function isAcceptedNonzeroStatusDoc(doc) {
+  if (doc?.kind === 'missing' && typeof doc?.theorem === 'string') {
+    return true;
+  }
+  if (Array.isArray(doc?.effect_coverage) && Array.isArray(doc?.handler_coverage)) {
+    return true;
+  }
+  if (Array.isArray(doc?.operations) && Array.isArray(doc?.properties) && Array.isArray(doc?.cells)) {
+    return true;
+  }
+  if (doc?.rule && doc?.severity) {
+    return true;
+  }
+  return false;
+}
+
 const qedgen = resolveQedgen();
 const result = spawnSync(
   qedgen,
@@ -115,9 +135,9 @@ const result = spawnSync(
 if (result.stderr) process.stderr.write(result.stderr);
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.error) throw result.error;
-if (result.status !== 0) process.exit(result.status ?? 1);
 
 const docs = parseJsonObjects(result.stdout ?? '');
+const flattenedDocs = flattenJsonDocs(docs);
 let failed = false;
 for (const doc of docs) {
   if (Array.isArray(doc.effect_coverage) && doc.effect_coverage.length > 0) {
@@ -130,9 +150,39 @@ for (const doc of docs) {
   }
 }
 
+const unacceptedFindings = flattenedDocs.filter(
+  (doc) => doc?.rule && doc?.severity && doc.severity !== 'info',
+);
+if (unacceptedFindings.length > 0) {
+  process.stderr.write('[qedgen:private-claim-review] unexpected QEDGen findings found.\n');
+  process.stderr.write(`${JSON.stringify(unacceptedFindings, null, 2)}\n`);
+  failed = true;
+}
+
+const summaryDocs = flattenedDocs.filter(
+  (doc) => Array.isArray(doc?.operations) && Array.isArray(doc?.properties),
+);
+if (summaryDocs.some((doc) => doc.properties.length === 0)) {
+  process.stderr.write('[qedgen:private-claim-review] spec has no properties.\n');
+  failed = true;
+}
+
 if (docs.length === 0) {
   process.stderr.write('[qedgen:private-claim-review] no QEDGen JSON output found.\n');
   failed = true;
+}
+
+if (result.status !== 0) {
+  const unacceptedStatusDocs = flattenedDocs.filter((doc) => !isAcceptedNonzeroStatusDoc(doc));
+  if (docs.length === 0 || unacceptedStatusDocs.length > 0) {
+    process.stderr.write(
+      `[qedgen:private-claim-review] qedgen exited with status ${result.status ?? 'unknown'}.\n`,
+    );
+    if (unacceptedStatusDocs.length > 0) {
+      process.stderr.write(`${JSON.stringify(unacceptedStatusDocs, null, 2)}\n`);
+    }
+    failed = true;
+  }
 }
 
 process.exit(failed ? 1 : 0);

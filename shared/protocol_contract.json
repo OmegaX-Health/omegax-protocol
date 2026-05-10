@@ -11277,7 +11277,7 @@
         },
         {
           "name": "membership_anchor_seat",
-          "writable": false,
+          "writable": true,
           "signer": false,
           "optional": true
         }

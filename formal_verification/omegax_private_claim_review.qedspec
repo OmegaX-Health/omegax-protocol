@@ -308,7 +308,10 @@ handler commit_and_close_review_session : State.Active -> State.Closed {
 }
 
 handler mark_review_failed : State.Active -> State.Active {
-  auth actor
+  // Failure can be marked by either stored session authority or stored reviewer
+  // authority, so this handler uses explicit guards instead of QEDGen's
+  // single-field `auth` lowering.
+  permissionless
   requires actor == review_session.session_authority
         or actor == review_session.reviewer_authority else UnauthorizedFailureMarker
   requires review_session.status <= REVIEW_STATUS_DELEGATED else TerminalReviewCannotFail
@@ -333,3 +336,7 @@ cover private_claim_room_happy_path [
   record_private_payment_ref,
   commit_and_close_review_session
 ]
+
+property committed_approved_reviews_have_payment_ref :
+  status != REVIEW_STATUS_APPROVED or committed_at == 0 or private_payment_ref_hash != 0
+  preserved_by all

@@ -185,6 +185,13 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(!instructionNames.includes("set_pool_status"));
   assert(!serializedAccounts.includes("pool_type"));
   assert(serializedAccounts.includes("membership_anchor_seat"));
+  assert.equal(
+    PROTOCOL_INSTRUCTION_ACCOUNTS.update_member_eligibility.find(
+      (account) => account.name === "membership_anchor_seat",
+    )?.writable,
+    true,
+    "update_member_eligibility must mark membership_anchor_seat writable because the handler mutates it",
+  );
   assert(PROTOCOL_INSTRUCTION_ARGS.deposit_into_capital_class.length === 1);
   assert(idl.instructions.some((instruction) => instruction.name === "update_lp_position_credentialing"));
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.reserve_obligation.some((account) => account.name === "claim_case"));

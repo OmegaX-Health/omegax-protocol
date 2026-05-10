@@ -86,6 +86,15 @@ test("[CSO-2026-05-06] claim and obligation settlement require payout-enabled re
   assert.match(programSource, /require_fresh_reserve_asset_price/);
 });
 
+test("[CSO-2026-05-10] direct claim settlement consumes free reserve, not delivery buckets", () => {
+  const claimBody = extractInstructionBody("settle_claim_case");
+  const liabilityBody = extractRustFunctionBody("sync_adjudicated_claim_liability");
+
+  assert.match(claimBody, /book_direct_claim_payout/);
+  assert.doesNotMatch(claimBody, /book_settlement_from_delivery/);
+  assert.match(liabilityBody, /DirectClaimReserveUnsupported/);
+});
+
 test("[CSO-2026-05-06] payout-only rails can publish prices but zero staleness is rejected", () => {
   const configureBody = extractInstructionBody("configure_reserve_asset_rail");
   const publishBody = extractInstructionBody("publish_reserve_asset_rail_price");
