@@ -72,6 +72,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
     "/capital",
     "/governance",
     "/oracles",
+    "/schemas",
     "/coverage",
     "/magicblock-claim-room",
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
