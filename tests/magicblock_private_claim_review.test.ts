@@ -11,6 +11,11 @@ const architectureDoc = readFileSync(
   "docs/architecture/magicblock-private-claim-room.md",
   "utf8",
 );
+const claimRoomPage = readFileSync("frontend/app/magicblock-claim-room/page.tsx", "utf8");
+const claimRoomWorkbench = readFileSync(
+  "frontend/components/magicblock-claim-room-workbench.tsx",
+  "utf8",
+);
 
 test("MagicBlock adjunct program is registered as a separate Anchor program", () => {
   assert.match(anchorToml, /programs\/omegax_private_claim_review/);
@@ -125,4 +130,12 @@ test("MagicBlock private claim review program id is valid", () => {
   const match = anchorToml.match(/omegax_private_claim_review = "([^"]+)"/);
   assert.ok(match?.[1]);
   assert.doesNotThrow(() => new PublicKey(match[1]));
+});
+
+test("MagicBlock claim room frontend fails closed outside the devnet demo", () => {
+  assert.match(claimRoomPage, /devnet-only MagicBlock private-review demo surface/);
+  assert.match(claimRoomWorkbench, /selectedNetwork === "mainnet-beta"/);
+  assert.match(claimRoomWorkbench, /No MagicBlock private-review program is configured on mainnet/);
+  assert.match(claimRoomWorkbench, /Production reimbursement still uses the normal reserve and claim-settlement kernel/);
+  assert.doesNotMatch(claimRoomWorkbench, /mainnet.*FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn/is);
 });
