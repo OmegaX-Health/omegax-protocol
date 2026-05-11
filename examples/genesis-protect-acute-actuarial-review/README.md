@@ -2,7 +2,7 @@
 
 This folder contains the repo-first actuarial pricing and launch-control workbook for the first Genesis Protect Acute policies: Event 7 and Travel 30.
 
-The review is intentionally a launch-gate model, not a formal external actuarial opinion. It tests whether the first policies can be issued with explicit reserve floors, SKU-specific pause controls, and country/cohort gating that match the current public metadata and claim simulation surface. The May 4 Travel 30 price reset is now approved and applied in repo metadata.
+The review is intentionally a launch-gate model, not a formal external actuarial opinion. It tests whether the first policies can be issued with explicit reserve floors, SKU-specific pause controls, and country/cohort gating that match the current public metadata and claim simulation surface. The May 11 cap update is now approved and applied in repo metadata.
 
 ## Files
 
@@ -23,11 +23,11 @@ The generator validates the assumptions against the current public Genesis metad
 ## Current Launch-Gate Conclusions
 
 - Treat Travel 30 as the primary live launch SKU and Event 7 as the fast-demo/event SKU.
-- Use the approved p99.5 design: Event 7 stays `$39` retail with a `$1,000` cap; Travel 30 uses `$99` retail with a `$3,000` cap.
+- Use the approved p99.5 design: Event 7 stays `$39` retail with a `$3,000` cap; Travel 30 uses `$99` retail with a `$5,000` cap.
 - Use approved cohort bands of `$28-$36` for Event 7 and `$69-$89` for Travel 30.
 - Keep the Travel 30 claims-paying reserve at `$84,900` by replacing the removed premium load with explicit sponsor/backstop capital before live issuance.
 - Keep public-open issuance around `1,000 Event 7 + 500 Travel 30` at baseline until additional LP or sponsor backstop is posted.
-- Keep Event 7 at a hard cap of `50` members per named venue/event in Phase 0.
+- Keep Event 7 at a hard cap of `30` members per named venue/event in Phase 0 unless extra sponsor/backstop reserve is posted.
 - Treat Travel 30 cohorts above `100` concentrated or illness-linked members as requiring sponsor/backstop review before issuance.
 - Use country posture as an operational gating layer: `available`, `sponsor_only`, `waitlist`, and `unavailable`.
 - Pause only the affected SKU by default when reserve thresholds are breached, unless operators intentionally widen the pause.

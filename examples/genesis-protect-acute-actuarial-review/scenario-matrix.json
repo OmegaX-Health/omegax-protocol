@@ -125,9 +125,18 @@
       "countryTier": "available"
     },
     {
-      "id": "event7-same-venue-50",
+      "id": "event7-same-venue-30",
       "type": "correlated_event",
       "label": "Event 7 same-venue hard cap",
+      "sku": "event7",
+      "members": 30,
+      "affectedRate": 0.3,
+      "maxBenefitRate": 0.8
+    },
+    {
+      "id": "event7-same-venue-50",
+      "type": "correlated_event",
+      "label": "Event 7 same-venue breach after cap increase",
       "sku": "event7",
       "members": 50,
       "affectedRate": 0.3,

@@ -2,16 +2,16 @@
 
 Status: approved_applied_in_repo
 
-Approved: 2026-05-04
+Approved: 2026-05-11
 
-Basis: Travel 30 retail price reset to 99 USD with explicit backstop replacing removed premium load under the p99.5 launch gate
+Basis: Genesis Protect Acute cap increase approved for sharper battle testing: Event 7 fixed-benefit cap moves to 3000 USD and Travel 30 aggregate cap moves to 5000 USD while reserve gates remain explicit.
 
 This records the approved canonical pricing redesign now applied in repo metadata.
 
 ## Canonical Changes
 
-- Travel 30: retail premium 159 -> 99 USD.
-- Travel 30: cohort band 112-144 -> 69-89 USD.
+- Event 7: max payout cap 1000 -> 3000 USD.
+- Travel 30: max payout cap 3000 -> 5000 USD.
 
 ## Surfaces To Keep Synchronized
 

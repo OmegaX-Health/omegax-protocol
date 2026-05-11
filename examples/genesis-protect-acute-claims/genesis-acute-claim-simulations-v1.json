@@ -1,7 +1,7 @@
 {
   "schemaVersion": "genesis-acute-claims-sim-v1",
   "generatedAt": "2026-04-21T00:00:00.000Z",
-  "description": "Realistic claim simulation scenarios for Genesis Protect Acute v1. Covers Event 7 (7-day fixed-benefit, $1,000 max) and Travel 30 (30-day hybrid fixed+reimbursement, $3,000 max). Each scenario is structured across 7 dimensions: patient profile, clinical setting, diagnosis, claim financials, oracle review flow, and on-chain outcome. Not canonical devnet state — for simulation, testing, and operator training purposes only.",
+  "description": "Realistic claim simulation scenarios for Genesis Protect Acute v1. Covers Event 7 (7-day fixed-benefit, $5,000 max) and Travel 30 (30-day hybrid fixed+reimbursement, $5,000 max). Each scenario is structured across 7 dimensions: patient profile, clinical setting, diagnosis, claim financials, oracle review flow, and on-chain outcome. Not canonical devnet state — for simulation, testing, and operator training purposes only.",
   "simulated": true,
   "protocolReferences": {
     "programId": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",
@@ -16,7 +16,7 @@
         "seriesId": "genesis-event-7-v1",
         "coverageDays": 7,
         "premiumRetail": 39,
-        "maxBenefit": 1000,
+        "maxBenefit": 3000,
         "benefitMode": "fixed_only",
         "cycleSeconds": 604800,
         "fundingLines": {
@@ -30,7 +30,7 @@
         "seriesId": "genesis-travel-30-v1",
         "coverageDays": 30,
         "premiumRetail": 99,
-        "maxBenefit": 3000,
+        "maxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "cycleSeconds": 2592000,
         "fundingLines": {
@@ -61,10 +61,10 @@
       "tier3": {
         "label": "SURGERY_ICU_2NIGHTS",
         "description": "Major surgical procedure and/or ICU admission, minimum 2 nights in-hospital.",
-        "event7FixedBenefit": 1000,
+        "event7FixedBenefit": 3000,
         "travel30ReimbursableRange": [
           2500,
-          3000
+          5000
         ]
       }
     },
@@ -118,7 +118,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 150,
         "actualMedicalCostUSD": 1840,
         "amountClaimed": 150,
@@ -189,7 +189,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 150,
         "actualMedicalCostUSD": 410,
         "amountClaimed": 150,
@@ -260,7 +260,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 150,
         "actualMedicalCostUSD": 920,
         "amountClaimed": 150,
@@ -331,7 +331,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 150,
         "actualMedicalCostUSD": 1150,
         "amountClaimed": 150,
@@ -404,7 +404,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 500,
         "actualMedicalCostUSD": 3200,
         "amountClaimed": 500,
@@ -476,7 +476,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 500,
         "actualMedicalCostUSD": 2700,
         "amountClaimed": 500,
@@ -550,7 +550,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 500,
         "actualMedicalCostUSD": 4800,
         "amountClaimed": 500,
@@ -623,7 +623,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 500,
         "actualMedicalCostUSD": 5600,
         "amountClaimed": 500,
@@ -700,15 +700,15 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
-        "tierFixedBenefit": 1000,
+        "productMaxBenefit": 3000,
+        "tierFixedBenefit": 3000,
         "actualMedicalCostUSD": 9800,
-        "amountClaimed": 1000,
-        "amountApproved": 1000,
+        "amountClaimed": 3000,
+        "amountApproved": 3000,
         "amountDenied": 0,
         "denialReason": null,
         "settlementCurrency": "USDC",
-        "settlementNote": "Fixed-benefit Tier 3, full maximum $1,500 disbursed. Surgery + ICU + 2 nights confirmed."
+        "settlementNote": "Fixed-benefit Tier 3, full maximum $3,000 disbursed. Surgery + ICU + 2 nights confirmed."
       },
       "oracleFlow": {
         "oraclePhase": 0,
@@ -722,15 +722,15 @@
         ],
         "tierClassified": "TIER_3_SURGERY_ICU_2NIGHTS",
         "reviewOutcome": "APPROVED",
-        "reviewNotes": "Emergency laparoscopic appendectomy confirmed. ICU night 1, ward night 2. Tier 3 criteria fully met. Full fixed benefit $1,500 approved.",
+        "reviewNotes": "Emergency laparoscopic appendectomy confirmed. ICU night 1, ward night 2. Tier 3 criteria fully met. Full fixed benefit $3,000 approved.",
         "reviewCompletedHours": 18
       },
       "onChainOutcome": {
         "claimCaseId": "evt7-t3-sim-001",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 1000,
-        "paidAmountUsdc": 1000,
+        "approvedAmountUsdc": 3000,
+        "paidAmountUsdc": 3000,
         "fundingLineCharged": "genesis-event7-liquidity",
         "fundingLineAddress": "Hw6LdQpUqiUShzocvt7R1qxkkiiZiWeWjEoR1Ehx3SLw",
         "policySeries": "6ZfyGQUcW132mEmYBmT5RtoagZyTHi2gTuGQUHW2qTLX",
@@ -776,15 +776,15 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
-        "tierFixedBenefit": 1000,
+        "productMaxBenefit": 3000,
+        "tierFixedBenefit": 3000,
         "actualMedicalCostUSD": 14200,
-        "amountClaimed": 1000,
-        "amountApproved": 1000,
+        "amountClaimed": 3000,
+        "amountApproved": 3000,
         "amountDenied": 0,
         "denialReason": null,
         "settlementCurrency": "USDC",
-        "settlementNote": "Fixed-benefit Tier 3, full $1,500 disbursed. Traumatic fracture — not a fragility fracture under osteoporosis exclusion clause; fall trauma is covered as an acute accidental event."
+        "settlementNote": "Fixed-benefit Tier 3, full $3,000 disbursed. Traumatic fracture — not a fragility fracture under osteoporosis exclusion clause; fall trauma is covered as an acute accidental event."
       },
       "oracleFlow": {
         "oraclePhase": 0,
@@ -805,8 +805,8 @@
         "claimCaseId": "evt7-t3-sim-002",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 1000,
-        "paidAmountUsdc": 1000,
+        "approvedAmountUsdc": 3000,
+        "paidAmountUsdc": 3000,
         "fundingLineCharged": "genesis-event7-liquidity",
         "fundingLineAddress": "Hw6LdQpUqiUShzocvt7R1qxkkiiZiWeWjEoR1Ehx3SLw",
         "policySeries": "6ZfyGQUcW132mEmYBmT5RtoagZyTHi2gTuGQUHW2qTLX",
@@ -849,11 +849,11 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
-        "tierFixedBenefit": 1000,
+        "productMaxBenefit": 3000,
+        "tierFixedBenefit": 3000,
         "actualMedicalCostUSD": 4100,
-        "amountClaimed": 1000,
-        "amountApproved": 1000,
+        "amountClaimed": 3000,
+        "amountApproved": 3000,
         "amountDenied": 0,
         "denialReason": null,
         "settlementCurrency": "USDC",
@@ -871,15 +871,15 @@
         ],
         "tierClassified": "TIER_3_SURGERY_ICU_2NIGHTS",
         "reviewOutcome": "APPROVED",
-        "reviewNotes": "ICU admission ≥48h confirmed for dengue haemorrhagic fever. Tier 3 ICU criterion met independently of surgical requirement. Full $1,500 approved.",
+        "reviewNotes": "ICU admission ≥48h confirmed for dengue haemorrhagic fever. Tier 3 ICU criterion met independently of surgical requirement. Full $3,000 approved.",
         "reviewCompletedHours": 16
       },
       "onChainOutcome": {
         "claimCaseId": "evt7-t3-sim-003",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 1000,
-        "paidAmountUsdc": 1000,
+        "approvedAmountUsdc": 3000,
+        "paidAmountUsdc": 3000,
         "fundingLineCharged": "genesis-event7-liquidity",
         "fundingLineAddress": "Hw6LdQpUqiUShzocvt7R1qxkkiiZiWeWjEoR1Ehx3SLw",
         "policySeries": "6ZfyGQUcW132mEmYBmT5RtoagZyTHi2gTuGQUHW2qTLX",
@@ -924,11 +924,11 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
-        "tierFixedBenefit": 1000,
+        "productMaxBenefit": 3000,
+        "tierFixedBenefit": 3000,
         "actualMedicalCostUSD": 22000,
-        "amountClaimed": 1000,
-        "amountApproved": 1000,
+        "amountClaimed": 3000,
+        "amountApproved": 3000,
         "amountDenied": 0,
         "denialReason": null,
         "settlementCurrency": "USDC",
@@ -946,15 +946,15 @@
         ],
         "tierClassified": "TIER_3_SURGERY_ICU_2NIGHTS",
         "reviewOutcome": "APPROVED",
-        "reviewNotes": "STEMI with primary PCI intervention + cardiac ICU ≥2 nights. Interventional cardiology procedure classified as surgical equivalent under Tier 3. Pre-existing metabolic conditions do not exclude acute MI under genesis-acute-v1. Full $1,500 approved.",
+        "reviewNotes": "STEMI with primary PCI intervention + cardiac ICU ≥2 nights. Interventional cardiology procedure classified as surgical equivalent under Tier 3. Pre-existing metabolic conditions do not exclude acute MI under genesis-acute-v1. Full $3,000 approved.",
         "reviewCompletedHours": 22
       },
       "onChainOutcome": {
         "claimCaseId": "evt7-t3-sim-004",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 1000,
-        "paidAmountUsdc": 1000,
+        "approvedAmountUsdc": 3000,
+        "paidAmountUsdc": 3000,
         "fundingLineCharged": "genesis-event7-liquidity",
         "fundingLineAddress": "Hw6LdQpUqiUShzocvt7R1qxkkiiZiWeWjEoR1Ehx3SLw",
         "policySeries": "6ZfyGQUcW132mEmYBmT5RtoagZyTHi2gTuGQUHW2qTLX",
@@ -999,7 +999,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 150,
         "actualMedicalCostUSD": 1420,
         "amountClaimed": 150,
@@ -1075,7 +1075,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
+        "productMaxBenefit": 3000,
         "tierFixedBenefit": 500,
         "actualMedicalCostUSD": 2100,
         "amountClaimed": 500,
@@ -1151,12 +1151,12 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
-        "tierFixedBenefit": 1000,
+        "productMaxBenefit": 3000,
+        "tierFixedBenefit": 3000,
         "actualMedicalCostUSD": 8200,
-        "amountClaimed": 1000,
+        "amountClaimed": 3000,
         "amountApproved": 0,
-        "amountDenied": 1000,
+        "amountDenied": 3000,
         "denialBreakdown": "Full claim denied on two independent grounds: (1) Elective pre-planned surgical procedure — genesis-acute-v1 Section 5.1 (Excluded Conditions: Elective and Pre-Planned Procedures) explicitly excludes any surgery scheduled or planned prior to the policy inception date. (2) Misrepresentation — patient described procedure as an emergency; investigation confirmed pre-operative assessment and booking pre-dated policy by 6 weeks. Potential policy fraud referral initiated.",
         "settlementCurrency": "USDC",
         "settlementNote": "FULL DENIAL. Pre-planned elective surgery and misrepresentation of circumstances. Potential fraud referral initiated per genesis-acute-v1 Section 8.2 (Fraud and Misrepresentation)."
@@ -1234,15 +1234,15 @@
         "claimSubmittedAt": "2026-04-19T14:22:00Z"
       },
       "claimFinancials": {
-        "productMaxBenefit": 1000,
-        "tierFixedBenefit": 1000,
+        "productMaxBenefit": 3000,
+        "tierFixedBenefit": 3000,
         "actualMedicalCostUSD": 7400,
-        "amountClaimed": 1000,
+        "amountClaimed": 3000,
         "amountApproved": 0,
-        "amountReserved": 1000,
+        "amountReserved": 3000,
         "amountDenied": 0,
         "settlementCurrency": "USDC",
-        "settlementNote": "Claim under active review. $1,500 reserved on genesis-event7-liquidity FundingLine pending document completion. Tier 3 criteria appear to be met based on submitted evidence — pending ICU charts to confirm ≥2-night ICU stay independently of ward record."
+        "settlementNote": "Claim under active review. $3,000 reserved on genesis-event7-liquidity FundingLine pending document completion. Tier 3 criteria appear to be met based on submitted evidence — pending ICU charts to confirm ≥2-night ICU stay independently of ward record."
       },
       "oracleFlow": {
         "oraclePhase": 0,
@@ -1271,14 +1271,14 @@
         "intakeStatus": 1,
         "intakeStatusLabel": "UNDER_REVIEW",
         "approvedAmountUsdc": 0,
-        "reservedAmountUsdc": 1000,
+        "reservedAmountUsdc": 3000,
         "paidAmountUsdc": 0,
         "fundingLineCharged": "genesis-event7-liquidity",
         "fundingLineAddress": "Hw6LdQpUqiUShzocvt7R1qxkkiiZiWeWjEoR1Ehx3SLw",
         "policySeries": "6ZfyGQUcW132mEmYBmT5RtoagZyTHi2gTuGQUHW2qTLX",
         "healthPlan": "D38bBYTWAkcyJZHFaZLRYRJErwLNB45YKJPfxU4PL5F6",
         "obligationStatus": "RESERVED",
-        "expectedResolutionNote": "Pending ICU charts from Groote Schuur Hospital (ETA 48h). Upon receipt, anticipated outcome: FULLY_SETTLED $1,500."
+        "expectedResolutionNote": "Pending ICU charts from Groote Schuur Hospital (ETA 48h). Upon receipt, anticipated outcome: FULLY_SETTLED $3,000."
       }
     }
   ],
@@ -1322,7 +1322,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 1050,
         "fixedBenefitApplied": 0,
@@ -1398,7 +1398,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 510,
         "fixedBenefitApplied": 0,
@@ -1475,7 +1475,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 850,
         "fixedBenefitApplied": 0,
@@ -1552,7 +1552,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 620,
         "fixedBenefitApplied": 0,
@@ -1632,12 +1632,12 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 3800,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 3800,
-        "amountClaimed": 3000,
+        "amountClaimed": 3800,
         "amountApproved": 2100,
         "amountDenied": 1700,
         "denialBreakdown": "CT-PA facility premium surcharge ($900 above UCR for Phuket international hospital) denied. Enoxaparin cost $300 denied (outpatient formulary transition). Private room upgrade ($500) excluded. Total denied: $1,700.",
@@ -1710,12 +1710,12 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 9200,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 9200,
-        "amountClaimed": 3000,
+        "amountClaimed": 5000,
         "amountApproved": 1800,
         "amountDenied": 3200,
         "denialBreakdown": "Claim capped by product maximum $5,000; of approved amount, $1,800 represents Tier 2 reimbursement ceiling for overnight-only admission. US hospital invoice far exceeds UCR ceiling for non-surgical overnight stay in Miami. $3,200 of the $5,000 submitted remains above UCR for Tier 2 in this geography.",
@@ -1788,12 +1788,12 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 3100,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 3100,
-        "amountClaimed": 3000,
+        "amountClaimed": 3100,
         "amountApproved": 2350,
         "amountDenied": 750,
         "denialBreakdown": "Insulin vials and consumables ($350) denied as outpatient pharmacy. Endocrinology specialist surcharge above UCR ($400) denied.",
@@ -1866,7 +1866,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 2400,
         "fixedBenefitApplied": 0,
@@ -1948,13 +1948,13 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 88000,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 88000,
-        "amountClaimed": 3000,
-        "amountApproved": 3000,
+        "amountClaimed": 5000,
+        "amountApproved": 5000,
         "amountDenied": 0,
         "denialBreakdown": null,
         "settlementCurrency": "USDC",
@@ -1980,8 +1980,8 @@
         "claimCaseId": "trv30-t3-sim-001",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 3000,
-        "paidAmountUsdc": 3000,
+        "approvedAmountUsdc": 5000,
+        "paidAmountUsdc": 5000,
         "fundingLineCharged": "genesis-travel30-liquidity",
         "fundingLineAddress": "HBrdsf7UjYK5tRoM9j6YaxfV7nFBkVhnJbrmTLVaDiEr",
         "policySeries": "29XmfdaHceAeAvtiESAcNDXLsJxEqW2RBa3DttTUUcco",
@@ -2028,13 +2028,13 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 18500,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 18500,
-        "amountClaimed": 3000,
-        "amountApproved": 3000,
+        "amountClaimed": 5000,
+        "amountApproved": 5000,
         "amountDenied": 800,
         "denialBreakdown": "Vascular implant (vein patch graft) materials ($600 above UCR) denied. Orthopaedic surgery assistant surgeon premium ($200 above UCR) denied.",
         "settlementCurrency": "USDC",
@@ -2059,8 +2059,8 @@
         "claimCaseId": "trv30-t3-sim-002",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 3000,
-        "paidAmountUsdc": 3000,
+        "approvedAmountUsdc": 5000,
+        "paidAmountUsdc": 5000,
         "fundingLineCharged": "genesis-travel30-liquidity",
         "fundingLineAddress": "HBrdsf7UjYK5tRoM9j6YaxfV7nFBkVhnJbrmTLVaDiEr",
         "policySeries": "29XmfdaHceAeAvtiESAcNDXLsJxEqW2RBa3DttTUUcco",
@@ -2108,13 +2108,13 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 24000,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 24000,
-        "amountClaimed": 3000,
-        "amountApproved": 3000,
+        "amountClaimed": 5000,
+        "amountApproved": 5000,
         "amountDenied": 200,
         "denialBreakdown": "H. pylori eradication kit (outpatient pharmacy post-discharge, $200) denied.",
         "settlementCurrency": "USDC",
@@ -2139,8 +2139,8 @@
         "claimCaseId": "trv30-t3-sim-003",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 3000,
-        "paidAmountUsdc": 3000,
+        "approvedAmountUsdc": 5000,
+        "paidAmountUsdc": 5000,
         "fundingLineCharged": "genesis-travel30-liquidity",
         "fundingLineAddress": "HBrdsf7UjYK5tRoM9j6YaxfV7nFBkVhnJbrmTLVaDiEr",
         "policySeries": "29XmfdaHceAeAvtiESAcNDXLsJxEqW2RBa3DttTUUcco",
@@ -2189,13 +2189,13 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 16800,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 16800,
-        "amountClaimed": 3000,
-        "amountApproved": 3000,
+        "amountClaimed": 5000,
+        "amountApproved": 5000,
         "amountDenied": 1500,
         "denialBreakdown": "Plasmapheresis sessions ($1,200 above UCR for Spain — procedure performed at international patient rate) denied. Fibrate prescription post-discharge ($180) denied as outpatient pharmacy. Above-UCR TPN consumables ($120) denied. Total denied: $1,500.",
         "settlementCurrency": "USDC",
@@ -2222,8 +2222,8 @@
         "claimCaseId": "trv30-t3-sim-004",
         "intakeStatus": 4,
         "intakeStatusLabel": "FULLY_SETTLED",
-        "approvedAmountUsdc": 3000,
-        "paidAmountUsdc": 3000,
+        "approvedAmountUsdc": 5000,
+        "paidAmountUsdc": 5000,
         "fundingLineCharged": "genesis-travel30-liquidity",
         "fundingLineAddress": "HBrdsf7UjYK5tRoM9j6YaxfV7nFBkVhnJbrmTLVaDiEr",
         "policySeries": "29XmfdaHceAeAvtiESAcNDXLsJxEqW2RBa3DttTUUcco",
@@ -2270,7 +2270,7 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 210,
         "fixedBenefitApplied": 0,
@@ -2352,12 +2352,12 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 3400,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 3400,
-        "amountClaimed": 3000,
+        "amountClaimed": 3400,
         "amountApproved": 0,
         "amountDenied": 3400,
         "denialBreakdown": "Full claim denied. Intentional self-inflicted injury is an absolute named exclusion under genesis-acute-v1 Section 5.2 (Absolute Exclusions: Intentional Self-Harm and Suicide Attempts). This exclusion applies regardless of clinical severity, the presence of underlying psychiatric conditions, or the medical necessity of treatment rendered. The repatriation coordination costs are separately claimable under the member's home-country health coverage.",
@@ -2434,12 +2434,12 @@
         ]
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 6800,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 6800,
-        "amountClaimed": 3000,
+        "amountClaimed": 5000,
         "amountApproved": 0,
         "amountDenied": 5000,
         "denialBreakdown": "Full claim denied on three independent grounds: (1) Elective pre-planned surgery — genesis-acute-v1 Section 5.1: pre-operative workup dated 3 months before policy; hospital booking confirmed 8 weeks before policy inception. (2) Excluded condition — bariatric and weight-loss surgery is explicitly excluded under genesis-acute-v1 Section 5.5 (Excluded Conditions: Obesity Treatment and Weight-Loss Surgery). (3) Misrepresentation — patient described procedure as emergency acute abdominal surgery; investigation confirmed planned medical tourism. Fraud referral and policy void initiated.",
@@ -2519,14 +2519,14 @@
         "claimSubmittedAt": "2026-04-20T09:45:00Z"
       },
       "claimFinancials": {
-        "productMaxBenefit": 3000,
+        "productMaxBenefit": 5000,
         "benefitMode": "hybrid_fixed_reimbursement",
         "invoicedMedicalCostUSD": 11200,
         "fixedBenefitApplied": 0,
         "reimbursableExpenses": 11200,
-        "amountClaimed": 3000,
+        "amountClaimed": 5000,
         "amountApproved": 0,
-        "amountReserved": 3000,
+        "amountReserved": 5000,
         "amountDenied": 0,
         "settlementCurrency": "USDC",
         "settlementNote": "Claim under active review. Full $5,000 product maximum reserved on genesis-travel30-liquidity FundingLine. Tier 3 criteria appear met (emergency laparoscopy → laparotomy + ICU ≥2 nights). UCR review cannot be completed until itemized invoice is received. CT report translation pending — required to confirm absence of complicating pathology."
@@ -2557,7 +2557,7 @@
         "intakeStatus": 1,
         "intakeStatusLabel": "UNDER_REVIEW",
         "approvedAmountUsdc": 0,
-        "reservedAmountUsdc": 3000,
+        "reservedAmountUsdc": 5000,
         "paidAmountUsdc": 0,
         "fundingLineCharged": "genesis-travel30-liquidity",
         "fundingLineAddress": "HBrdsf7UjYK5tRoM9j6YaxfV7nFBkVhnJbrmTLVaDiEr",

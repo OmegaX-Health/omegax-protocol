@@ -16,7 +16,7 @@
     "coverWindowDays": 7,
     "currency": "USDC",
     "benefitStyle": "fixed_benefit_only",
-    "maxPayoutUsd": 1000
+    "maxPayoutUsd": 3000
   },
   "pricing": {
     "retailUsd": 39,
@@ -41,7 +41,7 @@
         "id": "tier_3",
         "label": "Tier 3",
         "trigger": "Surgery, ICU, or 2+ nights",
-        "benefitUsd": 1000
+        "benefitUsd": 3000
       }
     ]
   },

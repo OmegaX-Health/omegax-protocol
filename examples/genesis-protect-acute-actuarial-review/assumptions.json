@@ -13,7 +13,11 @@
   "monteCarlo": {
     "seed": 1592594996,
     "trials": 60000,
-    "quantiles": [0.95, 0.99, 0.995]
+    "quantiles": [
+      0.95,
+      0.99,
+      0.995
+    ]
   },
   "reserveModel": {
     "claimsPayingReserveDefinition": "posted premiums + posted sponsor/backstop funds + posted LP capital",
@@ -25,23 +29,9 @@
   },
   "approvedCanonicalRedesign": {
     "status": "approved_applied_in_repo",
-    "approvedAt": "2026-05-04",
-    "approvalBasis": "Travel 30 retail price reset to 99 USD with explicit backstop replacing removed premium load under the p99.5 launch gate",
+    "approvedAt": "2026-05-11",
+    "approvalBasis": "Genesis Protect Acute cap increase approved for sharper battle testing: Event 7 fixed-benefit cap moves to 3000 USD and Travel 30 aggregate cap moves to 5000 USD while reserve gates remain explicit.",
     "historicalPriorDesign": {
-      "event7": {
-        "retailPremiumUsd": 39,
-        "cohortPremiumUsdMin": 28,
-        "cohortPremiumUsdMax": 36,
-        "maxPayoutUsd": 1000
-      },
-      "travel30": {
-        "retailPremiumUsd": 159,
-        "cohortPremiumUsdMin": 112,
-        "cohortPremiumUsdMax": 144,
-        "maxPayoutUsd": 3000
-      }
-    },
-    "appliedDesign": {
       "event7": {
         "retailPremiumUsd": 39,
         "cohortPremiumUsdMin": 28,
@@ -53,6 +43,20 @@
         "cohortPremiumUsdMin": 69,
         "cohortPremiumUsdMax": 89,
         "maxPayoutUsd": 3000
+      }
+    },
+    "appliedDesign": {
+      "event7": {
+        "retailPremiumUsd": 39,
+        "cohortPremiumUsdMin": 28,
+        "cohortPremiumUsdMax": 36,
+        "maxPayoutUsd": 3000
+      },
+      "travel30": {
+        "retailPremiumUsd": 99,
+        "cohortPremiumUsdMin": 69,
+        "cohortPremiumUsdMax": 89,
+        "maxPayoutUsd": 5000
       }
     }
   },
@@ -72,12 +76,12 @@
       "retailPremiumUsd": 39,
       "cohortPremiumUsdMin": 28,
       "cohortPremiumUsdMax": 36,
-      "maxPayoutUsd": 1000,
+      "maxPayoutUsd": 3000,
       "baselineClaimFrequency": 0.03,
       "baselineLossRatio": 0.415,
       "claimsPayingReserveUsd": 33400,
       "safeConcurrentMembersVaR99": 1444,
-      "hardVenueCapMembers": 50,
+      "hardVenueCapMembers": 30,
       "waitingPeriods": {
         "illnessDays": 7,
         "accidentHours": 24
@@ -85,13 +89,30 @@
       "severityModel": {
         "minUsd": 150,
         "modeUsd": 350,
-        "p95Usd": 900,
-        "maxUsd": 1000
+        "p95Usd": 2600,
+        "maxUsd": 3000
       },
       "pricingDesign": {
-        "candidateRetailPremiumsUsd": [29, 35, 39, 45, 49, 55, 65, 79],
-        "candidateCapsUsd": [1000, 1500, 2000],
-        "targetCohortDiscountsPct": [0.1, 0.2, 0.3],
+        "candidateRetailPremiumsUsd": [
+          29,
+          35,
+          39,
+          45,
+          49,
+          55,
+          65,
+          79
+        ],
+        "candidateCapsUsd": [
+          3000,
+          4000,
+          5000
+        ],
+        "targetCohortDiscountsPct": [
+          0.1,
+          0.2,
+          0.3
+        ],
         "optimizerScenarioId": "adverse-1000-e7-500-t30"
       },
       "capitalStack": {
@@ -115,7 +136,7 @@
       "retailPremiumUsd": 99,
       "cohortPremiumUsdMin": 69,
       "cohortPremiumUsdMax": 89,
-      "maxPayoutUsd": 3000,
+      "maxPayoutUsd": 5000,
       "baselineClaimFrequency": 0.04,
       "baselineLossRatio": 0.412,
       "claimsPayingReserveUsd": 84900,
@@ -127,13 +148,31 @@
       "severityModel": {
         "minUsd": 250,
         "modeUsd": 1250,
-        "p95Usd": 2600,
-        "maxUsd": 3000
+        "p95Usd": 4300,
+        "maxUsd": 5000
       },
       "pricingDesign": {
-        "candidateRetailPremiumsUsd": [69, 79, 89, 99, 119, 139, 159, 189, 229],
-        "candidateCapsUsd": [3000, 5000, 7500],
-        "targetCohortDiscountsPct": [0.1, 0.2, 0.3],
+        "candidateRetailPremiumsUsd": [
+          69,
+          79,
+          89,
+          99,
+          119,
+          139,
+          159,
+          189,
+          229
+        ],
+        "candidateCapsUsd": [
+          5000,
+          7500,
+          10000
+        ],
+        "targetCohortDiscountsPct": [
+          0.1,
+          0.2,
+          0.3
+        ],
         "optimizerScenarioId": "adverse-1000-e7-500-t30"
       },
       "capitalStack": {

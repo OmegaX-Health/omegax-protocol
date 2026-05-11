@@ -32,9 +32,9 @@ test("Genesis actuarial assumptions match public metadata", () => {
     maxPayoutUsd: 1000,
   });
   assert.deepEqual(assumptions.approvedCanonicalRedesign.historicalPriorDesign.travel30, {
-    retailPremiumUsd: 159,
-    cohortPremiumUsdMin: 112,
-    cohortPremiumUsdMax: 144,
+    retailPremiumUsd: 99,
+    cohortPremiumUsdMin: 69,
+    cohortPremiumUsdMax: 89,
     maxPayoutUsd: 3000,
   });
 });
@@ -61,7 +61,7 @@ test("Genesis launch-gate baseline and approved adverse design stay inside reser
 
   assert.equal(byId["public-open-1000-e7-500-t30"].launchGate, "healthy");
   assert.ok(byId["public-open-1000-e7-500-t30"].p995ClaimsUsd < byId["public-open-1000-e7-500-t30"].claimsPayingReserveUsd);
-  assert.equal(byId["adverse-1000-e7-500-t30"].launchGate, "healthy");
+  assert.equal(byId["adverse-1000-e7-500-t30"].launchGate, "caution");
   assert.equal(byId["lp-exit-1000-e7"].launchGate, "pause");
   assert.ok(byId["lp-exit-1000-e7"].additionalReserveNeededUsd > 0);
 });
@@ -84,10 +84,11 @@ test("Genesis correlated Event 7 venue stress enforces the hard cap", () => {
   const output = readJson<any>(join(REVIEW_DIR, "review-output.json"));
   const byId = Object.fromEntries(output.scenarioResults.map((result: any) => [result.id, result]));
 
-  assert.equal(output.recommendedLaunchGates.event7SameVenueHardCapMembers, 50);
-  assert.equal(byId["event7-same-venue-50"].launchGate, "healthy");
-  assert.equal(byId["event7-same-venue-75"].launchGate, "caution");
-  assert.equal(byId["event7-same-venue-100"].launchGate, "caution");
+  assert.equal(output.recommendedLaunchGates.event7SameVenueHardCapMembers, 30);
+  assert.equal(byId["event7-same-venue-30"].launchGate, "healthy");
+  assert.equal(byId["event7-same-venue-50"].launchGate, "pause");
+  assert.equal(byId["event7-same-venue-75"].launchGate, "pause");
+  assert.equal(byId["event7-same-venue-100"].launchGate, "pause");
 });
 
 test("Genesis Travel 30 approved design clears adverse issuance while regional clusters still pause", () => {
@@ -95,7 +96,7 @@ test("Genesis Travel 30 approved design clears adverse issuance while regional c
   const byId = Object.fromEntries(output.scenarioResults.map((result: any) => [result.id, result]));
 
   assert.equal(byId["travel30-only-500"].launchGate, "healthy");
-  assert.equal(byId["travel30-only-adverse-500"].launchGate, "healthy");
+  assert.equal(byId["travel30-only-adverse-500"].launchGate, "caution");
   assert.equal(byId["travel30-regional-illness-cluster-100"].launchGate, "healthy");
   assert.equal(byId["travel30-regional-illness-cluster-200"].launchGate, "pause");
 });
@@ -107,14 +108,20 @@ test("Genesis pricing recommendations satisfy the p99.5 solvency gate while pres
     assert.ok(recommendation.current.launchGate);
     assert.equal(recommendation.recommended.launchGate, "healthy");
     assert.ok(recommendation.recommended.p995ClaimsUsd < recommendation.recommended.claimsPayingReserveUsd);
-    assert.equal(recommendation.recommended.premiumUsd, recommendation.current.premiumUsd);
     assert.equal(recommendation.recommended.capUsd, recommendation.current.capUsd);
   }
 
+  const event7 = output.pricingRecommendations.find((entry: any) => entry.sku === "event7");
+  assert.equal(event7.current.launchGate, "pause");
+  assert.equal(event7.current.premiumUsd, 39);
+  assert.equal(event7.current.capUsd, 3000);
+  assert.equal(event7.recommended.premiumUsd, 79);
+
   const travel30 = output.pricingRecommendations.find((entry: any) => entry.sku === "travel30");
-  assert.equal(travel30.current.launchGate, "healthy");
+  assert.equal(travel30.current.launchGate, "caution");
   assert.equal(travel30.current.premiumUsd, 99);
-  assert.equal(travel30.current.capUsd, 3000);
+  assert.equal(travel30.current.capUsd, 5000);
+  assert.equal(travel30.recommended.premiumUsd, 139);
 });
 
 test("Genesis generated memo and canonical plan agree with JSON headline gates", () => {
@@ -126,7 +133,7 @@ test("Genesis generated memo and canonical plan agree with JSON headline gates",
   assert.match(memo, /p99\.5/i);
   assert.match(canonicalPlan, new RegExp(output.canonicalUpdatePlan.status));
   assert.equal(output.canonicalUpdatePlan.status, "approved_applied_in_repo");
-  assert.equal(output.canonicalUpdatePlan.historicalPriorDesign.travel30.retailPremiumUsd, 159);
+  assert.equal(output.canonicalUpdatePlan.historicalPriorDesign.travel30.retailPremiumUsd, 99);
   assert.equal(output.canonicalUpdatePlan.appliedDesign.travel30.retailPremiumUsd, 99);
   for (const change of output.canonicalUpdatePlan.changes) {
     assert.match(canonicalPlan, new RegExp(change.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -138,8 +145,8 @@ test("Genesis claim simulations do not approve or reserve above approved caps", 
     join(process.cwd(), "examples", "genesis-protect-acute-claims", "genesis-acute-claim-simulations-v1.json"),
   );
   const capByCollection: Record<string, number> = {
-    event7Scenarios: 1000,
-    travel30Scenarios: 3000,
+    event7Scenarios: 3000,
+    travel30Scenarios: 5000,
   };
   const cappedPayoutKeys = new Set([
     "amountClaimed",
