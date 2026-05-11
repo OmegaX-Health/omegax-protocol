@@ -72,7 +72,7 @@ The default recipient is the member's own wallet. This step lets the member rout
 |--------|------------------|----|
 | Claims operator | `require_claim_operator` | `claim_case.intake_status` moves to `approved` or `denied`; adjudicator, approved/denied amounts, and decision metadata are persisted |
 
-**Member-visible**: claim shows `approved at tier 2 (overnight admission), USD 1,000 fixed benefit + up to USD 1,500 reimbursement top-up` — or `denied with reason hash <hex>` for unhappy paths.
+**Member-visible**: claim shows `approved at tier 2 (overnight admission), USD 1,000 fixed benefit + reimbursement top-up inside the USD 5,000 aggregate cap` — or `denied with reason hash <hex>` for unhappy paths.
 
 **Truth chain**: the protocol now has a final claim decision. The decision is the input to the next step — reserve booking against an `Obligation`.
 

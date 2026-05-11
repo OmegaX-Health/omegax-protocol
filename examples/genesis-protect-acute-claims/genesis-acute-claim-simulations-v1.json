@@ -1,7 +1,7 @@
 {
   "schemaVersion": "genesis-acute-claims-sim-v1",
   "generatedAt": "2026-04-21T00:00:00.000Z",
-  "description": "Realistic claim simulation scenarios for Genesis Protect Acute v1. Covers Event 7 (7-day fixed-benefit, $5,000 max) and Travel 30 (30-day hybrid fixed+reimbursement, $5,000 max). Each scenario is structured across 7 dimensions: patient profile, clinical setting, diagnosis, claim financials, oracle review flow, and on-chain outcome. Not canonical devnet state — for simulation, testing, and operator training purposes only.",
+  "description": "Realistic claim simulation scenarios for Genesis Protect Acute v1. Covers Event 7 (7-day fixed-benefit, $3,000 max) and Travel 30 (30-day hybrid fixed+reimbursement, $5,000 max). Each scenario is structured across 7 dimensions: patient profile, clinical setting, diagnosis, claim financials, oracle review flow, and on-chain outcome. Not canonical devnet state — for simulation, testing, and operator training purposes only.",
   "simulated": true,
   "protocolReferences": {
     "programId": "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B",

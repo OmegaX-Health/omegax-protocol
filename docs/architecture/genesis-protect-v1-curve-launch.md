@@ -124,19 +124,19 @@ The repo contains two relevant workbooks:
 - Genesis Protect Acute fixed SKU launch review: `examples/genesis-protect-acute-actuarial-review/review-memo.md`
 - Nomad curve and market-structure PoC: `examples/nomad-protect-curve-poc/hybrid-model-report.md`
 
-### Existing Genesis fixed SKU launch gate
+### Current Genesis fixed SKU launch gate
 
-The May 4 Genesis workbook keeps the current 99 USD fixed SKU launch healthy when the lower premium load is replaced with explicit sponsor/backstop capital:
+The May 11 Genesis workbook applies the approved cap increase: Event 7 now carries a 3,000 USD fixed-benefit cap, and Travel 30 now carries a 5,000 USD aggregate cap. The baseline public-open mix remains healthy, while adverse and stress paths now gate to caution or pause unless additional posted reserve or sponsor/backstop capital is added:
 
 | Scenario | Gate | Premium | p99.5 claims | Reserve |
 | --- | --- | ---: | ---: | ---: |
-| public-open 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 53,762 USD | 118,300 USD |
-| adverse 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 79,482 USD | 118,300 USD |
-| severe adverse 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 91,977 USD | 118,300 USD |
-| travel30-only 500 | healthy | 49,500 USD | 40,894 USD | 84,900 USD |
-| travel30-only adverse 500 | healthy | 49,500 USD | 59,925 USD | 84,900 USD |
+| public-open 1000 Event 7 + 500 Travel 30 | healthy | 88,500 USD | 76,806 USD | 118,300 USD |
+| adverse 1000 Event 7 + 500 Travel 30 | caution | 88,500 USD | 113,081 USD | 118,300 USD |
+| severe adverse 1000 Event 7 + 500 Travel 30 | pause | 88,500 USD | 130,573 USD | 118,300 USD |
+| travel30-only 500 | healthy | 49,500 USD | 53,064 USD | 84,900 USD |
+| travel30-only adverse 500 | caution | 49,500 USD | 76,888 USD | 84,900 USD |
 
-This remains the conservative basis for mainnet launch.
+This is the current repo basis for mainnet launch gating after the cap increase.
 
 ### Curve and market-structure simulations
 
