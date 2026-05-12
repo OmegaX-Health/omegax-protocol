@@ -58,6 +58,6 @@ of these crates in protocol code requires a separate review.
 ## Remediated In This Pass
 
 - Root and frontend `uuid` advisory paths are overridden to `uuid@14.0.0`.
-- Frontend framework stack was upgraded to `next@16.2.4`, `react@19.2.5`, and `react-dom@19.2.5`.
+- Frontend framework stack was upgraded to `next@16.2.6`, `react@19.2.5`, and `react-dom@19.2.5`.
 - Frontend transitive advisories for `axios`, `brace-expansion`, `follow-redirects`, `minimatch`,
   `picomatch`, `postcss`, and `yaml` are pinned or overridden to patched versions.
