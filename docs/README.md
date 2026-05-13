@@ -2,7 +2,17 @@
 
 This directory contains the public documentation set for `omegax-protocol`.
 
-If you are an external builder, start with the public docs site before diving into the repo-internal architecture notes here.
+If you are evaluating the current Genesis launch surface, start with the sponsor Travel 30 path below before diving into the broader repo-internal architecture notes.
+
+## Sponsor Travel 30 start here
+
+- [Genesis Protect V1 Curve Launch Plan](./architecture/genesis-protect-v1-curve-launch.md) — primary Travel 30 launch recommendation, Event 7 cohort/demo boundary, reserve gating, and current cap doctrine
+- [Genesis Protect Claim Trace](./architecture/genesis-protect-claim-trace.md) — one Travel 30 claim from intake through evidence, attestation, obligation, reserve impact, and payout
+- [Genesis Protect Acute Claims Processing Spec](./architecture/genesis-protect-acute-claims-processing-spec.md) — Phase 0 claim workflow, evidence rules, escalation, denial, and payout timing
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
+
+This path is intentionally launch-truth-first: `Travel 30` is the primary SKU, `Event 7` is the short-window cohort/demo SKU, and Phase 0 claims remain operator-backed rather than fully decentralized.
 
 ## External builder start here
 
@@ -73,6 +83,9 @@ If you are an external builder, start with the public docs site before diving in
 
 ## Audience Guide
 
+- Use [Genesis Protect V1 Curve Launch Plan](./architecture/genesis-protect-v1-curve-launch.md) when deciding how a sponsor-backed Travel 30 cohort should launch, what Event 7 is allowed to mean, and how reserve gating constrains the promise.
+- Use [Genesis Protect Claim Trace](./architecture/genesis-protect-claim-trace.md) when a sponsor, operator, or reviewer needs to follow one claim from evidence through payout without reading the whole program.
+- Use [Genesis Protect Acute Claims Processing Spec](./architecture/genesis-protect-acute-claims-processing-spec.md) when checking Phase 0 claim operations, evidence requirements, denial/appeal posture, and payout timing.
 - Use [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview) when you want the fastest public explanation of what builders can ship on OmegaX today.
 - Use [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started) when you want to connect a client and choose the right builder workflow on devnet beta.
 - Use [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production) when you are designing an oracle, signal-normalization layer, or event pipeline.
@@ -83,7 +96,6 @@ If you are an external builder, start with the public docs site before diving in
 - Use [Solana Program Architecture](./architecture/solana-program-architecture.md) to understand the on-chain program layout and reviewer read order.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
 - Use [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) when you need the signer model, claim roles, and payout-path rules for reviewed coverage claims.
-- Use [Genesis Protect V1 Curve Launch Plan](./architecture/genesis-protect-v1-curve-launch.md) when deciding what to ship first on mainnet after the quote-curve, sidecar, prediction-market, and health-bond actuarial review.
 - Use [Protocol Console Functional Specification](./architecture/protocol-console-functional-spec.md) when you need the target-state screen-by-screen functional brief for the public protocol console.
 - Use [Review and Iterate Readiness Review](./reviews/review-and-iterate-2026-05-10.md) for the latest scored audit, remaining blockers, and validation evidence.
 - Use [Solana Public Readiness Review](./reviews/solana-public-readiness-review.md) for the historical March 2026 scored audit and cleanup backlog.

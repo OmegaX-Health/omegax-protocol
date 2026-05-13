@@ -1,23 +1,47 @@
 # OmegaX Protocol
 
-OmegaX Protocol is a Solana settlement layer for builders creating health apps, oracle services, sponsor programs, and outcome-triggered capital flows.
+OmegaX Protocol's current launch job is concrete: help a sponsor fund Travel 30 acute travel protection for a cohort, show whether the reserve posture can support it, and trace every claim from evidence to payout.
+
+Plainly: a sponsor can fund a protected group, see what backs the promise, and audit what happened when a claim is reviewed or paid.
+
+The current public launch reference is Genesis Protect Acute. `Travel 30` is the primary SKU, with a 30-day window and a 5,000 USDC aggregate cap. `Event 7` is the short-window cohort/demo SKU, with a 7-day window and a 3,000 USDC fixed-benefit cap. Both remain bounded launch surfaces: not broadly live insurance today, and Phase 0 claim review is operator-backed rather than fully decentralized.
 
 On Solana devnet beta today, the public surface in this repository can already anchor:
 
-- normalized outcome events produced by OmegaX Health or future compatible oracle operators
+- sponsor-funded reward or protection lanes with explicit reserve and funding-line attribution
 - operator-mediated member enrollment, claim intake, obligations, reserve booking, and payouts
-- sponsor-funded reward or protection lanes
 - LP-facing capital pools, classes, allocations, redemptions, and impairment handling
+- normalized outcome events produced by OmegaX Health or future compatible oracle operators
 
 ## Start Here
 
-- [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview)
-- [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started)
-- [Oracle Event Production](https://docs.omegax.health/docs/oracle/event-production)
+- [Genesis Protect V1 Curve Launch Plan](./docs/architecture/genesis-protect-v1-curve-launch.md)
+- [Genesis Protect Claim Trace](./docs/architecture/genesis-protect-claim-trace.md)
 - [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
 - [Repository Documentation Map](./docs/README.md)
+- [SDK Overview](https://docs.omegax.health/docs/sdk/sdk-overview)
 
 ## Choose Your Path
+
+### Sponsors and protection operators
+
+Fund a Travel 30 cohort, inspect reserve sufficiency, follow claim obligations, and prove payouts without treating pending custody, premiums, LP capital, or claims-paying reserve as the same thing.
+
+Start with:
+
+- [Genesis Protect V1 Curve Launch Plan](./docs/architecture/genesis-protect-v1-curve-launch.md)
+- [Genesis Protect Claim Trace](./docs/architecture/genesis-protect-claim-trace.md)
+- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
+
+### Capital integrators
+
+Connect pools, classes, allocations, redemption queues, and reserve-domain accounting to the same Travel 30 / Event 7 launch truth.
+
+Start with:
+
+- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
+- [Public Release Gate](./docs/operations/public-release-gate.md)
+- [Release v0.3.1](./docs/operations/release-v0.3.1.md)
 
 ### Oracle and event producers
 
@@ -38,16 +62,6 @@ Start with:
 - [SDK Getting Started](https://docs.omegax.health/docs/sdk/sdk-getting-started)
 - [SDK Workflows](https://docs.omegax.health/docs/sdk/sdk-workflows)
 - [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
-
-### Sponsor and capital integrators
-
-Connect sponsor budgets, policy series, funding lines, pools, classes, and allocations to one reserve-aware settlement kernel.
-
-Start with:
-
-- [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface)
-- [Protocol Architecture](https://docs.omegax.health/docs/protocol/architecture)
-- [Release v0.3.1](./docs/operations/release-v0.3.1.md)
 
 ## What Exists Today on Devnet Beta
 
