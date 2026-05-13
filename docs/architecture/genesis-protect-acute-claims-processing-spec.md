@@ -54,10 +54,10 @@ dispute resolution). Phase 1 extensions (onchain dispute-case state, multi-attes
 | Premium | $39 USDC | $99 USDC |
 | Coverage duration | 7 days | 30 days |
 | Benefit mode | Fixed only | Hybrid: fixed tier + UCR reimbursement top-up |
-| Max benefit | $1,000 | $3,000 |
+| Max benefit | $3,000 | $5,000 |
 | Tier 1 — ER same-day | $150 fixed | $250 fixed |
 | Tier 2 — Overnight | $500 fixed | $1,000 fixed |
-| Tier 3 — Surgery + ICU (2+ nights) | $1,000 fixed | $2,500 fixed + reimbursement top-up to $3,000 aggregate |
+| Tier 3 — Surgery + ICU (2+ nights) | $3,000 fixed | $2,500 fixed + reimbursement top-up to $5,000 aggregate |
 | Waiting period (illness onset) | 7 days pre-enrollment | 7 days pre-enrollment |
 | Internal claim review target | 24 hours | 24 hours |
 | Internal settlement target | 48 hours post-approval | 48 hours post-approval |
@@ -175,7 +175,7 @@ triggering oracle attestation.
 | Tier 3 — Surgery + ICU | Surgical procedure confirmed OR ICU admission confirmed, 2+ nights |
 
 For Travel 30, after tier classification, the reimbursement top-up is calculated from
-UCR-benchmarked line items and capped so the total approved amount never exceeds $3,000.
+UCR-benchmarked line items and capped so the total approved amount never exceeds $5,000.
 
 ---
 

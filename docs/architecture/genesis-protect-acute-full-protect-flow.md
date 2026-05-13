@@ -326,13 +326,13 @@ The operator confirms (or overrides) the AI-suggested tier classification based 
 
 | Tier | Event 7 benefit | Travel 30 fixed | Travel 30 top-up |
 |---|---|---|---|
-| T1 — ER same-day | $150 | $250 | UCR-benchmarked top-up, total capped at $3,000 |
-| T2 — Overnight | $500 | $1,000 | UCR-benchmarked top-up, total capped at $3,000 |
-| T3 — Surgery + ICU | $1,000 | $2,500 | UCR-benchmarked top-up, total capped at $3,000 |
+| T1 — ER same-day | $150 | $250 | UCR-benchmarked top-up, total capped at $5,000 |
+| T2 — Overnight | $500 | $1,000 | UCR-benchmarked top-up, total capped at $5,000 |
+| T3 — Surgery + ICU | $3,000 | $2,500 | UCR-benchmarked top-up, total capped at $5,000 |
 
 For Travel 30 reimbursement top-up: the operator calculates
-`min(UCR_eligible_itemized_cost - fixed_tier_benefit, 3000 - fixed_tier_benefit)` so the
-total approved amount remains within the $3,000 aggregate cap.
+`min(UCR_eligible_itemized_cost - fixed_tier_benefit, 5000 - fixed_tier_benefit)` so the
+total approved amount remains within the $5,000 aggregate cap.
 
 ### 9.3 Denial notification timing
 

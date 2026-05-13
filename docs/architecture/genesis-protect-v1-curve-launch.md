@@ -50,7 +50,7 @@ This gives the product the useful "put in what you want" behavior without preten
 - Cover window: 30 days.
 - Scope: acute, unplanned emergency medical care during the cover window.
 - Minimum member budget: 15 USD.
-- Maximum member cap: 3,000 USD.
+- Maximum member cap: 5,000 USD after the May 11 cap increase.
 - Illness waiting period: 7 days.
 - Accident waiting period: 24 hours.
 - Coverage cap is fixed at purchase.
@@ -72,7 +72,7 @@ Event 7 can remain the short trip, conference, or sponsor demo SKU:
 
 - 7-day cover window.
 - 39 USD retail.
-- 1,000 USD max cap.
+- 3,000 USD max cap after the May 11 cap increase.
 - Fixed benefit only in V1.
 - Same anti-selection posture: 24-hour accident wait; illness cover only if bought at least 7 days before the window unless a prefunded sponsor roster explicitly waives it.
 
@@ -153,7 +153,7 @@ The updated Nomad curve PoC tested multiple models:
 Main finding:
 
 - "Pay anything" is viable when the amount paid maps to a fixed reserve-gated cap.
-- "Pay anything for the same 3,000 USD promise" fails.
+- "Pay anything for the same fixed cap promise" fails.
 - Predictor collateral can become useful claims capital later, but only for the slice explicitly locked into the claims waterfall.
 - Health bonds are promising later because they align members around no-claim behavior, but they should not be in the first public mainnet launch.
 
@@ -188,6 +188,7 @@ The detailed truth-chain walkthrough is in `docs/architecture/genesis-protect-cl
 V1 should include:
 
 - acute-only emergency medical scope
+- offchain coverage certificates anchored to active `MemberPosition`, `PolicySeries`, terms hash, reserve/pool metadata, and premium proof
 - explicit exclusions
 - hard coverage caps
 - waiting periods
@@ -202,6 +203,7 @@ V1 should include:
 V1 should not include:
 
 - broad annual health insurance
+- visa-compliance claims unless a legal insurance wrapper and matching medical evacuation/repatriation benefits are in force
 - chronic care
 - routine outpatient care
 - maternity/fertility
