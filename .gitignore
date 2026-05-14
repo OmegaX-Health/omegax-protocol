@@ -56,6 +56,10 @@ tmp/
 *.log
 strategy/
 
+# Private internal research data
+/internal-db/
+/internal-db/actuarial-research/
+
 # Mac / editor
 .DS_Store
 .idea
