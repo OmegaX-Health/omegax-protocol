@@ -121,6 +121,19 @@ const SEED_SESSION = Buffer.from("private_claim_review", "utf8");
 const BASE_RPC_DEFAULT = "https://api.devnet.solana.com";
 const TEE_RPC_DEFAULT = "https://devnet-tee.magicblock.app";
 const TEE_WS_DEFAULT = "wss://tee.magicblock.app";
+const MAX_SEND_ATTEMPTS = 4;
+const RETRYABLE_SEND_ERROR_PATTERNS = [
+  /block height exceeded/i,
+  /blockhash not found/i,
+  /expired/i,
+  /timed out/i,
+  /timeout/i,
+  /ETIMEDOUT/i,
+  /ECONNRESET/i,
+  /ECONNREFUSED/i,
+  /fetch failed/i,
+  /429/,
+];
 
 function parseArgs(args: string[]): CliOptions {
   const options: CliOptions = {
@@ -645,36 +658,76 @@ async function sendTransaction(params: {
   instructions: TransactionInstruction[];
   skipPreflight?: boolean;
 }): Promise<string> {
-  const latestBlockhash = await params.connection.getLatestBlockhash("confirmed");
-  const transaction = new Transaction();
-  transaction.feePayer = params.payer.publicKey;
-  transaction.recentBlockhash = latestBlockhash.blockhash;
-  transaction.add(...params.instructions);
-  transaction.sign(params.payer);
+  let lastSubmittedSignature: string | null = null;
+  for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
+    let signature: string | null = null;
+    try {
+      const latestBlockhash = await params.connection.getLatestBlockhash("confirmed");
+      const transaction = new Transaction();
+      transaction.feePayer = params.payer.publicKey;
+      transaction.recentBlockhash = latestBlockhash.blockhash;
+      transaction.add(...params.instructions);
+      transaction.sign(params.payer);
 
-  let signature: string | null = null;
-  try {
-    signature = await params.connection.sendRawTransaction(transaction.serialize(), {
-      skipPreflight: params.skipPreflight ?? false,
-      maxRetries: 5,
-    });
-    const confirmation = await params.connection.confirmTransaction({
-      signature,
-      blockhash: latestBlockhash.blockhash,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-    }, "confirmed");
-    if (confirmation.value.err) {
-      throw new Error(JSON.stringify(confirmation.value.err));
+      signature = await params.connection.sendRawTransaction(transaction.serialize(), {
+        skipPreflight: params.skipPreflight ?? false,
+        maxRetries: 5,
+      });
+      lastSubmittedSignature = signature;
+      const confirmation = await params.connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      }, "confirmed");
+      if (confirmation.value.err) {
+        throw new Error(JSON.stringify(confirmation.value.err));
+      }
+      console.log(`${params.label}: ${signature}`);
+      return signature;
+    } catch (cause) {
+      const logs = await logsFromSendError(params.connection, cause);
+      const detail = [
+        `${params.label} failed${signature ? ` (${signature})` : ""}: ${messageFromError(cause)}`,
+        logs.length > 0 ? logs.join("\n") : null,
+      ].filter(Boolean).join("\n");
+      if (lastSubmittedSignature && isAlreadyAppliedAfterRetry(params.label, detail)) {
+        console.warn(
+          `${params.label} observed an already-applied state after retry; treating prior signature as successful: ${lastSubmittedSignature}`,
+        );
+        return lastSubmittedSignature;
+      }
+      if (attempt >= MAX_SEND_ATTEMPTS || !isRetryableSendError(cause, logs)) {
+        throw new Error(detail);
+      }
+      console.warn(
+        `${params.label} attempt ${attempt}/${MAX_SEND_ATTEMPTS} hit a transient send failure; retrying with a fresh blockhash.`,
+      );
+      await sleep(1_000 * attempt);
     }
-    console.log(`${params.label}: ${signature}`);
-    return signature;
-  } catch (cause) {
-    const logs = await logsFromSendError(params.connection, cause);
-    throw new Error([
-      `${params.label} failed${signature ? ` (${signature})` : ""}: ${messageFromError(cause)}`,
-      logs.length > 0 ? logs.join("\n") : null,
-    ].filter(Boolean).join("\n"));
   }
+  throw new Error(`${params.label} failed after ${MAX_SEND_ATTEMPTS} attempts`);
+}
+
+function isRetryableSendError(cause: unknown, logs: string[]): boolean {
+  const text = `${messageFromError(cause)}\n${logs.join("\n")}`;
+  return RETRYABLE_SEND_ERROR_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function isAlreadyAppliedAfterRetry(label: string, detail: string): boolean {
+  if (
+    (label === "commit_and_close_review_session" ||
+      label === "finalize_committed_review_session") &&
+    /ReviewAlreadyCommitted/i.test(detail)
+  ) {
+    return true;
+  }
+  if (
+    label === "open_review_session" &&
+    /account.*already in use|already in use/i.test(detail)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 async function logsFromSendError(connection: Connection, cause: unknown): Promise<string[]> {
@@ -738,9 +791,13 @@ async function waitFor<T>(
     } catch (cause) {
       lastError = cause;
     }
-    await new Promise((resolveWait) => setTimeout(resolveWait, 2_000));
+    await sleep(2_000);
   }
   throw new Error(`Timed out waiting for ${label}${lastError ? `: ${messageFromError(lastError)}` : ""}`);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolveWait) => setTimeout(resolveWait, ms));
 }
 
 async function readReviewSession(
