@@ -9,7 +9,7 @@ export const PRIVATE_CLAIM_REVIEW_PROGRAM_ID = new PublicKey(
   privateClaimReviewIdl.address ?? "FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn",
 );
 export const SEED_PRIVATE_CLAIM_REVIEW_SESSION = "private_claim_review";
-export const MAX_PRIVATE_CLAIM_REVIEW_SESSION_ID_BYTES = 64;
+export const MAX_PRIVATE_CLAIM_REVIEW_SESSION_ID_BYTES = 32;
 
 const PRIVATE_CLAIM_REVIEW_IDL = privateClaimReviewIdl as Idl;
 const PRIVATE_CLAIM_REVIEW_CODER = new BorshCoder(PRIVATE_CLAIM_REVIEW_IDL);

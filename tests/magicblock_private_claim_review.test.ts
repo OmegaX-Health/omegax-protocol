@@ -260,8 +260,8 @@ test("MagicBlock review session PDA derivation uses the public program seeds", (
     /leading or trailing whitespace/,
   );
   assert.throws(
-    () => derivePrivateClaimReviewSessionPda({ sessionAuthority, claimCase, sessionId: "x".repeat(65) }),
-    /64 bytes or fewer/,
+    () => derivePrivateClaimReviewSessionPda({ sessionAuthority, claimCase, sessionId: "x".repeat(33) }),
+    /32 bytes or fewer/,
   );
 });
 

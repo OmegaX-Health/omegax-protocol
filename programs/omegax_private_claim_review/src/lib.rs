@@ -18,7 +18,7 @@ declare_id!("FADqaRcJHERauzMo3BRzXZVY2qvrpPqg1ie2FGqACCVn");
 pub const SEED_REVIEW_REGISTRY: &[u8] = b"private_review_registry";
 pub const SEED_REVIEW_OPERATOR: &[u8] = b"private_review_operator";
 pub const SEED_REVIEW_SESSION: &[u8] = b"private_claim_review";
-pub const MAX_SESSION_ID_LEN: usize = 64;
+pub const MAX_SESSION_ID_LEN: usize = 32;
 pub const MAGICBLOCK_DEVNET_TEE_VALIDATOR: Pubkey = Pubkey::new_from_array([
     5, 61, 71, 26, 133, 158, 115, 46, 104, 11, 201, 88, 248, 65, 7, 43, 143, 63, 188, 25, 115, 155,
     230, 151, 196, 198, 129, 18, 111, 140, 31, 116,

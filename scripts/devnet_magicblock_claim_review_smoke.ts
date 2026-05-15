@@ -15,7 +15,7 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
-import * as nacl from "tweetnacl";
+import tweetnacl from "tweetnacl";
 
 type ReviewStatusName =
   | "reviewed"
@@ -202,7 +202,7 @@ function parsePositiveInteger(value: string, name: string): number {
 function canonicalRunId(value: string): string {
   const normalized = value.trim().replace(/[^a-zA-Z0-9_-]/g, "-");
   if (!normalized) throw new Error("--run-id must not be empty");
-  if (normalized.length > 32) throw new Error("--run-id must be 32 characters or fewer");
+  if (normalized.length > 16) throw new Error("--run-id must be 16 characters or fewer");
   return normalized;
 }
 
@@ -426,6 +426,8 @@ async function getTeeAuthToken(
       : Date.now() + 30 * 24 * 60 * 60 * 1000,
   };
 }
+
+const nacl = tweetnacl;
 
 async function ensureRegistryAndOperator(params: {
   baseConnection: Connection;
@@ -923,7 +925,8 @@ function normalizeStatus(value: RawFixture["status"], index: number): ReviewStat
 
 function canonicalSessionId(runId: string, index: number, source: string): string {
   const safeSource = source.trim().replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-");
-  const sessionId = `${runId}-${index + 1}-${safeSource}`.slice(0, 64);
+  const sourceHash = createHash("sha256").update(safeSource).digest("hex").slice(0, 8);
+  const sessionId = `${runId}-${index + 1}-${sourceHash}`.slice(0, 32);
   if (!sessionId || sessionId.trim() !== sessionId) {
     throw new Error(`Generated non-canonical session id for ${source}`);
   }
