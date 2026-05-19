@@ -95,6 +95,16 @@ const sensitiveEnvKeys = new Set([
   'TURNSTILE_SECRET_KEY',
 ]);
 
+const publicRpcKeyEnvKeys = new Set([
+  'NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL_WITH_KEY',
+  'NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL_WITH_KEY',
+]);
+
+const allowedPublicRpcKeyPlaceholders = new Set([
+  'YOUR_HELIUS_API_KEY',
+  'REPLACE_WITH_BROWSER_SAFE_HELIUS_API_KEY',
+]);
+
 const appHostingSecretKeys = new Set([
   'FAUCET_INTERNAL_BASE_URL',
   'FAUCET_INTERNAL_BASE_URL_V2',
@@ -166,6 +176,42 @@ function collectSensitiveAssignmentIssues(path, content) {
 
     if (!allowedSensitiveValues.has(value)) {
       issues.push(`${path}:${index + 1} sensitive variable ${key} must be blank or use REPLACE_IN_SECRET_STORE.`);
+    }
+  }
+
+  return issues;
+}
+
+function collectPublicRpcKeyIssues(path, content) {
+  const issues = [];
+
+  for (const [index, rawLine] of content.split('\n').entries()) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
+    const envMatch = rawLine.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (!envMatch) {
+      continue;
+    }
+
+    const key = envMatch[1];
+    const value = normalizeEnvValue(envMatch[2] ?? '');
+    if (!key || !publicRpcKeyEnvKeys.has(key) || !value) {
+      continue;
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(value);
+    } catch {
+      continue;
+    }
+
+    const apiKey = parsed.searchParams.get('api-key')?.trim();
+    if (apiKey && !allowedPublicRpcKeyPlaceholders.has(apiKey)) {
+      issues.push(`${path}:${index + 1} ${key} must not commit a real Helius API key in a NEXT_PUBLIC URL.`);
     }
   }
 
@@ -270,6 +316,10 @@ for (const file of files) {
   }
 
   for (const issue of collectSensitiveAssignmentIssues(file, content)) {
+    issues.push(issue);
+  }
+
+  for (const issue of collectPublicRpcKeyIssues(file, content)) {
     issues.push(issue);
   }
 

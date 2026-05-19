@@ -1,6 +1,6 @@
 # Dependency Advisory Risk Acceptance
 
-Last reviewed: 2026-05-04
+Last reviewed: 2026-05-19
 
 This note records production dependency advisories that remain after the CSO remediation pass.
 It is intentionally narrow: only advisories still reported by `npm audit --omit=dev` after compatible
