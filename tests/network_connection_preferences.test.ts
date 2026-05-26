@@ -6,6 +6,7 @@ import networkConfigModule from "../frontend/lib/network-config.ts";
 
 const {
   buildRpcEnvironment,
+  getDefaultRpcProfile,
   hydrateConnectionPreferences,
   resolveRpcEndpoint,
   validateCustomRpcUrl,
@@ -54,6 +55,45 @@ test("configured Helius endpoints are selectable per cluster", () => {
   assert.equal(resolvedDevnet.endpoint, "https://devnet.helius-rpc.com/?api-key=test");
   assert.equal(resolvedMainnet.rpcProfile, "helius");
   assert.equal(resolvedMainnet.endpoint, "https://mainnet.helius-rpc.com/?api-key=test");
+});
+
+test("configured Helius endpoints become the default browser RPC profile", () => {
+  const environment = buildRpcEnvironment({
+    NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL_WITH_KEY: "https://devnet.helius-rpc.com/?api-key=test",
+    NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL_WITH_KEY: "https://mainnet.helius-rpc.com/?api-key=test",
+  });
+
+  const hydrated = hydrateConnectionPreferences({
+    explorerCluster: "devnet",
+    environment,
+  });
+
+  assert.equal(getDefaultRpcProfile("devnet", environment), "helius");
+  assert.equal(getDefaultRpcProfile("mainnet-beta", environment), "helius");
+  assert.deepEqual(hydrated.rpcProfiles, {
+    devnet: "helius",
+    "mainnet-beta": "helius",
+  });
+});
+
+test("stored public profiles remain explicit when Helius is configured", () => {
+  const environment = buildRpcEnvironment({
+    NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL_WITH_KEY: "https://devnet.helius-rpc.com/?api-key=test",
+  });
+
+  const hydrated = hydrateConnectionPreferences({
+    explorerCluster: "devnet",
+    storedRpcProfiles: JSON.stringify({
+      devnet: "public",
+      "mainnet-beta": "public",
+    }),
+    environment,
+  });
+
+  assert.deepEqual(hydrated.rpcProfiles, {
+    devnet: "public",
+    "mainnet-beta": "public",
+  });
 });
 
 test("stored Helius profiles fall back to public when the cluster is not configured", () => {

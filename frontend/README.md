@@ -53,7 +53,8 @@ Rules:
 - repo-root `firebase.json` wires App Hosting deploys for this frontend
 - `.firebaserc` must stay local and untracked in this public repo
 - if runtime-only hosting values are added later, use Secret Manager references in `frontend/apphosting.yaml`
-- governance screens are sensitive to RPC rate limits; prefer dedicated per-network browser-safe RPC URLs over the shared public Solana endpoints when you need steadier proposal reads
+- governance screens are sensitive to RPC rate limits; configure dedicated per-network browser-safe, origin-restricted Helius RPC URLs with `NEXT_PUBLIC_SOLANA_DEVNET_RPC_URL_WITH_KEY` and `NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL_WITH_KEY` for steadier proposal reads
+- configured Helius endpoints become the default browser RPC profile; do not copy server-side protocol-oracle RPC secrets into `NEXT_PUBLIC_*` values
 - `NEXT_PUBLIC_SOURCE_REPO_URL` should point at the exact public source repository or release used by the hosted deployment
 - `npm run devnet:frontend:bootstrap` and `npm run devnet:frontend:signoff` load `frontend/.env.local` before resolving fixture state
 - mounted canonical workbenches should prefer the live snapshot adapter; fixtures should remain a bootstrap/test/docs input rather than the primary operator data source

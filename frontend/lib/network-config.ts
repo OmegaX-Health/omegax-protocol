@@ -35,7 +35,6 @@ const PUBLIC_RPC_ENDPOINTS: Record<NetworkMode, string> = {
   "mainnet-beta": "https://api.mainnet-beta.solana.com",
 };
 
-const DEFAULT_RPC_PROFILE: RpcProfile = "public";
 const NETWORK_ORDER: readonly NetworkMode[] = ["devnet", "mainnet-beta"] as const;
 
 export const NETWORK_OPTIONS: readonly NetworkOption[] = [
@@ -167,6 +166,10 @@ export function resolveRpcEndpoint(
   };
 }
 
+export function getDefaultRpcProfile(network: NetworkMode, environment: RpcEnvironment): RpcProfile {
+  return sanitizeCustomRpcUrl(environment.heliusEndpoints[network]) ? "helius" : "public";
+}
+
 export function hydrateConnectionPreferences(params: {
   explorerCluster?: string;
   storedNetwork?: string | null;
@@ -182,10 +185,10 @@ export function hydrateConnectionPreferences(params: {
     customRpcEndpoints[network] = sanitizeCustomRpcUrl(rawCustoms[network]);
   }
 
-  const rpcProfiles = createEmptyNetworkRecord<RpcProfile>(DEFAULT_RPC_PROFILE);
+  const rpcProfiles = createEmptyNetworkRecord<RpcProfile>("public");
   for (const network of NETWORK_ORDER) {
     const storedProfile = normalizeRpcProfile(rawProfiles[network]);
-    const desiredProfile = storedProfile ?? DEFAULT_RPC_PROFILE;
+    const desiredProfile = storedProfile ?? getDefaultRpcProfile(network, params.environment);
     rpcProfiles[network] = resolveRpcEndpoint(network, desiredProfile, params.environment, customRpcEndpoints).rpcProfile;
   }
 
