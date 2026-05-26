@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "lane": "protection",
+  "metadataUri": "/metadata/protection/ns-acute-assist-plus-30-v1.json",
+  "coveragePathway": "defi_native",
+  "defi": {
+    "settlementStyle": "onchain_programmatic",
+    "technicalTermsUri": "https://protocol.omegax.health/coverage/network-school-acute-assist/technical-terms",
+    "riskDisclosureUri": "https://protocol.omegax.health/coverage/network-school-acute-assist/risk-disclosures"
+  },
+  "product": {
+    "family": "Network School Acute Assist",
+    "sku": "Plus 30",
+    "displayName": "NS Acute Assist - Plus 30",
+    "positioning": "Higher-limit 30-day acute emergency assistance for verified Network School members, with strict sublimits.",
+    "coverWindowDays": 30,
+    "currency": "USDC",
+    "benefitStyle": "reimbursement_after_excess",
+    "capMode": "fixed",
+    "maxPayoutUsd": 2500,
+    "defaultSelection": false,
+    "familyPlan": false
+  },
+  "eligibility": {
+    "eligibleMembers": [
+      "verified Network School short-term members",
+      "verified Network School long-term members"
+    ],
+    "gate": "invite_only_network_school_discord",
+    "superteamEligible": false,
+    "officialNetworkSchoolBenefit": false,
+    "failClosedWhenVerifierMissing": true
+  },
+  "pricing": {
+    "retailUsd": 21,
+    "termRolBps": 84,
+    "expectedLossUsd": 6.5,
+    "baseLossRatioPct": 31,
+    "stressLossRatioPct": 93
+  },
+  "benefitSchedule": {
+    "excessUsd": 50,
+    "reimbursementPctAfterExcess": 80,
+    "formula": "min(plan_limit, sublimit, remaining_member_limit, remaining_pool_cap, max(0, (eligible_bill - 50) * 0.80))",
+    "fastLaneUsd": 500,
+    "manualReviewAboveUsd": 500,
+    "tiers": [
+      {
+        "id": "plus_clinic",
+        "label": "Clinic, outpatient, and pharmacy",
+        "trigger": "Eligible outpatient, clinic, pharmacy, or urgent-care acute event.",
+        "benefitUsd": 1000
+      },
+      {
+        "id": "plus_dengue_infection",
+        "label": "Dengue, infection, urgent labs, and observation",
+        "trigger": "Eligible dengue-style, infection, urgent lab, or observation event.",
+        "benefitUsd": 1500
+      },
+      {
+        "id": "plus_er_stabilization",
+        "label": "ER and hospital stabilization",
+        "trigger": "Eligible ER or hospital stabilization event inside the 30-day window.",
+        "benefitUsd": 2500
+      }
+    ],
+    "sublimits": [
+      {
+        "label": "Clinic, outpatient, and pharmacy",
+        "amountUsd": 1000
+      },
+      {
+        "label": "Dengue, infection, urgent labs, and observation",
+        "amountUsd": 1500
+      },
+      {
+        "label": "ER and hospital stabilization",
+        "amountUsd": 2500
+      }
+    ]
+  },
+  "waitingPeriods": {
+    "illnessHours": 24,
+    "accidentHours": 0,
+    "knownSymptomsExcluded": true
+  },
+  "evidenceSchema": {
+    "schemaKey": "network-school-acute-assist-claim",
+    "schemaVersion": 1,
+    "schemaAuthority": "shared_public_contract"
+  },
+  "coverage": {
+    "coveredWhen": [
+      "Sudden acute illness or injury occurs after activation and inside the 30-day window.",
+      "The event is documented by receipt, invoice, provider note, or other acceptable evidence.",
+      "The care type fits acute clinic, pharmacy, urgent care, ER consult, or stabilization within cap."
+    ],
+    "evidenceRequired": [
+      "member wallet or pseudonymous member ID",
+      "activation timestamp",
+      "incident date and location",
+      "provider receipt or invoice",
+      "proof of payment",
+      "short incident description",
+      "confirmation that symptoms or event started after activation",
+      "confirmation that no exclusion applies"
+    ],
+    "exclusions": [
+      "chronic and pre-existing conditions",
+      "known symptoms before activation",
+      "routine, preventive, elective, dental, vision, maternity, fertility, mental health, cosmetic, and long-term rehabilitation care",
+      "ongoing medication refills",
+      "intoxication-related events, illegal activity, fraud, high-risk sport without add-on, and professional sport",
+      "USA or Canada treatment at launch",
+      "evacuation, repatriation, trip cancellation, baggage, delay, and liability"
+    ]
+  },
+  "claimsTrustModel": {
+    "phase0": "OmegaX Health operator-backed oracle review with raw health evidence kept off-chain.",
+    "phase1": "Next phase: Discord/member verifier and claim recommendation automation with operator override.",
+    "phase2": "Roadmap: partner claims review and licensed carrier or fronted capacity for broader products."
+  },
+  "fundingLanes": {
+    "premium": {
+      "lineId": "ns-acute-plus30-premiums",
+      "reserveRole": "Collected 30-day member premiums attributed to NS Acute Assist Plus 30."
+    },
+    "liquidity": {
+      "lineId": "ns-acute-plus30-liquidity",
+      "reserveRole": "Posted acute-pool capital allocated to approved NS Acute Assist Plus 30 obligations."
+    }
+  },
+  "issuanceControls": {
+    "reserveAttribution": "Only posted acute-pool capital and collected premiums count as claims-paying reserve; token treasury marks do not count without a disclosed haircut.",
+    "publicStatusRule": "Keep this as a Network School-only limited pilot. Do not present it as official Network School coverage, Superteam coverage, broad public insurance, or guaranteed payout insurance.",
+    "issueWhen": [
+      "Network School membership verification has succeeded through the off-chain Discord/member verifier.",
+      "The member activates the 30-day window before symptoms, injury, or the acute event.",
+      "Usable claim-paying reserve supports the active Cohort 0 product ladder and aggregate payout cap.",
+      "Claims operators can review evidence manually above the fast-lane threshold."
+    ],
+    "pauseWhen": [
+      "Discord or Network School membership verification is unavailable, unconfigured, or stale.",
+      "Paid claims exceed 50% of the monthly payout cap or hit the hard aggregate cap.",
+      "Any Plus 30 claim exceeds the fast-lane threshold of 500 USD without manual review.",
+      "Provider evidence, pricing, reserve controls, or public terms drift from the published metadata."
+    ]
+  },
+  "launchTruth": {
+    "publicStatus": "network_school_verification_pending",
+    "primaryLaunchSku": "core",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false,
+    "networkSchoolOfficialBenefit": false,
+    "superteamEligible": false,
+    "discordVerificationRequired": true,
+    "rawHealthEvidenceOnchain": false
+  }
+}
+

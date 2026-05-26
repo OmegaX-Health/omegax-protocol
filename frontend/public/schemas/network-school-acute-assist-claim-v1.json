@@ -1,0 +1,107 @@
+{
+  "specVersion": "omegax.schema.v1",
+  "name": "Network School Acute Assist Claim Evidence",
+  "publisher": "OmegaX Health",
+  "schemaKey": "network-school-acute-assist-claim",
+  "schemaVersion": 1,
+  "lane": "protection",
+  "description": "Evidence bundle and operator-attested review schema for the Network School Acute Assist 30-day pilot.",
+  "launchTruth": {
+    "primaryLaunchSku": "core",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false,
+    "networkSchoolOfficialBenefit": false,
+    "superteamEligible": false,
+    "rawHealthEvidenceOnchain": false
+  },
+  "requiredFacts": [
+    {
+      "id": "network_school_membership",
+      "label": "Network School membership",
+      "description": "Off-chain verifier confirms Network School eligibility before activation. Store only verifier reference hashes on-chain."
+    },
+    {
+      "id": "activation_window",
+      "label": "Activation window",
+      "description": "Activation timestamp and 30-day active window for the selected tier."
+    },
+    {
+      "id": "incident_window",
+      "label": "Incident window",
+      "description": "Date and time of the acute illness or injury inside the active window."
+    },
+    {
+      "id": "care_location",
+      "label": "Care location",
+      "description": "Facility name, city, country, and proof that care happened in the supported travel or abroad context."
+    },
+    {
+      "id": "billing_proof",
+      "label": "Billing proof",
+      "description": "Receipt, itemized invoice, or bill plus proof of payment when reimbursement review is required."
+    },
+    {
+      "id": "post_activation_attestation",
+      "label": "Post-activation attestation",
+      "description": "Member attests that symptoms or the event began after activation and no excluded category applies."
+    }
+  ],
+  "requiredDocuments": [
+    "provider_receipt_or_invoice",
+    "proof_of_payment",
+    "incident_date_and_location",
+    "short_incident_description",
+    "post_activation_confirmation",
+    "excluded_category_confirmation"
+  ],
+  "decisionStates": [
+    {
+      "id": "hold",
+      "label": "Hold",
+      "description": "Insufficient confidence, missing evidence, verifier issue, or exclusion review still pending."
+    },
+    {
+      "id": "approve",
+      "label": "Approve",
+      "description": "Operator-backed oracle review approved the claim and set the payable amount."
+    },
+    {
+      "id": "partial_approve",
+      "label": "Partial approve",
+      "description": "Only part of the submitted amount is eligible after excess, reimbursement percentage, limits, sublimits, or pool caps."
+    },
+    {
+      "id": "deny",
+      "label": "Deny",
+      "description": "Claim failed activation, waiting-period, exclusion, fraud, territory, cap, or evidence requirements."
+    },
+    {
+      "id": "dispute",
+      "label": "Dispute",
+      "description": "Appeal or operator escalation is active before final settlement."
+    }
+  ],
+  "supportingFields": [
+    {
+      "id": "tier_key",
+      "label": "Tier key",
+      "description": "lite, core, plus, or familyCore."
+    },
+    {
+      "id": "care_type",
+      "label": "Care type",
+      "description": "pharmacy, clinic, urgent care, ER, hospital, or other approved acute care type."
+    },
+    {
+      "id": "eligible_bill_amount",
+      "label": "Eligible bill amount",
+      "description": "Approved eligible expense amount before the 50 USD excess and 80 percent reimbursement rule."
+    },
+    {
+      "id": "decision_support_hash",
+      "label": "Decision support hash",
+      "description": "Hash commitment to the off-chain operator review packet or recommendation bundle."
+    }
+  ]
+}
+

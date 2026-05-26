@@ -107,7 +107,7 @@ export const GENESIS_PROTECT_ACUTE_EVIDENCE_SCHEMA_VERSION = 1;
 export const GENESIS_PROTECT_ACUTE_POOL_ID = "genesis-protect-acute-pool";
 export const GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME = "Genesis Protect Acute Pool";
 export const GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS =
-  "Dedicated acute emergency travel reserve sleeve with explicit Event 7 and Travel 30 attribution.";
+  "Dedicated acute emergency reserve sleeve with explicit Genesis and gated community series attribution.";
 export const GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID = "genesis-senior-class";
 export const GENESIS_PROTECT_ACUTE_SENIOR_CLASS_DISPLAY_NAME = "Genesis Acute Senior Class";
 export const GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_ID = "genesis-junior-class";

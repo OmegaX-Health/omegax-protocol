@@ -2,6 +2,7 @@
 
 import genesisProtectAcuteClaimV1 from "../public/schemas/genesis-protect-acute-claim-v1.json";
 import healthOutcomes from "../public/schemas/health_outcomes.json";
+import networkSchoolAcuteAssistClaimV1 from "../public/schemas/network-school-acute-assist-claim-v1.json";
 import standardHealthOutcomesV1 from "../public/schemas/omegax-standard-health-outcomes-v1.json";
 import standardHealthOutcomesV2 from "../public/schemas/omegax-standard-health-outcomes-v2.json";
 
@@ -85,6 +86,7 @@ const EVIDENCE_QUALITIES = new Set(["ok", "good"]);
 const LOCAL_SCHEMA_METADATA_BY_PATH: Record<string, unknown> = {
   "/schemas/genesis-protect-acute-claim-v1.json": genesisProtectAcuteClaimV1,
   "/schemas/health_outcomes.json": healthOutcomes,
+  "/schemas/network-school-acute-assist-claim-v1.json": networkSchoolAcuteAssistClaimV1,
   "/schemas/omegax-standard-health-outcomes-v1.json": standardHealthOutcomesV1,
   "/schemas/omegax-standard-health-outcomes-v2.json": standardHealthOutcomesV2,
   "/schemas/standard-health-outcomes-v1.json": standardHealthOutcomesV1,

@@ -1,0 +1,84 @@
+{
+  "planId": "network-school-acute-assist-v1",
+  "displayName": "Network School Acute Assist",
+  "sponsorLabel": "Network School Verified Members",
+  "metadataUri": "/metadata/plans/network-school-acute-assist-v1.json",
+  "description": "Public-safe operator bootstrap metadata for a Network School-only 30-day acute assistance pilot.",
+  "membership": {
+    "mode": "invite_only",
+    "gateKind": "invite_only",
+    "verifier": "offchain_network_school_discord",
+    "failClosedWhenUnconfigured": true,
+    "eligibleMembers": [
+      "verified Network School short-term members",
+      "verified Network School long-term members"
+    ],
+    "excludedCommunities": [
+      "Superteam"
+    ]
+  },
+  "pool": {
+    "poolId": "genesis-protect-acute-pool",
+    "displayName": "Genesis Protect Acute Pool",
+    "strategyThesis": "Dedicated acute emergency reserve sleeve with explicit Genesis and gated community series attribution."
+  },
+  "capitalClasses": [
+    {
+      "classId": "genesis-senior-class",
+      "displayName": "Genesis Acute Senior Class",
+      "role": "Senior open capital reused by acute product allocations"
+    },
+    {
+      "classId": "genesis-junior-class",
+      "displayName": "Genesis Acute First-Loss Class",
+      "role": "Junior first-loss capital reused by acute product allocations"
+    }
+  ],
+  "cohort0": {
+    "policyOrHouseholdCap": 250,
+    "hardAggregatePayoutCapUsd": 6000,
+    "defaultSku": "core",
+    "launchSkus": [
+      "lite",
+      "core",
+      "plus",
+      "familyCore"
+    ],
+    "excludedSkus": [
+      "familyPlus"
+    ]
+  },
+  "launchTruth": {
+    "publicStatus": "network_school_verification_pending",
+    "primaryLaunchSku": "core",
+    "claimsTrustPhase": "operator_backed_oracle_phase0",
+    "broadlyLiveInsurance": false,
+    "networkSchoolOfficialBenefit": false,
+    "superteamEligible": false,
+    "discordVerificationRequired": true,
+    "rawHealthEvidenceOnchain": false
+  },
+  "privacyBoundary": {
+    "onchain": [
+      "plan identifier",
+      "member wallet or pseudonymous member ID",
+      "activation timestamp",
+      "claim case ID",
+      "evidence hash",
+      "claim state",
+      "approved amount",
+      "settlement reference"
+    ],
+    "offchainOnly": [
+      "Discord identity and membership verification details",
+      "medical records",
+      "diagnoses",
+      "raw receipts",
+      "lab results",
+      "passport or identity documents",
+      "provider documents",
+      "medical history"
+    ]
+  }
+}
+

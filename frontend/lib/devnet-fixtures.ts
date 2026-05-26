@@ -62,12 +62,26 @@ import {
   GENESIS_PROTECT_ACUTE_PLAN_ID,
   GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
   GENESIS_PROTECT_ACUTE_POOL_ID,
+  GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS,
   GENESIS_PROTECT_ACUTE_SENIOR_CLASS_DISPLAY_NAME,
   GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID,
   GENESIS_PROTECT_ACUTE_SKUS,
   GENESIS_PROTECT_ACUTE_SPONSOR_LABEL,
   GENESIS_PROTECT_ACUTE_TERMS_VERSION,
 } from "./genesis-protect-acute";
+import {
+  NETWORK_SCHOOL_ACUTE_ASSIST_PLAN_DISPLAY_NAME,
+  NETWORK_SCHOOL_ACUTE_ASSIST_PLAN_ID,
+  NETWORK_SCHOOL_ACUTE_ASSIST_SKU_LIST,
+  NETWORK_SCHOOL_ACUTE_ASSIST_SKUS,
+  NETWORK_SCHOOL_ACUTE_ASSIST_SPONSOR_LABEL,
+  NETWORK_SCHOOL_ACUTE_ASSIST_TERMS_VERSION,
+  type NetworkSchoolAcuteAssistSkuKey,
+} from "./network-school-acute-assist";
+import {
+  networkSchoolAcuteAssistBootstrapAllocations,
+  networkSchoolAcuteAssistBootstrapFundingLines,
+} from "./network-school-acute-assist-operator";
 
 export type DevnetFixtureRole =
   | "observer"
@@ -203,6 +217,7 @@ const wrapperDomainAssetLedger = deriveDomainAssetLedgerPda({
 const seekerPlanId = "nexus-seeker-rewards";
 const blendedPlanId = "nexus-protect-plus";
 const genesisPlanId = GENESIS_PROTECT_ACUTE_PLAN_ID;
+const networkSchoolAcuteAssistPlanId = NETWORK_SCHOOL_ACUTE_ASSIST_PLAN_ID;
 
 const seekerPlanAddress = deriveHealthPlanPda({
   reserveDomain: openReserveDomain,
@@ -215,6 +230,10 @@ const blendedPlanAddress = deriveHealthPlanPda({
 const genesisPlanAddress = deriveHealthPlanPda({
   reserveDomain: openReserveDomain,
   planId: genesisPlanId,
+}).toBase58();
+const networkSchoolAcuteAssistPlanAddress = deriveHealthPlanPda({
+  reserveDomain: openReserveDomain,
+  planId: networkSchoolAcuteAssistPlanId,
 }).toBase58();
 
 const seekerRewardSeriesAddress = derivePolicySeriesPda({
@@ -237,6 +256,15 @@ const genesisTravel30SeriesAddress = derivePolicySeriesPda({
   healthPlan: genesisPlanAddress,
   seriesId: GENESIS_PROTECT_ACUTE_SKUS.travel30.seriesId,
 }).toBase58();
+const networkSchoolAcuteAssistSeriesAddresses = Object.fromEntries(
+  NETWORK_SCHOOL_ACUTE_ASSIST_SKU_LIST.map((sku) => [
+    sku.key,
+    derivePolicySeriesPda({
+      healthPlan: networkSchoolAcuteAssistPlanAddress,
+      seriesId: sku.seriesId,
+    }).toBase58(),
+  ]),
+) as Record<NetworkSchoolAcuteAssistSkuKey, string>;
 
 const seekerSponsorLineAddress = deriveFundingLinePda({
   healthPlan: seekerPlanAddress,
@@ -278,6 +306,15 @@ const genesisTravel30LiquidityLineAddress = deriveFundingLinePda({
   healthPlan: genesisPlanAddress,
   lineId: GENESIS_PROTECT_ACUTE_SKUS.travel30.fundingLineIds.liquidity,
 }).toBase58();
+const networkSchoolAcuteAssistFundingLineAddresses = Object.fromEntries(
+  networkSchoolAcuteAssistBootstrapFundingLines().map((line) => [
+    line.lineId,
+    deriveFundingLinePda({
+      healthPlan: networkSchoolAcuteAssistPlanAddress,
+      lineId: line.lineId,
+    }).toBase58(),
+  ]),
+) as Record<string, string>;
 
 const incomePoolAddress = deriveLiquidityPoolPda({
   reserveDomain: openReserveDomain,
@@ -329,6 +366,35 @@ const genesisAllocationTravel30JuniorAddress = deriveAllocationPositionPda({
   capitalClass: genesisJuniorClassAddress,
   fundingLine: genesisTravel30LiquidityLineAddress,
 }).toBase58();
+const networkSchoolAcuteAssistAllocationAddresses = Object.fromEntries(
+  networkSchoolAcuteAssistBootstrapAllocations().map((allocation) => [
+    allocation.key,
+    deriveAllocationPositionPda({
+      capitalClass: allocation.classId === GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID
+        ? genesisSeniorClassAddress
+        : genesisJuniorClassAddress,
+      fundingLine: networkSchoolAcuteAssistFundingLineAddresses[allocation.fundingLineId]!,
+    }).toBase58(),
+  ]),
+) as Record<string, string>;
+const networkSchoolAcuteAssistPremiumFundingBySku = {
+  lite: 200n,
+  core: 1_000n,
+  plus: 1_260n,
+  familyCore: 340n,
+} as const satisfies Record<NetworkSchoolAcuteAssistSkuKey, bigint>;
+const networkSchoolAcuteAssistLiquidityFundingBySku = {
+  lite: 750n,
+  core: 2_000n,
+  plus: 2_000n,
+  familyCore: 1_250n,
+} as const satisfies Record<NetworkSchoolAcuteAssistSkuKey, bigint>;
+const networkSchoolAcuteAssistTotalPremiumFunding = Object.values(networkSchoolAcuteAssistPremiumFundingBySku)
+  .reduce((sum, value) => sum + value, 0n);
+const networkSchoolAcuteAssistTotalLiquidityFunding = Object.values(networkSchoolAcuteAssistLiquidityFundingBySku)
+  .reduce((sum, value) => sum + value, 0n);
+const networkSchoolAcuteAssistTotalFunding =
+  networkSchoolAcuteAssistTotalPremiumFunding + networkSchoolAcuteAssistTotalLiquidityFunding;
 
 // Legacy local env files from the older pool-first console used different wallet names.
 // Keep those aliases readable here so stale local `.env.local` files still populate fixtures.
@@ -472,7 +538,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       address: openDomainAssetVault,
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
-      sheet: { funded: 2_138_300n },
+      sheet: { funded: 2_138_300n + networkSchoolAcuteAssistTotalFunding },
     },
     {
       address: wrapperDomainAssetVault,
@@ -487,8 +553,8 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
       sheet: {
-        funded: 2_138_300n,
-        allocated: 1_207_500n,
+        funded: 2_138_300n + networkSchoolAcuteAssistTotalFunding,
+        allocated: 1_207_500n + networkSchoolAcuteAssistTotalLiquidityFunding,
         reserved: 230_000n,
         claimable: 8_000n,
         payable: 50_000n,
@@ -547,6 +613,24 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       claimsOperator: planControlWallet(claimsOperatorWallet),
       membershipModel: "open-with-claims-operator",
       membershipGateKind: "open",
+      pauseFlags: 0,
+      active: true,
+    },
+    {
+      address: networkSchoolAcuteAssistPlanAddress,
+      reserveDomain: openReserveDomain,
+      planId: networkSchoolAcuteAssistPlanId,
+      displayName: NETWORK_SCHOOL_ACUTE_ASSIST_PLAN_DISPLAY_NAME,
+      sponsorLabel: NETWORK_SCHOOL_ACUTE_ASSIST_SPONSOR_LABEL,
+      planAdmin: planControlWallet(planAdminWallet),
+      sponsorOperator: planControlWallet(sponsorOperatorWallet),
+      claimsOperator: planControlWallet(claimsOperatorWallet),
+      oracleAuthority: planControlWallet(oracleOperatorWallet),
+      membershipModel: "invite-only-network-school-discord",
+      membershipGateKind: "invite_only",
+      membershipModeValue: 2,
+      membershipGateKindValue: 1,
+      membershipInviteAuthority: sponsorOperatorWallet,
       pauseFlags: 0,
       active: true,
     },
@@ -617,6 +701,19 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       termsVersion: GENESIS_PROTECT_ACUTE_TERMS_VERSION,
       comparabilityKey: GENESIS_PROTECT_ACUTE_SKUS.travel30.comparabilityKey,
     },
+    ...NETWORK_SCHOOL_ACUTE_ASSIST_SKU_LIST.map((sku) => ({
+      address: networkSchoolAcuteAssistSeriesAddresses[sku.key],
+      healthPlan: networkSchoolAcuteAssistPlanAddress,
+      seriesId: sku.seriesId,
+      displayName: sku.displayName,
+      metadataUri: sku.metadataUri,
+      mode: SERIES_MODE_PROTECTION,
+      status: SERIES_STATUS_ACTIVE,
+      assetMint: settlementMint,
+      cycleSeconds: sku.coverWindowDays * 86_400,
+      termsVersion: NETWORK_SCHOOL_ACUTE_ASSIST_TERMS_VERSION,
+      comparabilityKey: sku.comparabilityKey,
+    })),
   ],
   memberPositions: [
     {
@@ -846,6 +943,32 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       status: FUNDING_LINE_STATUS_OPEN,
       sheet: { funded: 45_000n, allocated: 45_000n },
     },
+    ...networkSchoolAcuteAssistBootstrapFundingLines().map((line) => {
+      const fundedAmount = line.lineType === FUNDING_LINE_TYPE_PREMIUM_INCOME
+        ? networkSchoolAcuteAssistPremiumFundingBySku[line.skuKey]
+        : networkSchoolAcuteAssistLiquidityFundingBySku[line.skuKey];
+      const allocatedAmount = line.lineType === FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION ? fundedAmount : 0n;
+      return {
+        address: networkSchoolAcuteAssistFundingLineAddresses[line.lineId],
+        reserveDomain: openReserveDomain,
+        healthPlan: networkSchoolAcuteAssistPlanAddress,
+        policySeries: networkSchoolAcuteAssistSeriesAddresses[line.skuKey],
+        assetMint: settlementMint,
+        lineId: line.lineId,
+        displayName: line.displayName,
+        lineType: line.lineType,
+        fundingPriority: line.fundingPriority,
+        fundedAmount,
+        reservedAmount: 0n,
+        spentAmount: 0n,
+        releasedAmount: 0n,
+        returnedAmount: 0n,
+        status: FUNDING_LINE_STATUS_OPEN,
+        sheet: allocatedAmount > 0n
+          ? { funded: fundedAmount, allocated: allocatedAmount }
+          : { funded: fundedAmount },
+      };
+    }),
   ],
   planReserveLedgers: [
     {
@@ -865,6 +988,12 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       reserveDomain: openReserveDomain,
       assetMint: settlementMint,
       sheet: { funded: 88_300n, allocated: 57_500n },
+    },
+    {
+      address: derivePlanReserveLedgerPda({ healthPlan: networkSchoolAcuteAssistPlanAddress, assetMint: settlementMint }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: { funded: networkSchoolAcuteAssistTotalFunding, allocated: networkSchoolAcuteAssistTotalLiquidityFunding },
     },
   ],
   seriesReserveLedgers: [
@@ -898,6 +1027,19 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       assetMint: settlementMint,
       sheet: { funded: 54_900n, allocated: 45_000n },
     },
+    ...NETWORK_SCHOOL_ACUTE_ASSIST_SKU_LIST.map((sku) => ({
+      address: deriveSeriesReserveLedgerPda({
+        policySeries: networkSchoolAcuteAssistSeriesAddresses[sku.key],
+        assetMint: settlementMint,
+      }).toBase58(),
+      reserveDomain: openReserveDomain,
+      assetMint: settlementMint,
+      sheet: {
+        funded: networkSchoolAcuteAssistPremiumFundingBySku[sku.key]
+          + networkSchoolAcuteAssistLiquidityFundingBySku[sku.key],
+        allocated: networkSchoolAcuteAssistLiquidityFundingBySku[sku.key],
+      },
+    })),
   ],
   fundingLineLedgers: [
     {
@@ -960,6 +1102,23 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       assetMint: settlementMint,
       sheet: { funded: 45_000n, allocated: 45_000n },
     },
+    ...networkSchoolAcuteAssistBootstrapFundingLines().map((line) => {
+      const fundedAmount = line.lineType === FUNDING_LINE_TYPE_PREMIUM_INCOME
+        ? networkSchoolAcuteAssistPremiumFundingBySku[line.skuKey]
+        : networkSchoolAcuteAssistLiquidityFundingBySku[line.skuKey];
+      const allocatedAmount = line.lineType === FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION ? fundedAmount : 0n;
+      return {
+        address: deriveFundingLineLedgerPda({
+          fundingLine: networkSchoolAcuteAssistFundingLineAddresses[line.lineId]!,
+          assetMint: settlementMint,
+        }).toBase58(),
+        reserveDomain: openReserveDomain,
+        assetMint: settlementMint,
+        sheet: allocatedAmount > 0n
+          ? { funded: fundedAmount, allocated: allocatedAmount }
+          : { funded: fundedAmount },
+      };
+    }),
   ],
   claimCases: [
     {
@@ -1130,10 +1289,10 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       poolId: GENESIS_PROTECT_ACUTE_POOL_ID,
       displayName: GENESIS_PROTECT_ACUTE_POOL_DISPLAY_NAME,
       depositAssetMint: settlementMint,
-      strategyThesis: "Dedicated acute emergency travel reserve sleeve with explicit Event 7 and Travel 30 attribution.",
+      strategyThesis: GENESIS_PROTECT_ACUTE_POOL_STRATEGY_THESIS,
       redemptionPolicy: REDEMPTION_POLICY_QUEUE_ONLY,
-      totalValueLocked: 57_500n,
-      totalAllocated: 57_500n,
+      totalValueLocked: 57_500n + networkSchoolAcuteAssistTotalLiquidityFunding,
+      totalAllocated: 57_500n + networkSchoolAcuteAssistTotalLiquidityFunding,
       totalPendingRedemptions: 0n,
       active: true,
     },
@@ -1180,9 +1339,9 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       displayName: GENESIS_PROTECT_ACUTE_SENIOR_CLASS_DISPLAY_NAME,
       priority: 0,
       restrictionMode: CAPITAL_CLASS_RESTRICTION_OPEN,
-      totalShares: 25_000n,
-      navAssets: 25_000n,
-      allocatedAssets: 25_000n,
+      totalShares: 27_000n,
+      navAssets: 27_000n,
+      allocatedAssets: 27_000n,
       pendingRedemptions: 0n,
       nextRedemptionSequence: 0n,
       nextRedemptionToProcess: 0n,
@@ -1197,9 +1356,9 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       displayName: GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_DISPLAY_NAME,
       priority: 1,
       restrictionMode: CAPITAL_CLASS_RESTRICTION_OPEN,
-      totalShares: 32_500n,
-      navAssets: 32_500n,
-      allocatedAssets: 32_500n,
+      totalShares: 36_500n,
+      navAssets: 36_500n,
+      allocatedAssets: 36_500n,
       pendingRedemptions: 0n,
       nextRedemptionSequence: 0n,
       nextRedemptionToProcess: 0n,
@@ -1242,10 +1401,10 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       capitalClass: genesisSeniorClassAddress,
       assetMint: settlementMint,
       sheet: {
-        funded: 25_000n,
-        allocated: 25_000n,
+        funded: 27_000n,
+        allocated: 27_000n,
       },
-      totalShares: 25_000n,
+      totalShares: 27_000n,
       realizedYieldAmount: 0n,
       realizedLossAmount: 0n,
     },
@@ -1254,10 +1413,10 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       capitalClass: genesisJuniorClassAddress,
       assetMint: settlementMint,
       sheet: {
-        funded: 32_500n,
-        allocated: 32_500n,
+        funded: 36_500n,
+        allocated: 36_500n,
       },
-      totalShares: 32_500n,
+      totalShares: 36_500n,
       realizedYieldAmount: 0n,
       realizedLossAmount: 0n,
     },
@@ -1297,8 +1456,8 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       address: deriveLpPositionPda({ capitalClass: genesisSeniorClassAddress, owner: lpProviderWallet }).toBase58(),
       owner: lpProviderWallet,
       capitalClass: genesisSeniorClassAddress,
-      shares: 25_000n,
-      subscriptionBasis: 25_000n,
+      shares: 27_000n,
+      subscriptionBasis: 27_000n,
       pendingRedemptionShares: 0n,
       pendingRedemptionAssets: 0n,
       realizedDistributions: 0n,
@@ -1312,8 +1471,8 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       address: deriveLpPositionPda({ capitalClass: genesisJuniorClassAddress, owner: lpProviderWallet }).toBase58(),
       owner: lpProviderWallet,
       capitalClass: genesisJuniorClassAddress,
-      shares: 32_500n,
-      subscriptionBasis: 32_500n,
+      shares: 36_500n,
+      subscriptionBasis: 36_500n,
       pendingRedemptionShares: 0n,
       pendingRedemptionAssets: 0n,
       realizedDistributions: 0n,
@@ -1433,6 +1592,29 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       deallocationOnly: false,
       active: true,
     },
+    ...networkSchoolAcuteAssistBootstrapAllocations().map((allocation) => {
+      const allocatedAmount = networkSchoolAcuteAssistLiquidityFundingBySku[allocation.skuKey];
+      return {
+        address: networkSchoolAcuteAssistAllocationAddresses[allocation.key],
+        reserveDomain: openReserveDomain,
+        liquidityPool: genesisPoolAddress,
+        capitalClass: allocation.classId === GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID
+          ? genesisSeniorClassAddress
+          : genesisJuniorClassAddress,
+        healthPlan: networkSchoolAcuteAssistPlanAddress,
+        policySeries: networkSchoolAcuteAssistSeriesAddresses[allocation.skuKey],
+        fundingLine: networkSchoolAcuteAssistFundingLineAddresses[allocation.fundingLineId]!,
+        capAmount: allocation.capAmount,
+        weightBps: allocation.weightBps,
+        allocatedAmount,
+        utilizedAmount: 0n,
+        reservedCapacity: 0n,
+        realizedPnl: 0n,
+        impairedAmount: 0n,
+        deallocationOnly: false,
+        active: true,
+      };
+    }),
   ],
   allocationLedgers: [
     {
@@ -1477,6 +1659,19 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       sheet: { funded: 20_000n, allocated: 20_000n },
       realizedPnl: 0n,
     },
+    ...networkSchoolAcuteAssistBootstrapAllocations().map((allocation) => {
+      const allocatedAmount = networkSchoolAcuteAssistLiquidityFundingBySku[allocation.skuKey];
+      return {
+        address: deriveAllocationLedgerPda({
+          allocationPosition: networkSchoolAcuteAssistAllocationAddresses[allocation.key]!,
+          assetMint: settlementMint,
+        }).toBase58(),
+        allocationPosition: networkSchoolAcuteAssistAllocationAddresses[allocation.key]!,
+        assetMint: settlementMint,
+        sheet: { funded: allocatedAmount, allocated: allocatedAmount },
+        realizedPnl: 0n,
+      };
+    }),
   ],
   outcomesBySeries: {
     [seekerRewardSeriesAddress]: 1_250n,
@@ -1484,6 +1679,10 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
     [blendedProtectionSeriesAddress]: 7n,
     [genesisEvent7SeriesAddress]: 0n,
     [genesisTravel30SeriesAddress]: 0n,
+    ...Object.fromEntries(NETWORK_SCHOOL_ACUTE_ASSIST_SKU_LIST.map((sku) => [
+      networkSchoolAcuteAssistSeriesAddresses[sku.key],
+      0n,
+    ])),
   },
   wallets: [
     { role: "observer", label: "Observer wallet", address: observerWallet, envVar: "NEXT_PUBLIC_DEVNET_OBSERVER_WALLET" },

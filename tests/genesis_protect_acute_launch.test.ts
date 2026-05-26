@@ -122,7 +122,7 @@ test("Genesis Protect Acute fixtures add a dedicated launch plan, pool, and two 
   const genesisFundingLines = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.filter((line) => line.healthPlan === genesisPlan?.address);
   const genesisClasses = DEVNET_PROTOCOL_FIXTURE_STATE.capitalClasses.filter((capitalClass) => capitalClass.liquidityPool === genesisPool?.address);
   const genesisAllocations = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.filter(
-    (allocation) => allocation.liquidityPool === genesisPool?.address,
+    (allocation) => allocation.liquidityPool === genesisPool?.address && allocation.healthPlan === genesisPlan?.address,
   );
 
   assert(genesisPlan, "expected Genesis Protect Acute plan fixture");
@@ -141,10 +141,10 @@ test("Genesis Protect Acute fixtures add a dedicated launch plan, pool, and two 
     genesisClasses.map((capitalClass) => capitalClass.classId),
     [GENESIS_PROTECT_ACUTE_SENIOR_CLASS_ID, GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_ID],
   );
-  assert.equal(new Set(genesisAllocations.map((allocation) => allocation.healthPlan)).size, 1);
   assert.equal(new Set(genesisAllocations.map((allocation) => allocation.policySeries)).size, 2);
-  assert.equal(genesisPool.totalValueLocked, 57_500n);
-  assert.equal(genesisPool.totalAllocated, 57_500n);
+  assert.equal(genesisAllocations.reduce((sum, allocation) => sum + BigInt(allocation.allocatedAmount ?? 0n), 0n), 57_500n);
+  assert.equal(genesisPool.totalValueLocked, 63_500n);
+  assert.equal(genesisPool.totalAllocated, 63_500n);
 });
 
 test("Genesis Protect Acute metadata documents encode the canonical Event 7 and Travel 30 launch truth", () => {
@@ -247,7 +247,7 @@ test("Genesis Protect Acute metadata documents encode the canonical Event 7 and 
   assert.equal(travel30Document.launchTruth.appMembershipBillingSeparate, true);
 });
 
-test("Genesis Protect Acute pool resolves to a unique plan context but keeps series routing explicit", () => {
+test("Genesis Protect Acute pool stays ambiguous once gated community series share the acute pool", () => {
   const genesisPlan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans.find((plan) => plan.planId === GENESIS_PROTECT_ACUTE_PLAN_ID)!;
   const genesisPool = DEVNET_PROTOCOL_FIXTURE_STATE.liquidityPools.find((pool) => pool.poolId === GENESIS_PROTECT_ACUTE_POOL_ID)!;
   const primaryLaunchSeries = DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
@@ -255,7 +255,7 @@ test("Genesis Protect Acute pool resolves to a unique plan context but keeps ser
   )!;
 
   assert.deepEqual(linkedContextForPool(genesisPool.address), {
-    plan: genesisPlan.address,
+    plan: null,
     series: null,
   });
   assert.equal(firstProtectionSeriesAddressForPlan(genesisPlan.address), primaryLaunchSeries.address);

@@ -3,6 +3,7 @@
 import { DEVNET_PROTOCOL_FIXTURE_STATE, type DevnetFixtureRole } from "./devnet-fixtures";
 import { GENESIS_PROTECT_ACUTE_PLAN_ID } from "./genesis-protect-acute";
 import { GENESIS_PROTECT_ACUTE_PRIMARY_SKU } from "./genesis-protect-acute-operator";
+import { NETWORK_SCHOOL_ACUTE_ASSIST_DEFAULT_SKU, NETWORK_SCHOOL_ACUTE_ASSIST_PLAN_ID } from "./network-school-acute-assist";
 import { buildOverviewStats, countPendingRedemptionSources, type OverviewStatsSource } from "./overview-metrics";
 import {
   availableFundingLineBalance,
@@ -536,6 +537,17 @@ export function firstProtectionSeriesAddressForPlan(planAddress?: string | null)
           series.healthPlan === plan.address
           && series.mode === SERIES_MODE_PROTECTION
           && series.seriesId === GENESIS_PROTECT_ACUTE_PRIMARY_SKU.seriesId,
+      )?.address
+      ?? null
+    );
+  }
+  if (plan?.planId === NETWORK_SCHOOL_ACUTE_ASSIST_PLAN_ID) {
+    return (
+      DEVNET_PROTOCOL_FIXTURE_STATE.policySeries.find(
+        (series) =>
+          series.healthPlan === plan.address
+          && series.mode === SERIES_MODE_PROTECTION
+          && series.seriesId === NETWORK_SCHOOL_ACUTE_ASSIST_DEFAULT_SKU.seriesId,
       )?.address
       ?? null
     );

@@ -27,7 +27,7 @@
       "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
-        "funded": "2138300"
+        "funded": "2147100"
       }
     },
     {
@@ -46,8 +46,8 @@
       "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
-        "funded": "2138300",
-        "allocated": "1207500",
+        "funded": "2147100",
+        "allocated": "1213500",
         "reserved": "230000",
         "claimable": "8000",
         "payable": "50000",
@@ -106,6 +106,24 @@
       "claimsOperator": "CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU",
       "membershipModel": "open-with-claims-operator",
       "membershipGateKind": "open",
+      "pauseFlags": 0,
+      "active": true
+    },
+    {
+      "address": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "planId": "network-school-acute-assist-v1",
+      "displayName": "Network School Acute Assist",
+      "sponsorLabel": "Network School Verified Members",
+      "planAdmin": "CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU",
+      "sponsorOperator": "CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU",
+      "claimsOperator": "CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU",
+      "oracleAuthority": "FjyeLkwjdC2KRqim4aJJjYFtoAiMQkBMdrg7f9zpEWZZ",
+      "membershipModel": "invite-only-network-school-discord",
+      "membershipGateKind": "invite_only",
+      "membershipModeValue": 2,
+      "membershipGateKindValue": 1,
+      "membershipInviteAuthority": "CsBxTVjC4Y8oWuoU9xdp91du7WCaQWEbGyNBTuc7weDU",
       "pauseFlags": 0,
       "active": true
     }
@@ -175,6 +193,58 @@
       "cycleSeconds": 2592000,
       "termsVersion": "genesis-acute-v1",
       "comparabilityKey": "genesis-acute-travel-30"
+    },
+    {
+      "address": "AfXyxKjYtbdbHZsnYzFrsuQL67Wx2PCdkek2ZLGuQbwV",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "seriesId": "ns-acute-lite-30-v1",
+      "displayName": "NS Acute Assist - Lite 30",
+      "metadataUri": "/metadata/protection/ns-acute-assist-lite-30-v1.json",
+      "mode": 1,
+      "status": 1,
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "cycleSeconds": 2592000,
+      "termsVersion": "ns-acute-assist-v1",
+      "comparabilityKey": "ns-acute-assist-lite-30"
+    },
+    {
+      "address": "4w9FPbRUawSn2EKgMheiStpJfiNEvqgUt2UNWFh6pYcz",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "seriesId": "ns-acute-core-30-v1",
+      "displayName": "NS Acute Assist - Core 30",
+      "metadataUri": "/metadata/protection/ns-acute-assist-core-30-v1.json",
+      "mode": 1,
+      "status": 1,
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "cycleSeconds": 2592000,
+      "termsVersion": "ns-acute-assist-v1",
+      "comparabilityKey": "ns-acute-assist-core-30"
+    },
+    {
+      "address": "E1tyBZ54iomtPSj1cDe7P1KTV4721E6KxApHfpBcv3aH",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "seriesId": "ns-acute-plus-30-v1",
+      "displayName": "NS Acute Assist - Plus 30",
+      "metadataUri": "/metadata/protection/ns-acute-assist-plus-30-v1.json",
+      "mode": 1,
+      "status": 1,
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "cycleSeconds": 2592000,
+      "termsVersion": "ns-acute-assist-v1",
+      "comparabilityKey": "ns-acute-assist-plus-30"
+    },
+    {
+      "address": "HkLe21Xw19hzbT6oWKaw12Dhs2Equ3HNC5NJgB5bHJsj",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "seriesId": "ns-acute-family-core-30-v1",
+      "displayName": "NS Acute Assist - Family Core 30",
+      "metadataUri": "/metadata/protection/ns-acute-assist-family-core-30-v1.json",
+      "mode": 1,
+      "status": 1,
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "cycleSeconds": 2592000,
+      "termsVersion": "ns-acute-assist-v1",
+      "comparabilityKey": "ns-acute-assist-family-core-30"
     }
   ],
   "memberPositions": [
@@ -457,6 +527,170 @@
         "funded": "45000",
         "allocated": "45000"
       }
+    },
+    {
+      "address": "GS94aYZqqp6R4FVrZ4eeXgYsJvL8BHMeTq5nY7zshJCv",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "AfXyxKjYtbdbHZsnYzFrsuQL67Wx2PCdkek2ZLGuQbwV",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-lite30-premiums",
+      "displayName": "NS Lite 30 member premiums",
+      "lineType": 1,
+      "fundingPriority": 0,
+      "fundedAmount": "200",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "200"
+      }
+    },
+    {
+      "address": "8CWwBgmaGjSgQ41BMMyKz9N1CqdsR82FqBnAPuCgFRTu",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "AfXyxKjYtbdbHZsnYzFrsuQL67Wx2PCdkek2ZLGuQbwV",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-lite30-liquidity",
+      "displayName": "NS Lite 30 acute-pool reserve lane",
+      "lineType": 2,
+      "fundingPriority": 1,
+      "fundedAmount": "750",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "750",
+        "allocated": "750"
+      }
+    },
+    {
+      "address": "FnHcGwYUw8MkLY4FbkebCWXnRYpTr3mzQqerTq6SQ3zp",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "4w9FPbRUawSn2EKgMheiStpJfiNEvqgUt2UNWFh6pYcz",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-core30-premiums",
+      "displayName": "NS Core 30 member premiums",
+      "lineType": 1,
+      "fundingPriority": 2,
+      "fundedAmount": "1000",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "1000"
+      }
+    },
+    {
+      "address": "9KXaMwHTcS8u4ELHqxpd14nMW4xRSPFykcavAoMGQHac",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "4w9FPbRUawSn2EKgMheiStpJfiNEvqgUt2UNWFh6pYcz",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-core30-liquidity",
+      "displayName": "NS Core 30 acute-pool reserve lane",
+      "lineType": 2,
+      "fundingPriority": 3,
+      "fundedAmount": "2000",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "2000",
+        "allocated": "2000"
+      }
+    },
+    {
+      "address": "3TZKJ8muo3STowduNCS7QeyXrQ69N9vuoCxEXz6gq2as",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "E1tyBZ54iomtPSj1cDe7P1KTV4721E6KxApHfpBcv3aH",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-plus30-premiums",
+      "displayName": "NS Plus 30 member premiums",
+      "lineType": 1,
+      "fundingPriority": 4,
+      "fundedAmount": "1260",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "1260"
+      }
+    },
+    {
+      "address": "8XajVueHsrRqvkiUctG1McFSX4oGVCdk2cYa5s7FwBAL",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "E1tyBZ54iomtPSj1cDe7P1KTV4721E6KxApHfpBcv3aH",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-plus30-liquidity",
+      "displayName": "NS Plus 30 acute-pool reserve lane",
+      "lineType": 2,
+      "fundingPriority": 5,
+      "fundedAmount": "2000",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "2000",
+        "allocated": "2000"
+      }
+    },
+    {
+      "address": "Gh5h6uXqh31TLt8FEbF11gE9V7Ud8yeMyN9b8LPsA6Dd",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "HkLe21Xw19hzbT6oWKaw12Dhs2Equ3HNC5NJgB5bHJsj",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-family-core30-premiums",
+      "displayName": "NS Family Core 30 member premiums",
+      "lineType": 1,
+      "fundingPriority": 6,
+      "fundedAmount": "340",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "340"
+      }
+    },
+    {
+      "address": "AJ9kVAoAtaCs2a8KsttRmnvBJJZN7W3Q1jsLNpr9SnG",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "HkLe21Xw19hzbT6oWKaw12Dhs2Equ3HNC5NJgB5bHJsj",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "lineId": "ns-acute-family-core30-liquidity",
+      "displayName": "NS Family Core 30 acute-pool reserve lane",
+      "lineType": 2,
+      "fundingPriority": 7,
+      "fundedAmount": "1250",
+      "reservedAmount": "0",
+      "spentAmount": "0",
+      "releasedAmount": "0",
+      "returnedAmount": "0",
+      "status": 0,
+      "sheet": {
+        "funded": "1250",
+        "allocated": "1250"
+      }
     }
   ],
   "planReserveLedgers": [
@@ -492,6 +726,15 @@
       "sheet": {
         "funded": "88300",
         "allocated": "57500"
+      }
+    },
+    {
+      "address": "AY3zQoe3bb3PoMLsWk92DGPWMRzzZjCLhziPjG8sye61",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "8800",
+        "allocated": "6000"
       }
     }
   ],
@@ -549,6 +792,42 @@
       "sheet": {
         "funded": "54900",
         "allocated": "45000"
+      }
+    },
+    {
+      "address": "Gsxi2DkbuKLm41rEhxmSbpWPZAYkeU1fg7QLH6ENpGEW",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "950",
+        "allocated": "750"
+      }
+    },
+    {
+      "address": "AVbzHnQSxFKyumUaAPiqTo7nzpa73pPSNssnLYD64CSo",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "3000",
+        "allocated": "2000"
+      }
+    },
+    {
+      "address": "AdUjgEtgov8owsMUHtiExpdi5aebiJh65zdyV1A8VFJk",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "3260",
+        "allocated": "2000"
+      }
+    },
+    {
+      "address": "3osRqJV1ostDbZXmghpf7bjgzxmGs3rQ3rFmhA8DXBTx",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "1590",
+        "allocated": "1250"
       }
     }
   ],
@@ -651,6 +930,74 @@
       "sheet": {
         "funded": "45000",
         "allocated": "45000"
+      }
+    },
+    {
+      "address": "8Sba8xuc8MGCyJTvnZmrZdmnTqYqo5a4P9yJjHt1n8Xz",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "200"
+      }
+    },
+    {
+      "address": "BUNejajwRLM98LofvCqrKjD5yVBR1WjhX9oJ3epBED6x",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "750",
+        "allocated": "750"
+      }
+    },
+    {
+      "address": "D3tujBbSCvBRbyGvVtGnTA42oisxgx47FawNs4wkhtuj",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "1000"
+      }
+    },
+    {
+      "address": "8qsHjnYgp7tJhNdSFWf4oStGzWA77ZPKcWyWwoGkY6s",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "2000",
+        "allocated": "2000"
+      }
+    },
+    {
+      "address": "CfbcPimoeJ4PMMWvHiWY8N5vv1ZU5uXZffCyEpMzvbWW",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "1260"
+      }
+    },
+    {
+      "address": "FvpZiXZF74MPZDXmvcZnzKC8EuhVSLswe8BGGWDYzhYu",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "2000",
+        "allocated": "2000"
+      }
+    },
+    {
+      "address": "314g9J1v6MrZkEMEtg6kNstkLqgU5qRJQ8XnSfYjRw5m",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "340"
+      }
+    },
+    {
+      "address": "2N13ByA6WhoFLavHYpoCPHU22tPpNb3PBQ1pHAXHj8zM",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "1250",
+        "allocated": "1250"
       }
     }
   ],
@@ -823,10 +1170,10 @@
       "poolId": "genesis-protect-acute-pool",
       "displayName": "Genesis Protect Acute Pool",
       "depositAssetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
-      "strategyThesis": "Dedicated acute emergency travel reserve sleeve with explicit Event 7 and Travel 30 attribution.",
+      "strategyThesis": "Dedicated acute emergency reserve sleeve with explicit Genesis and gated community series attribution.",
       "redemptionPolicy": 1,
-      "totalValueLocked": "57500",
-      "totalAllocated": "57500",
+      "totalValueLocked": "63500",
+      "totalAllocated": "63500",
       "totalPendingRedemptions": "0",
       "active": true
     }
@@ -843,6 +1190,8 @@
       "navAssets": "1500000",
       "allocatedAssets": "900000",
       "pendingRedemptions": "120000",
+      "nextRedemptionSequence": "1",
+      "nextRedemptionToProcess": "0",
       "minLockupSeconds": 604800,
       "queueOnlyRedemptions": true,
       "active": true
@@ -858,6 +1207,8 @@
       "navAssets": "400000",
       "allocatedAssets": "250000",
       "pendingRedemptions": "0",
+      "nextRedemptionSequence": "0",
+      "nextRedemptionToProcess": "0",
       "minLockupSeconds": 2592000,
       "queueOnlyRedemptions": true,
       "active": true
@@ -869,10 +1220,12 @@
       "displayName": "Genesis Acute Senior Class",
       "priority": 0,
       "restrictionMode": 0,
-      "totalShares": "25000",
-      "navAssets": "25000",
-      "allocatedAssets": "25000",
+      "totalShares": "27000",
+      "navAssets": "27000",
+      "allocatedAssets": "27000",
       "pendingRedemptions": "0",
+      "nextRedemptionSequence": "0",
+      "nextRedemptionToProcess": "0",
       "minLockupSeconds": 2592000,
       "queueOnlyRedemptions": true,
       "active": true
@@ -884,10 +1237,12 @@
       "displayName": "Genesis Acute First-Loss Class",
       "priority": 1,
       "restrictionMode": 0,
-      "totalShares": "32500",
-      "navAssets": "32500",
-      "allocatedAssets": "32500",
+      "totalShares": "36500",
+      "navAssets": "36500",
+      "allocatedAssets": "36500",
       "pendingRedemptions": "0",
+      "nextRedemptionSequence": "0",
+      "nextRedemptionToProcess": "0",
       "minLockupSeconds": 2592000,
       "queueOnlyRedemptions": true,
       "active": true
@@ -927,10 +1282,10 @@
       "capitalClass": "9BhQ9fDquKHqYCTqXZduHUXksxZpzHdLL8QF9F2yk8vr",
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
-        "funded": "25000",
-        "allocated": "25000"
+        "funded": "27000",
+        "allocated": "27000"
       },
-      "totalShares": "25000",
+      "totalShares": "27000",
       "realizedYieldAmount": "0",
       "realizedLossAmount": "0"
     },
@@ -939,10 +1294,10 @@
       "capitalClass": "J3TdCvLVnsbsPMb5ueNvoj689KjHyyu98Z8TnGqVxoZN",
       "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
       "sheet": {
-        "funded": "32500",
-        "allocated": "32500"
+        "funded": "36500",
+        "allocated": "36500"
       },
-      "totalShares": "32500",
+      "totalShares": "36500",
       "realizedYieldAmount": "0",
       "realizedLossAmount": "0"
     }
@@ -955,10 +1310,13 @@
       "shares": "1500000",
       "subscriptionBasis": "1500000",
       "pendingRedemptionShares": "120000",
+      "pendingRedemptionAssets": "120000",
       "realizedDistributions": "22000",
       "impairedPrincipal": "8000",
       "credentialed": true,
-      "queueStatus": 0
+      "queueStatus": 1,
+      "redemptionSequence": "0",
+      "redemptionRequestedAt": 1770000000
     },
     {
       "address": "HPnhoiSwWvWQVzu4F5yZ9Bg2YVVXrc519TR5GTyNmW7P",
@@ -967,34 +1325,43 @@
       "shares": "400000",
       "subscriptionBasis": "400000",
       "pendingRedemptionShares": "0",
+      "pendingRedemptionAssets": "0",
       "realizedDistributions": "10000",
       "impairedPrincipal": "0",
       "credentialed": true,
-      "queueStatus": 0
+      "queueStatus": 0,
+      "redemptionSequence": "0",
+      "redemptionRequestedAt": 0
     },
     {
       "address": "GKzu2FFMjUjQhqxXu4rNLLXEL3JcmeDvqHfcvEcsst4x",
       "owner": "A8EiQ8PAVX6idgpC4aumJAtxwdYxb1ncz945XWRm4nGg",
       "capitalClass": "9BhQ9fDquKHqYCTqXZduHUXksxZpzHdLL8QF9F2yk8vr",
-      "shares": "25000",
-      "subscriptionBasis": "25000",
+      "shares": "27000",
+      "subscriptionBasis": "27000",
       "pendingRedemptionShares": "0",
+      "pendingRedemptionAssets": "0",
       "realizedDistributions": "0",
       "impairedPrincipal": "0",
       "credentialed": true,
-      "queueStatus": 0
+      "queueStatus": 0,
+      "redemptionSequence": "0",
+      "redemptionRequestedAt": 0
     },
     {
       "address": "GzSCE63UCktu3vTw5QpZb3NQHsm5Nqr8YiyJbqKrULkS",
       "owner": "A8EiQ8PAVX6idgpC4aumJAtxwdYxb1ncz945XWRm4nGg",
       "capitalClass": "J3TdCvLVnsbsPMb5ueNvoj689KjHyyu98Z8TnGqVxoZN",
-      "shares": "32500",
-      "subscriptionBasis": "32500",
+      "shares": "36500",
+      "subscriptionBasis": "36500",
       "pendingRedemptionShares": "0",
+      "pendingRedemptionAssets": "0",
       "realizedDistributions": "0",
       "impairedPrincipal": "0",
       "credentialed": true,
-      "queueStatus": 0
+      "queueStatus": 0,
+      "redemptionSequence": "0",
+      "redemptionRequestedAt": 0
     }
   ],
   "allocationPositions": [
@@ -1105,6 +1472,78 @@
       "impairedAmount": "0",
       "deallocationOnly": false,
       "active": true
+    },
+    {
+      "address": "9agzGNjYCk9ncw3SPDv34VFNdHetkZtzHoe42kQfJA4Y",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "liquidityPool": "v2ex1q9pCXjFQTmR41Zzd52CAgvTG1qx1n2uR9gZu7t",
+      "capitalClass": "J3TdCvLVnsbsPMb5ueNvoj689KjHyyu98Z8TnGqVxoZN",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "AfXyxKjYtbdbHZsnYzFrsuQL67Wx2PCdkek2ZLGuQbwV",
+      "fundingLine": "8CWwBgmaGjSgQ41BMMyKz9N1CqdsR82FqBnAPuCgFRTu",
+      "capAmount": "750",
+      "weightBps": 1250,
+      "allocatedAmount": "750",
+      "utilizedAmount": "0",
+      "reservedCapacity": "0",
+      "realizedPnl": "0",
+      "impairedAmount": "0",
+      "deallocationOnly": false,
+      "active": true
+    },
+    {
+      "address": "2E32dm2QeZzisrb6bzcQmVGJFQcHLV3GG6bbcVd4WsVL",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "liquidityPool": "v2ex1q9pCXjFQTmR41Zzd52CAgvTG1qx1n2uR9gZu7t",
+      "capitalClass": "9BhQ9fDquKHqYCTqXZduHUXksxZpzHdLL8QF9F2yk8vr",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "4w9FPbRUawSn2EKgMheiStpJfiNEvqgUt2UNWFh6pYcz",
+      "fundingLine": "9KXaMwHTcS8u4ELHqxpd14nMW4xRSPFykcavAoMGQHac",
+      "capAmount": "2000",
+      "weightBps": 3334,
+      "allocatedAmount": "2000",
+      "utilizedAmount": "0",
+      "reservedCapacity": "0",
+      "realizedPnl": "0",
+      "impairedAmount": "0",
+      "deallocationOnly": false,
+      "active": true
+    },
+    {
+      "address": "EaKPs3S6tZPq9e3S2F8fcVvEnSbEhyk2CHcNLrJAF6fC",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "liquidityPool": "v2ex1q9pCXjFQTmR41Zzd52CAgvTG1qx1n2uR9gZu7t",
+      "capitalClass": "J3TdCvLVnsbsPMb5ueNvoj689KjHyyu98Z8TnGqVxoZN",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "E1tyBZ54iomtPSj1cDe7P1KTV4721E6KxApHfpBcv3aH",
+      "fundingLine": "8XajVueHsrRqvkiUctG1McFSX4oGVCdk2cYa5s7FwBAL",
+      "capAmount": "2000",
+      "weightBps": 3333,
+      "allocatedAmount": "2000",
+      "utilizedAmount": "0",
+      "reservedCapacity": "0",
+      "realizedPnl": "0",
+      "impairedAmount": "0",
+      "deallocationOnly": false,
+      "active": true
+    },
+    {
+      "address": "7ivYP54pQtoh2eXNitekh5LJdg2CR7C1mNwk288LKRHW",
+      "reserveDomain": "FCHdyAdZh8wUq4jskQUgw3tWLZ1EgLvCo9iadJ3tvZsy",
+      "liquidityPool": "v2ex1q9pCXjFQTmR41Zzd52CAgvTG1qx1n2uR9gZu7t",
+      "capitalClass": "J3TdCvLVnsbsPMb5ueNvoj689KjHyyu98Z8TnGqVxoZN",
+      "healthPlan": "CupszcyANuUC8tUQa9VprMTwYsXHVEDLWoZ31Xb7Aqns",
+      "policySeries": "HkLe21Xw19hzbT6oWKaw12Dhs2Equ3HNC5NJgB5bHJsj",
+      "fundingLine": "AJ9kVAoAtaCs2a8KsttRmnvBJJZN7W3Q1jsLNpr9SnG",
+      "capAmount": "1250",
+      "weightBps": 2083,
+      "allocatedAmount": "1250",
+      "utilizedAmount": "0",
+      "reservedCapacity": "0",
+      "realizedPnl": "0",
+      "impairedAmount": "0",
+      "deallocationOnly": false,
+      "active": true
     }
   ],
   "allocationLedgers": [
@@ -1175,6 +1614,46 @@
         "allocated": "20000"
       },
       "realizedPnl": "0"
+    },
+    {
+      "address": "CaVhxTSDCtv7mY7RMfxKRUiGhu1NDAZv7hpQ5Uc6qcZn",
+      "allocationPosition": "9agzGNjYCk9ncw3SPDv34VFNdHetkZtzHoe42kQfJA4Y",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "750",
+        "allocated": "750"
+      },
+      "realizedPnl": "0"
+    },
+    {
+      "address": "7wBuAho6C1njADj7qEbaWThZy9pcjrKFjTcDNKrTBPvZ",
+      "allocationPosition": "2E32dm2QeZzisrb6bzcQmVGJFQcHLV3GG6bbcVd4WsVL",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "2000",
+        "allocated": "2000"
+      },
+      "realizedPnl": "0"
+    },
+    {
+      "address": "FyL6wBH7nZfQnqF3WnQFTadCQUzoEx3y81s9qpJ5zuvD",
+      "allocationPosition": "EaKPs3S6tZPq9e3S2F8fcVvEnSbEhyk2CHcNLrJAF6fC",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "2000",
+        "allocated": "2000"
+      },
+      "realizedPnl": "0"
+    },
+    {
+      "address": "CZvDV3fp27A49fyumb1zwnAPLFf3J3sKZ8Bj3DtD7ka",
+      "allocationPosition": "7ivYP54pQtoh2eXNitekh5LJdg2CR7C1mNwk288LKRHW",
+      "assetMint": "hWMfBLfo8EBaRTCcrWV33xaUR8gK2iTtqPoQvEMHmvu",
+      "sheet": {
+        "funded": "1250",
+        "allocated": "1250"
+      },
+      "realizedPnl": "0"
     }
   ],
   "outcomesBySeries": {
@@ -1182,7 +1661,11 @@
     "3rKuCWAbHejuZx2wc2eX67TXVxctxwSjovFQnV2F81oL": "420",
     "AwHnqcXgtiYvZQqv4pp97yrDDd3ZtdCyv76q9yaFhwqF": "7",
     "RmUw2ikxBSm6X6DPCS3k6jDvGGUj3WdE8riXrWHziAX": "0",
-    "Gjz46VEpFKAHYUsiGg7jrb3yj5upHtmhaKxPR5YPChUs": "0"
+    "Gjz46VEpFKAHYUsiGg7jrb3yj5upHtmhaKxPR5YPChUs": "0",
+    "AfXyxKjYtbdbHZsnYzFrsuQL67Wx2PCdkek2ZLGuQbwV": "0",
+    "4w9FPbRUawSn2EKgMheiStpJfiNEvqgUt2UNWFh6pYcz": "0",
+    "E1tyBZ54iomtPSj1cDe7P1KTV4721E6KxApHfpBcv3aH": "0",
+    "HkLe21Xw19hzbT6oWKaw12Dhs2Equ3HNC5NJgB5bHJsj": "0"
   },
   "wallets": [
     {
