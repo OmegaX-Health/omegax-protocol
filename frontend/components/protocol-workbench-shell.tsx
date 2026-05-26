@@ -438,7 +438,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
         <div className="protocol-footer-identity">
           <span className="protocol-footer-mark">OmegaX Protocol</span>
           <span className="protocol-footer-legal">
-            &copy; 2026 OmegaX Health Capital Markets · All rights reserved
+            &copy; 2026 OmegaX Protocol · All rights reserved
           </span>
         </div>
 

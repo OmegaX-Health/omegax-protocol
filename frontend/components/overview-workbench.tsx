@@ -421,7 +421,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
             <section className="ov-hero">
               <div className="ov-hero-glow" aria-hidden="true" />
               <span className="ov-eyebrow">Overview</span>
-              <h1 className="ov-hero-title">Health Capital Markets</h1>
+              <h1 className="ov-hero-title">OmegaX Protocol</h1>
 
               <div className="ov-wave-panel">
                 <div className="ov-wave-scan" aria-hidden="true" />

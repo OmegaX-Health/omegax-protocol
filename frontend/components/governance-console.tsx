@@ -13,6 +13,7 @@ import { GovernanceProposalDetailPanel } from "@/components/governance-proposal-
 import { ProtocolDetailDisclosure } from "@/components/protocol-detail-disclosure";
 import { RealmsActionsPanel } from "@/components/realms-actions-panel";
 import { useProtocolTransactionReviewPrompt } from "@/components/protocol-transaction-review";
+import { WizardDetailSheet, type WizardDetailMetaItem } from "@/components/wizard-detail-sheet";
 import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast";
 import {
   buildDepositGoverningTokensTx,
@@ -39,6 +40,7 @@ type GovernanceConsoleProps = {
 
 type ProposalGroupKey = keyof GovernanceDashboardSummary["proposalCounts"];
 type ProposalPlan = Awaited<ReturnType<typeof buildSchemaStateProposalPlan>>;
+type VotingPowerAction = "deposit" | "withdraw";
 
 const GROUP_LABELS: Record<ProposalGroupKey, string> = {
   active: "Active",
@@ -77,6 +79,15 @@ function schemaOptionLabel(schema: SchemaSummary): string {
   return `${schema.schemaKey} v${schema.version}${schema.verified ? " • verified" : " • draft"}`;
 }
 
+function GovernanceReviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="plans-wizard-review-row">
+      <span className="plans-wizard-review-label">{label}</span>
+      <span className="plans-wizard-review-value">{value}</span>
+    </div>
+  );
+}
+
 export function GovernanceConsole({
   initialProtocolConfig = null,
   sectionMode = "full",
@@ -96,6 +107,7 @@ export function GovernanceConsole({
   const [statusTone, setStatusTone] = useState<"ok" | "error" | null>(null);
   const [txUrl, setTxUrl] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState("1");
+  const [votingPowerAction, setVotingPowerAction] = useState<VotingPowerAction | null>(null);
 
   const [emergencyPaused, setEmergencyPaused] = useState(false);
 
@@ -219,6 +231,17 @@ export function GovernanceConsole({
     || manualUnverifySchemaHashes.trim()
     || manualCloseSchemaHashes.trim(),
   );
+  const votingPowerMeta = useMemo<WizardDetailMetaItem[]>(() => {
+    const meta: WizardDetailMetaItem[] = [
+      { label: explorerClusterLabel(), tone: "muted" },
+      { label: dashboard?.realmName ?? "Governance", tone: "accent" },
+    ];
+    if (votingPowerAction === "withdraw") meta.push({ label: "Withdraw all", tone: "muted" });
+    return meta;
+  }, [dashboard?.realmName, votingPowerAction]);
+  const votingPowerDepositDisabled = Boolean(walletGuard) || busy != null || !depositAmount.trim();
+  const votingPowerWithdrawDisabled = Boolean(walletGuard) || busy != null || (dashboard?.wallet?.depositedVotesRaw ?? 0n) === 0n;
+  const closeVotingPowerSheet = () => setVotingPowerAction(null);
 
   async function onDeposit() {
     if (!publicKey || !sendTransaction || !dashboard) return;
@@ -428,7 +451,7 @@ export function GovernanceConsole({
   const sectionTitle = sectionMode === "full" ? "DAO Operations" : "Governance operations";
   const subtitle =
     sectionMode === "full"
-      ? "Review DAO health, move voting power, and package governance work without dropping into raw protocol forms."
+      ? "Review DAO health, manage voting power, and package governance work without dropping into raw protocol forms."
       : "Use the workspace to review DAO state first, then open the proposal or fallback path that matches this environment.";
 
   return (
@@ -526,33 +549,39 @@ export function GovernanceConsole({
           {!dashboard.rules.pluginEnabled ? (
             <div className="operator-task-card">
               <div className="operator-task-head">
-                <h3 className="operator-task-title">Move voting power</h3>
-                <p className="operator-task-copy">Deposit tokens when you need to create or vote on proposals, then withdraw when you are done.</p>
+                <h3 className="operator-task-title">Voting power actions</h3>
+                <p className="operator-task-copy">Keep the current balance visible, then open a focused transaction review when a deposit or withdrawal is needed.</p>
               </div>
-              <div className="grid gap-3 md:grid-cols-[1fr,auto,auto] md:items-end">
-                <label className="space-y-1">
-                  <span className="metric-label">Deposit amount</span>
-                  <input
-                    className="field-input"
-                    value={depositAmount}
-                    onChange={(event) => setDepositAmount(event.target.value)}
-                  />
-                </label>
+              <div className="governance-action-grid" aria-label="Governance voting power actions">
                 <button
                   type="button"
-                  className="action-button"
-                  onClick={() => void onDeposit()}
-                  disabled={Boolean(walletGuard) || busy != null}
+                  className="governance-action-card"
+                  onClick={() => setVotingPowerAction("deposit")}
+                  disabled={Boolean(walletGuard)}
+                  aria-haspopup="dialog"
                 >
-                  {busy === "deposit" ? "Depositing..." : "Deposit voting power"}
+                  <span className="material-symbols-outlined governance-action-icon" aria-hidden="true">how_to_vote</span>
+                  <span className="governance-action-copy">
+                    <span className="governance-action-title">Deposit voting power</span>
+                    <span className="governance-action-summary">Set amount and review the owner-record route.</span>
+                  </span>
+                  <span className="governance-action-open">{walletGuard ? "Locked" : "Open"}</span>
                 </button>
                 <button
                   type="button"
-                  className="secondary-button"
-                  onClick={() => void onWithdraw()}
-                  disabled={Boolean(walletGuard) || busy != null || (dashboard.wallet?.depositedVotesRaw ?? 0n) === 0n}
+                  className="governance-action-card"
+                  onClick={() => setVotingPowerAction("withdraw")}
+                  disabled={Boolean(walletGuard) || (dashboard.wallet?.depositedVotesRaw ?? 0n) === 0n}
+                  aria-haspopup="dialog"
                 >
-                  {busy === "withdraw" ? "Withdrawing..." : "Withdraw all"}
+                  <span className="material-symbols-outlined governance-action-icon" aria-hidden="true">undo</span>
+                  <span className="governance-action-copy">
+                    <span className="governance-action-title">Withdraw voting power</span>
+                    <span className="governance-action-summary">Review and withdraw the deposited balance.</span>
+                  </span>
+                  <span className="governance-action-open">
+                    {walletGuard || (dashboard.wallet?.depositedVotesRaw ?? 0n) === 0n ? "Locked" : "Open"}
+                  </span>
                 </button>
               </div>
               {walletGuard ? <p className="field-help">{walletGuard}</p> : null}
@@ -860,6 +889,100 @@ export function GovernanceConsole({
           ) : null}
         </section>
       ) : null}
+
+      <WizardDetailSheet
+        open={votingPowerAction !== null}
+        onOpenChange={(open) => {
+          if (!open) closeVotingPowerSheet();
+        }}
+        title={votingPowerAction === "withdraw" ? "Withdraw voting power" : "Deposit voting power"}
+        summary={
+          votingPowerAction === "withdraw"
+            ? "Review the token owner record and deposited balance before asking the wallet to withdraw governance tokens."
+            : "Choose the amount, review the governance token route, then sign the deposit transaction."
+        }
+        meta={votingPowerMeta}
+      >
+        <div className="operator-drawer">
+          <div className="capital-lp-step-list" aria-label="Transaction steps">
+            <span className="capital-lp-step capital-lp-step-active">Configure</span>
+            <span className="capital-lp-step capital-lp-step-active">Review</span>
+            <span className="capital-lp-step">Sign</span>
+          </div>
+
+          {votingPowerAction === "deposit" ? (
+            <fieldset className="operator-drawer-fieldset">
+              <legend className="operator-drawer-legend">Deposit details</legend>
+              <label className="plans-wizard-field-group">
+                <span className="plans-wizard-field-label">Deposit amount</span>
+                <span className="plans-wizard-field-bar">
+                  <input
+                    className="plans-wizard-input"
+                    value={depositAmount}
+                    onChange={(event) => setDepositAmount(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="1"
+                  />
+                </span>
+                <span className="field-help">Amount is converted using the governance token decimals before signing.</span>
+              </label>
+            </fieldset>
+          ) : null}
+
+          <div className="plans-wizard-review-section">
+            <div className="plans-wizard-review-section-head">
+              <h3>Transaction review</h3>
+              <p>Confirm wallet balance, deposited votes, and token owner record before the wallet prompt opens.</p>
+            </div>
+            <div className="plans-wizard-review-section-rows">
+              <GovernanceReviewRow label="Realm" value={dashboard.realmName} />
+              <GovernanceReviewRow label="Wallet balance" value={formatGovernanceAmount(dashboard.wallet?.governingTokenBalanceRaw ?? 0n, dashboard.tokenDecimals)} />
+              <GovernanceReviewRow label="Deposited votes" value={formatGovernanceAmount(dashboard.wallet?.depositedVotesRaw ?? 0n, dashboard.tokenDecimals)} />
+              {votingPowerAction === "deposit" ? (
+                <GovernanceReviewRow label="Deposit amount" value={depositAmount.trim() || "0"} />
+              ) : (
+                <GovernanceReviewRow label="Withdrawal" value="All deposited governance tokens" />
+              )}
+              <GovernanceReviewRow label="Token account" value={shortAddress(dashboard.wallet?.tokenAccountAddress)} />
+              <GovernanceReviewRow label="Owner record" value={shortAddress(dashboard.wallet?.tokenOwnerRecordAddress)} />
+            </div>
+          </div>
+
+          {walletGuard ? <p className="operator-drawer-hint">{walletGuard}</p> : null}
+
+          <div className="plans-wizard-footer">
+            <button type="button" className="plans-wizard-back" onClick={closeVotingPowerSheet}>
+              <span className="material-symbols-outlined" aria-hidden="true">close</span>
+              Cancel
+            </button>
+            {votingPowerAction === "withdraw" ? (
+              <button
+                type="button"
+                className="plans-wizard-next"
+                onClick={() => void onWithdraw()}
+                disabled={votingPowerWithdrawDisabled}
+              >
+                <span className="plans-wizard-next-label">
+                  {busy === "withdraw" ? "Submitting" : "Review withdrawal"}
+                </span>
+                <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="plans-wizard-next"
+                onClick={() => void onDeposit()}
+                disabled={votingPowerDepositDisabled}
+              >
+                <span className="plans-wizard-next-label">
+                  {busy === "deposit" ? "Submitting" : "Review deposit"}
+                </span>
+                <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </WizardDetailSheet>
     </div>
   );
 }
