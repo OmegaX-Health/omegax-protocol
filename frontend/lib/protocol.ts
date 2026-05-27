@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { BN, BorshCoder, Program, type Idl } from "@coral-xyz/anchor";
+import { BN, BorshCoder, type Idl } from "@coral-xyz/anchor";
 import { Buffer } from "buffer";
 import {
   Connection,
@@ -137,6 +137,15 @@ import type {
   PoolRedemptionRequestSummary,
   WalletPoolPositionSummary,
 } from "./protocol/types";
+import {
+  asAddress,
+  asOptionalAddress,
+  bigintFromAnchorValue,
+  decodedField,
+  numberFromAnchorValue,
+  resolveProtocolAccountName,
+  stringFromAnchorValue,
+} from "./protocol/anchor-decode";
 import {
   classicTokenProgramId,
   getProgramId,
@@ -1109,12 +1118,6 @@ export function toExplorerAddressLink(address: string, cluster?: string | null):
 
 const PROTOCOL_IDL = protocolIdl as Idl;
 const PROTOCOL_CODER = new BorshCoder(PROTOCOL_IDL);
-const PROTOCOL_ACCOUNT_NAME_BY_DISCRIMINATOR = new Map<string, string>(
-  Object.entries(PROTOCOL_ACCOUNT_DISCRIMINATORS).map(([name, discriminator]) => [
-    Array.from(discriminator).join(","),
-    name,
-  ]),
-);
 
 export const MEMBER_DELEGATED_RIGHT_FLAGS = [
   "claim_reward",
