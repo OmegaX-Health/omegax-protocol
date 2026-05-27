@@ -44,6 +44,21 @@ jobs:
         if: steps.qedgen_changes.outputs.relevant != 'true'
         run: echo "No QEDGen-relevant changes in this pull request."
 
+      - name: Free hosted runner disk
+        if: steps.qedgen_changes.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /usr/local/.ghcup \
+            /opt/ghc \
+            /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          df -h
+
       - name: Setup Node.js
         if: steps.qedgen_changes.outputs.relevant == 'true'
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
