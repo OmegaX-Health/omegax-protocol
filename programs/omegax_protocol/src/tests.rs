@@ -689,7 +689,7 @@ fn reserve_asset_capacity_requires_published_price() {
         reserve_domain: Pubkey::new_unique(),
         asset_mint: Pubkey::new_unique(),
         oracle_authority: Pubkey::new_unique(),
-        asset_symbol: "OMEGAX".to_string(),
+        asset_symbol: "REWARD".to_string(),
         role: RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
         payout_priority: 4,
         oracle_source: RESERVE_ORACLE_SOURCE_CHAINLINK_DATA_STREAM,

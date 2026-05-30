@@ -248,10 +248,9 @@ fresh confidence-bounded `ReserveAssetRail`. The program does not silently mutat
 claim ledger while draining a WBTC/SOL/WETH vault and does not perform DEX
 swaps in this pass.
 
-`$OMEGAX` (`4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump`) is not the
-default claims settlement mint. It may be configured as a last-resort selected
-payout rail only when explicitly enabled, payout-enabled, and fresh
-confidence-bounded. Founder reservations remain off-chain until later
+Volatile ecosystem assets are not the default claims settlement mint. They may
+be configured as last-resort selected payout rails only when explicitly enabled,
+payout-enabled, and fresh confidence-bounded. Founder reservations remain off-chain until later
 activation/posting through ordinary premium and reserve controls.
 
 ## 11. Liability-State Hardening Addendum

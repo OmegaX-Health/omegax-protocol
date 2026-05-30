@@ -158,7 +158,7 @@ function createValidBasics(intent: LaunchBasicsValidationInput["launchIntent"]):
     reserveDomainAddress: "GjJFUSzbjZZMXySmJdb4pxrnPHDuC8rWN7XQkkQRnM7x",
     metadataUri: "https://protocol.omegax.health/plans/nexus-plan",
     payoutAssetMode: "spl",
-    payoutMint: "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump",
+    payoutMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     rewardPayoutUi: "25",
     termsHashHex: "",
     payoutPolicyHashHex: "",
@@ -283,14 +283,14 @@ test("membership validation blocks unsupported protection gate combinations whil
   const rewardOnly = createMembership("rewards");
   rewardOnly.membershipMode = "token_gate";
   rewardOnly.membershipGateKind = "fungible_snapshot";
-  rewardOnly.tokenGateMint = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+  rewardOnly.tokenGateMint = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
   rewardOnly.tokenGateMinBalance = "1000";
   assert.deepEqual(validateLaunchMembership(rewardOnly), []);
 
   const protection = createMembership("insurance");
   protection.membershipMode = "token_gate";
   protection.membershipGateKind = "fungible_snapshot";
-  protection.tokenGateMint = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+  protection.tokenGateMint = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
   protection.tokenGateMinBalance = "1000";
   assert(
     validateLaunchMembership(protection).includes(
@@ -301,7 +301,7 @@ test("membership validation blocks unsupported protection gate combinations whil
   const protectionAnchor = createMembership("hybrid");
   protectionAnchor.membershipMode = "token_gate";
   protectionAnchor.membershipGateKind = "nft_anchor";
-  protectionAnchor.tokenGateMint = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+  protectionAnchor.tokenGateMint = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
   protectionAnchor.tokenGateMinBalance = "1";
   assert.deepEqual(validateLaunchMembership(protectionAnchor), []);
 });

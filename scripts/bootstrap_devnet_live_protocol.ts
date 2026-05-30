@@ -797,7 +797,7 @@ async function main() {
     label: "open-reward",
     reserveDomain: openReserveDomain.address,
     assetMint: fixtureState.rewardMint,
-    assetSymbol: "OMEGAX",
+    assetSymbol: "REWARD",
     role: protocol.RESERVE_ASSET_ROLE_TREASURY_LAST_RESORT,
     payoutPriority: 20,
     priceUsd1e8: 100_000_000n,

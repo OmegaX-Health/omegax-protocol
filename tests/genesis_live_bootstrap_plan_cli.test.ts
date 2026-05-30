@@ -10,7 +10,7 @@ import test from "node:test";
 import { Keypair } from "@solana/web3.js";
 
 const MAINNET_USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const OMEGAX_MINT = "4Aar9R14YMbEie6yh8WcH1gWXrBtfucoFjw6SpjXpump";
+const NON_SETTLEMENT_MINT = "So11111111111111111111111111111111111111112";
 
 function writeKeypair(path: string): Keypair {
   const keypair = Keypair.generate();
@@ -77,7 +77,7 @@ test("release evidence uses USDC as preferred mainnet settlement mint", () => {
   );
   assert.match(evidence, new RegExp(`OMEGAX_LIVE_SETTLEMENT_MINT=${MAINNET_USDC}`));
   assert.match(evidence, /not the\s+default claims settlement mint/);
-  assert.doesNotMatch(evidence, new RegExp(`OMEGAX_LIVE_SETTLEMENT_MINT=${OMEGAX_MINT}`));
+  assert.doesNotMatch(evidence, new RegExp(`OMEGAX_LIVE_SETTLEMENT_MINT=${NON_SETTLEMENT_MINT}`));
 });
 
 test("Genesis live plan mode rejects a missing oracle keypair before any send path", () => {
