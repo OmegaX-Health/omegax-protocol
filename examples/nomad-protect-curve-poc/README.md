@@ -36,7 +36,7 @@ The generator writes:
 
 ## Curve
 
-The PoC uses a pump.fun-style increasing quote curve over active issued coverage units:
+The PoC uses a monotonic increasing quote curve over active issued coverage units:
 
 ```text
 unit_price(u) = base_unit_premium * risk_multiplier * reserve_stress * (1 + u / curve_depth) ^ gamma
