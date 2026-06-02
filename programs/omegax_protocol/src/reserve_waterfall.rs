@@ -11,6 +11,7 @@ use crate::events::*;
 use crate::kernel::*;
 use crate::state::*;
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn configure_reserve_asset_rail(
     ctx: Context<ConfigureReserveAssetRail>,
     args: ConfigureReserveAssetRailArgs,
@@ -99,6 +100,7 @@ pub(crate) fn configure_reserve_asset_rail(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn publish_reserve_asset_rail_price(
     ctx: Context<PublishReserveAssetRailPrice>,
     args: PublishReserveAssetRailPriceArgs,
@@ -358,15 +360,29 @@ fn checked_sub_i64(left: i64, right: i64) -> Result<i64> {
 #[derive(Accounts)]
 #[instruction(args: ConfigureReserveAssetRailArgs)]
 pub struct ConfigureReserveAssetRail<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()],
         bump = reserve_domain.bump,
     )]
     pub reserve_domain: Box<Account<'info, ReserveDomain>>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()],
+        bump = reserve_domain.bump,
+    )]
+    pub reserve_domain: &'info Account<ReserveDomainAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -391,7 +407,7 @@ pub struct ConfigureReserveAssetRail<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub reserve_asset_rail: &'info mut Account<ReserveAssetRail<'info>>,
+    pub reserve_asset_rail: &'info mut Account<ReserveAssetRailAccountData<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -400,9 +416,17 @@ pub struct ConfigureReserveAssetRail<'info> {
 
 #[derive(Accounts)]
 pub struct PublishReserveAssetRailPrice<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [
@@ -413,4 +437,14 @@ pub struct PublishReserveAssetRailPrice<'info> {
         bump = reserve_asset_rail.bump,
     )]
     pub reserve_asset_rail: Box<Account<'info, ReserveAssetRail>>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [
+            SEED_RESERVE_ASSET_RAIL,
+            reserve_asset_rail.reserve_domain.as_ref(),
+            reserve_asset_rail.asset_mint.as_ref(),
+        ],
+        bump = reserve_asset_rail.bump,
+    )]
+    pub reserve_asset_rail: &'info mut Account<ReserveAssetRailAccountData<'info>>,
 }

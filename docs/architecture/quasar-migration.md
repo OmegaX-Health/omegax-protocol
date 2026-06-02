@@ -65,6 +65,10 @@ Completed setup:
   opening, sponsor and premium inflows, obligation creation, reserve release,
   and settlement. Their Anchor handler bodies remain on the Anchor path while
   the Quasar facade remains fail-closed.
+- Governance, oracle/schema, plan/membership, reserve-custody, and
+  reserve-waterfall account contexts now also use feature-gated Quasar
+  reference wrappers and account-data aliases. The account-context dynamic
+  lifetime bucket is cleared across the current public surface.
 
 The active Quasar compile inventory is:
 
@@ -73,14 +77,13 @@ npm run quasar:check
 ```
 
 As of this migration checkpoint, that command reaches `omegax_protocol` under
-Rust 1.89 and then fails on source-port work with 2460 compiler errors. The
-dynamic account lifetime bucket is reduced from 189 diagnostics to 52 by
-moving shared helpers, Quasar-only reference fields, and the capital, claim,
-fee, and funding-obligation account contexts onto account-data aliases. Those
-domains no longer have missing-lifetime diagnostics; their remaining Quasar
-failures are instruction argument `WriteBytes`/POD, PDA seed expression, event,
-sysvar, and SPL CPI surface work. The next remaining lifetime bucket starts in
-the governance account contexts. The remaining cross-repo failure buckets are:
+Rust 1.89 and then fails on source-port work with 1624 compiler errors. The
+dynamic account lifetime bucket is reduced from 189 diagnostics to 0 by moving
+shared helpers, Quasar-only reference fields, and all current public
+account-context domains onto account-data aliases. The next compiler bucket is
+Quasar PDA seed-expression shape, where field references such as
+`liquidity_pool.reserve_domain` need to move to Quasar-compatible account
+field access. The remaining cross-repo failure buckets are:
 
 - instruction handlers: the Quasar facade is declared and dispatches fail
   closed, but each public handler still needs its real body ported from Anchor
@@ -90,8 +93,9 @@ the governance account contexts. The remaining cross-repo failure buckets are:
   `&'info Signer`, `&'info mut Account<T>`, `&'info Program<System>`, and
   `&'info InterfaceAccount<T>`, not Anchor `Signer<'info>`,
   `Account<'info, T>`, `Program<'info, T>`, or `Box<Account<'info, T>>`.
-  Capital, claims, fees, and funding obligations are the first completed
-  domains for this wrapper shape.
+  The current public account-context surface is converted for this wrapper
+  shape; remaining account-context work is seed-expression and instruction-arg
+  syntax, not missing dynamic account lifetimes.
 - instruction args: Quasar account-context `#[instruction(...)]` attributes
   expect field lists such as `#[instruction(domain_id: String<u32, 32>, ...)]`,
   not Anchor's `#[instruction(args: CreateReserveDomainArgs)]`. The public

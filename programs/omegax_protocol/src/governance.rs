@@ -16,6 +16,7 @@ use crate::types::*;
 #[cfg(feature = "quasar")]
 use crate::OmegaxProtocol;
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn initialize_protocol_governance(
     ctx: Context<InitializeProtocolGovernance>,
     args: InitializeProtocolGovernanceArgs,
@@ -44,6 +45,7 @@ pub(crate) fn initialize_protocol_governance(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn set_protocol_emergency_pause(
     ctx: Context<SetProtocolEmergencyPause>,
     args: SetProtocolEmergencyPauseArgs,
@@ -72,6 +74,7 @@ pub(crate) fn set_protocol_emergency_pause(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn rotate_protocol_governance_authority(
     ctx: Context<RotateProtocolGovernanceAuthority>,
     args: RotateProtocolGovernanceAuthorityArgs,
@@ -102,6 +105,7 @@ pub(crate) fn rotate_protocol_governance_authority(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn accept_protocol_governance_authority(
     ctx: Context<AcceptProtocolGovernanceAuthority>,
 ) -> Result<()> {
@@ -122,6 +126,7 @@ pub(crate) fn accept_protocol_governance_authority(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn cancel_protocol_governance_authority_transfer(
     ctx: Context<CancelProtocolGovernanceAuthorityTransfer>,
 ) -> Result<()> {
@@ -146,8 +151,11 @@ pub(crate) fn cancel_protocol_governance_authority_transfer(
 
 #[derive(Accounts)]
 pub struct InitializeProtocolGovernance<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub governance_authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub governance_authority: &'info mut Signer,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -173,14 +181,20 @@ pub struct InitializeProtocolGovernance<'info> {
     )]
     #[cfg(feature = "quasar")]
     pub protocol_governance: &'info mut Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         constraint = program.programdata_address()? == Some(program_data.key()) @ OmegaXProtocolError::Unauthorized
     )]
     pub program: Program<'info, OmegaxProtocol>,
+    #[cfg(feature = "quasar")]
+    pub program: &'info Program<OmegaxProtocol>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         constraint = program_data.upgrade_authority_address == Some(governance_authority.key()) @ OmegaXProtocolError::Unauthorized
     )]
     pub program_data: Account<'info, ProgramData>,
+    #[cfg(feature = "quasar")]
+    pub program_data: &'info Account<ProgramData>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -189,28 +203,56 @@ pub struct InitializeProtocolGovernance<'info> {
 
 #[derive(Accounts)]
 pub struct SetProtocolEmergencyPause<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info mut Account<ProtocolGovernance>,
 }
 
 #[derive(Accounts)]
 pub struct RotateProtocolGovernanceAuthority<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info mut Account<ProtocolGovernance>,
 }
 
 #[derive(Accounts)]
 pub struct AcceptProtocolGovernanceAuthority<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub pending_authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub pending_authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info mut Account<ProtocolGovernance>,
 }
 
 #[derive(Accounts)]
 pub struct CancelProtocolGovernanceAuthorityTransfer<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info mut Account<ProtocolGovernance>,
 }

@@ -3,6 +3,7 @@
 //! Health-plan, policy-series, and member-position instruction handlers and account validation contexts.
 
 use crate::platform::*;
+#[cfg(not(feature = "quasar"))]
 use anchor_spl::token_interface::TokenAccount;
 
 use crate::args::*;
@@ -13,6 +14,7 @@ use crate::kernel::*;
 use crate::state::*;
 use crate::types::*;
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn create_health_plan(
     ctx: Context<CreateHealthPlan>,
     args: CreateHealthPlanArgs,
@@ -68,6 +70,7 @@ pub(crate) fn create_health_plan(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn update_health_plan_controls(
     ctx: Context<UpdateHealthPlanControls>,
     args: UpdateHealthPlanControlsArgs,
@@ -109,6 +112,7 @@ pub(crate) fn update_health_plan_controls(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn create_policy_series(
     ctx: Context<CreatePolicySeries>,
     args: CreatePolicySeriesArgs,
@@ -166,6 +170,7 @@ pub(crate) fn create_policy_series(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn initialize_series_reserve_ledger(
     ctx: Context<InitializeSeriesReserveLedger>,
     args: InitializeSeriesReserveLedgerArgs,
@@ -196,6 +201,7 @@ pub(crate) fn initialize_series_reserve_ledger(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn version_policy_series(
     ctx: Context<VersionPolicySeries>,
     args: VersionPolicySeriesArgs,
@@ -259,6 +265,7 @@ pub(crate) fn version_policy_series(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn open_member_position(
     ctx: Context<OpenMemberPosition>,
     args: OpenMemberPositionArgs,
@@ -327,6 +334,7 @@ pub(crate) fn open_member_position(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn update_member_eligibility(
     ctx: Context<UpdateMemberEligibility>,
     args: UpdateMemberEligibilityArgs,
@@ -374,12 +382,23 @@ pub(crate) fn update_member_eligibility(
 #[derive(Accounts)]
 #[instruction(args: CreateHealthPlanArgs)]
 pub struct CreateHealthPlan<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub plan_admin: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub plan_admin: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
+    pub reserve_domain: &'info Account<ReserveDomainAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -404,7 +423,7 @@ pub struct CreateHealthPlan<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub health_plan: &'info mut Account<HealthPlan<'info>>,
+    pub health_plan: &'info mut Account<HealthPlanAccountData<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -413,22 +432,44 @@ pub struct CreateHealthPlan<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateHealthPlanControls<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: &'info mut Account<HealthPlanAccountData<'info>>,
 }
 
 #[derive(Accounts)]
 #[instruction(args: CreatePolicySeriesArgs)]
 pub struct CreatePolicySeries<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: &'info Account<HealthPlanAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -453,7 +494,7 @@ pub struct CreatePolicySeries<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub policy_series: &'info mut Account<PolicySeries<'info>>,
+    pub policy_series: &'info mut Account<PolicySeriesAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -488,14 +529,29 @@ pub struct CreatePolicySeries<'info> {
 #[derive(Accounts)]
 #[instruction(args: InitializeSeriesReserveLedgerArgs)]
 pub struct InitializeSeriesReserveLedger<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: &'info Account<HealthPlanAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_POLICY_SERIES, health_plan.key().as_ref(), policy_series.series_id.as_bytes()], bump = policy_series.bump)]
     pub policy_series: Box<Account<'info, PolicySeries>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_POLICY_SERIES, health_plan.key().as_ref(), policy_series.series_id.as_bytes()], bump = policy_series.bump)]
+    pub policy_series: &'info Account<PolicySeriesAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -530,14 +586,29 @@ pub struct InitializeSeriesReserveLedger<'info> {
 #[derive(Accounts)]
 #[instruction(args: VersionPolicySeriesArgs)]
 pub struct VersionPolicySeries<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: &'info Account<HealthPlanAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_POLICY_SERIES, health_plan.key().as_ref(), current_policy_series.series_id.as_bytes()], bump = current_policy_series.bump)]
     pub current_policy_series: Box<Account<'info, PolicySeries>>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_POLICY_SERIES, health_plan.key().as_ref(), current_policy_series.series_id.as_bytes()], bump = current_policy_series.bump)]
+    pub current_policy_series: &'info mut Account<PolicySeriesAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -562,7 +633,7 @@ pub struct VersionPolicySeries<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub next_policy_series: &'info mut Account<PolicySeries<'info>>,
+    pub next_policy_series: &'info mut Account<PolicySeriesAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -597,13 +668,27 @@ pub struct VersionPolicySeries<'info> {
 #[derive(Accounts)]
 #[instruction(args: OpenMemberPositionArgs)]
 pub struct OpenMemberPosition<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub wallet: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub wallet: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: &'info Account<HealthPlanAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     pub policy_series: Option<Box<Account<'info, PolicySeries>>>,
+    #[cfg(feature = "quasar")]
+    pub policy_series: Option<&'info Account<PolicySeriesAccountData<'info>>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -654,8 +739,14 @@ pub struct OpenMemberPosition<'info> {
     )]
     #[cfg(feature = "quasar")]
     pub membership_anchor_seat: Option<&'info mut Account<MembershipAnchorSeat>>,
+    #[cfg(not(feature = "quasar"))]
     pub token_gate_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    #[cfg(feature = "quasar")]
+    pub token_gate_account: Option<&'info InterfaceAccount<TokenAccount>>,
+    #[cfg(not(feature = "quasar"))]
     pub invite_authority: Option<Signer<'info>>,
+    #[cfg(feature = "quasar")]
+    pub invite_authority: Option<&'info Signer>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -664,13 +755,31 @@ pub struct OpenMemberPosition<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateMemberEligibility<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
+    pub health_plan: &'info Account<HealthPlanAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()], bump = member_position.bump)]
     pub member_position: Account<'info, MemberPosition>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_MEMBER_POSITION, health_plan.key().as_ref(), member_position.wallet.as_ref(), member_position.policy_series.as_ref()], bump = member_position.bump)]
+    pub member_position: &'info mut Account<MemberPosition>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,
+    #[cfg(feature = "quasar")]
+    pub membership_anchor_seat: Option<&'info mut Account<MembershipAnchorSeat>>,
 }

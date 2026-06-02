@@ -3,6 +3,7 @@
 //! Reserve-domain and custody-vault instruction handlers and account validation contexts.
 
 use crate::platform::*;
+#[cfg(not(feature = "quasar"))]
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::args::*;
@@ -13,6 +14,7 @@ use crate::kernel::*;
 use crate::state::*;
 use crate::types::*;
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn create_reserve_domain(
     ctx: Context<CreateReserveDomain>,
     args: CreateReserveDomainArgs,
@@ -46,6 +48,7 @@ pub(crate) fn create_reserve_domain(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn update_reserve_domain_controls(
     ctx: Context<UpdateReserveDomainControls>,
     args: UpdateReserveDomainControlsArgs,
@@ -74,6 +77,7 @@ pub(crate) fn update_reserve_domain_controls(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn create_domain_asset_vault(
     ctx: Context<CreateDomainAssetVault>,
     args: CreateDomainAssetVaultArgs,
@@ -118,10 +122,17 @@ pub(crate) fn create_domain_asset_vault(
 #[derive(Accounts)]
 #[instruction(args: CreateReserveDomainArgs)]
 pub struct CreateReserveDomain<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -146,7 +157,7 @@ pub struct CreateReserveDomain<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub reserve_domain: &'info mut Account<ReserveDomain<'info>>,
+    pub reserve_domain: &'info mut Account<ReserveDomainAccountData<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -155,22 +166,44 @@ pub struct CreateReserveDomain<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateReserveDomainControls<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
+    pub reserve_domain: &'info mut Account<ReserveDomainAccountData<'info>>,
 }
 
 #[derive(Accounts)]
 #[instruction(args: CreateDomainAssetVaultArgs)]
 pub struct CreateDomainAssetVault<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
+    pub reserve_domain: &'info mut Account<ReserveDomainAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -226,11 +259,17 @@ pub struct CreateDomainAssetVault<'info> {
     // settlement / redemption / fee-withdrawal handlers will be signed by the
     // domain_asset_vault PDA via transfer_from_domain_vault (see lib.rs:5463
     // region). Operators no longer pre-create the token account externally.
+    #[cfg(not(feature = "quasar"))]
     #[account(
         constraint = asset_mint.key() == args.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
         constraint = asset_mint.to_account_info().owner == &anchor_spl::token::ID @ OmegaXProtocolError::Token2022NotSupported,
     )]
     pub asset_mint: InterfaceAccount<'info, Mint>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        constraint = asset_mint.key() == args.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
+    )]
+    pub asset_mint: &'info InterfaceAccount<Mint>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -258,10 +297,10 @@ pub struct CreateDomainAssetVault<'info> {
     )]
     #[cfg(feature = "quasar")]
     pub vault_token_account: &'info mut InterfaceAccount<TokenAccount>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         constraint = token_program.key() == anchor_spl::token::ID @ OmegaXProtocolError::Token2022NotSupported,
     )]
-    #[cfg(not(feature = "quasar"))]
     pub token_program: Interface<'info, TokenInterface>,
     #[cfg(feature = "quasar")]
     pub token_program: &'info Interface<TokenInterface>,

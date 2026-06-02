@@ -11,6 +11,7 @@ use crate::events::*;
 use crate::kernel::*;
 use crate::state::*;
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn register_oracle(
     ctx: Context<RegisterOracle>,
     args: RegisterOracleArgs,
@@ -59,6 +60,7 @@ pub(crate) fn register_oracle(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn claim_oracle(ctx: Context<ClaimOracle>) -> Result<()> {
     require_keys_eq!(
         ctx.accounts.oracle.key(),
@@ -80,6 +82,7 @@ pub(crate) fn claim_oracle(ctx: Context<ClaimOracle>) -> Result<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn update_oracle_profile(
     ctx: Context<UpdateOracleProfile>,
     args: UpdateOracleProfileArgs,
@@ -116,6 +119,7 @@ pub(crate) fn update_oracle_profile(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn set_pool_oracle(ctx: Context<SetPoolOracle>, args: SetPoolOracleArgs) -> Result<()> {
     require_curator_control(
         &ctx.accounts.authority.key(),
@@ -146,6 +150,7 @@ pub(crate) fn set_pool_oracle(ctx: Context<SetPoolOracle>, args: SetPoolOracleAr
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn set_pool_oracle_permissions(
     ctx: Context<SetPoolOraclePermissions>,
     args: SetPoolOraclePermissionsArgs,
@@ -177,6 +182,7 @@ pub(crate) fn set_pool_oracle_permissions(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn set_pool_oracle_policy(
     ctx: Context<SetPoolOraclePolicy>,
     args: SetPoolOraclePolicyArgs,
@@ -217,6 +223,7 @@ pub(crate) fn set_pool_oracle_policy(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn register_outcome_schema(
     ctx: Context<RegisterOutcomeSchema>,
     args: RegisterOutcomeSchemaArgs,
@@ -254,6 +261,7 @@ pub(crate) fn register_outcome_schema(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn verify_outcome_schema(
     ctx: Context<VerifyOutcomeSchema>,
     args: VerifyOutcomeSchemaArgs,
@@ -277,6 +285,7 @@ pub(crate) fn verify_outcome_schema(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn backfill_schema_dependency_ledger(
     ctx: Context<BackfillSchemaDependencyLedger>,
     args: BackfillSchemaDependencyLedgerArgs,
@@ -306,6 +315,7 @@ pub(crate) fn backfill_schema_dependency_ledger(
     Ok(())
 }
 
+#[cfg(not(feature = "quasar"))]
 pub(crate) fn close_outcome_schema(ctx: Context<CloseOutcomeSchema>) -> Result<()> {
     require_governance(
         &ctx.accounts.governance_authority.key(),
@@ -325,8 +335,11 @@ pub(crate) fn close_outcome_schema(ctx: Context<CloseOutcomeSchema>) -> Result<(
 #[derive(Accounts)]
 #[instruction(args: RegisterOracleArgs)]
 pub struct RegisterOracle<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub admin: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub admin: &'info mut Signer,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -351,7 +364,7 @@ pub struct RegisterOracle<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub oracle_profile: &'info mut Account<OracleProfile<'info>>,
+    pub oracle_profile: &'info mut Account<OracleProfileAccountData<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -360,44 +373,89 @@ pub struct RegisterOracle<'info> {
 
 #[derive(Accounts)]
 pub struct ClaimOracle<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub oracle: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub oracle: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
         bump = oracle_profile.bump
     )]
     pub oracle_profile: Account<'info, OracleProfile>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: &'info mut Account<OracleProfileAccountData<'info>>,
 }
 
 #[derive(Accounts)]
 pub struct UpdateOracleProfile<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
         bump = oracle_profile.bump
     )]
     pub oracle_profile: Account<'info, OracleProfile>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: &'info mut Account<OracleProfileAccountData<'info>>,
 }
 
 #[derive(Accounts)]
 pub struct SetPoolOracle<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
         bump = liquidity_pool.bump
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump
+    )]
+    pub liquidity_pool: &'info Account<LiquidityPoolAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
         bump = oracle_profile.bump
     )]
     pub oracle_profile: Account<'info, OracleProfile>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: &'info Account<OracleProfileAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -431,25 +489,53 @@ pub struct SetPoolOracle<'info> {
 
 #[derive(Accounts)]
 pub struct SetPoolOraclePermissions<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
         bump = liquidity_pool.bump
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump
+    )]
+    pub liquidity_pool: &'info Account<LiquidityPoolAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
         bump = oracle_profile.bump
     )]
     pub oracle_profile: Account<'info, OracleProfile>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
+        bump = oracle_profile.bump
+    )]
+    pub oracle_profile: &'info Account<OracleProfileAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_POOL_ORACLE_APPROVAL, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
         bump = pool_oracle_approval.bump
     )]
     pub pool_oracle_approval: Account<'info, PoolOracleApproval>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_POOL_ORACLE_APPROVAL, liquidity_pool.key().as_ref(), oracle_profile.oracle.as_ref()],
+        bump = pool_oracle_approval.bump
+    )]
+    pub pool_oracle_approval: &'info Account<PoolOracleApproval>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -483,15 +569,29 @@ pub struct SetPoolOraclePermissions<'info> {
 
 #[derive(Accounts)]
 pub struct SetPoolOraclePolicy<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
         bump = liquidity_pool.bump
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
+        bump = liquidity_pool.bump
+    )]
+    pub liquidity_pool: &'info Account<LiquidityPoolAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -526,8 +626,11 @@ pub struct SetPoolOraclePolicy<'info> {
 #[derive(Accounts)]
 #[instruction(args: RegisterOutcomeSchemaArgs)]
 pub struct RegisterOutcomeSchema<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub publisher: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub publisher: &'info mut Signer,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -552,7 +655,7 @@ pub struct RegisterOutcomeSchema<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub outcome_schema: &'info mut Account<OutcomeSchema<'info>>,
+    pub outcome_schema: &'info mut Account<OutcomeSchemaAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -577,7 +680,7 @@ pub struct RegisterOutcomeSchema<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedger<'info>>,
+    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedgerAccountData<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -586,29 +689,57 @@ pub struct RegisterOutcomeSchema<'info> {
 
 #[derive(Accounts)]
 pub struct VerifyOutcomeSchema<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub governance_authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub governance_authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
         bump = outcome_schema.bump
     )]
     pub outcome_schema: Account<'info, OutcomeSchema>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump
+    )]
+    pub outcome_schema: &'info mut Account<OutcomeSchemaAccountData<'info>>,
 }
 
 #[derive(Accounts)]
 #[instruction(args: BackfillSchemaDependencyLedgerArgs)]
 pub struct BackfillSchemaDependencyLedger<'info> {
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub governance_authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub governance_authority: &'info mut Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
         bump = outcome_schema.bump
     )]
     pub outcome_schema: Account<'info, OutcomeSchema>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump
+    )]
+    pub outcome_schema: &'info Account<OutcomeSchemaAccountData<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -633,7 +764,7 @@ pub struct BackfillSchemaDependencyLedger<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedger<'info>>,
+    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedgerAccountData<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -642,9 +773,17 @@ pub struct BackfillSchemaDependencyLedger<'info> {
 
 #[derive(Accounts)]
 pub struct CloseOutcomeSchema<'info> {
+    #[cfg(not(feature = "quasar"))]
     pub governance_authority: Signer<'info>,
+    #[cfg(feature = "quasar")]
+    pub governance_authority: &'info Signer,
+    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
     pub protocol_governance: Account<'info, ProtocolGovernance>,
+    #[cfg(feature = "quasar")]
+    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
+    pub protocol_governance: &'info Account<ProtocolGovernance>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
@@ -652,6 +791,14 @@ pub struct CloseOutcomeSchema<'info> {
         close = recipient_system_account
     )]
     pub outcome_schema: Account<'info, OutcomeSchema>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
+        bump = outcome_schema.bump,
+        close = recipient_system_account
+    )]
+    pub outcome_schema: &'info mut Account<OutcomeSchemaAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_SCHEMA_DEPENDENCY_LEDGER, outcome_schema.schema_key_hash.as_ref()],
@@ -659,6 +806,16 @@ pub struct CloseOutcomeSchema<'info> {
         close = recipient_system_account
     )]
     pub schema_dependency_ledger: Account<'info, SchemaDependencyLedger>,
+    #[cfg(feature = "quasar")]
+    #[account(
+        seeds = [SEED_SCHEMA_DEPENDENCY_LEDGER, outcome_schema.schema_key_hash.as_ref()],
+        bump = schema_dependency_ledger.bump,
+        close = recipient_system_account
+    )]
+    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedgerAccountData<'info>>,
+    #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub recipient_system_account: SystemAccount<'info>,
+    #[cfg(feature = "quasar")]
+    pub recipient_system_account: &'info mut SystemAccount,
 }
