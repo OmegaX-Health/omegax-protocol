@@ -146,7 +146,7 @@ pub struct CreateReserveDomain<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub reserve_domain: &'info mut Account<ReserveDomain>,
+    pub reserve_domain: &'info mut Account<ReserveDomain<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

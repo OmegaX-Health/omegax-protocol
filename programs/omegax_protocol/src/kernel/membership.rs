@@ -10,7 +10,7 @@ use crate::errors::*;
 use crate::plans_membership::OpenMemberPosition;
 use crate::state::*;
 
-pub(crate) fn health_plan_membership_mode(plan: &HealthPlan) -> u8 {
+pub(crate) fn health_plan_membership_mode(plan: &HealthPlanAccountData<'_>) -> u8 {
     plan.membership_mode
 }
 
@@ -215,7 +215,7 @@ pub(crate) fn validate_membership_proof_inputs(
 }
 
 pub(crate) fn resolved_membership_anchor_ref(
-    plan: &HealthPlan,
+    plan: &HealthPlanAccountData<'_>,
     token_gate_account: Option<Pubkey>,
     anchor_ref: Pubkey,
 ) -> Result<Pubkey> {

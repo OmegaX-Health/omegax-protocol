@@ -106,13 +106,15 @@ pub(crate) fn require_obligation_reserve_capacity(
     require_free_reserve_capacity(line_sheet, amount)
 }
 
-pub(crate) fn remaining_claim_amount(claim_case: &ClaimCase) -> u64 {
+pub(crate) fn remaining_claim_amount(claim_case: &ClaimCaseAccountData<'_>) -> u64 {
     claim_case
         .approved_amount
         .saturating_sub(claim_case.paid_amount)
 }
 
-pub(crate) fn require_direct_claim_case_settlement(claim_case: &ClaimCase) -> Result<()> {
+pub(crate) fn require_direct_claim_case_settlement(
+    claim_case: &ClaimCaseAccountData<'_>,
+) -> Result<()> {
     require!(
         claim_case.linked_obligation == ZERO_PUBKEY,
         OmegaXProtocolError::LinkedClaimMustSettleThroughObligation
@@ -121,9 +123,9 @@ pub(crate) fn require_direct_claim_case_settlement(claim_case: &ClaimCase) -> Re
 }
 
 pub(crate) fn require_matching_linked_claim_case(
-    claim_case: &ClaimCase,
+    claim_case: &ClaimCaseAccountData<'_>,
     claim_case_key: Pubkey,
-    obligation: &Obligation,
+    obligation: &ObligationAccountData<'_>,
     obligation_key: Pubkey,
     health_plan_key: Pubkey,
 ) -> Result<()> {
@@ -156,9 +158,9 @@ pub(crate) fn require_matching_linked_claim_case(
 }
 
 pub(crate) fn establish_or_validate_claim_obligation_link(
-    claim_case: &mut ClaimCase,
+    claim_case: &mut ClaimCaseAccountData<'_>,
     claim_case_key: Pubkey,
-    obligation: &mut Obligation,
+    obligation: &mut ObligationAccountData<'_>,
     obligation_key: Pubkey,
     health_plan_key: Pubkey,
 ) -> Result<()> {
@@ -176,9 +178,9 @@ pub(crate) fn establish_or_validate_claim_obligation_link(
 }
 
 pub(crate) fn sync_adjudicated_claim_liability(
-    claim_case: &mut ClaimCase,
+    claim_case: &mut ClaimCaseAccountData<'_>,
     claim_case_key: Pubkey,
-    obligation: Option<(&mut Obligation, Pubkey)>,
+    obligation: Option<(&mut ObligationAccountData<'_>, Pubkey)>,
     health_plan_key: Pubkey,
     approved_amount: u64,
     reserve_amount: u64,
@@ -211,8 +213,8 @@ pub(crate) fn sync_adjudicated_claim_liability(
 }
 
 pub(crate) fn require_claim_adjudication_mutable(
-    claim_case: &ClaimCase,
-    obligation: Option<&Obligation>,
+    claim_case: &ClaimCaseAccountData<'_>,
+    obligation: Option<&ObligationAccountData<'_>>,
 ) -> Result<()> {
     require!(
         claim_case.paid_amount == 0 && claim_case.intake_status < CLAIM_INTAKE_SETTLED,
@@ -237,7 +239,7 @@ pub(crate) fn require_supported_obligation_delivery_mode(delivery_mode: u8) -> R
 pub(crate) fn require_full_obligation_transition_amount(
     next_status: u8,
     amount: u64,
-    obligation: &Obligation,
+    obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
     match next_status {
         OBLIGATION_STATUS_CLAIMABLE_PAYABLE
@@ -254,9 +256,9 @@ pub(crate) fn require_full_obligation_transition_amount(
 }
 
 pub(crate) fn sync_linked_claim_case_reserve(
-    claim_case: &mut ClaimCase,
+    claim_case: &mut ClaimCaseAccountData<'_>,
     claim_case_key: Pubkey,
-    obligation: &mut Obligation,
+    obligation: &mut ObligationAccountData<'_>,
     obligation_key: Pubkey,
     health_plan_key: Pubkey,
     now_ts: i64,
@@ -280,9 +282,9 @@ pub(crate) fn sync_linked_claim_case_reserve(
 }
 
 pub(crate) fn sync_linked_claim_case_after_settlement(
-    claim_case: &mut ClaimCase,
+    claim_case: &mut ClaimCaseAccountData<'_>,
     claim_case_key: Pubkey,
-    obligation: &mut Obligation,
+    obligation: &mut ObligationAccountData<'_>,
     obligation_key: Pubkey,
     health_plan_key: Pubkey,
     amount: u64,
@@ -517,9 +519,9 @@ pub(crate) fn settle_delivery(
     class_sheet: Option<&mut Account<PoolClassLedger>>,
     allocation_position: Option<&mut Account<AllocationPosition>>,
     allocation_sheet: Option<&mut Account<AllocationLedger>>,
-    funding_line: &mut FundingLine,
+    funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
-    obligation: &mut Obligation,
+    obligation: &mut ObligationAccountData<'_>,
 ) -> Result<()> {
     let allocation_scoped = allocation_position.is_some() || allocation_sheet.is_some();
     settle_from_sheet(domain_sheet, obligation.delivery_mode, amount)?;
@@ -565,9 +567,9 @@ pub(crate) fn cancel_outstanding(
     class_sheet: Option<&mut Account<PoolClassLedger>>,
     allocation_position: Option<&mut Account<AllocationPosition>>,
     allocation_sheet: Option<&mut Account<AllocationLedger>>,
-    funding_line: &mut FundingLine,
+    funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
-    obligation: &mut Obligation,
+    obligation: &mut ObligationAccountData<'_>,
 ) -> Result<()> {
     if obligation.reserved_amount >= amount {
         release_reserved_sheet(domain_sheet, amount)?;
@@ -648,7 +650,7 @@ pub(crate) fn book_settlement_from_delivery(
     class_sheet: Option<&mut Account<PoolClassLedger>>,
     allocation_position: Option<&mut Account<AllocationPosition>>,
     allocation_sheet: Option<&mut Account<AllocationLedger>>,
-    funding_line: &mut FundingLine,
+    funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
 ) -> Result<()> {
     let delivery_mode = if line_sheet.claimable >= amount {
@@ -683,7 +685,7 @@ pub(crate) fn book_selected_asset_claim_payout(
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
     series_sheet: Option<&mut Account<SeriesReserveLedger>>,
-    funding_line: &mut FundingLine,
+    funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
 ) -> Result<()> {
     require_free_reserve_capacity(domain_sheet, amount)?;
@@ -722,7 +724,7 @@ pub(crate) fn book_direct_claim_payout(
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
     series_sheet: Option<&mut Account<SeriesReserveLedger>>,
-    funding_line: &mut FundingLine,
+    funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
 ) -> Result<()> {
     book_selected_asset_claim_payout(

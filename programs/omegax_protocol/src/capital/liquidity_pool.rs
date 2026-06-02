@@ -90,7 +90,7 @@ pub struct CreateLiquidityPool<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub liquidity_pool: &'info mut Account<LiquidityPool>,
+    pub liquidity_pool: &'info mut Account<LiquidityPool<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

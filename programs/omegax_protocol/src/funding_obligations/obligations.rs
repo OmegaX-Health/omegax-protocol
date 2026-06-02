@@ -154,7 +154,7 @@ pub struct CreateObligation<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub obligation: &'info mut Account<Obligation>,
+    pub obligation: &'info mut Account<Obligation<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

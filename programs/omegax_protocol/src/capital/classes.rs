@@ -127,7 +127,7 @@ pub struct CreateCapitalClass<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub capital_class: &'info mut Account<CapitalClass>,
+    pub capital_class: &'info mut Account<CapitalClass<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(

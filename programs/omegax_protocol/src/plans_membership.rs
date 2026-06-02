@@ -404,7 +404,7 @@ pub struct CreateHealthPlan<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub health_plan: &'info mut Account<HealthPlan>,
+    pub health_plan: &'info mut Account<HealthPlan<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -453,7 +453,7 @@ pub struct CreatePolicySeries<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub policy_series: &'info mut Account<PolicySeries>,
+    pub policy_series: &'info mut Account<PolicySeries<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -562,7 +562,7 @@ pub struct VersionPolicySeries<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub next_policy_series: &'info mut Account<PolicySeries>,
+    pub next_policy_series: &'info mut Account<PolicySeries<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(

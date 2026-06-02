@@ -118,7 +118,7 @@ pub(crate) fn adjudicate_claim_case(
 
     let claim_case = &mut ctx.accounts.claim_case;
     let adjudication_obligation = ctx.accounts.obligation.as_ref().map(|obligation| {
-        let obligation: &Obligation = obligation;
+        let obligation: &ObligationAccountData<'_> = obligation;
         obligation
     });
     require_claim_adjudication_mutable(claim_case, adjudication_obligation)?;
@@ -644,7 +644,7 @@ pub(crate) fn attest_claim_case(
     Ok(())
 }
 
-pub(crate) fn require_claim_evidence_mutable(claim_case: &ClaimCase) -> Result<()> {
+pub(crate) fn require_claim_evidence_mutable(claim_case: &ClaimCaseAccountData<'_>) -> Result<()> {
     require!(
         claim_case.attestation_count == 0,
         OmegaXProtocolError::ClaimEvidenceLocked
@@ -655,12 +655,12 @@ pub(crate) fn require_claim_evidence_mutable(claim_case: &ClaimCase) -> Result<(
 pub(crate) fn validate_claim_attestation_common(
     protocol_governance: &ProtocolGovernance,
     health_plan_key: Pubkey,
-    health_plan: &HealthPlan,
+    health_plan: &HealthPlanAccountData<'_>,
     funding_line_key: Pubkey,
-    funding_line: &FundingLine,
-    claim_case: &ClaimCase,
-    outcome_schema: &OutcomeSchema,
-    oracle_profile: &OracleProfile,
+    funding_line: &FundingLineAccountData<'_>,
+    claim_case: &ClaimCaseAccountData<'_>,
+    outcome_schema: &OutcomeSchemaAccountData<'_>,
+    oracle_profile: &OracleProfileAccountData<'_>,
     args: &AttestClaimCaseArgs,
 ) -> Result<()> {
     require_protocol_not_paused(protocol_governance)?;
@@ -724,9 +724,9 @@ pub(crate) fn validate_claim_attestation_common(
 
 pub(crate) struct ClaimAttestationPoolScope<'a> {
     pub liquidity_pool_key: Pubkey,
-    pub liquidity_pool: &'a LiquidityPool,
+    pub liquidity_pool: &'a LiquidityPoolAccountData<'a>,
     pub capital_class_key: Pubkey,
-    pub capital_class: &'a CapitalClass,
+    pub capital_class: &'a CapitalClassAccountData<'a>,
     pub allocation_position_key: Pubkey,
     pub allocation_position: &'a AllocationPosition,
     pub funding_line_key: Pubkey,
@@ -739,10 +739,10 @@ pub(crate) struct ClaimAttestationPoolScope<'a> {
 }
 
 pub(crate) fn validate_lp_claim_attestation_scope(
-    health_plan: &HealthPlan,
-    funding_line: &FundingLine,
-    claim_case: &ClaimCase,
-    oracle_profile: &OracleProfile,
+    health_plan: &HealthPlanAccountData<'_>,
+    funding_line: &FundingLineAccountData<'_>,
+    claim_case: &ClaimCaseAccountData<'_>,
+    oracle_profile: &OracleProfileAccountData<'_>,
     scope: ClaimAttestationPoolScope<'_>,
 ) -> Result<()> {
     let (expected_liquidity_pool, _) = Pubkey::find_program_address(
@@ -1021,7 +1021,7 @@ pub struct OpenClaimCase<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub claim_case: &'info mut Account<ClaimCase>,
+    pub claim_case: &'info mut Account<ClaimCase<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

@@ -136,7 +136,7 @@ pub struct OpenFundingLine<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub funding_line: &'info mut Account<FundingLine>,
+    pub funding_line: &'info mut Account<FundingLine<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(

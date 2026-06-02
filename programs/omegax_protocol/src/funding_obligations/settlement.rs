@@ -282,8 +282,8 @@ pub(crate) fn settle_obligation(
 
 fn resolve_obligation_oracle_fee(
     health_plan_key: Pubkey,
-    obligation: &Obligation,
-    claim_case: Option<&Account<ClaimCase>>,
+    obligation: &ObligationAccountData<'_>,
+    claim_case: Option<&Account<ClaimCaseAccountData<'_>>>,
     pool_oracle_fee_vault: Option<&Account<PoolOracleFeeVault>>,
     pool_oracle_policy: Option<&Account<PoolOraclePolicy>>,
     oracle_fee_attestation: Option<&Account<ClaimAttestation>>,

@@ -13,7 +13,7 @@ use crate::errors::*;
 use crate::state::*;
 
 pub(crate) fn validate_optional_policy_series(
-    policy_series: Option<&Account<PolicySeries>>,
+    policy_series: Option<&Account<PolicySeriesAccountData<'_>>>,
     expected_policy_series: Pubkey,
     expected_health_plan: Pubkey,
     require_active: bool,
@@ -229,14 +229,14 @@ pub(crate) fn validate_optional_allocation_ledger(
 }
 
 pub(crate) fn validate_obligation_creation_scope(
-    liquidity_pool: Option<&Account<LiquidityPool>>,
-    capital_class: Option<&Account<CapitalClass>>,
+    liquidity_pool: Option<&Account<LiquidityPoolAccountData<'_>>>,
+    capital_class: Option<&Account<CapitalClassAccountData<'_>>>,
     allocation_position: Option<&Account<AllocationPosition>>,
     pool_class_ledger: Option<&Account<PoolClassLedger>>,
     allocation_ledger: Option<&Account<AllocationLedger>>,
-    health_plan: &Account<HealthPlan>,
+    health_plan: &Account<HealthPlanAccountData<'_>>,
     funding_line_key: Pubkey,
-    funding_line: &FundingLine,
+    funding_line: &FundingLineAccountData<'_>,
     expected_liquidity_pool: Pubkey,
     expected_capital_class: Pubkey,
     expected_allocation_position: Pubkey,
@@ -400,9 +400,9 @@ pub(crate) fn validate_obligation_creation_scope(
 }
 
 pub(crate) fn validate_obligation_binding(
-    obligation: &Account<Obligation>,
+    obligation: &Account<ObligationAccountData<'_>>,
     expected_funding_line: Pubkey,
-    funding_line: &FundingLine,
+    funding_line: &FundingLineAccountData<'_>,
 ) -> Result<()> {
     require_keys_eq!(
         obligation.funding_line,
@@ -456,7 +456,7 @@ pub(crate) fn validate_treasury_mutation_bindings(
     pool_class_ledger: Option<&Account<PoolClassLedger>>,
     allocation_position: Option<&Account<AllocationPosition>>,
     allocation_ledger: Option<&Account<AllocationLedger>>,
-    obligation: &Obligation,
+    obligation: &ObligationAccountData<'_>,
     funding_line_key: Pubkey,
     funding_line_asset_mint: Pubkey,
 ) -> Result<()> {
@@ -535,7 +535,7 @@ pub(crate) fn validate_direct_claim_settlement_bindings(
     pool_class_ledger: Option<&Account<PoolClassLedger>>,
     allocation_position: Option<&Account<AllocationPosition>>,
     allocation_ledger: Option<&Account<AllocationLedger>>,
-    claim_case: &ClaimCase,
+    claim_case: &ClaimCaseAccountData<'_>,
     funding_line_key: Pubkey,
     funding_line_asset_mint: Pubkey,
 ) -> Result<()> {
@@ -565,9 +565,9 @@ pub(crate) fn validate_impairment_bindings(
     pool_class_ledger: Option<&Account<PoolClassLedger>>,
     allocation_position: Option<&Account<AllocationPosition>>,
     allocation_ledger: Option<&Account<AllocationLedger>>,
-    obligation: Option<&Account<Obligation>>,
+    obligation: Option<&Account<ObligationAccountData<'_>>>,
     funding_line_key: Pubkey,
-    funding_line: &FundingLine,
+    funding_line: &FundingLineAccountData<'_>,
 ) -> Result<()> {
     validate_optional_series_ledger(
         series_ledger,

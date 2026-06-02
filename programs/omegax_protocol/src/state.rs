@@ -934,6 +934,80 @@ pub struct SchemaDependencyLedger<'info> {
     pub pool_rule_addresses: Vec<Pubkey, u32, 32>,
 }
 
+pub enum FrameworkAccountData {}
+
+pub trait AccountDataLifetime<'info> {
+    type ReserveDomain;
+    type ReserveAssetRail;
+    type HealthPlan;
+    type PolicySeries;
+    type FundingLine;
+    type ClaimCase;
+    type Obligation;
+    type LiquidityPool;
+    type CapitalClass;
+    type OracleProfile;
+    type OutcomeSchema;
+    type SchemaDependencyLedger;
+}
+
+#[cfg(not(feature = "quasar"))]
+impl<'info> AccountDataLifetime<'info> for FrameworkAccountData {
+    type ReserveDomain = ReserveDomain;
+    type ReserveAssetRail = ReserveAssetRail;
+    type HealthPlan = HealthPlan;
+    type PolicySeries = PolicySeries;
+    type FundingLine = FundingLine;
+    type ClaimCase = ClaimCase;
+    type Obligation = Obligation;
+    type LiquidityPool = LiquidityPool;
+    type CapitalClass = CapitalClass;
+    type OracleProfile = OracleProfile;
+    type OutcomeSchema = OutcomeSchema;
+    type SchemaDependencyLedger = SchemaDependencyLedger;
+}
+
+#[cfg(feature = "quasar")]
+impl<'info> AccountDataLifetime<'info> for FrameworkAccountData {
+    type ReserveDomain = ReserveDomain<'info>;
+    type ReserveAssetRail = ReserveAssetRail<'info>;
+    type HealthPlan = HealthPlan<'info>;
+    type PolicySeries = PolicySeries<'info>;
+    type FundingLine = FundingLine<'info>;
+    type ClaimCase = ClaimCase<'info>;
+    type Obligation = Obligation<'info>;
+    type LiquidityPool = LiquidityPool<'info>;
+    type CapitalClass = CapitalClass<'info>;
+    type OracleProfile = OracleProfile<'info>;
+    type OutcomeSchema = OutcomeSchema<'info>;
+    type SchemaDependencyLedger = SchemaDependencyLedger<'info>;
+}
+
+pub type ReserveDomainAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::ReserveDomain;
+pub type ReserveAssetRailAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::ReserveAssetRail;
+pub type HealthPlanAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::HealthPlan;
+pub type PolicySeriesAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::PolicySeries;
+pub type FundingLineAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::FundingLine;
+pub type ClaimCaseAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::ClaimCase;
+pub type ObligationAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::Obligation;
+pub type LiquidityPoolAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::LiquidityPool;
+pub type CapitalClassAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::CapitalClass;
+pub type OracleProfileAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::OracleProfile;
+pub type OutcomeSchemaAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::OutcomeSchema;
+pub type SchemaDependencyLedgerAccountData<'info> =
+    <FrameworkAccountData as AccountDataLifetime<'info>>::SchemaDependencyLedger;
+
 #[cfg(feature = "quasar")]
 macro_rules! impl_quasar_fixed_init_space {
     ($($name:ty),* $(,)?) => {

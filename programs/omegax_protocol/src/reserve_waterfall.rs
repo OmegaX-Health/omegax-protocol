@@ -169,13 +169,17 @@ pub(crate) fn require_valid_reserve_oracle_source(source: u8) -> Result<()> {
     }
 }
 
-pub(crate) fn require_reserve_asset_rail_active(rail: &ReserveAssetRail) -> Result<()> {
+pub(crate) fn require_reserve_asset_rail_active(
+    rail: &ReserveAssetRailAccountData<'_>,
+) -> Result<()> {
     require!(rail.active, OmegaXProtocolError::ReserveAssetRailInactive);
     Ok(())
 }
 
 #[cfg(test)]
-pub(crate) fn require_reserve_asset_rail_capacity_enabled(rail: &ReserveAssetRail) -> Result<()> {
+pub(crate) fn require_reserve_asset_rail_capacity_enabled(
+    rail: &ReserveAssetRailAccountData<'_>,
+) -> Result<()> {
     require_reserve_asset_rail_active(rail)?;
     require!(
         rail.capacity_enabled,
@@ -184,7 +188,9 @@ pub(crate) fn require_reserve_asset_rail_capacity_enabled(rail: &ReserveAssetRai
     require_fresh_reserve_asset_price(rail)
 }
 
-pub(crate) fn require_reserve_asset_rail_payout_enabled(rail: &ReserveAssetRail) -> Result<()> {
+pub(crate) fn require_reserve_asset_rail_payout_enabled(
+    rail: &ReserveAssetRailAccountData<'_>,
+) -> Result<()> {
     require_reserve_asset_rail_active(rail)?;
     require!(
         rail.payout_enabled,
@@ -193,13 +199,15 @@ pub(crate) fn require_reserve_asset_rail_payout_enabled(rail: &ReserveAssetRail)
     require_fresh_reserve_asset_price(rail)
 }
 
-pub(crate) fn require_fresh_reserve_asset_price(rail: &ReserveAssetRail) -> Result<()> {
+pub(crate) fn require_fresh_reserve_asset_price(
+    rail: &ReserveAssetRailAccountData<'_>,
+) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     require_fresh_reserve_asset_price_at(rail, now)
 }
 
 pub(crate) fn require_fresh_reserve_asset_price_at(
-    rail: &ReserveAssetRail,
+    rail: &ReserveAssetRailAccountData<'_>,
     now: i64,
 ) -> Result<()> {
     require!(
@@ -233,7 +241,7 @@ pub(crate) fn require_fresh_reserve_asset_price_at(
 pub(crate) fn reserve_asset_value_usd_1e8_at(
     amount: u64,
     mint_decimals: u8,
-    rail: &ReserveAssetRail,
+    rail: &ReserveAssetRailAccountData<'_>,
     now: i64,
 ) -> Result<u128> {
     require_fresh_reserve_asset_price_at(rail, now)?;
@@ -249,10 +257,10 @@ pub(crate) fn reserve_asset_value_usd_1e8_at(
 pub(crate) fn require_selected_asset_payout_value(
     claim_credit_amount: u64,
     claim_mint_decimals: u8,
-    claim_asset_rail: &ReserveAssetRail,
+    claim_asset_rail: &ReserveAssetRailAccountData<'_>,
     payout_amount: u64,
     payout_mint_decimals: u8,
-    payout_asset_rail: &ReserveAssetRail,
+    payout_asset_rail: &ReserveAssetRailAccountData<'_>,
     max_overpay_bps: u16,
 ) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
@@ -271,10 +279,10 @@ pub(crate) fn require_selected_asset_payout_value(
 pub(crate) fn require_selected_asset_payout_value_at(
     claim_credit_amount: u64,
     claim_mint_decimals: u8,
-    claim_asset_rail: &ReserveAssetRail,
+    claim_asset_rail: &ReserveAssetRailAccountData<'_>,
     payout_amount: u64,
     payout_mint_decimals: u8,
-    payout_asset_rail: &ReserveAssetRail,
+    payout_asset_rail: &ReserveAssetRailAccountData<'_>,
     max_overpay_bps: u16,
     now: i64,
 ) -> Result<()> {
@@ -383,7 +391,7 @@ pub struct ConfigureReserveAssetRail<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub reserve_asset_rail: &'info mut Account<ReserveAssetRail>,
+    pub reserve_asset_rail: &'info mut Account<ReserveAssetRail<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

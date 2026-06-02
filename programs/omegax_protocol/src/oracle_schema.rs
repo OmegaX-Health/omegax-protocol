@@ -351,7 +351,7 @@ pub struct RegisterOracle<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub oracle_profile: &'info mut Account<OracleProfile>,
+    pub oracle_profile: &'info mut Account<OracleProfile<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -552,7 +552,7 @@ pub struct RegisterOutcomeSchema<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub outcome_schema: &'info mut Account<OutcomeSchema>,
+    pub outcome_schema: &'info mut Account<OutcomeSchema<'info>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -577,7 +577,7 @@ pub struct RegisterOutcomeSchema<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedger>,
+    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedger<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -633,7 +633,7 @@ pub struct BackfillSchemaDependencyLedger<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedger>,
+    pub schema_dependency_ledger: &'info mut Account<SchemaDependencyLedger<'info>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

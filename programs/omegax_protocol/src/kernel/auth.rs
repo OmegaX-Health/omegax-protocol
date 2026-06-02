@@ -42,12 +42,14 @@ pub(crate) fn require_protocol_not_paused(governance: &ProtocolGovernance) -> Re
     Ok(())
 }
 
-pub(crate) fn require_health_plan_active(plan: &HealthPlan) -> Result<()> {
+pub(crate) fn require_health_plan_active(plan: &HealthPlanAccountData<'_>) -> Result<()> {
     require!(plan.active, OmegaXProtocolError::HealthPlanInactive);
     Ok(())
 }
 
-pub(crate) fn require_capital_class_active(capital_class: &CapitalClass) -> Result<()> {
+pub(crate) fn require_capital_class_active(
+    capital_class: &CapitalClassAccountData<'_>,
+) -> Result<()> {
     require!(
         capital_class.active,
         OmegaXProtocolError::CapitalClassInactive
@@ -55,7 +57,7 @@ pub(crate) fn require_capital_class_active(capital_class: &CapitalClass) -> Resu
     Ok(())
 }
 
-pub(crate) fn require_liquidity_pool_active(pool: &LiquidityPool) -> Result<()> {
+pub(crate) fn require_liquidity_pool_active(pool: &LiquidityPoolAccountData<'_>) -> Result<()> {
     require!(pool.active, OmegaXProtocolError::LiquidityPoolInactive);
     Ok(())
 }
@@ -147,7 +149,7 @@ pub(crate) fn cancel_protocol_governance_authority_transfer_state(
 pub(crate) fn require_domain_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    domain: &ReserveDomain,
+    domain: &ReserveDomainAccountData<'_>,
 ) -> Result<()> {
     if *authority == domain.domain_admin || *authority == governance.governance_authority {
         Ok(())
@@ -159,7 +161,7 @@ pub(crate) fn require_domain_control(
 pub(crate) fn require_oracle_profile_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    oracle_profile: &OracleProfile,
+    oracle_profile: &OracleProfileAccountData<'_>,
 ) -> Result<()> {
     if *authority == oracle_profile.admin
         || *authority == oracle_profile.oracle
@@ -236,7 +238,7 @@ pub(crate) fn validate_outcome_schema_fields(args: &RegisterOutcomeSchemaArgs) -
 pub(crate) fn require_plan_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    plan: &HealthPlan,
+    plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
     if *authority == plan.plan_admin
         || *authority == plan.sponsor_operator
@@ -248,14 +250,14 @@ pub(crate) fn require_plan_control(
     }
 }
 
-pub(crate) fn obligation_has_linked_claim_case(obligation: &Obligation) -> bool {
+pub(crate) fn obligation_has_linked_claim_case(obligation: &ObligationAccountData<'_>) -> bool {
     obligation.claim_case != ZERO_PUBKEY
 }
 
 pub(crate) fn require_linked_claim_reserve_operator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    plan: &HealthPlan,
+    plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
     if *authority == plan.oracle_authority
         || *authority == plan.claims_operator
@@ -271,7 +273,7 @@ pub(crate) fn require_linked_claim_reserve_operator(
 pub(crate) fn require_linked_claim_settlement_operator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    plan: &HealthPlan,
+    plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
     if *authority == plan.claims_operator
         || *authority == plan.plan_admin
@@ -286,8 +288,8 @@ pub(crate) fn require_linked_claim_settlement_operator(
 pub(crate) fn require_obligation_reserve_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    plan: &HealthPlan,
-    obligation: &Obligation,
+    plan: &HealthPlanAccountData<'_>,
+    obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
     if obligation_has_linked_claim_case(obligation) {
         require_linked_claim_reserve_operator(authority, governance, plan)
@@ -299,8 +301,8 @@ pub(crate) fn require_obligation_reserve_control(
 pub(crate) fn require_obligation_settlement_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    plan: &HealthPlan,
-    obligation: &Obligation,
+    plan: &HealthPlanAccountData<'_>,
+    obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
     if obligation_has_linked_claim_case(obligation) {
         require_linked_claim_settlement_operator(authority, governance, plan)
@@ -315,7 +317,7 @@ pub(crate) fn require_obligation_settlement_control(
 // field on ClaimCase is informational metadata only — it is constrained at
 // intake to equal member_position.wallet (PT-2026-04-27-04 fix).
 pub(crate) fn resolve_claim_settlement_recipient(
-    claim_case: &ClaimCase,
+    claim_case: &ClaimCaseAccountData<'_>,
     member_position: &MemberPosition,
 ) -> Pubkey {
     if claim_case.delegate_recipient != ZERO_PUBKEY {
@@ -327,7 +329,7 @@ pub(crate) fn resolve_claim_settlement_recipient(
 
 pub(crate) fn require_claim_intake_submitter(
     authority: &Pubkey,
-    plan: &HealthPlan,
+    plan: &HealthPlanAccountData<'_>,
     member_position: &MemberPosition,
     args: &OpenClaimCaseArgs,
 ) -> Result<()> {
@@ -350,7 +352,7 @@ pub(crate) fn require_claim_intake_submitter(
 pub(crate) fn require_claim_operator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    plan: &HealthPlan,
+    plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
     if *authority == plan.claims_operator
         || *authority == plan.plan_admin
@@ -377,7 +379,7 @@ pub(crate) fn is_zero_hash(value: &[u8; 32]) -> bool {
 }
 
 pub(crate) fn oracle_profile_supports_schema(
-    oracle_profile: &OracleProfile,
+    oracle_profile: &OracleProfileAccountData<'_>,
     schema_key_hash: [u8; 32],
 ) -> bool {
     if is_zero_hash(&schema_key_hash) {
@@ -398,9 +400,9 @@ pub(crate) fn oracle_profile_supports_schema(
 }
 
 pub(crate) fn require_claim_attestation_oracle_authority(
-    health_plan: &HealthPlan,
-    funding_line: &FundingLine,
-    oracle_profile: &OracleProfile,
+    health_plan: &HealthPlanAccountData<'_>,
+    funding_line: &FundingLineAccountData<'_>,
+    oracle_profile: &OracleProfileAccountData<'_>,
 ) -> Result<()> {
     if funding_line.line_type == FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
         return Ok(());
@@ -417,7 +419,7 @@ pub(crate) fn require_claim_attestation_oracle_authority(
 pub(crate) fn require_curator_control(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    pool: &LiquidityPool,
+    pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
     if *authority == pool.curator || *authority == governance.governance_authority {
         Ok(())
@@ -429,7 +431,7 @@ pub(crate) fn require_curator_control(
 pub(crate) fn require_allocator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
-    pool: &LiquidityPool,
+    pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
     if *authority == pool.allocator
         || *authority == pool.curator

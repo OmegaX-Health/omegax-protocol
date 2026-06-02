@@ -10,7 +10,10 @@ use crate::state::*;
 
 use super::require_positive_amount;
 
-pub(crate) fn require_class_access(capital_class: &CapitalClass, credentialed: bool) -> Result<()> {
+pub(crate) fn require_class_access(
+    capital_class: &CapitalClassAccountData<'_>,
+    credentialed: bool,
+) -> Result<()> {
     require_class_access_mode(capital_class.restriction_mode, credentialed)
 }
 
@@ -197,7 +200,7 @@ pub(crate) fn redemption_assets_to_process(
 }
 
 pub(crate) fn assign_redemption_queue_ticket(
-    capital_class: &mut CapitalClass,
+    capital_class: &mut CapitalClassAccountData<'_>,
     lp_position: &mut LPPosition,
     now_ts: i64,
 ) -> Result<u64> {
@@ -214,7 +217,7 @@ pub(crate) fn assign_redemption_queue_ticket(
 }
 
 pub(crate) fn require_redemption_queue_head(
-    capital_class: &CapitalClass,
+    capital_class: &CapitalClassAccountData<'_>,
     lp_position: &LPPosition,
 ) -> Result<()> {
     require!(
@@ -230,7 +233,7 @@ pub(crate) fn require_redemption_queue_head(
 }
 
 pub(crate) fn resolve_redemption_queue_status_after_process(
-    capital_class: &mut CapitalClass,
+    capital_class: &mut CapitalClassAccountData<'_>,
     lp_position: &mut LPPosition,
 ) -> Result<()> {
     if lp_position.pending_redemption_shares == 0 {

@@ -44,6 +44,11 @@ Completed setup:
 - Anchor-only generated `__client_accounts_*` reexports are gated off the
   Quasar path, and the Quasar platform seam now preserves the existing
   `Result<T>` spelling as `core::result::Result<T, ProgramError>`.
+- Dynamic account data now flows through feature-gated `*AccountData<'info>`
+  aliases. Anchor resolves those aliases back to the existing Borsh account
+  structs, while Quasar resolves them to the borrowed dynamic account views,
+  letting shared helpers and most account wrappers carry the required lifetime
+  without changing default-path behavior.
 
 The active Quasar compile inventory is:
 
@@ -52,7 +57,11 @@ npm run quasar:check
 ```
 
 As of this migration checkpoint, that command reaches `omegax_protocol` under
-Rust 1.89 and then fails on source-port work. The failure buckets are:
+Rust 1.89 and then fails on source-port work. The dynamic account lifetime
+bucket is reduced from 189 diagnostics to 173 by moving shared helpers and
+Quasar-only reference fields onto account-data aliases; the remaining lifetime
+errors are inside still-Anchor-shaped `#[derive(Accounts)]` contexts that
+Quasar must parse as reference-wrapper contexts. The failure buckets are:
 
 - instruction handlers: the Quasar facade is declared and dispatches fail
   closed, but each public handler still needs its real body ported from Anchor
