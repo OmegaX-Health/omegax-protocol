@@ -2,7 +2,7 @@
 
 //! Authorization, authority, and bounded-field validation helpers.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 use crate::args::*;
 use crate::constants::*;

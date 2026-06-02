@@ -1,4 +1,4 @@
-a54ea76447f824acc017cc91ab2f3f7427f732437f74b579e47b6e29a4754e98
+dd8f08692293c09d34099917f745587633099ad394a413e8ae3ad0dd8da2f445
   Cargo.toml
   programs/omegax_protocol/Cargo.toml
   programs/omegax_protocol/src/args.rs
@@ -33,6 +33,8 @@ a54ea76447f824acc017cc91ab2f3f7427f732437f74b579e47b6e29a4754e98
   programs/omegax_protocol/src/lib.rs
   programs/omegax_protocol/src/oracle_schema.rs
   programs/omegax_protocol/src/plans_membership.rs
+  programs/omegax_protocol/src/platform.rs
+  programs/omegax_protocol/src/quasar_discriminators.rs
   programs/omegax_protocol/src/reserve_custody.rs
   programs/omegax_protocol/src/reserve_waterfall.rs
   programs/omegax_protocol/src/state.rs

@@ -2,7 +2,7 @@
 
 //! Membership gate, proof, and anchor-seat helpers.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 use crate::args::*;
 use crate::constants::*;

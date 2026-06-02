@@ -2,7 +2,7 @@
 
 //! Public constants, seeds, mode values, and pause flags for the protocol surface.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 pub const MAX_ID_LEN: usize = 32;
 pub const MAX_NAME_LEN: usize = 64;

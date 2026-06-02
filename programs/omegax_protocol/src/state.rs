@@ -3,7 +3,7 @@
 //! Account state and serializable reserve-accounting structs.
 
 use crate::constants::*;
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 #[account]
 #[derive(InitSpace)]

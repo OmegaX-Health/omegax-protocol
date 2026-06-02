@@ -2,7 +2,7 @@
 
 //! Optional-account binding validators for treasury, settlement, and impairment paths.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 use super::{
     require_allocation_position_allocatable, require_capital_class_active,

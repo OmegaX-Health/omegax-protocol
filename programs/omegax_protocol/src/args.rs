@@ -3,7 +3,7 @@
 //! Instruction argument types for the public Anchor IDL.
 
 use crate::constants::*;
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct InitializeProtocolGovernanceArgs {

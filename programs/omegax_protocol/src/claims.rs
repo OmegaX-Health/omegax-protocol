@@ -2,7 +2,7 @@
 
 //! Claim lifecycle and claim-attestation instruction handlers and account validation contexts.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::args::*;

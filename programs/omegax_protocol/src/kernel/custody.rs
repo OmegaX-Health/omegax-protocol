@@ -2,7 +2,7 @@
 
 //! Classic SPL-token custody checks and vault transfer helpers.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 
 use crate::constants::*;

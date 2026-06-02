@@ -2,7 +2,7 @@
 
 //! Public event types emitted by the protocol.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 #[event]
 pub struct ProtocolGovernanceInitializedEvent {

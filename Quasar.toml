@@ -1,0 +1,8 @@
+[project]
+name = "omegax_protocol"
+
+[toolchain]
+type = "solana"
+
+[testing]
+framework = "quasarsvm-rust"

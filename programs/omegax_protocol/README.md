@@ -8,6 +8,16 @@ The canonical Anchor facade lives in [`src/lib.rs`](./src/lib.rs). It declares
 the program id, re-exports the public protocol types, and keeps every public
 instruction present in `#[program] pub mod omegax_protocol`.
 
+The Anchor-to-Quasar migration is staged through
+[`src/platform.rs`](./src/platform.rs). Protocol implementation modules should
+import `crate::platform::*` instead of framework preludes directly, so the
+remaining Quasar swap is constrained to the platform seam plus the account,
+instruction, and CPI ports. Quasar discriminator constants live in
+[`src/quasar_discriminators.rs`](./src/quasar_discriminators.rs) and preserve
+the current IDL instruction, account, and event byte prefixes. The live
+migration checklist is
+[`../../docs/architecture/quasar-migration.md`](../../docs/architecture/quasar-migration.md).
+
 Instruction implementation now sits next to its account validation context in
 audit-domain modules:
 
@@ -87,6 +97,8 @@ npm run rust:fmt:check
 npm run rust:test
 npm run rust:lint
 npm run anchor:idl
+npm run quasar:check
+npm run quasar:discriminators
 npm run protocol:contract
 ```
 

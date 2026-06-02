@@ -22,6 +22,8 @@
     "anchor:build:checked": "node scripts/anchor_build_with_stack_gate.mjs",
     "anchor:test": "node scripts/anchor_test_with_stack_gate.mjs",
     "anchor:idl": "npm run anchor:build:checked && mkdir -p idl && cp target/idl/omegax_protocol.json idl/omegax_protocol.json && cp target/idl/omegax_private_claim_review.json idl/omegax_private_claim_review.json && node scripts/check_idl_freshness.mjs --write",
+    "quasar:check": "cargo check -p omegax_protocol --features quasar --lib",
+    "quasar:discriminators": "node scripts/generate_quasar_discriminators.mjs",
     "idl:freshness:check": "node scripts/check_idl_freshness.mjs",
     "rust:fmt:check": "cargo fmt --all -- --check",
     "rust:test": "cargo test --workspace --lib",

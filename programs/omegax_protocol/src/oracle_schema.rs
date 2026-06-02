@@ -2,7 +2,7 @@
 
 //! Oracle registry, pool-oracle policy, and outcome-schema instruction handlers and account validation contexts.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 use crate::args::*;
 use crate::constants::*;

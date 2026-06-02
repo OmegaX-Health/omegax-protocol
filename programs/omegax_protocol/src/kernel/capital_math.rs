@@ -2,7 +2,7 @@
 
 //! Capital access, LP-position, checked arithmetic, NAV, and redemption helpers.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 use crate::constants::*;
 use crate::errors::*;

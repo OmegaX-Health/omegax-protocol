@@ -2,7 +2,7 @@
 
 //! Protocol error codes.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 
 #[error_code]
 pub enum OmegaXProtocolError {

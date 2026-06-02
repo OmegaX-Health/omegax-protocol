@@ -2,7 +2,7 @@
 
 //! Funding-line and obligation instruction module group.
 
-use anchor_lang::prelude::*;
+use crate::platform::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::args::*;

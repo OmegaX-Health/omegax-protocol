@@ -2,7 +2,9 @@
 
 //! Canonical OmegaX health capital markets program surface.
 
-use anchor_lang::prelude::*;
+pub mod platform;
+
+use crate::platform::*;
 
 declare_id!("Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B");
 
@@ -20,6 +22,7 @@ pub mod governance;
 pub mod kernel;
 pub mod oracle_schema;
 pub mod plans_membership;
+pub mod quasar_discriminators;
 pub mod reserve_custody;
 pub mod reserve_waterfall;
 pub mod state;

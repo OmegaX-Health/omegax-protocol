@@ -20,6 +20,7 @@ custom-heap = []
 custom-panic = []
 anchor-debug = []
 certora = ["dep:cvlr"]
+quasar = ["dep:quasar-lang", "dep:quasar-spl"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
@@ -37,5 +38,7 @@ anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
 anchor-spl = "0.32.1"
 blake3 = "=1.8.2"
 cvlr = { version = "0.4.0", optional = true }
+quasar-lang = { version = "0.0.0", optional = true }
+quasar-spl = { version = "0.0.0", optional = true }
 solana-sdk-ids = "2.2.1"
 solana-sha256-hasher = "2.3.0"
