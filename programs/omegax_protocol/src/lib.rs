@@ -1214,8 +1214,7 @@ pub mod omegax_protocol {
 
     #[instruction(discriminator = [193, 33, 140, 185, 45, 190, 112, 7])]
     pub fn withdraw_protocol_fee_sol(ctx: Ctx<WithdrawProtocolFeeSol>, amount: u64) -> Result<()> {
-        let _ = (&ctx, &amount);
-        quasar_handler_port_pending()
+        crate::fees::withdraw_protocol_fee_sol(&mut ctx, amount)
     }
 
     #[instruction(discriminator = [43, 146, 116, 123, 106, 69, 242, 104])]
@@ -1231,8 +1230,7 @@ pub mod omegax_protocol {
         ctx: Ctx<WithdrawPoolTreasurySol>,
         amount: u64,
     ) -> Result<()> {
-        let _ = (&ctx, &amount);
-        quasar_handler_port_pending()
+        crate::fees::withdraw_pool_treasury_sol(&mut ctx, amount)
     }
 
     #[instruction(discriminator = [242, 75, 247, 122, 255, 183, 48, 189])]
@@ -1248,8 +1246,7 @@ pub mod omegax_protocol {
         ctx: Ctx<WithdrawPoolOracleFeeSol>,
         amount: u64,
     ) -> Result<()> {
-        let _ = (&ctx, &amount);
-        quasar_handler_port_pending()
+        crate::fees::withdraw_pool_oracle_fee_sol(&mut ctx, amount)
     }
 
     #[instruction(discriminator = [165, 80, 76, 13, 12, 202, 112, 31])]
