@@ -625,6 +625,61 @@ pub(crate) fn register_outcome_schema(
     Ok(())
 }
 
+#[cfg(feature = "quasar")]
+pub(crate) fn register_outcome_schema<'info>(
+    ctx: &mut Ctx<'info, RegisterOutcomeSchema<'info>>,
+    schema_key_hash: [u8; 32],
+    version: u16,
+    schema_hash: [u8; 32],
+    schema_family: u8,
+    visibility: u8,
+    schema_key: &str,
+    metadata_uri: &str,
+) -> Result<()> {
+    require!(
+        schema_key.len() <= MAX_SCHEMA_KEY_LEN,
+        OmegaXProtocolError::StringTooLong
+    );
+    require!(
+        metadata_uri.len() <= MAX_URI_LEN,
+        OmegaXProtocolError::StringTooLong
+    );
+
+    let publisher = *ctx.accounts.publisher.address();
+    let now_ts = Clock::get()?.unix_timestamp.get();
+    let outcome_schema_bump = ctx.accounts.outcome_schema.bump;
+
+    ctx.accounts.outcome_schema.set_inner(
+        publisher,
+        schema_key_hash,
+        version,
+        schema_hash,
+        schema_family,
+        visibility,
+        false,
+        now_ts,
+        now_ts,
+        outcome_schema_bump,
+        schema_key,
+        metadata_uri,
+        ctx.accounts.publisher.to_account_view(),
+        None,
+    )?;
+
+    let schema_dependency_ledger_bump = ctx.accounts.schema_dependency_ledger.bump;
+    let empty_pool_rule_addresses: &[Pubkey] = &[];
+    ctx.accounts.schema_dependency_ledger.set_inner(
+        schema_key_hash,
+        now_ts,
+        schema_dependency_ledger_bump,
+        empty_pool_rule_addresses,
+        ctx.accounts.publisher.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn verify_outcome_schema(
     ctx: Context<VerifyOutcomeSchema>,

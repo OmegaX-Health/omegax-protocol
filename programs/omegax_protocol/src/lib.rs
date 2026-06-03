@@ -1393,17 +1393,16 @@ pub mod omegax_protocol {
         schema_key: String<u32, 96>,
         metadata_uri: String<u32, 160>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &schema_key_hash,
-            &version,
-            &schema_hash,
-            &schema_family,
-            &visibility,
-            &schema_key,
-            &metadata_uri,
-        );
-        quasar_handler_port_pending()
+        crate::oracle_schema::register_outcome_schema(
+            &mut ctx,
+            schema_key_hash,
+            version,
+            schema_hash,
+            schema_family,
+            visibility,
+            schema_key,
+            metadata_uri,
+        )
     }
 
     #[instruction(discriminator = [221, 10, 144, 137, 106, 214, 205, 170])]
