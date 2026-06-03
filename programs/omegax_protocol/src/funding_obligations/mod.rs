@@ -38,6 +38,8 @@ pub(crate) use reserves::{release_reserve, reserve_obligation};
 pub(crate) use reserves::{release_reserve, reserve_obligation};
 #[cfg(not(feature = "quasar"))]
 pub(crate) use settlement::settle_obligation;
+#[cfg(feature = "quasar")]
+pub(crate) use settlement::settle_obligation;
 
 pub use funding_lines::OpenFundingLine;
 pub use inflows::{FundSponsorBudget, RecordPremiumPayment};

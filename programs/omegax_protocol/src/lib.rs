@@ -996,8 +996,12 @@ pub mod omegax_protocol {
         amount: u64,
         settlement_reason_hash: [u8; 32],
     ) -> Result<()> {
-        let _ = (&ctx, &next_status, &amount, &settlement_reason_hash);
-        quasar_handler_port_pending()
+        crate::funding_obligations::settle_obligation(
+            &mut ctx,
+            next_status,
+            amount,
+            settlement_reason_hash,
+        )
     }
 
     #[instruction(discriminator = [170, 102, 52, 144, 33, 176, 41, 60])]
