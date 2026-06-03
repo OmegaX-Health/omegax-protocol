@@ -1301,14 +1301,12 @@ pub mod omegax_protocol {
 
     #[instruction(discriminator = [146, 129, 60, 205, 88, 225, 60, 183])]
     pub fn allocate_capital(ctx: Ctx<AllocateCapital>, amount: u64) -> Result<()> {
-        let _ = (&ctx, &amount);
-        quasar_handler_port_pending()
+        crate::capital::allocate_capital(&mut ctx, amount)
     }
 
     #[instruction(discriminator = [10, 97, 97, 189, 60, 170, 102, 29])]
     pub fn deallocate_capital(ctx: Ctx<DeallocateCapital>, amount: u64) -> Result<()> {
-        let _ = (&ctx, &amount);
-        quasar_handler_port_pending()
+        crate::capital::deallocate_capital(&mut ctx, amount)
     }
 
     #[instruction(discriminator = [58, 97, 30, 157, 211, 45, 174, 238])]
