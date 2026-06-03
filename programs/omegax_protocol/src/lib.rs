@@ -1017,14 +1017,13 @@ pub mod omegax_protocol {
         evidence_ref_hash: [u8; 32],
         claim_id: String<u32, 32>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &policy_series,
-            &claimant,
-            &evidence_ref_hash,
-            &claim_id,
-        );
-        quasar_handler_port_pending()
+        crate::claims::open_claim_case(
+            &mut ctx,
+            policy_series,
+            claimant,
+            evidence_ref_hash,
+            claim_id,
+        )
     }
 
     #[instruction(discriminator = [112, 97, 129, 42, 125, 165, 226, 163])]

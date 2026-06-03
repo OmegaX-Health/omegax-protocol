@@ -25,6 +25,23 @@ fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result
 }
 
 #[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_id(value: &str) -> Result<()> {
+    require!(
+        value.len() <= MAX_ID_LEN,
+        OmegaXProtocolError::IdentifierTooLong
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_health_plan_active(plan: &HealthPlanAccountData<'_>) -> Result<()> {
+    require!(plan.active.get(), OmegaXProtocolError::HealthPlanInactive);
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
 fn require_quasar_claim_operator(
     authority: &Pubkey,
     governance: &ProtocolGovernance,
@@ -34,6 +51,25 @@ fn require_quasar_claim_operator(
         || *authority == plan.plan_admin
         || *authority == governance.governance_authority
     {
+        Ok(())
+    } else {
+        Err(OmegaXProtocolError::Unauthorized.into())
+    }
+}
+
+#[cfg(feature = "quasar")]
+fn require_quasar_claim_intake_submitter(
+    authority: &Pubkey,
+    plan: &HealthPlanAccountData<'_>,
+    member_position: &MemberPosition,
+    claimant: Pubkey,
+) -> Result<()> {
+    let claimant_is_member = claimant == member_position.wallet;
+    let member_self_submit = *authority == member_position.wallet && claimant_is_member;
+    let operator_submit =
+        (*authority == plan.claims_operator || *authority == plan.plan_admin) && claimant_is_member;
+
+    if member_self_submit || operator_submit {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -89,6 +125,65 @@ pub(crate) fn open_claim_case(ctx: Context<OpenClaimCase>, args: OpenClaimCaseAr
         intake_status: claim_case.intake_status,
         approved_amount: claim_case.approved_amount,
     });
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn open_claim_case<'info>(
+    ctx: &mut Ctx<'info, OpenClaimCase<'info>>,
+    policy_series: Pubkey,
+    claimant: Pubkey,
+    evidence_ref_hash: [u8; 32],
+    claim_id: &str,
+) -> Result<()> {
+    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+    require_quasar_id(claim_id)?;
+    require_quasar_health_plan_active(&ctx.accounts.health_plan)?;
+    require!(
+        ctx.accounts.health_plan.pause_flags.get() & PAUSE_FLAG_CLAIM_INTAKE == 0,
+        OmegaXProtocolError::ClaimIntakePaused
+    );
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_claim_intake_submitter(
+        &authority,
+        &ctx.accounts.health_plan,
+        &ctx.accounts.member_position,
+        claimant,
+    )?;
+
+    let opened_at = Clock::get()?.unix_timestamp.get();
+    let claim_case_bump = ctx.accounts.claim_case.bump;
+    ctx.accounts.claim_case.set_inner(
+        ctx.accounts.health_plan.reserve_domain,
+        *ctx.accounts.health_plan.address(),
+        policy_series,
+        *ctx.accounts.member_position.address(),
+        *ctx.accounts.funding_line.address(),
+        ctx.accounts.funding_line.asset_mint,
+        claimant,
+        ZERO_PUBKEY,
+        ZERO_PUBKEY,
+        evidence_ref_hash,
+        [0u8; 32],
+        CLAIM_INTAKE_OPEN,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        ZERO_PUBKEY,
+        opened_at,
+        opened_at,
+        0,
+        claim_case_bump,
+        claim_id,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
 
     Ok(())
 }
