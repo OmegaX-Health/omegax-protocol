@@ -639,26 +639,25 @@ pub mod omegax_protocol {
         reason_hash: [u8; 32],
         asset_symbol: String<u32, 32>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &asset_mint,
-            &oracle_authority,
-            &role,
-            &payout_priority,
-            &oracle_source,
-            &oracle_feed_id,
-            &max_staleness_seconds,
-            &max_confidence_bps,
-            &haircut_bps,
-            &max_exposure_bps,
-            &deposit_enabled,
-            &payout_enabled,
-            &capacity_enabled,
-            &active,
-            &reason_hash,
-            &asset_symbol,
-        );
-        quasar_handler_port_pending()
+        let _ = &reason_hash;
+        crate::reserve_waterfall::configure_reserve_asset_rail(
+            &mut ctx,
+            asset_mint,
+            oracle_authority,
+            role,
+            payout_priority,
+            oracle_source,
+            oracle_feed_id,
+            max_staleness_seconds,
+            max_confidence_bps,
+            haircut_bps,
+            max_exposure_bps,
+            deposit_enabled,
+            payout_enabled,
+            capacity_enabled,
+            active,
+            asset_symbol,
+        )
     }
 
     #[instruction(discriminator = [132, 35, 143, 147, 59, 80, 162, 117])]

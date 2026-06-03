@@ -16,6 +16,20 @@ use crate::state::*;
 #[cfg(feature = "quasar")]
 use quasar_lang::sysvars::Sysvar;
 
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_domain_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    domain: &ReserveDomainAccountData<'_>,
+) -> Result<()> {
+    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+        Ok(())
+    } else {
+        Err(OmegaXProtocolError::Unauthorized.into())
+    }
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn configure_reserve_asset_rail(
     ctx: Context<ConfigureReserveAssetRail>,
@@ -191,6 +205,112 @@ fn require_quasar_reserve_asset_rail_active(rail: &ReserveAssetRailAccountData<'
 }
 
 #[cfg(feature = "quasar")]
+pub(crate) fn configure_reserve_asset_rail<'info>(
+    ctx: &mut Ctx<'info, ConfigureReserveAssetRail<'info>>,
+    asset_mint_key: Pubkey,
+    oracle_authority: Pubkey,
+    role: u8,
+    payout_priority: u8,
+    oracle_source: u8,
+    oracle_feed_id: [u8; 32],
+    max_staleness_seconds: i64,
+    max_confidence_bps: u16,
+    haircut_bps: u16,
+    max_exposure_bps: u16,
+    deposit_enabled: bool,
+    payout_enabled: bool,
+    capacity_enabled: bool,
+    active: bool,
+    asset_symbol: &str,
+) -> Result<()> {
+    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_domain_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.reserve_domain,
+    )?;
+    require_valid_reserve_asset_role(role)?;
+    require_valid_reserve_oracle_source(oracle_source)?;
+    require_quasar_bps(haircut_bps)?;
+    require_quasar_bps(max_exposure_bps)?;
+    require_quasar_bps(max_confidence_bps)?;
+    let price_required = capacity_enabled || payout_enabled;
+    require!(
+        max_staleness_seconds >= 0,
+        OmegaXProtocolError::ReserveAssetPriceInvalid
+    );
+    if price_required {
+        require!(
+            oracle_source != RESERVE_ORACLE_SOURCE_NONE,
+            OmegaXProtocolError::InvalidReserveOracleSource
+        );
+        require!(
+            oracle_authority != ZERO_PUBKEY,
+            OmegaXProtocolError::Unauthorized
+        );
+        require!(
+            max_staleness_seconds > 0,
+            OmegaXProtocolError::ReserveAssetPriceInvalid
+        );
+        require!(
+            max_confidence_bps > 0,
+            OmegaXProtocolError::ReserveAssetPriceInvalid
+        );
+    }
+
+    let rail = &mut ctx.accounts.reserve_asset_rail;
+    require_keys_eq!(
+        rail.reserve_domain,
+        *ctx.accounts.reserve_domain.address(),
+        OmegaXProtocolError::ReserveAssetRailMismatch
+    );
+    require_keys_eq!(
+        rail.asset_mint,
+        asset_mint_key,
+        OmegaXProtocolError::ReserveAssetRailMismatch
+    );
+
+    let last_price_usd_1e8 = rail.last_price_usd_1e8.get();
+    let last_price_confidence_bps = rail.last_price_confidence_bps.get();
+    let last_price_published_at_ts = rail.last_price_published_at_ts.get();
+    let last_price_slot = rail.last_price_slot.get();
+    let last_price_proof_hash = rail.last_price_proof_hash;
+    let audit_nonce = rail.audit_nonce.get().saturating_add(1);
+    let bump = rail.bump;
+
+    rail.set_inner(
+        *ctx.accounts.reserve_domain.address(),
+        asset_mint_key,
+        oracle_authority,
+        role,
+        payout_priority,
+        oracle_source,
+        oracle_feed_id,
+        max_staleness_seconds,
+        max_confidence_bps,
+        haircut_bps,
+        max_exposure_bps,
+        deposit_enabled,
+        payout_enabled,
+        capacity_enabled,
+        active,
+        last_price_usd_1e8,
+        last_price_confidence_bps,
+        last_price_published_at_ts,
+        last_price_slot,
+        last_price_proof_hash,
+        audit_nonce,
+        bump,
+        asset_symbol,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
 pub(crate) fn publish_reserve_asset_rail_price<'info>(
     ctx: &mut Ctx<'info, PublishReserveAssetRailPrice<'info>>,
     price_usd_1e8: u64,
@@ -275,7 +395,6 @@ pub(crate) fn publish_reserve_asset_rail_price<'info>(
     Ok(())
 }
 
-#[cfg(not(feature = "quasar"))]
 pub(crate) fn require_valid_reserve_asset_role(role: u8) -> Result<()> {
     match role {
         RESERVE_ASSET_ROLE_PRIMARY_STABLE
@@ -286,7 +405,6 @@ pub(crate) fn require_valid_reserve_asset_role(role: u8) -> Result<()> {
     }
 }
 
-#[cfg(not(feature = "quasar"))]
 pub(crate) fn require_valid_reserve_oracle_source(source: u8) -> Result<()> {
     match source {
         RESERVE_ORACLE_SOURCE_NONE
