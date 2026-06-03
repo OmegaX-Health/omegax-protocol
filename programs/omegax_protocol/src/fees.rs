@@ -534,6 +534,126 @@ fn require_quasar_fee_recipient_token_owner(
 }
 
 #[cfg(feature = "quasar")]
+pub(crate) fn init_protocol_fee_vault<'info>(
+    ctx: &mut Ctx<'info, InitProtocolFeeVault<'info>>,
+    asset_mint: Pubkey,
+    fee_recipient: Pubkey,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require!(
+        asset_mint != ZERO_PUBKEY,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    if asset_mint != NATIVE_SOL_MINT {
+        require!(
+            ctx.accounts.domain_asset_vault.is_some(),
+            OmegaXProtocolError::DomainAssetVaultRequired
+        );
+    }
+
+    let bump = ctx.accounts.protocol_fee_vault.bump;
+    ctx.accounts.protocol_fee_vault.set_inner(
+        *ctx.accounts.reserve_domain.address(),
+        asset_mint,
+        require_quasar_configured_fee_recipient(fee_recipient)?,
+        0,
+        0,
+        bump,
+    );
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn init_pool_treasury_vault<'info>(
+    ctx: &mut Ctx<'info, InitPoolTreasuryVault<'info>>,
+    asset_mint: Pubkey,
+    fee_recipient: Pubkey,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require!(
+        asset_mint != ZERO_PUBKEY,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require!(
+        asset_mint == NATIVE_SOL_MINT
+            || asset_mint == ctx.accounts.liquidity_pool.deposit_asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    if asset_mint != NATIVE_SOL_MINT {
+        require!(
+            ctx.accounts.domain_asset_vault.is_some(),
+            OmegaXProtocolError::DomainAssetVaultRequired
+        );
+    }
+
+    let bump = ctx.accounts.pool_treasury_vault.bump;
+    ctx.accounts.pool_treasury_vault.set_inner(
+        *ctx.accounts.liquidity_pool.address(),
+        asset_mint,
+        require_quasar_configured_fee_recipient(fee_recipient)?,
+        0,
+        0,
+        bump,
+    );
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn init_pool_oracle_fee_vault<'info>(
+    ctx: &mut Ctx<'info, InitPoolOracleFeeVault<'info>>,
+    oracle: Pubkey,
+    asset_mint: Pubkey,
+    fee_recipient: Pubkey,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require!(
+        asset_mint != ZERO_PUBKEY,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    require!(
+        oracle != ZERO_PUBKEY,
+        OmegaXProtocolError::OracleProfileMismatch
+    );
+    require!(
+        ctx.accounts.oracle_profile.active.get(),
+        OmegaXProtocolError::OracleProfileInactive
+    );
+    require!(
+        ctx.accounts.oracle_profile.claimed.get(),
+        OmegaXProtocolError::OracleProfileUnclaimed
+    );
+    require!(
+        asset_mint == NATIVE_SOL_MINT
+            || asset_mint == ctx.accounts.liquidity_pool.deposit_asset_mint,
+        OmegaXProtocolError::AssetMintMismatch
+    );
+    if asset_mint != NATIVE_SOL_MINT {
+        require!(
+            ctx.accounts.domain_asset_vault.is_some(),
+            OmegaXProtocolError::DomainAssetVaultRequired
+        );
+    }
+
+    let bump = ctx.accounts.pool_oracle_fee_vault.bump;
+    ctx.accounts.pool_oracle_fee_vault.set_inner(
+        *ctx.accounts.liquidity_pool.address(),
+        oracle,
+        asset_mint,
+        require_quasar_configured_fee_recipient(fee_recipient)?,
+        0,
+        0,
+        bump,
+    );
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
 fn quasar_transfer_lamports_from_fee_vault(
     vault: &impl quasar_lang::traits::AsAccountView,
     recipient: &impl quasar_lang::traits::AsAccountView,
@@ -948,6 +1068,7 @@ pub struct InitProtocolFeeVault<'info> {
     #[cfg_attr(
         feature = "quasar",
         account(
+            mut,
             constraint = quasar_pda_matches(
                 protocol_fee_vault.address(),
                 &crate::ID,
@@ -957,7 +1078,7 @@ pub struct InitProtocolFeeVault<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub protocol_fee_vault: &'info Account<ProtocolFeeVault>,
+    pub protocol_fee_vault: &'info mut Account<ProtocolFeeVault>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -1041,7 +1162,7 @@ pub struct InitPoolTreasuryVault<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub pool_treasury_vault: &'info Account<PoolTreasuryVault>,
+    pub pool_treasury_vault: &'info mut Account<PoolTreasuryVault>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -1169,7 +1290,7 @@ pub struct InitPoolOracleFeeVault<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub pool_oracle_fee_vault: &'info Account<PoolOracleFeeVault>,
+    pub pool_oracle_fee_vault: &'info mut Account<PoolOracleFeeVault>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

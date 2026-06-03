@@ -683,8 +683,7 @@ pub mod omegax_protocol {
         asset_mint: Pubkey,
         fee_recipient: Pubkey,
     ) -> Result<()> {
-        let _ = (&ctx, &asset_mint, &fee_recipient);
-        quasar_handler_port_pending()
+        crate::fees::init_protocol_fee_vault(&mut ctx, asset_mint, fee_recipient)
     }
 
     #[instruction(discriminator = [96, 169, 51, 224, 0, 207, 141, 47])]
@@ -693,8 +692,7 @@ pub mod omegax_protocol {
         asset_mint: Pubkey,
         fee_recipient: Pubkey,
     ) -> Result<()> {
-        let _ = (&ctx, &asset_mint, &fee_recipient);
-        quasar_handler_port_pending()
+        crate::fees::init_pool_treasury_vault(&mut ctx, asset_mint, fee_recipient)
     }
 
     #[instruction(discriminator = [68, 122, 148, 84, 91, 98, 198, 167])]
@@ -704,8 +702,7 @@ pub mod omegax_protocol {
         asset_mint: Pubkey,
         fee_recipient: Pubkey,
     ) -> Result<()> {
-        let _ = (&ctx, &oracle, &asset_mint, &fee_recipient);
-        quasar_handler_port_pending()
+        crate::fees::init_pool_oracle_fee_vault(&mut ctx, oracle, asset_mint, fee_recipient)
     }
 
     #[instruction(discriminator = [136, 7, 197, 134, 241, 206, 83, 171])]
