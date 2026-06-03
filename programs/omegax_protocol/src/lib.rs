@@ -1075,14 +1075,13 @@ pub mod omegax_protocol {
         max_overpay_bps: u16,
         settlement_reason_hash: [u8; 32],
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &claim_credit_amount,
-            &payout_amount,
-            &max_overpay_bps,
-            &settlement_reason_hash,
-        );
-        quasar_handler_port_pending()
+        crate::claims::settle_claim_case_selected_asset(
+            &mut ctx,
+            claim_credit_amount,
+            payout_amount,
+            max_overpay_bps,
+            settlement_reason_hash,
+        )
     }
 
     #[instruction(discriminator = [175, 75, 181, 165, 224, 254, 6, 131])]

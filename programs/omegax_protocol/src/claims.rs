@@ -173,14 +173,29 @@ fn require_quasar_reserve_asset_rail_payout_enabled(
     rail: &ReserveAssetRailAccountData<'_>,
     now_ts: i64,
 ) -> Result<()> {
-    require!(
-        rail.active.get(),
-        OmegaXProtocolError::ReserveAssetRailInactive
-    );
+    require_quasar_reserve_asset_rail_active(rail)?;
     require!(
         rail.payout_enabled.get(),
         OmegaXProtocolError::ReserveAssetRailPayoutDisabled
     );
+    require_quasar_fresh_reserve_asset_price_at(rail, now_ts)
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_reserve_asset_rail_active(rail: &ReserveAssetRailAccountData<'_>) -> Result<()> {
+    require!(
+        rail.active.get(),
+        OmegaXProtocolError::ReserveAssetRailInactive
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+fn require_quasar_fresh_reserve_asset_price_at(
+    rail: &ReserveAssetRailAccountData<'_>,
+    now_ts: i64,
+) -> Result<()> {
     require!(
         rail.last_price_usd_1e8.get() > 0,
         OmegaXProtocolError::ReserveAssetPriceInvalid
@@ -206,6 +221,81 @@ fn require_quasar_reserve_asset_rail_payout_enabled(
     require!(
         age <= rail.max_staleness_seconds.get(),
         OmegaXProtocolError::ReserveAssetPriceStale
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+fn checked_pow10_u128(decimals: u8) -> Result<u128> {
+    require!(
+        decimals <= 18,
+        OmegaXProtocolError::ReserveAssetMintDecimalsUnsupported
+    );
+    let mut value = 1u128;
+    for _ in 0..decimals {
+        value = value
+            .checked_mul(10)
+            .ok_or(OmegaXProtocolError::ArithmeticError)?;
+    }
+    Ok(value)
+}
+
+#[cfg(feature = "quasar")]
+fn quasar_reserve_asset_value_usd_1e8_at(
+    amount: u64,
+    mint_decimals: u8,
+    rail: &ReserveAssetRailAccountData<'_>,
+    now_ts: i64,
+) -> Result<u128> {
+    require_quasar_fresh_reserve_asset_price_at(rail, now_ts)?;
+    let decimal_scale = checked_pow10_u128(mint_decimals)?;
+    let scaled = (amount as u128)
+        .checked_mul(rail.last_price_usd_1e8.get() as u128)
+        .ok_or(OmegaXProtocolError::ArithmeticError)?;
+    scaled
+        .checked_div(decimal_scale)
+        .ok_or(OmegaXProtocolError::ArithmeticError.into())
+}
+
+#[cfg(feature = "quasar")]
+fn require_quasar_selected_asset_payout_value(
+    claim_credit_amount: u64,
+    claim_mint_decimals: u8,
+    claim_asset_rail: &ReserveAssetRailAccountData<'_>,
+    payout_amount: u64,
+    payout_mint_decimals: u8,
+    payout_asset_rail: &ReserveAssetRailAccountData<'_>,
+    max_overpay_bps: u16,
+    now_ts: i64,
+) -> Result<()> {
+    require!(
+        max_overpay_bps <= MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS,
+        OmegaXProtocolError::SelectedAssetOverpayBpsTooHigh
+    );
+    let claim_value = quasar_reserve_asset_value_usd_1e8_at(
+        claim_credit_amount,
+        claim_mint_decimals,
+        claim_asset_rail,
+        now_ts,
+    )?;
+    let payout_value = quasar_reserve_asset_value_usd_1e8_at(
+        payout_amount,
+        payout_mint_decimals,
+        payout_asset_rail,
+        now_ts,
+    )?;
+    require!(
+        payout_value >= claim_value,
+        OmegaXProtocolError::SelectedAssetPayoutUnderpaid
+    );
+    let multiplier = (BASIS_POINTS_DENOMINATOR as u128) + (max_overpay_bps as u128);
+    let max_value = claim_value
+        .checked_mul(multiplier)
+        .ok_or(OmegaXProtocolError::ArithmeticError)?
+        / (BASIS_POINTS_DENOMINATOR as u128);
+    require!(
+        payout_value <= max_value,
+        OmegaXProtocolError::SelectedAssetPayoutOverpaid
     );
     Ok(())
 }
@@ -1789,6 +1879,268 @@ pub(crate) fn settle_claim_case_selected_asset(
     Ok(())
 }
 
+#[cfg(feature = "quasar")]
+pub(crate) fn settle_claim_case_selected_asset<'info>(
+    ctx: &mut Ctx<'info, SettleClaimCaseSelectedAsset<'info>>,
+    claim_credit_amount: u64,
+    payout_amount: u64,
+    max_overpay_bps: u16,
+    settlement_reason_hash: [u8; 32],
+) -> Result<()> {
+    let _ = settlement_reason_hash;
+    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+    let authority = *ctx.accounts.authority.address();
+    let health_plan_key = *ctx.accounts.health_plan.address();
+    require_quasar_claim_operator(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+    require_quasar_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
+    require_quasar_positive_amount(claim_credit_amount)?;
+    require_quasar_positive_amount(payout_amount)?;
+    require!(
+        claim_credit_amount <= quasar_remaining_claim_amount(&ctx.accounts.claim_case),
+        OmegaXProtocolError::AmountExceedsApprovedClaim
+    );
+    require!(
+        max_overpay_bps <= MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS,
+        OmegaXProtocolError::SelectedAssetOverpayBpsTooHigh
+    );
+    require_keys_eq!(
+        ctx.accounts.payout_funding_line.health_plan,
+        health_plan_key,
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+    require_keys_eq!(
+        ctx.accounts.payout_funding_line.policy_series,
+        ctx.accounts.claim_case.policy_series,
+        OmegaXProtocolError::PolicySeriesMismatch
+    );
+    require!(
+        ctx.accounts.payout_funding_line.status == FUNDING_LINE_STATUS_OPEN,
+        OmegaXProtocolError::FundingLineMismatch
+    );
+    require_keys_neq!(
+        ctx.accounts.claim_case.asset_mint,
+        ctx.accounts.payout_funding_line.asset_mint,
+        OmegaXProtocolError::SelectedAssetPayoutSameMint
+    );
+
+    validate_quasar_optional_series_ledger(
+        ctx.accounts
+            .payout_series_reserve_ledger
+            .as_ref()
+            .map(|ledger| &**ledger),
+        ctx.accounts.claim_case.policy_series,
+        ctx.accounts.payout_funding_line.asset_mint,
+    )?;
+
+    let now_ts = Clock::get()?.unix_timestamp.get();
+    require_quasar_reserve_asset_rail_active(&ctx.accounts.claim_asset_rail)?;
+    require_quasar_reserve_asset_rail_payout_enabled(&ctx.accounts.payout_asset_rail, now_ts)?;
+    require_classic_spl_token(ctx.accounts.claim_asset_mint, ctx.accounts.token_program)?;
+    require_quasar_selected_asset_payout_value(
+        claim_credit_amount,
+        ctx.accounts.claim_asset_mint.decimals(),
+        &ctx.accounts.claim_asset_rail,
+        payout_amount,
+        ctx.accounts.payout_asset_mint.decimals(),
+        &ctx.accounts.payout_asset_rail,
+        max_overpay_bps,
+        now_ts,
+    )?;
+
+    let resolved_recipient = if ctx.accounts.claim_case.delegate_recipient != ZERO_PUBKEY {
+        ctx.accounts.claim_case.delegate_recipient
+    } else {
+        ctx.accounts.member_position.wallet
+    };
+    require_keys_eq!(
+        *ctx.accounts.recipient_token_account.owner(),
+        resolved_recipient,
+        OmegaXProtocolError::Unauthorized
+    );
+
+    let mut domain_total_assets = ctx.accounts.payout_domain_asset_vault.total_assets.get();
+    let mut domain_sheet = ctx.accounts.payout_domain_asset_ledger.sheet;
+    let mut plan_sheet = ctx.accounts.payout_plan_reserve_ledger.sheet;
+    let mut funding_line_sheet = ctx.accounts.payout_funding_line_ledger.sheet;
+    let mut series_sheet = ctx
+        .accounts
+        .payout_series_reserve_ledger
+        .as_ref()
+        .map(|ledger| ledger.sheet);
+    let mut funding_spent_amount = ctx.accounts.payout_funding_line.spent_amount.get();
+    book_quasar_direct_claim_payout(
+        &mut domain_total_assets,
+        &mut domain_sheet,
+        &mut plan_sheet,
+        &mut funding_line_sheet,
+        series_sheet.as_mut(),
+        &mut funding_spent_amount,
+        payout_amount,
+    )?;
+
+    transfer_from_domain_vault(
+        payout_amount,
+        ctx.accounts.payout_domain_asset_vault,
+        ctx.accounts.payout_vault_token_account,
+        ctx.accounts.recipient_token_account,
+        ctx.accounts.payout_asset_mint,
+        ctx.accounts.token_program,
+    )?;
+
+    let claim_case = &mut ctx.accounts.claim_case;
+    let reserve_domain = claim_case.reserve_domain;
+    let health_plan = claim_case.health_plan;
+    let policy_series = claim_case.policy_series;
+    let member_position = claim_case.member_position;
+    let funding_line = claim_case.funding_line;
+    let asset_mint = claim_case.asset_mint;
+    let claimant = claim_case.claimant;
+    let adjudicator = claim_case.adjudicator;
+    let delegate_recipient = claim_case.delegate_recipient;
+    let evidence_ref_hash = claim_case.evidence_ref_hash;
+    let decision_support_hash = claim_case.decision_support_hash;
+    let review_state = claim_case.review_state;
+    let approved_amount = claim_case.approved_amount.get();
+    let denied_amount = claim_case.denied_amount.get();
+    let paid_amount = checked_add(claim_case.paid_amount.get(), claim_credit_amount)?;
+    let reserved_amount = claim_case
+        .reserved_amount
+        .get()
+        .saturating_sub(claim_credit_amount);
+    let recovered_amount = claim_case.recovered_amount.get();
+    let appeal_count = claim_case.appeal_count.get();
+    let attestation_count = claim_case.attestation_count.get();
+    let linked_obligation = claim_case.linked_obligation;
+    let opened_at = claim_case.opened_at.get();
+    let intake_status = if paid_amount >= approved_amount {
+        CLAIM_INTAKE_SETTLED
+    } else {
+        CLAIM_INTAKE_APPROVED
+    };
+    let closed_at = if intake_status == CLAIM_INTAKE_SETTLED {
+        now_ts
+    } else {
+        0
+    };
+    let bump = claim_case.bump;
+    let claim_id = claim_case.claim_id().to_owned();
+    claim_case.set_inner(
+        reserve_domain,
+        health_plan,
+        policy_series,
+        member_position,
+        funding_line,
+        asset_mint,
+        claimant,
+        adjudicator,
+        delegate_recipient,
+        evidence_ref_hash,
+        decision_support_hash,
+        intake_status,
+        review_state,
+        approved_amount,
+        denied_amount,
+        paid_amount,
+        reserved_amount,
+        recovered_amount,
+        appeal_count,
+        attestation_count,
+        linked_obligation,
+        opened_at,
+        now_ts,
+        closed_at,
+        bump,
+        &claim_id,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    let domain_asset_vault = &mut ctx.accounts.payout_domain_asset_vault;
+    let reserve_domain = domain_asset_vault.reserve_domain;
+    let asset_mint = domain_asset_vault.asset_mint;
+    let vault_token_account = domain_asset_vault.vault_token_account;
+    let bump = domain_asset_vault.bump;
+    domain_asset_vault.set_inner(
+        reserve_domain,
+        asset_mint,
+        vault_token_account,
+        domain_total_assets,
+        bump,
+    );
+
+    let domain_asset_ledger = &mut ctx.accounts.payout_domain_asset_ledger;
+    let reserve_domain = domain_asset_ledger.reserve_domain;
+    let asset_mint = domain_asset_ledger.asset_mint;
+    let bump = domain_asset_ledger.bump;
+    domain_asset_ledger.set_inner(reserve_domain, asset_mint, domain_sheet, bump);
+
+    let plan_reserve_ledger = &mut ctx.accounts.payout_plan_reserve_ledger;
+    let health_plan = plan_reserve_ledger.health_plan;
+    let asset_mint = plan_reserve_ledger.asset_mint;
+    let bump = plan_reserve_ledger.bump;
+    plan_reserve_ledger.set_inner(health_plan, asset_mint, plan_sheet, bump);
+
+    let funding_line_ledger = &mut ctx.accounts.payout_funding_line_ledger;
+    let funding_line_key = funding_line_ledger.funding_line;
+    let asset_mint = funding_line_ledger.asset_mint;
+    let bump = funding_line_ledger.bump;
+    funding_line_ledger.set_inner(funding_line_key, asset_mint, funding_line_sheet, bump);
+
+    if let (Some(series_ledger), Some(sheet)) = (
+        ctx.accounts.payout_series_reserve_ledger.as_mut(),
+        series_sheet.as_ref(),
+    ) {
+        let series_ledger = &mut **series_ledger;
+        let policy_series = series_ledger.policy_series;
+        let asset_mint = series_ledger.asset_mint;
+        let bump = series_ledger.bump;
+        series_ledger.set_inner(policy_series, asset_mint, *sheet, bump);
+    }
+
+    let funding_line = &mut ctx.accounts.payout_funding_line;
+    let reserve_domain = funding_line.reserve_domain;
+    let health_plan = funding_line.health_plan;
+    let policy_series = funding_line.policy_series;
+    let asset_mint = funding_line.asset_mint;
+    let line_type = funding_line.line_type;
+    let funding_priority = funding_line.funding_priority;
+    let committed_amount = funding_line.committed_amount.get();
+    let funded_amount = funding_line.funded_amount.get();
+    let reserved_amount = funding_line.reserved_amount.get();
+    let released_amount = funding_line.released_amount.get();
+    let returned_amount = funding_line.returned_amount.get();
+    let status = funding_line.status;
+    let caps_hash = funding_line.caps_hash;
+    let bump = funding_line.bump;
+    let line_id = funding_line.line_id().to_owned();
+    funding_line.set_inner(
+        reserve_domain,
+        health_plan,
+        policy_series,
+        asset_mint,
+        line_type,
+        funding_priority,
+        committed_amount,
+        funded_amount,
+        reserved_amount,
+        funding_spent_amount,
+        released_amount,
+        returned_amount,
+        status,
+        caps_hash,
+        bump,
+        &line_id,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn attest_claim_case(
     ctx: Context<AttestClaimCase>,
@@ -2792,7 +3144,7 @@ pub struct SettleClaimCaseSelectedAsset<'info> {
         constraint = payout_domain_asset_vault.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::ReserveDomainMismatch,
         constraint = payout_domain_asset_vault.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
-    pub payout_domain_asset_vault: &'info Account<DomainAssetVault>,
+    pub payout_domain_asset_vault: &'info mut Account<DomainAssetVault>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
@@ -2814,7 +3166,7 @@ pub struct SettleClaimCaseSelectedAsset<'info> {
         constraint = payout_domain_asset_ledger.reserve_domain == health_plan.reserve_domain @ OmegaXProtocolError::ReserveDomainMismatch,
         constraint = payout_domain_asset_ledger.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
-    pub payout_domain_asset_ledger: &'info Account<DomainAssetLedger>,
+    pub payout_domain_asset_ledger: &'info mut Account<DomainAssetLedger>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
@@ -2854,7 +3206,7 @@ pub struct SettleClaimCaseSelectedAsset<'info> {
         constraint = payout_funding_line_ledger.funding_line == *payout_funding_line.address() @ OmegaXProtocolError::FundingLineMismatch,
         constraint = payout_funding_line_ledger.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
-    pub payout_funding_line_ledger: &'info Account<FundingLineLedger>,
+    pub payout_funding_line_ledger: &'info mut Account<FundingLineLedger>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
@@ -2876,7 +3228,7 @@ pub struct SettleClaimCaseSelectedAsset<'info> {
         constraint = payout_plan_reserve_ledger.health_plan == *health_plan.address() @ OmegaXProtocolError::HealthPlanMismatch,
         constraint = payout_plan_reserve_ledger.asset_mint == payout_funding_line.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
-    pub payout_plan_reserve_ledger: &'info Account<PlanReserveLedger>,
+    pub payout_plan_reserve_ledger: &'info mut Account<PlanReserveLedger>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub payout_series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
@@ -2936,12 +3288,12 @@ pub struct SettleClaimCaseSelectedAsset<'info> {
     #[account(
         constraint = *payout_vault_token_account.address() == payout_domain_asset_vault.vault_token_account @ OmegaXProtocolError::VaultTokenAccountMismatch,
     )]
-    pub payout_vault_token_account: &'info InterfaceAccount<TokenAccount>,
+    pub payout_vault_token_account: &'info mut InterfaceAccount<TokenAccount>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
     #[cfg(feature = "quasar")]
-    pub recipient_token_account: &'info InterfaceAccount<TokenAccount>,
+    pub recipient_token_account: &'info mut InterfaceAccount<TokenAccount>,
     #[cfg(not(feature = "quasar"))]
     pub token_program: Interface<'info, TokenInterface>,
     #[cfg(feature = "quasar")]
