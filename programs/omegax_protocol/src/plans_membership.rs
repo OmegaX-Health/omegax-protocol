@@ -133,6 +133,40 @@ fn require_quasar_plan_control(
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
+fn require_quasar_id(value: &str) -> Result<()> {
+    require!(
+        value.len() <= MAX_ID_LEN,
+        OmegaXProtocolError::IdentifierTooLong
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
+    require!(
+        !governance.emergency_pause.get(),
+        OmegaXProtocolError::ProtocolEmergencyPaused
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_domain_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    domain: &ReserveDomainAccountData<'_>,
+) -> Result<()> {
+    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+        Ok(())
+    } else {
+        Err(OmegaXProtocolError::Unauthorized.into())
+    }
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
 fn validate_quasar_membership_gate_fields(
     membership_mode: u8,
     membership_gate_kind: u8,
@@ -267,6 +301,314 @@ pub(crate) fn update_health_plan_controls<'info>(
         ctx.accounts.authority.to_account_view(),
         None,
     )?;
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn create_health_plan<'info>(
+    ctx: &mut Ctx<'info, CreateHealthPlan<'info>>,
+    sponsor: Pubkey,
+    sponsor_operator: Pubkey,
+    claims_operator: Pubkey,
+    oracle_authority: Pubkey,
+    membership_mode: u8,
+    membership_gate_kind: u8,
+    membership_gate_mint: Pubkey,
+    membership_gate_min_amount: u64,
+    membership_invite_authority: Pubkey,
+    allowed_rail_mask: u16,
+    default_funding_priority: u8,
+    oracle_policy_hash: [u8; 32],
+    schema_binding_hash: [u8; 32],
+    compliance_baseline_hash: [u8; 32],
+    pause_flags: u32,
+    plan_id: &str,
+    display_name: &str,
+    organization_ref: &str,
+    metadata_uri: &str,
+) -> Result<()> {
+    require_quasar_id(plan_id)?;
+    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+    require!(
+        ctx.accounts.reserve_domain.active.get(),
+        OmegaXProtocolError::ReserveDomainInactive
+    );
+    let plan_admin = *ctx.accounts.plan_admin.address();
+    require_quasar_domain_control(
+        &plan_admin,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.reserve_domain,
+    )?;
+    validate_quasar_membership_gate_fields(
+        membership_mode,
+        membership_gate_kind,
+        membership_gate_mint,
+        membership_gate_min_amount,
+        membership_invite_authority,
+    )?;
+
+    let bump = ctx.accounts.health_plan.bump;
+    ctx.accounts.health_plan.set_inner(
+        *ctx.accounts.reserve_domain.address(),
+        sponsor,
+        plan_admin,
+        sponsor_operator,
+        claims_operator,
+        oracle_authority,
+        membership_mode,
+        membership_gate_kind,
+        membership_gate_mint,
+        membership_gate_min_amount,
+        membership_invite_authority,
+        allowed_rail_mask,
+        default_funding_priority,
+        oracle_policy_hash,
+        schema_binding_hash,
+        compliance_baseline_hash,
+        pause_flags,
+        true,
+        0,
+        bump,
+        plan_id,
+        display_name,
+        organization_ref,
+        metadata_uri,
+        ctx.accounts.plan_admin.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn create_policy_series<'info>(
+    ctx: &mut Ctx<'info, CreatePolicySeries<'info>>,
+    asset_mint: Pubkey,
+    mode: u8,
+    status: u8,
+    adjudication_mode: u8,
+    terms_hash: [u8; 32],
+    pricing_hash: [u8; 32],
+    payout_hash: [u8; 32],
+    reserve_model_hash: [u8; 32],
+    evidence_requirements_hash: [u8; 32],
+    comparability_hash: [u8; 32],
+    policy_overrides_hash: [u8; 32],
+    cycle_seconds: i64,
+    terms_version: u16,
+    series_id: &str,
+    display_name: &str,
+    metadata_uri: &str,
+) -> Result<()> {
+    require_quasar_id(series_id)?;
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_plan_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+
+    let policy_series_key = *ctx.accounts.policy_series.address();
+    let live_since_ts = if status == SERIES_STATUS_ACTIVE {
+        Clock::get()?.unix_timestamp.get()
+    } else {
+        0
+    };
+    let policy_series_bump = ctx.accounts.policy_series.bump;
+    ctx.accounts.policy_series.set_inner(
+        ctx.accounts.health_plan.reserve_domain,
+        *ctx.accounts.health_plan.address(),
+        asset_mint,
+        mode,
+        status,
+        adjudication_mode,
+        terms_hash,
+        pricing_hash,
+        payout_hash,
+        reserve_model_hash,
+        evidence_requirements_hash,
+        comparability_hash,
+        policy_overrides_hash,
+        cycle_seconds,
+        terms_version,
+        ZERO_PUBKEY,
+        ZERO_PUBKEY,
+        live_since_ts,
+        status == SERIES_STATUS_ACTIVE,
+        policy_series_bump,
+        series_id,
+        display_name,
+        metadata_uri,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    let series_reserve_ledger_bump = ctx.accounts.series_reserve_ledger.bump;
+    ctx.accounts.series_reserve_ledger.set_inner(
+        policy_series_key,
+        asset_mint,
+        ReserveBalanceSheet::default(),
+        series_reserve_ledger_bump,
+    );
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn initialize_series_reserve_ledger<'info>(
+    ctx: &mut Ctx<'info, InitializeSeriesReserveLedger<'info>>,
+    asset_mint: Pubkey,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_plan_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+    require_keys_eq!(
+        ctx.accounts.policy_series.health_plan,
+        *ctx.accounts.health_plan.address(),
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+
+    let series_reserve_ledger_bump = ctx.accounts.series_reserve_ledger.bump;
+    ctx.accounts.series_reserve_ledger.set_inner(
+        *ctx.accounts.policy_series.address(),
+        asset_mint,
+        ReserveBalanceSheet::default(),
+        series_reserve_ledger_bump,
+    );
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn version_policy_series<'info>(
+    ctx: &mut Ctx<'info, VersionPolicySeries<'info>>,
+    status: u8,
+    adjudication_mode: u8,
+    terms_hash: [u8; 32],
+    pricing_hash: [u8; 32],
+    payout_hash: [u8; 32],
+    reserve_model_hash: [u8; 32],
+    evidence_requirements_hash: [u8; 32],
+    comparability_hash: [u8; 32],
+    policy_overrides_hash: [u8; 32],
+    cycle_seconds: i64,
+    series_id: &str,
+    display_name: &str,
+    metadata_uri: &str,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_plan_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+    require!(
+        ctx.accounts.current_policy_series.health_plan == *ctx.accounts.health_plan.address(),
+        OmegaXProtocolError::HealthPlanMismatch
+    );
+    require_quasar_id(series_id)?;
+
+    let current_key = *ctx.accounts.current_policy_series.address();
+    let next_key = *ctx.accounts.next_policy_series.address();
+    let current_reserve_domain = ctx.accounts.current_policy_series.reserve_domain;
+    let current_health_plan = ctx.accounts.current_policy_series.health_plan;
+    let current_asset_mint = ctx.accounts.current_policy_series.asset_mint;
+    let current_mode = ctx.accounts.current_policy_series.mode;
+    let current_adjudication_mode = ctx.accounts.current_policy_series.adjudication_mode;
+    let current_terms_hash = ctx.accounts.current_policy_series.terms_hash;
+    let current_pricing_hash = ctx.accounts.current_policy_series.pricing_hash;
+    let current_payout_hash = ctx.accounts.current_policy_series.payout_hash;
+    let current_reserve_model_hash = ctx.accounts.current_policy_series.reserve_model_hash;
+    let current_evidence_requirements_hash = ctx
+        .accounts
+        .current_policy_series
+        .evidence_requirements_hash;
+    let current_comparability_hash = ctx.accounts.current_policy_series.comparability_hash;
+    let current_policy_overrides_hash = ctx.accounts.current_policy_series.policy_overrides_hash;
+    let current_cycle_seconds = ctx.accounts.current_policy_series.cycle_seconds.get();
+    let current_terms_version = ctx.accounts.current_policy_series.terms_version.get();
+    let current_prior_series = ctx.accounts.current_policy_series.prior_series;
+    let current_live_since_ts = ctx.accounts.current_policy_series.live_since_ts.get();
+    let current_material_locked = ctx.accounts.current_policy_series.material_locked.get();
+    let current_bump = ctx.accounts.current_policy_series.bump;
+    let current_series_id = ctx.accounts.current_policy_series.series_id().to_owned();
+    let current_display_name = ctx.accounts.current_policy_series.display_name().to_owned();
+    let current_metadata_uri = ctx.accounts.current_policy_series.metadata_uri().to_owned();
+
+    ctx.accounts.current_policy_series.set_inner(
+        current_reserve_domain,
+        current_health_plan,
+        current_asset_mint,
+        current_mode,
+        SERIES_STATUS_CLOSED,
+        current_adjudication_mode,
+        current_terms_hash,
+        current_pricing_hash,
+        current_payout_hash,
+        current_reserve_model_hash,
+        current_evidence_requirements_hash,
+        current_comparability_hash,
+        current_policy_overrides_hash,
+        current_cycle_seconds,
+        current_terms_version,
+        current_prior_series,
+        next_key,
+        current_live_since_ts,
+        current_material_locked,
+        current_bump,
+        &current_series_id,
+        &current_display_name,
+        &current_metadata_uri,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    let live_since_ts = if status == SERIES_STATUS_ACTIVE {
+        Clock::get()?.unix_timestamp.get()
+    } else {
+        0
+    };
+    let next_bump = ctx.accounts.next_policy_series.bump;
+    let next_terms_version = current_terms_version.saturating_add(1);
+    ctx.accounts.next_policy_series.set_inner(
+        current_reserve_domain,
+        current_health_plan,
+        current_asset_mint,
+        current_mode,
+        status,
+        adjudication_mode,
+        terms_hash,
+        pricing_hash,
+        payout_hash,
+        reserve_model_hash,
+        evidence_requirements_hash,
+        comparability_hash,
+        policy_overrides_hash,
+        cycle_seconds,
+        next_terms_version,
+        current_key,
+        ZERO_PUBKEY,
+        live_since_ts,
+        status == SERIES_STATUS_ACTIVE,
+        next_bump,
+        series_id,
+        display_name,
+        metadata_uri,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    let next_series_reserve_ledger_bump = ctx.accounts.next_series_reserve_ledger.bump;
+    ctx.accounts.next_series_reserve_ledger.set_inner(
+        next_key,
+        current_asset_mint,
+        ReserveBalanceSheet::default(),
+        next_series_reserve_ledger_bump,
+    );
 
     Ok(())
 }
@@ -835,7 +1177,7 @@ pub struct CreatePolicySeries<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: &'info Account<SeriesReserveLedger>,
+    pub series_reserve_ledger: &'info mut Account<SeriesReserveLedger>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -908,7 +1250,7 @@ pub struct InitializeSeriesReserveLedger<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: &'info Account<SeriesReserveLedger>,
+    pub series_reserve_ledger: &'info mut Account<SeriesReserveLedger>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -1023,7 +1365,7 @@ pub struct VersionPolicySeries<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub next_series_reserve_ledger: &'info Account<SeriesReserveLedger>,
+    pub next_series_reserve_ledger: &'info mut Account<SeriesReserveLedger>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

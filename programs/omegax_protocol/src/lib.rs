@@ -727,29 +727,28 @@ pub mod omegax_protocol {
         organization_ref: String<u32, 64>,
         metadata_uri: String<u32, 160>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &sponsor,
-            &sponsor_operator,
-            &claims_operator,
-            &oracle_authority,
-            &membership_mode,
-            &membership_gate_kind,
-            &membership_gate_mint,
-            &membership_gate_min_amount,
-            &membership_invite_authority,
-            &allowed_rail_mask,
-            &default_funding_priority,
-            &oracle_policy_hash,
-            &schema_binding_hash,
-            &compliance_baseline_hash,
-            &pause_flags,
-            &plan_id,
-            &display_name,
-            &organization_ref,
-            &metadata_uri,
-        );
-        quasar_handler_port_pending()
+        crate::plans_membership::create_health_plan(
+            &mut ctx,
+            sponsor,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+            membership_mode,
+            membership_gate_kind,
+            membership_gate_mint,
+            membership_gate_min_amount,
+            membership_invite_authority,
+            allowed_rail_mask,
+            default_funding_priority,
+            oracle_policy_hash,
+            schema_binding_hash,
+            compliance_baseline_hash,
+            pause_flags,
+            plan_id,
+            display_name,
+            organization_ref,
+            metadata_uri,
+        )
     }
 
     #[instruction(discriminator = [108, 11, 28, 140, 226, 164, 239, 113])]
@@ -813,26 +812,25 @@ pub mod omegax_protocol {
         display_name: String<u32, 64>,
         metadata_uri: String<u32, 160>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &asset_mint,
-            &mode,
-            &status,
-            &adjudication_mode,
-            &terms_hash,
-            &pricing_hash,
-            &payout_hash,
-            &reserve_model_hash,
-            &evidence_requirements_hash,
-            &comparability_hash,
-            &policy_overrides_hash,
-            &cycle_seconds,
-            &terms_version,
-            &series_id,
-            &display_name,
-            &metadata_uri,
-        );
-        quasar_handler_port_pending()
+        crate::plans_membership::create_policy_series(
+            &mut ctx,
+            asset_mint,
+            mode,
+            status,
+            adjudication_mode,
+            terms_hash,
+            pricing_hash,
+            payout_hash,
+            reserve_model_hash,
+            evidence_requirements_hash,
+            comparability_hash,
+            policy_overrides_hash,
+            cycle_seconds,
+            terms_version,
+            series_id,
+            display_name,
+            metadata_uri,
+        )
     }
 
     #[instruction(discriminator = [113, 155, 191, 126, 81, 152, 220, 249])]
@@ -840,8 +838,7 @@ pub mod omegax_protocol {
         ctx: Ctx<InitializeSeriesReserveLedger>,
         asset_mint: Pubkey,
     ) -> Result<()> {
-        let _ = (&ctx, &asset_mint);
-        quasar_handler_port_pending()
+        crate::plans_membership::initialize_series_reserve_ledger(&mut ctx, asset_mint)
     }
 
     #[instruction(discriminator = [64, 76, 132, 253, 41, 220, 169, 146])]
@@ -861,23 +858,22 @@ pub mod omegax_protocol {
         display_name: String<u32, 64>,
         metadata_uri: String<u32, 160>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &status,
-            &adjudication_mode,
-            &terms_hash,
-            &pricing_hash,
-            &payout_hash,
-            &reserve_model_hash,
-            &evidence_requirements_hash,
-            &comparability_hash,
-            &policy_overrides_hash,
-            &cycle_seconds,
-            &series_id,
-            &display_name,
-            &metadata_uri,
-        );
-        quasar_handler_port_pending()
+        crate::plans_membership::version_policy_series(
+            &mut ctx,
+            status,
+            adjudication_mode,
+            terms_hash,
+            pricing_hash,
+            payout_hash,
+            reserve_model_hash,
+            evidence_requirements_hash,
+            comparability_hash,
+            policy_overrides_hash,
+            cycle_seconds,
+            series_id,
+            display_name,
+            metadata_uri,
+        )
     }
 
     #[instruction(discriminator = [161, 42, 115, 196, 30, 87, 104, 236])]
