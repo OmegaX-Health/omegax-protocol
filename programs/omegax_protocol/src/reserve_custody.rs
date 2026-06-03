@@ -29,6 +29,27 @@ fn require_quasar_domain_control(
     }
 }
 
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_governance(authority: &Pubkey, governance: &ProtocolGovernance) -> Result<()> {
+    require_keys_eq!(
+        *authority,
+        governance.governance_authority,
+        OmegaXProtocolError::Unauthorized
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_id(value: &str) -> Result<()> {
+    require!(
+        value.len() <= MAX_ID_LEN,
+        OmegaXProtocolError::IdentifierTooLong
+    );
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn create_reserve_domain(
     ctx: Context<CreateReserveDomain>,
@@ -88,6 +109,43 @@ pub(crate) fn update_reserve_domain_controls(
         reason_hash: args.reason_hash,
         audit_nonce: domain.audit_nonce,
     });
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn create_reserve_domain<'info>(
+    ctx: &mut Ctx<'info, CreateReserveDomain<'info>>,
+    domain_admin: Pubkey,
+    settlement_mode: u8,
+    legal_structure_hash: [u8; 32],
+    compliance_baseline_hash: [u8; 32],
+    allowed_rail_mask: u16,
+    pause_flags: u32,
+    domain_id: &str,
+    display_name: &str,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require_quasar_id(domain_id)?;
+
+    let bump = ctx.accounts.reserve_domain.bump;
+    ctx.accounts.reserve_domain.set_inner(
+        *ctx.accounts.protocol_governance.address(),
+        domain_admin,
+        settlement_mode,
+        legal_structure_hash,
+        compliance_baseline_hash,
+        allowed_rail_mask,
+        pause_flags,
+        true,
+        0,
+        bump,
+        domain_id,
+        display_name,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
 
     Ok(())
 }

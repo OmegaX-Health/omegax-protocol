@@ -580,18 +580,17 @@ pub mod omegax_protocol {
         domain_id: String<u32, 32>,
         display_name: String<u32, 64>,
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &domain_admin,
-            &settlement_mode,
-            &legal_structure_hash,
-            &compliance_baseline_hash,
-            &allowed_rail_mask,
-            &pause_flags,
-            &domain_id,
-            &display_name,
-        );
-        quasar_handler_port_pending()
+        crate::reserve_custody::create_reserve_domain(
+            &mut ctx,
+            domain_admin,
+            settlement_mode,
+            legal_structure_hash,
+            compliance_baseline_hash,
+            allowed_rail_mask,
+            pause_flags,
+            domain_id,
+            display_name,
+        )
     }
 
     #[instruction(discriminator = [3, 60, 38, 233, 198, 167, 116, 197])]
