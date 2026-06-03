@@ -1350,8 +1350,7 @@ pub mod omegax_protocol {
 
     #[instruction(discriminator = [1, 252, 166, 132, 45, 24, 23, 233])]
     pub fn claim_oracle(ctx: Ctx<ClaimOracle>) -> Result<()> {
-        let _ = &ctx;
-        quasar_handler_port_pending()
+        crate::oracle_schema::claim_oracle(&mut ctx)
     }
 
     #[instruction(discriminator = [175, 66, 157, 51, 96, 190, 163, 98])]

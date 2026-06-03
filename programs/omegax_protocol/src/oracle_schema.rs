@@ -85,6 +85,54 @@ pub(crate) fn claim_oracle(ctx: Context<ClaimOracle>) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "quasar")]
+pub(crate) fn claim_oracle<'info>(ctx: &mut Ctx<'info, ClaimOracle<'info>>) -> Result<()> {
+    let oracle = *ctx.accounts.oracle.address();
+    require_keys_eq!(
+        oracle,
+        ctx.accounts.oracle_profile.oracle,
+        OmegaXProtocolError::Unauthorized
+    );
+
+    let profile = &mut ctx.accounts.oracle_profile;
+    let oracle_type = profile.oracle_type;
+    let supported_schema_count = profile.supported_schema_count;
+    let supported_schema_key_hashes = profile.supported_schema_key_hashes;
+    let active = profile.active.get();
+    let created_at_ts = profile.created_at_ts.get();
+    let updated_at_ts = Clock::get()?.unix_timestamp.get();
+    let bump = profile.bump;
+    let display_name = profile.display_name().to_owned();
+    let legal_name = profile.legal_name().to_owned();
+    let website_url = profile.website_url().to_owned();
+    let app_url = profile.app_url().to_owned();
+    let logo_uri = profile.logo_uri().to_owned();
+    let webhook_url = profile.webhook_url().to_owned();
+
+    profile.set_inner(
+        oracle,
+        oracle,
+        oracle_type,
+        supported_schema_count,
+        supported_schema_key_hashes,
+        active,
+        true,
+        created_at_ts,
+        updated_at_ts,
+        bump,
+        &display_name,
+        &legal_name,
+        &website_url,
+        &app_url,
+        &logo_uri,
+        &webhook_url,
+        ctx.accounts.oracle.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn update_oracle_profile(
     ctx: Context<UpdateOracleProfile>,
