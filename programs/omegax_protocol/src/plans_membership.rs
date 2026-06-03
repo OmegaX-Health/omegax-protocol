@@ -13,6 +13,8 @@ use crate::events::*;
 use crate::kernel::*;
 use crate::state::*;
 use crate::types::*;
+#[cfg(feature = "quasar")]
+use quasar_lang::sysvars::Sysvar;
 
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn create_health_plan(
@@ -177,6 +179,20 @@ fn validate_quasar_membership_gate_fields(
     }
 
     Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn quasar_health_plan_membership_mode(plan: &HealthPlanAccountData<'_>) -> u8 {
+    plan.membership_mode
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn quasar_membership_gate_kind_requires_anchor_seat(mode: u8, gate_kind: u8) -> bool {
+    mode == MEMBERSHIP_MODE_TOKEN_GATE
+        && (gate_kind == MEMBERSHIP_GATE_KIND_NFT_ANCHOR
+            || gate_kind == MEMBERSHIP_GATE_KIND_STAKE_ANCHOR)
 }
 
 #[cfg(feature = "quasar")]
@@ -517,6 +533,98 @@ pub(crate) fn update_member_eligibility(
         );
         anchor_seat.active = false;
         anchor_seat.updated_at = member_position.updated_at;
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn update_member_eligibility<'info>(
+    ctx: &mut Ctx<'info, UpdateMemberEligibility<'info>>,
+    eligibility_status: u8,
+    delegated_rights: u32,
+    active: bool,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_plan_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+
+    let now_ts = Clock::get()?.unix_timestamp.get();
+    let health_plan_key = *ctx.accounts.health_plan.address();
+    let membership_mode = quasar_health_plan_membership_mode(&ctx.accounts.health_plan);
+
+    let member_position = &mut ctx.accounts.member_position;
+    let health_plan = member_position.health_plan;
+    let policy_series = member_position.policy_series;
+    let wallet = member_position.wallet;
+    let subject_commitment = member_position.subject_commitment;
+    let enrollment_proof_mode = member_position.enrollment_proof_mode;
+    let membership_gate_kind = member_position.membership_gate_kind;
+    let membership_anchor_ref = member_position.membership_anchor_ref;
+    let gate_amount_snapshot = member_position.gate_amount_snapshot.get();
+    let invite_id_hash = member_position.invite_id_hash;
+    let opened_at = member_position.opened_at.get();
+    let bump = member_position.bump;
+
+    member_position.set_inner(
+        health_plan,
+        policy_series,
+        wallet,
+        subject_commitment,
+        eligibility_status,
+        delegated_rights,
+        enrollment_proof_mode,
+        membership_gate_kind,
+        membership_anchor_ref,
+        gate_amount_snapshot,
+        invite_id_hash,
+        active,
+        opened_at,
+        now_ts,
+        bump,
+    );
+
+    if !active
+        && quasar_membership_gate_kind_requires_anchor_seat(membership_mode, membership_gate_kind)
+    {
+        let anchor_seat = ctx
+            .accounts
+            .membership_anchor_seat
+            .as_deref_mut()
+            .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
+        require_keys_eq!(
+            anchor_seat.health_plan,
+            health_plan_key,
+            OmegaXProtocolError::MembershipAnchorSeatMismatch
+        );
+        require_keys_eq!(
+            anchor_seat.anchor_ref,
+            membership_anchor_ref,
+            OmegaXProtocolError::MembershipAnchorSeatMismatch
+        );
+
+        let anchor_health_plan = anchor_seat.health_plan;
+        let anchor_ref = anchor_seat.anchor_ref;
+        let gate_kind = anchor_seat.gate_kind;
+        let holder_wallet = anchor_seat.holder_wallet;
+        let anchor_member_position = anchor_seat.member_position;
+        let opened_at = anchor_seat.opened_at.get();
+        let bump = anchor_seat.bump;
+
+        anchor_seat.set_inner(
+            anchor_health_plan,
+            anchor_ref,
+            gate_kind,
+            holder_wallet,
+            anchor_member_position,
+            false,
+            opened_at,
+            now_ts,
+            bump,
+        );
     }
 
     Ok(())
@@ -1071,7 +1179,7 @@ pub struct UpdateMemberEligibility<'info> {
             member_position.bump,
         ) @ OmegaXProtocolError::Unauthorized
     )]
-    pub member_position: &'info Account<MemberPosition>,
+    pub member_position: &'info mut Account<MemberPosition>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,

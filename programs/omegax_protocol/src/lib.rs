@@ -920,8 +920,12 @@ pub mod omegax_protocol {
         delegated_rights: u32,
         active: bool,
     ) -> Result<()> {
-        let _ = (&ctx, &eligibility_status, &delegated_rights, &active);
-        quasar_handler_port_pending()
+        crate::plans_membership::update_member_eligibility(
+            &mut ctx,
+            eligibility_status,
+            delegated_rights,
+            active,
+        )
     }
 
     #[instruction(discriminator = [231, 140, 66, 127, 163, 1, 197, 9])]
