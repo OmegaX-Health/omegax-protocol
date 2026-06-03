@@ -1064,8 +1064,7 @@ pub mod omegax_protocol {
 
     #[instruction(discriminator = [178, 123, 229, 204, 50, 204, 91, 71])]
     pub fn settle_claim_case(ctx: Ctx<SettleClaimCase>, amount: u64) -> Result<()> {
-        let _ = (&ctx, &amount);
-        quasar_handler_port_pending()
+        crate::claims::settle_claim_case(&mut ctx, amount)
     }
 
     #[instruction(discriminator = [21, 218, 248, 73, 41, 97, 47, 212])]
