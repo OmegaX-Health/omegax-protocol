@@ -1182,8 +1182,8 @@ pub mod omegax_protocol {
         credentialed: bool,
         reason_hash: [u8; 32],
     ) -> Result<()> {
-        let _ = (&ctx, &owner, &credentialed, &reason_hash);
-        quasar_handler_port_pending()
+        let _ = &reason_hash;
+        crate::capital::update_lp_position_credentialing(&mut ctx, owner, credentialed)
     }
 
     #[instruction(discriminator = [40, 215, 33, 115, 185, 101, 196, 167])]

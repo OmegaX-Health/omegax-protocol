@@ -35,6 +35,83 @@ pub(crate) fn update_lp_position_credentialing(
 
     Ok(())
 }
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_curator_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    pool: &LiquidityPoolAccountData<'_>,
+) -> Result<()> {
+    if *authority == pool.curator || *authority == governance.governance_authority {
+        Ok(())
+    } else {
+        Err(OmegaXProtocolError::Unauthorized.into())
+    }
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn update_lp_position_credentialing<'info>(
+    ctx: &mut Ctx<'info, UpdateLpPositionCredentialing<'info>>,
+    owner: Pubkey,
+    credentialed: bool,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_curator_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.liquidity_pool,
+    )?;
+
+    let capital_class = *ctx.accounts.capital_class.address();
+    let lp_position = &mut ctx.accounts.lp_position;
+    require_keys_eq!(
+        lp_position.capital_class,
+        capital_class,
+        OmegaXProtocolError::Unauthorized
+    );
+    require_keys_eq!(lp_position.owner, owner, OmegaXProtocolError::Unauthorized);
+    if !credentialed {
+        require!(
+            lp_position.shares.get() == 0
+                && lp_position.pending_redemption_shares.get() == 0
+                && lp_position.pending_redemption_assets.get() == 0,
+            OmegaXProtocolError::LPPositionHasActiveCapital
+        );
+    }
+
+    let shares = lp_position.shares.get();
+    let subscription_basis = lp_position.subscription_basis.get();
+    let pending_redemption_shares = lp_position.pending_redemption_shares.get();
+    let pending_redemption_assets = lp_position.pending_redemption_assets.get();
+    let realized_distributions = lp_position.realized_distributions.get();
+    let impaired_principal = lp_position.impaired_principal.get();
+    let lockup_ends_at = lp_position.lockup_ends_at.get();
+    let queue_status = lp_position.queue_status;
+    let redemption_sequence = lp_position.redemption_sequence.get();
+    let redemption_requested_at = lp_position.redemption_requested_at.get();
+    let bump = lp_position.bump;
+
+    lp_position.set_inner(
+        capital_class,
+        owner,
+        shares,
+        subscription_basis,
+        pending_redemption_shares,
+        pending_redemption_assets,
+        realized_distributions,
+        impaired_principal,
+        lockup_ends_at,
+        credentialed,
+        queue_status,
+        redemption_sequence,
+        redemption_requested_at,
+        bump,
+    );
+
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn deposit_into_capital_class(
     ctx: Context<DepositIntoCapitalClass>,
@@ -209,7 +286,7 @@ pub struct UpdateLpPositionCredentialing<'info> {
         )
     )]
     #[cfg(feature = "quasar")]
-    pub lp_position: &'info Account<LPPosition>,
+    pub lp_position: &'info mut Account<LPPosition>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
