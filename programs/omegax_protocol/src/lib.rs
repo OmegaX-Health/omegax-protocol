@@ -1288,15 +1288,14 @@ pub mod omegax_protocol {
         active: bool,
         reason_hash: [u8; 32],
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &cap_amount,
-            &weight_bps,
-            &deallocation_only,
-            &active,
-            &reason_hash,
-        );
-        quasar_handler_port_pending()
+        let _ = &reason_hash;
+        crate::capital::update_allocation_caps(
+            &mut ctx,
+            cap_amount,
+            weight_bps,
+            deallocation_only,
+            active,
+        )
     }
 
     #[instruction(discriminator = [146, 129, 60, 205, 88, 225, 60, 183])]

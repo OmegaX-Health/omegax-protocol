@@ -127,6 +127,82 @@ pub(crate) fn update_allocation_caps(
 
     Ok(())
 }
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_allocator(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    pool: &LiquidityPoolAccountData<'_>,
+) -> Result<()> {
+    if *authority == pool.allocator
+        || *authority == pool.curator
+        || *authority == governance.governance_authority
+    {
+        Ok(())
+    } else {
+        Err(OmegaXProtocolError::Unauthorized.into())
+    }
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn update_allocation_caps<'info>(
+    ctx: &mut Ctx<'info, UpdateAllocationCaps<'info>>,
+    cap_amount: u64,
+    weight_bps: u16,
+    deallocation_only: bool,
+    active: bool,
+) -> Result<()> {
+    let liquidity_pool = *ctx.accounts.liquidity_pool.address();
+    require_keys_eq!(
+        ctx.accounts.allocation_position.liquidity_pool,
+        liquidity_pool,
+        OmegaXProtocolError::LiquidityPoolMismatch
+    );
+
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_allocator(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.liquidity_pool,
+    )?;
+
+    let allocation = &mut ctx.accounts.allocation_position;
+    let reserve_domain = allocation.reserve_domain;
+    let capital_class = allocation.capital_class;
+    let health_plan = allocation.health_plan;
+    let policy_series = allocation.policy_series;
+    let funding_line = allocation.funding_line;
+    let allocation_mode = allocation.allocation_mode;
+    let allocated_amount = allocation.allocated_amount.get();
+    let utilized_amount = allocation.utilized_amount.get();
+    let reserved_capacity = allocation.reserved_capacity.get();
+    let realized_pnl = allocation.realized_pnl.get();
+    let impaired_amount = allocation.impaired_amount.get();
+    let bump = allocation.bump;
+
+    allocation.set_inner(
+        reserve_domain,
+        liquidity_pool,
+        capital_class,
+        health_plan,
+        policy_series,
+        funding_line,
+        cap_amount,
+        weight_bps,
+        allocation_mode,
+        allocated_amount,
+        utilized_amount,
+        reserved_capacity,
+        realized_pnl,
+        impaired_amount,
+        deallocation_only,
+        active,
+        bump,
+    );
+
+    Ok(())
+}
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn allocate_capital(
     ctx: Context<AllocateCapital>,
@@ -378,7 +454,7 @@ pub struct UpdateAllocationCaps<'info> {
             allocation_position.bump,
         ) @ OmegaXProtocolError::AllocationPositionMismatch
     )]
-    pub allocation_position: &'info Account<AllocationPosition>,
+    pub allocation_position: &'info mut Account<AllocationPosition>,
 }
 #[derive(Accounts)]
 pub struct AllocateCapital<'info> {
