@@ -112,6 +112,149 @@ pub(crate) fn update_health_plan_controls(
     Ok(())
 }
 
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_plan_control(
+    authority: &Pubkey,
+    governance: &ProtocolGovernance,
+    plan: &HealthPlanAccountData<'_>,
+) -> Result<()> {
+    if *authority == plan.plan_admin
+        || *authority == plan.sponsor_operator
+        || *authority == governance.governance_authority
+    {
+        Ok(())
+    } else {
+        Err(OmegaXProtocolError::Unauthorized.into())
+    }
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn validate_quasar_membership_gate_fields(
+    membership_mode: u8,
+    membership_gate_kind: u8,
+    membership_gate_mint: Pubkey,
+    membership_gate_min_amount: u64,
+    membership_invite_authority: Pubkey,
+) -> Result<()> {
+    match membership_mode {
+        MEMBERSHIP_MODE_OPEN => {
+            require!(
+                membership_gate_kind == MEMBERSHIP_GATE_KIND_OPEN
+                    && membership_gate_mint == ZERO_PUBKEY
+                    && membership_gate_min_amount == 0
+                    && membership_invite_authority == ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+        }
+        MEMBERSHIP_MODE_INVITE_ONLY => {
+            require!(
+                membership_gate_kind == MEMBERSHIP_GATE_KIND_INVITE_ONLY
+                    && membership_gate_mint == ZERO_PUBKEY
+                    && membership_gate_min_amount == 0
+                    && membership_invite_authority != ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+        }
+        MEMBERSHIP_MODE_TOKEN_GATE => {
+            require!(
+                membership_gate_kind == MEMBERSHIP_GATE_KIND_NFT_ANCHOR
+                    || membership_gate_kind == MEMBERSHIP_GATE_KIND_STAKE_ANCHOR
+                    || membership_gate_kind == MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+            require!(
+                membership_gate_mint != ZERO_PUBKEY && membership_gate_min_amount > 0,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+            require!(
+                membership_invite_authority == ZERO_PUBKEY,
+                OmegaXProtocolError::MembershipGateConfigurationInvalid
+            );
+        }
+        _ => return Err(OmegaXProtocolError::MembershipGateConfigurationInvalid.into()),
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn update_health_plan_controls<'info>(
+    ctx: &mut Ctx<'info, UpdateHealthPlanControls<'info>>,
+    sponsor_operator: Pubkey,
+    claims_operator: Pubkey,
+    oracle_authority: Pubkey,
+    membership_mode: u8,
+    membership_gate_kind: u8,
+    membership_gate_mint: Pubkey,
+    membership_gate_min_amount: u64,
+    membership_invite_authority: Pubkey,
+    allowed_rail_mask: u16,
+    default_funding_priority: u8,
+    oracle_policy_hash: [u8; 32],
+    schema_binding_hash: [u8; 32],
+    compliance_baseline_hash: [u8; 32],
+    pause_flags: u32,
+    active: bool,
+) -> Result<()> {
+    let authority = *ctx.accounts.authority.address();
+    require_quasar_plan_control(
+        &authority,
+        &ctx.accounts.protocol_governance,
+        &ctx.accounts.health_plan,
+    )?;
+    validate_quasar_membership_gate_fields(
+        membership_mode,
+        membership_gate_kind,
+        membership_gate_mint,
+        membership_gate_min_amount,
+        membership_invite_authority,
+    )?;
+
+    let plan = &mut ctx.accounts.health_plan;
+    let reserve_domain = plan.reserve_domain;
+    let sponsor = plan.sponsor;
+    let plan_admin = plan.plan_admin;
+    let audit_nonce = plan.audit_nonce.get().saturating_add(1);
+    let bump = plan.bump;
+    let health_plan_id = plan.health_plan_id().to_owned();
+    let display_name = plan.display_name().to_owned();
+    let organization_ref = plan.organization_ref().to_owned();
+    let metadata_uri = plan.metadata_uri().to_owned();
+
+    plan.set_inner(
+        reserve_domain,
+        sponsor,
+        plan_admin,
+        sponsor_operator,
+        claims_operator,
+        oracle_authority,
+        membership_mode,
+        membership_gate_kind,
+        membership_gate_mint,
+        membership_gate_min_amount,
+        membership_invite_authority,
+        allowed_rail_mask,
+        default_funding_priority,
+        oracle_policy_hash,
+        schema_binding_hash,
+        compliance_baseline_hash,
+        pause_flags,
+        active,
+        audit_nonce,
+        bump,
+        &health_plan_id,
+        &display_name,
+        &organization_ref,
+        &metadata_uri,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn create_policy_series(
     ctx: Context<CreatePolicySeries>,

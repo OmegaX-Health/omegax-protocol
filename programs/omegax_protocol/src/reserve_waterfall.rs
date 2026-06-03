@@ -4,14 +4,18 @@
 
 use crate::platform::*;
 
+#[cfg(not(feature = "quasar"))]
 use crate::args::*;
 use crate::constants::*;
 use crate::errors::*;
+#[cfg(not(feature = "quasar"))]
 use crate::events::*;
+#[cfg(not(feature = "quasar"))]
 use crate::kernel::*;
 use crate::state::*;
+#[cfg(feature = "quasar")]
+use quasar_lang::sysvars::Sysvar;
 
-#[cfg(not(feature = "quasar"))]
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn configure_reserve_asset_rail(
     ctx: Context<ConfigureReserveAssetRail>,
@@ -102,7 +106,6 @@ pub(crate) fn configure_reserve_asset_rail(
 }
 
 #[cfg(not(feature = "quasar"))]
-#[cfg(not(feature = "quasar"))]
 pub(crate) fn publish_reserve_asset_rail_price(
     ctx: Context<PublishReserveAssetRailPrice>,
     args: PublishReserveAssetRailPriceArgs,
@@ -149,6 +152,125 @@ pub(crate) fn publish_reserve_asset_rail_price(
         published_at_ts: rail.last_price_published_at_ts,
         proof_hash: rail.last_price_proof_hash,
     });
+
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
+    require!(
+        !governance.emergency_pause.get(),
+        OmegaXProtocolError::ProtocolEmergencyPaused
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_positive_amount(amount: u64) -> Result<()> {
+    require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_bps(value: u16) -> Result<()> {
+    require!(value <= 10_000, OmegaXProtocolError::InvalidBps);
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_reserve_asset_rail_active(rail: &ReserveAssetRailAccountData<'_>) -> Result<()> {
+    require!(
+        rail.active.get(),
+        OmegaXProtocolError::ReserveAssetRailInactive
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn publish_reserve_asset_rail_price<'info>(
+    ctx: &mut Ctx<'info, PublishReserveAssetRailPrice<'info>>,
+    price_usd_1e8: u64,
+    confidence_bps: u16,
+    published_at_ts: i64,
+    proof_hash: [u8; 32],
+) -> Result<()> {
+    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
+    require_quasar_positive_amount(price_usd_1e8)?;
+    require_quasar_bps(confidence_bps)?;
+
+    let authority = *ctx.accounts.authority.address();
+    require!(
+        authority == ctx.accounts.reserve_asset_rail.oracle_authority
+            || authority == ctx.accounts.protocol_governance.governance_authority,
+        OmegaXProtocolError::Unauthorized
+    );
+    require_quasar_reserve_asset_rail_active(&ctx.accounts.reserve_asset_rail)?;
+    require!(
+        ctx.accounts.reserve_asset_rail.capacity_enabled.get()
+            || ctx.accounts.reserve_asset_rail.payout_enabled.get(),
+        OmegaXProtocolError::ReserveAssetRailCapacityDisabled
+    );
+    require!(
+        ctx.accounts.reserve_asset_rail.max_confidence_bps.get() > 0,
+        OmegaXProtocolError::ReserveAssetPriceInvalid
+    );
+    require!(
+        confidence_bps <= ctx.accounts.reserve_asset_rail.max_confidence_bps.get(),
+        OmegaXProtocolError::ReserveAssetPriceConfidenceTooWide
+    );
+
+    let rail = &mut ctx.accounts.reserve_asset_rail;
+    let reserve_domain = rail.reserve_domain;
+    let asset_mint = rail.asset_mint;
+    let oracle_authority = rail.oracle_authority;
+    let role = rail.role;
+    let payout_priority = rail.payout_priority;
+    let oracle_source = rail.oracle_source;
+    let oracle_feed_id = rail.oracle_feed_id;
+    let max_staleness_seconds = rail.max_staleness_seconds.get();
+    let max_confidence_bps = rail.max_confidence_bps.get();
+    let haircut_bps = rail.haircut_bps.get();
+    let max_exposure_bps = rail.max_exposure_bps.get();
+    let deposit_enabled = rail.deposit_enabled.get();
+    let payout_enabled = rail.payout_enabled.get();
+    let capacity_enabled = rail.capacity_enabled.get();
+    let active = rail.active.get();
+    let audit_nonce = rail.audit_nonce.get().saturating_add(1);
+    let bump = rail.bump;
+    let asset_symbol = rail.asset_symbol().to_owned();
+    let last_price_slot = Clock::get()?.slot.get();
+
+    rail.set_inner(
+        reserve_domain,
+        asset_mint,
+        oracle_authority,
+        role,
+        payout_priority,
+        oracle_source,
+        oracle_feed_id,
+        max_staleness_seconds,
+        max_confidence_bps,
+        haircut_bps,
+        max_exposure_bps,
+        deposit_enabled,
+        payout_enabled,
+        capacity_enabled,
+        active,
+        price_usd_1e8,
+        confidence_bps,
+        published_at_ts,
+        last_price_slot,
+        proof_hash,
+        audit_nonce,
+        bump,
+        &asset_symbol,
+        ctx.accounts.authority.to_account_view(),
+        None,
+    )?;
 
     Ok(())
 }

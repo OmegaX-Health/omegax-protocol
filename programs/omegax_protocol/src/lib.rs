@@ -669,14 +669,13 @@ pub mod omegax_protocol {
         published_at_ts: i64,
         proof_hash: [u8; 32],
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &price_usd_1e8,
-            &confidence_bps,
-            &published_at_ts,
-            &proof_hash,
-        );
-        quasar_handler_port_pending()
+        crate::reserve_waterfall::publish_reserve_asset_rail_price(
+            &mut ctx,
+            price_usd_1e8,
+            confidence_bps,
+            published_at_ts,
+            proof_hash,
+        )
     }
 
     #[instruction(discriminator = [212, 235, 61, 42, 96, 183, 225, 57])]
@@ -778,26 +777,25 @@ pub mod omegax_protocol {
         active: bool,
         reason_hash: [u8; 32],
     ) -> Result<()> {
-        let _ = (
-            &ctx,
-            &sponsor_operator,
-            &claims_operator,
-            &oracle_authority,
-            &membership_mode,
-            &membership_gate_kind,
-            &membership_gate_mint,
-            &membership_gate_min_amount,
-            &membership_invite_authority,
-            &allowed_rail_mask,
-            &default_funding_priority,
-            &oracle_policy_hash,
-            &schema_binding_hash,
-            &compliance_baseline_hash,
-            &pause_flags,
-            &active,
-            &reason_hash,
-        );
-        quasar_handler_port_pending()
+        let _ = &reason_hash;
+        crate::plans_membership::update_health_plan_controls(
+            &mut ctx,
+            sponsor_operator,
+            claims_operator,
+            oracle_authority,
+            membership_mode,
+            membership_gate_kind,
+            membership_gate_mint,
+            membership_gate_min_amount,
+            membership_invite_authority,
+            allowed_rail_mask,
+            default_funding_priority,
+            oracle_policy_hash,
+            schema_binding_hash,
+            compliance_baseline_hash,
+            pause_flags,
+            active,
+        )
     }
 
     #[instruction(discriminator = [70, 162, 231, 218, 211, 136, 110, 176])]
