@@ -174,7 +174,6 @@ import {
   deriveLiquidityPoolPda,
   deriveLpPositionPda,
   deriveMemberPositionPda,
-  deriveMembershipAnchorSeatPda,
   deriveObligationPda,
   deriveOracleProfilePda,
   deriveOutcomeSchemaPda,
@@ -3435,24 +3434,17 @@ export function buildOpenMemberPositionTx(params: {
   eligibilityStatus: number;
   delegatedRightsMask: number;
   proofMode: number;
-  tokenGateAmountSnapshot: bigint;
   inviteIdHashHex?: string | null;
   inviteExpiresAt: bigint;
-  anchorRefAddress?: PublicKeyish | null;
-  tokenGateAccountAddress?: PublicKeyish | null;
   inviteAuthorityAddress?: PublicKeyish | null;
 }): Transaction {
   const wallet = toPublicKey(params.wallet);
   const seriesScope = toPublicKey(params.seriesScopeAddress ?? ZERO_PUBKEY_KEY);
-  const anchorRef = toPublicKey(params.anchorRefAddress ?? ZERO_PUBKEY_KEY);
   const memberPosition = deriveMemberPositionPda({
     healthPlan: params.healthPlanAddress,
     wallet,
     seriesScope,
   });
-  const membershipAnchorSeat = !anchorRef.equals(ZERO_PUBKEY_KEY)
-    ? deriveMembershipAnchorSeatPda({ healthPlan: params.healthPlanAddress, anchorRef })
-    : undefined;
 
   return buildProtocolTransactionFromInstruction({
     feePayer: wallet,
@@ -3464,10 +3456,8 @@ export function buildOpenMemberPositionTx(params: {
       eligibility_status: params.eligibilityStatus,
       delegated_rights: params.delegatedRightsMask,
       proof_mode: params.proofMode,
-      token_gate_amount_snapshot: params.tokenGateAmountSnapshot,
       invite_id_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.inviteIdHashHex), 32)),
       invite_expires_at: params.inviteExpiresAt,
-      anchor_ref: anchorRef,
     },
     accounts: [
       { pubkey: wallet, isSigner: true, isWritable: true },
@@ -3475,8 +3465,6 @@ export function buildOpenMemberPositionTx(params: {
       { pubkey: params.healthPlanAddress },
       optionalNonZeroProtocolAccount(params.seriesScopeAddress),
       { pubkey: memberPosition, isWritable: true },
-      optionalProtocolAccount(membershipAnchorSeat, true),
-      optionalProtocolAccount(params.tokenGateAccountAddress),
       params.inviteAuthorityAddress
         ? { pubkey: params.inviteAuthorityAddress, isSigner: true }
         : optionalProtocolAccount(undefined),
@@ -3494,7 +3482,6 @@ export function buildUpdateMemberEligibilityTx(params: {
   eligibilityStatus: number;
   delegatedRightsMask: number;
   active: boolean;
-  membershipAnchorRefAddress?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
   const seriesScope = toPublicKey(params.seriesScopeAddress ?? ZERO_PUBKEY_KEY);
@@ -3503,12 +3490,6 @@ export function buildUpdateMemberEligibilityTx(params: {
     wallet: params.walletAddress,
     seriesScope,
   });
-  const membershipAnchorSeat = params.membershipAnchorRefAddress
-    ? deriveMembershipAnchorSeatPda({
-      healthPlan: params.healthPlanAddress,
-      anchorRef: params.membershipAnchorRefAddress,
-    })
-    : undefined;
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -3523,7 +3504,6 @@ export function buildUpdateMemberEligibilityTx(params: {
       { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: memberPosition, isWritable: true },
-      optionalProtocolAccount(membershipAnchorSeat, true),
     ],
   });
 }

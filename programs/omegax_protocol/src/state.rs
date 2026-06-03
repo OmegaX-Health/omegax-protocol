@@ -301,25 +301,7 @@ pub struct MemberPosition {
     pub eligibility_status: u8,
     pub delegated_rights: u32,
     pub enrollment_proof_mode: u8,
-    pub membership_gate_kind: u8,
-    pub membership_anchor_ref: Pubkey,
-    pub gate_amount_snapshot: u64,
     pub invite_id_hash: [u8; 32],
-    pub active: bool,
-    pub opened_at: i64,
-    pub updated_at: i64,
-    pub bump: u8,
-}
-
-#[cfg_attr(not(feature = "quasar"), account)]
-#[cfg_attr(feature = "quasar", account(discriminator = [36, 200, 103, 9, 158, 27, 35, 104]))]
-#[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
-pub struct MembershipAnchorSeat {
-    pub health_plan: Pubkey,
-    pub anchor_ref: Pubkey,
-    pub gate_kind: u8,
-    pub holder_wallet: Pubkey,
-    pub member_position: Pubkey,
     pub active: bool,
     pub opened_at: i64,
     pub updated_at: i64,
@@ -1039,7 +1021,6 @@ impl_quasar_fixed_init_space!(
     PoolTreasuryVault,
     PoolOracleFeeVault,
     MemberPosition,
-    MembershipAnchorSeat,
     LPPosition,
     AllocationPosition,
     DomainAssetLedger,

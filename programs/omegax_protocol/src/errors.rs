@@ -117,22 +117,6 @@ pub enum OmegaXProtocolError {
     MembershipInviteAuthorityInvalid,
     #[msg("Invite permit is expired")]
     MembershipInvitePermitExpired,
-    #[msg("Token-gate proof account is missing")]
-    MembershipTokenGateAccountMissing,
-    #[msg("Token-gate proof account owner does not match the enrolling wallet")]
-    MembershipTokenGateOwnerMismatch,
-    #[msg("Token-gate proof account mint does not match the configured gate mint")]
-    MembershipTokenGateMintMismatch,
-    #[msg("Token-gate proof amount is below the configured minimum")]
-    MembershipTokenGateAmountTooLow,
-    #[msg("Anchor-backed membership requires an anchor seat account")]
-    MembershipAnchorSeatRequired,
-    #[msg("Anchor-backed membership seat is already active")]
-    MembershipAnchorSeatAlreadyActive,
-    #[msg("Anchor-backed membership seat does not match the provided anchor reference")]
-    MembershipAnchorSeatMismatch,
-    #[msg("Anchor-backed membership requires a non-zero anchor reference")]
-    MembershipAnchorReferenceMissing,
     #[msg("Bounded string field exceeds the canonical maximum")]
     StringTooLong,
     #[msg("Oracle quorum configuration is invalid")]
@@ -297,14 +281,6 @@ pub enum OmegaXProtocolError {
     MembershipProofModeMismatch,
     MembershipInviteAuthorityInvalid,
     MembershipInvitePermitExpired,
-    MembershipTokenGateAccountMissing,
-    MembershipTokenGateOwnerMismatch,
-    MembershipTokenGateMintMismatch,
-    MembershipTokenGateAmountTooLow,
-    MembershipAnchorSeatRequired,
-    MembershipAnchorSeatAlreadyActive,
-    MembershipAnchorSeatMismatch,
-    MembershipAnchorReferenceMissing,
     StringTooLong,
     InvalidOracleQuorum,
     TooManyOracleSupportedSchemas,

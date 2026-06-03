@@ -89,7 +89,6 @@ pub mod account {
     pub const ACCOUNT_LP_POSITION: [u8; 8] = [196, 56, 115, 198, 14, 117, 32, 224];
     pub const ACCOUNT_LIQUIDITY_POOL: [u8; 8] = [66, 38, 17, 64, 188, 80, 68, 129];
     pub const ACCOUNT_MEMBER_POSITION: [u8; 8] = [88, 118, 224, 251, 240, 186, 123, 175];
-    pub const ACCOUNT_MEMBERSHIP_ANCHOR_SEAT: [u8; 8] = [36, 200, 103, 9, 158, 27, 35, 104];
     pub const ACCOUNT_OBLIGATION: [u8; 8] = [168, 206, 141, 106, 88, 76, 172, 167];
     pub const ACCOUNT_ORACLE_PROFILE: [u8; 8] = [232, 217, 185, 162, 237, 208, 114, 142];
     pub const ACCOUNT_OUTCOME_SCHEMA: [u8; 8] = [243, 62, 72, 224, 198, 100, 29, 58];

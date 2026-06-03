@@ -2,8 +2,6 @@
 
 //! Health-plan, policy-series, and member-position instruction handlers and account validation contexts.
 
-#[cfg(not(feature = "quasar"))]
-use crate::classic_token::TokenAccount;
 use crate::platform::*;
 
 use crate::args::*;
@@ -193,40 +191,10 @@ fn validate_quasar_membership_gate_fields(
                 OmegaXProtocolError::MembershipGateConfigurationInvalid
             );
         }
-        MEMBERSHIP_MODE_TOKEN_GATE => {
-            require!(
-                membership_gate_kind == MEMBERSHIP_GATE_KIND_NFT_ANCHOR
-                    || membership_gate_kind == MEMBERSHIP_GATE_KIND_STAKE_ANCHOR
-                    || membership_gate_kind == MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT,
-                OmegaXProtocolError::MembershipGateConfigurationInvalid
-            );
-            require!(
-                membership_gate_mint != ZERO_PUBKEY && membership_gate_min_amount > 0,
-                OmegaXProtocolError::MembershipGateConfigurationInvalid
-            );
-            require!(
-                membership_invite_authority == ZERO_PUBKEY,
-                OmegaXProtocolError::MembershipGateConfigurationInvalid
-            );
-        }
         _ => return Err(OmegaXProtocolError::MembershipGateConfigurationInvalid.into()),
     }
 
     Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
-fn quasar_health_plan_membership_mode(plan: &HealthPlanAccountData<'_>) -> u8 {
-    plan.membership_mode
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
-fn quasar_membership_gate_kind_requires_anchor_seat(mode: u8, gate_kind: u8) -> bool {
-    mode == MEMBERSHIP_MODE_TOKEN_GATE
-        && (gate_kind == MEMBERSHIP_GATE_KIND_NFT_ANCHOR
-            || gate_kind == MEMBERSHIP_GATE_KIND_STAKE_ANCHOR)
 }
 
 #[cfg(feature = "quasar")]
@@ -288,16 +256,9 @@ fn validate_quasar_optional_policy_series(
 #[cfg(feature = "quasar")]
 struct QuasarMembershipProofValidationInput {
     membership_mode: u8,
-    membership_gate_mint: Pubkey,
-    membership_gate_min_amount: u64,
     membership_invite_authority: Pubkey,
-    wallet: Pubkey,
     proof_mode: u8,
-    token_gate_amount_snapshot: u64,
     invite_expires_at: i64,
-    token_gate_owner: Option<Pubkey>,
-    token_gate_mint: Option<Pubkey>,
-    token_gate_amount: Option<u64>,
     invite_authority: Option<Pubkey>,
     now_ts: i64,
 }
@@ -331,39 +292,6 @@ fn validate_quasar_membership_proof_inputs(
                 OmegaXProtocolError::MembershipInvitePermitExpired
             );
         }
-        MEMBERSHIP_MODE_TOKEN_GATE => {
-            require!(
-                input.proof_mode == MEMBERSHIP_PROOF_MODE_TOKEN_GATE,
-                OmegaXProtocolError::MembershipProofModeMismatch
-            );
-            let token_gate_owner = input
-                .token_gate_owner
-                .ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
-            let token_gate_mint = input
-                .token_gate_mint
-                .ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
-            let token_gate_amount = input
-                .token_gate_amount
-                .ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
-            require_keys_eq!(
-                token_gate_owner,
-                input.wallet,
-                OmegaXProtocolError::MembershipTokenGateOwnerMismatch
-            );
-            require_keys_eq!(
-                token_gate_mint,
-                input.membership_gate_mint,
-                OmegaXProtocolError::MembershipTokenGateMintMismatch
-            );
-            require!(
-                token_gate_amount >= input.membership_gate_min_amount,
-                OmegaXProtocolError::MembershipTokenGateAmountTooLow
-            );
-            require!(
-                input.token_gate_amount_snapshot >= input.membership_gate_min_amount,
-                OmegaXProtocolError::MembershipTokenGateAmountTooLow
-            );
-        }
         _ => return Err(OmegaXProtocolError::MembershipGateConfigurationInvalid.into()),
     }
 
@@ -374,34 +302,14 @@ fn validate_quasar_membership_proof_inputs(
 fn validate_quasar_membership_proof<'info>(
     ctx: &Ctx<'info, OpenMemberPosition<'info>>,
     proof_mode: u8,
-    token_gate_amount_snapshot: u64,
     invite_expires_at: i64,
     now_ts: i64,
 ) -> Result<()> {
     validate_quasar_membership_proof_inputs(&QuasarMembershipProofValidationInput {
         membership_mode: ctx.accounts.health_plan.membership_mode,
-        membership_gate_mint: ctx.accounts.health_plan.membership_gate_mint,
-        membership_gate_min_amount: ctx.accounts.health_plan.membership_gate_min_amount.get(),
         membership_invite_authority: ctx.accounts.health_plan.membership_invite_authority,
-        wallet: *ctx.accounts.wallet.address(),
         proof_mode,
-        token_gate_amount_snapshot,
         invite_expires_at,
-        token_gate_owner: ctx
-            .accounts
-            .token_gate_account
-            .as_ref()
-            .map(|account| *account.owner()),
-        token_gate_mint: ctx
-            .accounts
-            .token_gate_account
-            .as_ref()
-            .map(|account| *account.mint()),
-        token_gate_amount: ctx
-            .accounts
-            .token_gate_account
-            .as_ref()
-            .map(|account| account.amount()),
         invite_authority: ctx
             .accounts
             .invite_authority
@@ -409,104 +317,6 @@ fn validate_quasar_membership_proof<'info>(
             .map(|authority| *authority.address()),
         now_ts,
     })
-}
-
-#[cfg(feature = "quasar")]
-fn quasar_resolved_membership_anchor_ref(
-    plan: &HealthPlanAccountData<'_>,
-    token_gate_account: Option<Pubkey>,
-    anchor_ref: Pubkey,
-) -> Result<Pubkey> {
-    match plan.membership_gate_kind {
-        MEMBERSHIP_GATE_KIND_NFT_ANCHOR => {
-            require!(
-                anchor_ref != ZERO_PUBKEY,
-                OmegaXProtocolError::MembershipAnchorReferenceMissing
-            );
-            require_keys_eq!(
-                anchor_ref,
-                plan.membership_gate_mint,
-                OmegaXProtocolError::MembershipAnchorSeatMismatch
-            );
-            Ok(anchor_ref)
-        }
-        MEMBERSHIP_GATE_KIND_STAKE_ANCHOR => {
-            let token_gate_account =
-                token_gate_account.ok_or(OmegaXProtocolError::MembershipTokenGateAccountMissing)?;
-            require!(
-                anchor_ref != ZERO_PUBKEY,
-                OmegaXProtocolError::MembershipAnchorReferenceMissing
-            );
-            require_keys_eq!(
-                anchor_ref,
-                token_gate_account,
-                OmegaXProtocolError::MembershipAnchorSeatMismatch
-            );
-            Ok(anchor_ref)
-        }
-        _ => Ok(ZERO_PUBKEY),
-    }
-}
-
-#[cfg(feature = "quasar")]
-fn activate_quasar_membership_anchor_seat(
-    anchor_seat: &mut MembershipAnchorSeat,
-    health_plan: Pubkey,
-    anchor_ref: Pubkey,
-    gate_kind: u8,
-    holder_wallet: Pubkey,
-    member_position: Pubkey,
-    now_ts: i64,
-) -> Result<()> {
-    let bump = anchor_seat.bump;
-    if anchor_seat.health_plan == ZERO_PUBKEY {
-        anchor_seat.set_inner(
-            health_plan,
-            anchor_ref,
-            gate_kind,
-            holder_wallet,
-            member_position,
-            true,
-            now_ts,
-            now_ts,
-            bump,
-        );
-        return Ok(());
-    }
-
-    require_keys_eq!(
-        anchor_seat.health_plan,
-        health_plan,
-        OmegaXProtocolError::MembershipAnchorSeatMismatch
-    );
-    require_keys_eq!(
-        anchor_seat.anchor_ref,
-        anchor_ref,
-        OmegaXProtocolError::MembershipAnchorSeatMismatch
-    );
-    require!(
-        !anchor_seat.active.get(),
-        OmegaXProtocolError::MembershipAnchorSeatAlreadyActive
-    );
-
-    let opened_at = if anchor_seat.opened_at.get() == 0 {
-        now_ts
-    } else {
-        anchor_seat.opened_at.get()
-    };
-    anchor_seat.set_inner(
-        health_plan,
-        anchor_ref,
-        gate_kind,
-        holder_wallet,
-        member_position,
-        true,
-        opened_at,
-        now_ts,
-        bump,
-    );
-
-    Ok(())
 }
 
 #[cfg(feature = "quasar")]
@@ -901,10 +711,8 @@ pub(crate) fn open_member_position<'info>(
     eligibility_status: u8,
     delegated_rights: u32,
     proof_mode: u8,
-    token_gate_amount_snapshot: u64,
     invite_id_hash: [u8; 32],
     invite_expires_at: i64,
-    anchor_ref: Pubkey,
 ) -> Result<()> {
     require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_health_plan_active(&ctx.accounts.health_plan)?;
@@ -922,44 +730,9 @@ pub(crate) fn open_member_position<'info>(
     )?;
 
     let now_ts = Clock::get()?.unix_timestamp.get();
-    validate_quasar_membership_proof(
-        ctx,
-        proof_mode,
-        token_gate_amount_snapshot,
-        invite_expires_at,
-        now_ts,
-    )?;
+    validate_quasar_membership_proof(ctx, proof_mode, invite_expires_at, now_ts)?;
 
-    let resolved_anchor_ref = quasar_resolved_membership_anchor_ref(
-        &ctx.accounts.health_plan,
-        ctx.accounts
-            .token_gate_account
-            .as_ref()
-            .map(|account| *account.address()),
-        anchor_ref,
-    )?;
     let wallet_key = *ctx.accounts.wallet.address();
-    let member_position_key = *ctx.accounts.member_position.address();
-
-    if quasar_membership_gate_kind_requires_anchor_seat(
-        ctx.accounts.health_plan.membership_mode,
-        ctx.accounts.health_plan.membership_gate_kind,
-    ) {
-        let anchor_seat = ctx
-            .accounts
-            .membership_anchor_seat
-            .as_deref_mut()
-            .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
-        activate_quasar_membership_anchor_seat(
-            anchor_seat,
-            health_plan_key,
-            resolved_anchor_ref,
-            ctx.accounts.health_plan.membership_gate_kind,
-            wallet_key,
-            member_position_key,
-            now_ts,
-        )?;
-    }
 
     let member_position_bump = ctx.accounts.member_position.bump;
     ctx.accounts.member_position.set_inner(
@@ -970,9 +743,6 @@ pub(crate) fn open_member_position<'info>(
         eligibility_status,
         delegated_rights,
         proof_mode,
-        ctx.accounts.health_plan.membership_gate_kind,
-        resolved_anchor_ref,
-        token_gate_amount_snapshot,
         invite_id_hash,
         true,
         now_ts,
@@ -1153,37 +923,20 @@ pub(crate) fn open_member_position(
         ctx.accounts.health_plan.key(),
         true,
     )?;
-    validate_membership_proof(&ctx, &args)?;
 
     let now_ts = Clock::get()?.unix_timestamp;
-    let resolved_anchor_ref = resolved_membership_anchor_ref(
-        &ctx.accounts.health_plan,
-        ctx.accounts
-            .token_gate_account
-            .as_ref()
-            .map(|account| account.key()),
-        args.anchor_ref,
-    )?;
-    if membership_gate_kind_requires_anchor_seat(
-        ctx.accounts.health_plan.membership_mode,
-        ctx.accounts.health_plan.membership_gate_kind,
-    ) {
-        let anchor_seat = ctx
+    validate_membership_proof_inputs(&MembershipProofValidationInput {
+        membership_mode: ctx.accounts.health_plan.membership_mode,
+        membership_invite_authority: ctx.accounts.health_plan.membership_invite_authority,
+        proof_mode: args.proof_mode,
+        invite_expires_at: args.invite_expires_at,
+        invite_authority: ctx
             .accounts
-            .membership_anchor_seat
-            .as_deref_mut()
-            .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
-        activate_membership_anchor_seat(
-            anchor_seat,
-            ctx.accounts.health_plan.key(),
-            resolved_anchor_ref,
-            ctx.accounts.health_plan.membership_gate_kind,
-            ctx.accounts.wallet.key(),
-            ctx.accounts.member_position.key(),
-            now_ts,
-            ctx.bumps.membership_anchor_seat,
-        )?;
-    }
+            .invite_authority
+            .as_ref()
+            .map(|authority| authority.key()),
+        now_ts,
+    })?;
 
     let member_position = &mut ctx.accounts.member_position;
     member_position.health_plan = ctx.accounts.health_plan.key();
@@ -1193,9 +946,6 @@ pub(crate) fn open_member_position(
     member_position.eligibility_status = args.eligibility_status;
     member_position.delegated_rights = args.delegated_rights;
     member_position.enrollment_proof_mode = args.proof_mode;
-    member_position.membership_gate_kind = ctx.accounts.health_plan.membership_gate_kind;
-    member_position.membership_anchor_ref = resolved_anchor_ref;
-    member_position.gate_amount_snapshot = args.token_gate_amount_snapshot;
     member_position.invite_id_hash = args.invite_id_hash;
     member_position.active = true;
     member_position.opened_at = now_ts;
@@ -1222,31 +972,6 @@ pub(crate) fn update_member_eligibility(
     member_position.active = args.active;
     member_position.updated_at = Clock::get()?.unix_timestamp;
 
-    if !args.active
-        && membership_gate_kind_requires_anchor_seat(
-            health_plan_membership_mode(&ctx.accounts.health_plan),
-            member_position.membership_gate_kind,
-        )
-    {
-        let anchor_seat = ctx
-            .accounts
-            .membership_anchor_seat
-            .as_deref_mut()
-            .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
-        require_keys_eq!(
-            anchor_seat.health_plan,
-            ctx.accounts.health_plan.key(),
-            OmegaXProtocolError::MembershipAnchorSeatMismatch
-        );
-        require_keys_eq!(
-            anchor_seat.anchor_ref,
-            member_position.membership_anchor_ref,
-            OmegaXProtocolError::MembershipAnchorSeatMismatch
-        );
-        anchor_seat.active = false;
-        anchor_seat.updated_at = member_position.updated_at;
-    }
-
     Ok(())
 }
 
@@ -1264,22 +989,16 @@ pub(crate) fn update_member_eligibility<'info>(
         &ctx.accounts.health_plan,
     )?;
 
-    let now_ts = Clock::get()?.unix_timestamp.get();
-    let health_plan_key = *ctx.accounts.health_plan.address();
-    let membership_mode = quasar_health_plan_membership_mode(&ctx.accounts.health_plan);
-
     let member_position = &mut ctx.accounts.member_position;
     let health_plan = member_position.health_plan;
     let policy_series = member_position.policy_series;
     let wallet = member_position.wallet;
     let subject_commitment = member_position.subject_commitment;
     let enrollment_proof_mode = member_position.enrollment_proof_mode;
-    let membership_gate_kind = member_position.membership_gate_kind;
-    let membership_anchor_ref = member_position.membership_anchor_ref;
-    let gate_amount_snapshot = member_position.gate_amount_snapshot.get();
     let invite_id_hash = member_position.invite_id_hash;
     let opened_at = member_position.opened_at.get();
     let bump = member_position.bump;
+    let now_ts = Clock::get()?.unix_timestamp.get();
 
     member_position.set_inner(
         health_plan,
@@ -1289,55 +1008,12 @@ pub(crate) fn update_member_eligibility<'info>(
         eligibility_status,
         delegated_rights,
         enrollment_proof_mode,
-        membership_gate_kind,
-        membership_anchor_ref,
-        gate_amount_snapshot,
         invite_id_hash,
         active,
         opened_at,
         now_ts,
         bump,
     );
-
-    if !active
-        && quasar_membership_gate_kind_requires_anchor_seat(membership_mode, membership_gate_kind)
-    {
-        let anchor_seat = ctx
-            .accounts
-            .membership_anchor_seat
-            .as_deref_mut()
-            .ok_or(OmegaXProtocolError::MembershipAnchorSeatRequired)?;
-        require_keys_eq!(
-            anchor_seat.health_plan,
-            health_plan_key,
-            OmegaXProtocolError::MembershipAnchorSeatMismatch
-        );
-        require_keys_eq!(
-            anchor_seat.anchor_ref,
-            membership_anchor_ref,
-            OmegaXProtocolError::MembershipAnchorSeatMismatch
-        );
-
-        let anchor_health_plan = anchor_seat.health_plan;
-        let anchor_ref = anchor_seat.anchor_ref;
-        let gate_kind = anchor_seat.gate_kind;
-        let holder_wallet = anchor_seat.holder_wallet;
-        let anchor_member_position = anchor_seat.member_position;
-        let opened_at = anchor_seat.opened_at.get();
-        let bump = anchor_seat.bump;
-
-        anchor_seat.set_inner(
-            anchor_health_plan,
-            anchor_ref,
-            gate_kind,
-            holder_wallet,
-            anchor_member_position,
-            false,
-            opened_at,
-            now_ts,
-            bump,
-        );
-    }
 
     Ok(())
 }
@@ -1752,10 +1428,8 @@ pub struct VersionPolicySeries<'info> {
         _eligibility_status: u8,
         _delegated_rights: u32,
         _proof_mode: u8,
-        _token_gate_amount_snapshot: u64,
         _invite_id_hash: [u8; 32],
-        _invite_expires_at: i64,
-        anchor_ref: Pubkey
+        _invite_expires_at: i64
     )
 )]
 pub struct OpenMemberPosition<'info> {
@@ -1813,36 +1487,6 @@ pub struct OpenMemberPosition<'info> {
     )]
     #[cfg(feature = "quasar")]
     pub member_position: &'info mut Account<MemberPosition>,
-    #[cfg_attr(
-        not(feature = "quasar"),
-        account(
-            init_if_needed,
-            payer = wallet,
-            space = 8 + MembershipAnchorSeat::INIT_SPACE,
-            seeds = [SEED_MEMBERSHIP_ANCHOR_SEAT, health_plan.key().as_ref(), args.anchor_ref.as_ref()],
-            bump
-        )
-    )]
-    #[cfg(not(feature = "quasar"))]
-    pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,
-    #[cfg_attr(
-        feature = "quasar",
-        account(
-            mut,
-            constraint = quasar_pda_matches(
-                membership_anchor_seat.address(),
-                &crate::ID,
-                &[SEED_MEMBERSHIP_ANCHOR_SEAT, health_plan.address().as_ref(), anchor_ref.as_ref()],
-                membership_anchor_seat.bump,
-            ) @ OmegaXProtocolError::MembershipAnchorSeatMismatch
-        )
-    )]
-    #[cfg(feature = "quasar")]
-    pub membership_anchor_seat: Option<&'info mut Account<MembershipAnchorSeat>>,
-    #[cfg(not(feature = "quasar"))]
-    pub token_gate_account: Option<Account<'info, TokenAccount>>,
-    #[cfg(feature = "quasar")]
-    pub token_gate_account: Option<&'info InterfaceAccount<TokenAccount>>,
     #[cfg(not(feature = "quasar"))]
     pub invite_authority: Option<Signer<'info>>,
     #[cfg(feature = "quasar")]
@@ -1892,9 +1536,4 @@ pub struct UpdateMemberEligibility<'info> {
         ) @ OmegaXProtocolError::Unauthorized
     )]
     pub member_position: &'info mut Account<MemberPosition>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub membership_anchor_seat: Option<Account<'info, MembershipAnchorSeat>>,
-    #[cfg(feature = "quasar")]
-    pub membership_anchor_seat: Option<&'info mut Account<MembershipAnchorSeat>>,
 }

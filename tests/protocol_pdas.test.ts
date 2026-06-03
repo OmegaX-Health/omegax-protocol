@@ -16,7 +16,6 @@ const {
   deriveClaimAttestationPda,
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
-  deriveMembershipAnchorSeatPda,
   deriveOracleProfilePda,
   deriveOutcomeSchemaPda,
   derivePoolOracleApprovalPda,
@@ -55,13 +54,6 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
   assert.equal(
     deriveLiquidityPoolPda({ reserveDomain: pool.reserveDomain, poolId: pool.poolId }).toBase58(),
     DEFAULT_LIQUIDITY_POOL_ADDRESS,
-  );
-  assert.match(
-    deriveMembershipAnchorSeatPda({
-      healthPlan: seekerPlan.address,
-      anchorRef: seekerPlan.address,
-    }).toBase58(),
-    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   );
   assert.match(
     deriveOracleProfilePda({ oracle: oracleAddress }).toBase58(),
@@ -268,7 +260,6 @@ test("member enrollment builder marks invite authority as a signer", () => {
     eligibilityStatus: 0,
     delegatedRightsMask: 0,
     proofMode: MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
-    tokenGateAmountSnapshot: 0n,
     inviteIdHashHex: "22".repeat(32),
     inviteExpiresAt: 0n,
     inviteAuthorityAddress: inviteAuthority,

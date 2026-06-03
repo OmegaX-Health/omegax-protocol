@@ -272,10 +272,8 @@ pub struct OpenMemberPositionArgs {
     pub eligibility_status: u8,
     pub delegated_rights: u32,
     pub proof_mode: u8,
-    pub token_gate_amount_snapshot: u64,
     pub invite_id_hash: [u8; 32],
     pub invite_expires_at: i64,
-    pub anchor_ref: Pubkey,
 }
 
 #[cfg_attr(

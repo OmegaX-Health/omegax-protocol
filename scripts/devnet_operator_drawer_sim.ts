@@ -752,28 +752,20 @@ async function main(): Promise<void> {
     // of turning a guaranteed semantic rejection into "builder ok".
     const memberProofMode = proofModeForPlan(protocol, plan);
     const memberMode = membershipModeForPlan(protocol, plan);
-    const memberGateKind = membershipGateKindForPlan(protocol, plan);
     const tokenGateRequired = memberMode === protocol.MEMBERSHIP_MODE_TOKEN_GATE;
     const inviteRequired = memberMode === protocol.MEMBERSHIP_MODE_INVITE_ONLY;
     const inviteAuthority =
       plan.membershipInviteAuthority && plan.membershipInviteAuthority !== protocol.ZERO_PUBKEY
         ? plan.membershipInviteAuthority
         : "";
-    const tokenGateAccountAddress = process.env.OMEGAX_DEVNET_MEMBER_TOKEN_GATE_ACCOUNT?.trim() || "";
-    const anchorRefAddress =
-      memberGateKind === protocol.MEMBERSHIP_GATE_KIND_NFT_ANCHOR
-        ? plan.membershipGateMint ?? ""
-        : memberGateKind === protocol.MEMBERSHIP_GATE_KIND_STAKE_ANCHOR
-          ? tokenGateAccountAddress
-          : "";
 
     if (inviteRequired && inviteAuthority !== signerAddress) {
       results.push(
         skip("Open member position", "plan", "invite authority signer fixture missing"),
       );
-    } else if (tokenGateRequired && !tokenGateAccountAddress) {
+    } else if (tokenGateRequired) {
       results.push(
-        skip("Open member position", "plan", "token gate account fixture missing"),
+        skip("Open member position", "plan", "token-gated membership was removed from the program"),
       );
     } else {
       results.push(
@@ -790,11 +782,8 @@ async function main(): Promise<void> {
             eligibilityStatus: protocol.ELIGIBILITY_PENDING,
             delegatedRightsMask: 0,
             proofMode: memberProofMode,
-            tokenGateAmountSnapshot: BigInt(plan.membershipGateMinAmount ?? 0),
             inviteIdHashHex: inviteRequired ? hashReason("sim-invite") : "",
             inviteExpiresAt: 0n,
-            tokenGateAccountAddress: tokenGateRequired ? tokenGateAccountAddress : undefined,
-            anchorRefAddress: anchorRefAddress || undefined,
             inviteAuthorityAddress: inviteRequired ? inviteAuthority : undefined,
           }),
           "Open member position",

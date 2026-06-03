@@ -1512,47 +1512,11 @@ fn terminal_or_settled_obligation_locks_adjudication() {
 fn membership_proof_input(membership_mode: u8, proof_mode: u8) -> MembershipProofValidationInput {
     MembershipProofValidationInput {
         membership_mode,
-        membership_gate_mint: Pubkey::new_unique(),
-        membership_gate_min_amount: 1,
         membership_invite_authority: Pubkey::new_unique(),
-        wallet: Pubkey::new_unique(),
         proof_mode,
-        token_gate_amount_snapshot: 1,
         invite_expires_at: 0,
-        token_gate_owner: None,
-        token_gate_mint: None,
-        token_gate_amount: None,
         invite_authority: None,
         now_ts: 100,
-    }
-}
-
-fn health_plan_with_membership_gate(gate_kind: u8, gate_mint: Pubkey) -> HealthPlan {
-    HealthPlan {
-        reserve_domain: Pubkey::new_unique(),
-        sponsor: Pubkey::new_unique(),
-        plan_admin: Pubkey::new_unique(),
-        sponsor_operator: Pubkey::new_unique(),
-        claims_operator: Pubkey::new_unique(),
-        oracle_authority: Pubkey::new_unique(),
-        health_plan_id: String::new(),
-        display_name: String::new(),
-        organization_ref: String::new(),
-        metadata_uri: String::new(),
-        membership_mode: MEMBERSHIP_MODE_TOKEN_GATE,
-        membership_gate_kind: gate_kind,
-        membership_gate_mint: gate_mint,
-        membership_gate_min_amount: 1,
-        membership_invite_authority: ZERO_PUBKEY,
-        allowed_rail_mask: 0,
-        default_funding_priority: 0,
-        oracle_policy_hash: [0; 32],
-        schema_binding_hash: [0; 32],
-        compliance_baseline_hash: [0; 32],
-        pause_flags: 0,
-        active: true,
-        audit_nonce: 0,
-        bump: 1,
     }
 }
 
@@ -1612,9 +1576,6 @@ fn sample_member_position(wallet: Pubkey, policy_series: Pubkey) -> MemberPositi
         eligibility_status: ELIGIBILITY_ELIGIBLE,
         delegated_rights: 0,
         enrollment_proof_mode: MEMBERSHIP_PROOF_MODE_OPEN,
-        membership_gate_kind: MEMBERSHIP_GATE_KIND_OPEN,
-        membership_anchor_ref: ZERO_PUBKEY,
-        gate_amount_snapshot: 0,
         invite_id_hash: [0u8; 32],
         active: true,
         opened_at: 1,
@@ -2116,98 +2077,19 @@ fn membership_proof_validation_accepts_open_and_invite_modes() {
 }
 
 #[test]
-fn membership_proof_validation_accepts_token_gate_variants() {
-    let mut snapshot_input =
-        membership_proof_input(MEMBERSHIP_MODE_TOKEN_GATE, MEMBERSHIP_PROOF_MODE_TOKEN_GATE);
-    snapshot_input.membership_gate_min_amount = 500;
-    snapshot_input.token_gate_amount_snapshot = 500;
-    snapshot_input.token_gate_owner = Some(snapshot_input.wallet);
-    snapshot_input.token_gate_mint = Some(snapshot_input.membership_gate_mint);
-    snapshot_input.token_gate_amount = Some(500);
-    assert!(validate_membership_proof_inputs(&snapshot_input).is_ok());
+fn membership_proof_validation_rejects_legacy_token_gate_mode() {
+    let legacy_token_gate_mode = 1;
+    let input = membership_proof_input(legacy_token_gate_mode, legacy_token_gate_mode);
+    assert!(validate_membership_proof_inputs(&input).is_err());
 
-    let nft_anchor_ref = resolved_membership_anchor_ref(
-        &health_plan_with_membership_gate(
-            MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
-            snapshot_input.membership_gate_mint,
-        ),
-        None,
-        snapshot_input.membership_gate_mint,
-    )
-    .unwrap();
-    assert_eq!(nft_anchor_ref, snapshot_input.membership_gate_mint);
-
-    let stake_anchor_account = Pubkey::new_unique();
-    let stake_anchor_ref = resolved_membership_anchor_ref(
-        &health_plan_with_membership_gate(
-            MEMBERSHIP_GATE_KIND_STAKE_ANCHOR,
-            snapshot_input.membership_gate_mint,
-        ),
-        Some(stake_anchor_account),
-        stake_anchor_account,
-    )
-    .unwrap();
-    assert_eq!(stake_anchor_ref, stake_anchor_account);
-}
-
-#[test]
-fn membership_anchor_seat_cannot_be_activated_twice_while_live() {
-    let health_plan = Pubkey::new_unique();
-    let anchor_ref = Pubkey::new_unique();
-    let mut anchor_seat = MembershipAnchorSeat {
-        health_plan: ZERO_PUBKEY,
-        anchor_ref: ZERO_PUBKEY,
-        gate_kind: MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
-        holder_wallet: ZERO_PUBKEY,
-        member_position: ZERO_PUBKEY,
-        active: false,
-        opened_at: 0,
-        updated_at: 0,
-        bump: 0,
-    };
-
-    assert!(activate_membership_anchor_seat(
-        &mut anchor_seat,
-        health_plan,
-        anchor_ref,
-        MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
+    assert!(validate_membership_gate_fields(
+        legacy_token_gate_mode,
+        legacy_token_gate_mode,
         Pubkey::new_unique(),
-        Pubkey::new_unique(),
-        50,
-        Some(9),
-    )
-    .is_ok());
-    assert!(anchor_seat.active);
-    assert_eq!(anchor_seat.health_plan, health_plan);
-    assert_eq!(anchor_seat.anchor_ref, anchor_ref);
-
-    assert!(activate_membership_anchor_seat(
-        &mut anchor_seat,
-        health_plan,
-        anchor_ref,
-        MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
-        Pubkey::new_unique(),
-        Pubkey::new_unique(),
-        60,
-        Some(9),
+        1,
+        ZERO_PUBKEY,
     )
     .is_err());
-
-    anchor_seat.active = false;
-    assert!(activate_membership_anchor_seat(
-        &mut anchor_seat,
-        health_plan,
-        anchor_ref,
-        MEMBERSHIP_GATE_KIND_NFT_ANCHOR,
-        Pubkey::new_unique(),
-        Pubkey::new_unique(),
-        70,
-        Some(9),
-    )
-    .is_ok());
-    assert!(anchor_seat.active);
-    assert_eq!(anchor_seat.opened_at, 50);
-    assert_eq!(anchor_seat.updated_at, 70);
 }
 
 fn oracle_profile_with_supported_schemas(

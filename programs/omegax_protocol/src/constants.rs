@@ -31,7 +31,6 @@ pub const SEED_PLAN_RESERVE_LEDGER: &[u8] = b"plan_reserve_ledger";
 pub const SEED_POLICY_SERIES: &[u8] = b"policy_series";
 pub const SEED_SERIES_RESERVE_LEDGER: &[u8] = b"series_reserve_ledger";
 pub const SEED_MEMBER_POSITION: &[u8] = b"member_position";
-pub const SEED_MEMBERSHIP_ANCHOR_SEAT: &[u8] = b"membership_anchor_seat";
 pub const SEED_FUNDING_LINE: &[u8] = b"funding_line";
 pub const SEED_FUNDING_LINE_LEDGER: &[u8] = b"funding_line_ledger";
 pub const SEED_CLAIM_CASE: &[u8] = b"claim_case";
@@ -87,17 +86,12 @@ pub const ELIGIBILITY_PAUSED: u8 = 2;
 pub const ELIGIBILITY_CLOSED: u8 = 3;
 
 pub const MEMBERSHIP_MODE_OPEN: u8 = 0;
-pub const MEMBERSHIP_MODE_TOKEN_GATE: u8 = 1;
 pub const MEMBERSHIP_MODE_INVITE_ONLY: u8 = 2;
 
 pub const MEMBERSHIP_GATE_KIND_OPEN: u8 = 0;
 pub const MEMBERSHIP_GATE_KIND_INVITE_ONLY: u8 = 1;
-pub const MEMBERSHIP_GATE_KIND_NFT_ANCHOR: u8 = 2;
-pub const MEMBERSHIP_GATE_KIND_STAKE_ANCHOR: u8 = 3;
-pub const MEMBERSHIP_GATE_KIND_FUNGIBLE_SNAPSHOT: u8 = 4;
 
 pub const MEMBERSHIP_PROOF_MODE_OPEN: u8 = 0;
-pub const MEMBERSHIP_PROOF_MODE_TOKEN_GATE: u8 = 1;
 pub const MEMBERSHIP_PROOF_MODE_INVITE_PERMIT: u8 = 2;
 
 pub const CLAIM_INTAKE_OPEN: u8 = 0;

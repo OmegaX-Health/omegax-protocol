@@ -886,10 +886,8 @@ pub mod omegax_protocol {
         eligibility_status: u8,
         delegated_rights: u32,
         proof_mode: u8,
-        token_gate_amount_snapshot: u64,
         invite_id_hash: [u8; 32],
         invite_expires_at: i64,
-        anchor_ref: Pubkey,
     ) -> Result<()> {
         crate::plans_membership::open_member_position(
             &mut ctx,
@@ -898,10 +896,8 @@ pub mod omegax_protocol {
             eligibility_status,
             delegated_rights,
             proof_mode,
-            token_gate_amount_snapshot,
             invite_id_hash,
             invite_expires_at,
-            anchor_ref,
         )
     }
 

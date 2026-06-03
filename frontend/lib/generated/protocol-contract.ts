@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: adad826b1d9566634f3c133940e042511735d7f62dce8a4851648f7c9bd14e13
+// contract_sha256: 18a0d308ccbeb7082bc81ab8177705dbbceca63481902f631ee6398cd482fd52
 
 export type ProtocolInstructionName =
   | "accept_protocol_governance_authority"
@@ -616,8 +616,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "health_plan", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
       { name: "policy_series", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "member_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [109, 101, 109, 98, 101, 114, 95, 112, 111, 115, 105, 116, 105, 111, 110] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "wallet" }, { kind: "arg", path: "args.series_scope" }] },
-      { name: "membership_anchor_seat", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [109, 101, 109, 98, 101, 114, 115, 104, 105, 112, 95, 97, 110, 99, 104, 111, 114, 95, 115, 101, 97, 116] }, { kind: "account", path: "health_plan" }, { kind: "arg", path: "args.anchor_ref" }] },
-      { name: "token_gate_account", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "invite_authority", writable: false, signer: true, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
@@ -840,7 +838,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
       { name: "health_plan", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
       { name: "member_position", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [109, 101, 109, 98, 101, 114, 95, 112, 111, 115, 105, 116, 105, 111, 110] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "member_position.wallet" }, { kind: "account", path: "member_position.policy_series" }] },
-      { name: "membership_anchor_seat", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
   ],
   "update_oracle_profile": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
@@ -944,7 +941,6 @@ export const PROTOCOL_ACCOUNT_DISCRIMINATORS: Record<string, Uint8Array> = {
   "LiquidityPool": Uint8Array.from([66, 38, 17, 64, 188, 80, 68, 129]),
   "LPPosition": Uint8Array.from([196, 56, 115, 198, 14, 117, 32, 224]),
   "MemberPosition": Uint8Array.from([88, 118, 224, 251, 240, 186, 123, 175]),
-  "MembershipAnchorSeat": Uint8Array.from([36, 200, 103, 9, 158, 27, 35, 104]),
   "Obligation": Uint8Array.from([168, 206, 141, 106, 88, 76, 172, 167]),
   "OracleProfile": Uint8Array.from([232, 217, 185, 162, 237, 208, 114, 142]),
   "OutcomeSchema": Uint8Array.from([243, 62, 72, 224, 198, 100, 29, 58]),
@@ -979,7 +975,6 @@ export const PROTOCOL_PDA_SEEDS: Record<string, string[]> = {
   "policy_series": ["policy_series", "<health_plan>", "<series_id>"],
   "series_reserve_ledger": ["series_reserve_ledger", "<policy_series>", "<asset_mint>"],
   "member_position": ["member_position", "<health_plan>", "<wallet>", "<series_scope>"],
-  "membership_anchor_seat": ["membership_anchor_seat", "<health_plan>", "<anchor_ref>"],
   "funding_line": ["funding_line", "<health_plan>", "<line_id>"],
   "funding_line_ledger": ["funding_line_ledger", "<funding_line>", "<asset_mint>"],
   "claim_case": ["claim_case", "<health_plan>", "<claim_id>"],
