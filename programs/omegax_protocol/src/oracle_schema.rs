@@ -11,6 +11,9 @@ use crate::events::*;
 use crate::kernel::*;
 use crate::state::*;
 
+#[cfg(feature = "quasar")]
+use quasar_lang::sysvars::Sysvar;
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn register_oracle(
     ctx: Context<RegisterOracle>,
@@ -285,6 +288,58 @@ pub(crate) fn verify_outcome_schema(
     Ok(())
 }
 
+#[cfg(feature = "quasar")]
+#[inline(always)]
+fn require_quasar_governance(authority: &Pubkey, governance: &ProtocolGovernance) -> Result<()> {
+    require_keys_eq!(
+        *authority,
+        governance.governance_authority,
+        OmegaXProtocolError::Unauthorized
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn verify_outcome_schema<'info>(
+    ctx: &mut Ctx<'info, VerifyOutcomeSchema<'info>>,
+    verified: bool,
+) -> Result<()> {
+    let authority = *ctx.accounts.governance_authority.address();
+    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+
+    let schema = &mut ctx.accounts.outcome_schema;
+    let publisher = schema.publisher;
+    let schema_key_hash = schema.schema_key_hash;
+    let version = schema.version.get();
+    let schema_hash = schema.schema_hash;
+    let schema_family = schema.schema_family;
+    let visibility = schema.visibility;
+    let created_at_ts = schema.created_at_ts.get();
+    let updated_at_ts = Clock::get()?.unix_timestamp.get();
+    let bump = schema.bump;
+    let schema_key = schema.schema_key().to_owned();
+    let metadata_uri = schema.metadata_uri().to_owned();
+
+    schema.set_inner(
+        publisher,
+        schema_key_hash,
+        version,
+        schema_hash,
+        schema_family,
+        visibility,
+        verified,
+        created_at_ts,
+        updated_at_ts,
+        bump,
+        &schema_key,
+        &metadata_uri,
+        ctx.accounts.governance_authority.to_account_view(),
+        None,
+    )?;
+
+    Ok(())
+}
+
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn backfill_schema_dependency_ledger(
     ctx: Context<BackfillSchemaDependencyLedger>,
@@ -329,6 +384,15 @@ pub(crate) fn close_outcome_schema(ctx: Context<CloseOutcomeSchema>) -> Result<(
         recipient: ctx.accounts.recipient_system_account.key(),
     });
 
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+pub(crate) fn close_outcome_schema<'info>(
+    ctx: &mut Ctx<'info, CloseOutcomeSchema<'info>>,
+) -> Result<()> {
+    let authority = *ctx.accounts.governance_authority.address();
+    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
     Ok(())
 }
 

@@ -1443,8 +1443,7 @@ pub mod omegax_protocol {
 
     #[instruction(discriminator = [221, 10, 144, 137, 106, 214, 205, 170])]
     pub fn verify_outcome_schema(ctx: Ctx<VerifyOutcomeSchema>, verified: bool) -> Result<()> {
-        let _ = (&ctx, &verified);
-        quasar_handler_port_pending()
+        crate::oracle_schema::verify_outcome_schema(&mut ctx, verified)
     }
 
     #[instruction(discriminator = [109, 109, 247, 151, 229, 78, 52, 167])]
@@ -1459,8 +1458,7 @@ pub mod omegax_protocol {
 
     #[instruction(discriminator = [196, 81, 8, 61, 95, 145, 225, 2])]
     pub fn close_outcome_schema(ctx: Ctx<CloseOutcomeSchema>) -> Result<()> {
-        let _ = &ctx;
-        quasar_handler_port_pending()
+        crate::oracle_schema::close_outcome_schema(&mut ctx)
     }
 
     #[instruction(discriminator = [111, 40, 46, 51, 76, 157, 214, 136])]
