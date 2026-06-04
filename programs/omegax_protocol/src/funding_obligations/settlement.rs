@@ -27,7 +27,6 @@ pub(crate) fn settle_obligation(
     );
     require_full_obligation_transition_amount(args.next_status, amount, obligation)?;
     validate_treasury_mutation_bindings(
-        ctx.accounts.series_reserve_ledger.as_deref(),
         obligation,
         ctx.accounts.funding_line.key(),
         ctx.accounts.funding_line.asset_mint,
@@ -87,7 +86,6 @@ pub(crate) fn settle_obligation(
                 &mut ctx.accounts.domain_asset_ledger.sheet,
                 &mut ctx.accounts.plan_reserve_ledger.sheet,
                 &mut ctx.accounts.funding_line_ledger.sheet,
-                ctx.accounts.series_reserve_ledger.as_deref_mut(),
                 obligation.delivery_mode,
                 amount,
             )?;
@@ -117,7 +115,6 @@ pub(crate) fn settle_obligation(
                 &mut ctx.accounts.domain_asset_ledger.sheet,
                 &mut ctx.accounts.plan_reserve_ledger.sheet,
                 &mut ctx.accounts.funding_line_ledger.sheet,
-                ctx.accounts.series_reserve_ledger.as_deref_mut(),
                 &mut ctx.accounts.funding_line,
                 amount,
                 obligation,
@@ -166,7 +163,6 @@ pub(crate) fn settle_obligation(
                 &mut ctx.accounts.domain_asset_ledger.sheet,
                 &mut ctx.accounts.plan_reserve_ledger.sheet,
                 &mut ctx.accounts.funding_line_ledger.sheet,
-                ctx.accounts.series_reserve_ledger.as_deref_mut(),
                 &mut ctx.accounts.funding_line,
                 amount,
                 obligation,
@@ -408,46 +404,7 @@ fn require_quasar_matching_linked_claim_case(
 }
 
 #[cfg(feature = "quasar")]
-fn validate_quasar_optional_series_ledger(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
-    expected_policy_series: Pubkey,
-    expected_asset_mint: Pubkey,
-) -> Result<()> {
-    if let Some(ledger) = series_ledger {
-        require!(
-            expected_policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::PolicySeriesMissing
-        );
-        require_keys_eq!(
-            ledger.policy_series,
-            expected_policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            ledger.asset_mint,
-            expected_asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-        require!(
-            quasar_pda_matches(
-                ledger.address(),
-                &crate::ID,
-                &[
-                    SEED_SERIES_RESERVE_LEDGER,
-                    expected_policy_series.as_ref(),
-                    expected_asset_mint.as_ref(),
-                ],
-                ledger.bump,
-            ),
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-    }
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 fn validate_quasar_treasury_mutation_bindings(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
     obligation: &ObligationAccountData<'_>,
     funding_line_key: Pubkey,
     funding_line_asset_mint: Pubkey,
@@ -462,11 +419,7 @@ fn validate_quasar_treasury_mutation_bindings(
         funding_line_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
     );
-    validate_quasar_optional_series_ledger(
-        series_ledger,
-        obligation.policy_series,
-        obligation.asset_mint,
-    )
+    Ok(())
 }
 
 #[cfg(feature = "quasar")]
@@ -514,13 +467,7 @@ pub(crate) fn settle_obligation<'info>(
         &ctx.accounts.obligation,
     )?;
 
-    let series_ledger = ctx
-        .accounts
-        .series_reserve_ledger
-        .as_ref()
-        .map(|ledger| &**ledger);
     validate_quasar_treasury_mutation_bindings(
-        series_ledger,
         &ctx.accounts.obligation,
         *ctx.accounts.funding_line.address(),
         ctx.accounts.funding_line.asset_mint,
@@ -572,12 +519,6 @@ pub(crate) fn settle_obligation<'info>(
     let mut domain_sheet = ctx.accounts.domain_asset_ledger.sheet;
     let mut plan_sheet = ctx.accounts.plan_reserve_ledger.sheet;
     let mut funding_line_sheet = ctx.accounts.funding_line_ledger.sheet;
-    let mut series_sheet = ctx
-        .accounts
-        .series_reserve_ledger
-        .as_ref()
-        .map(|ledger| ledger.sheet);
-
     let mut funding_reserved_amount = ctx.accounts.funding_line.reserved_amount.get();
     let mut funding_spent_amount = ctx.accounts.funding_line.spent_amount.get();
     let mut funding_released_amount = ctx.accounts.funding_line.released_amount.get();
@@ -603,9 +544,6 @@ pub(crate) fn settle_obligation<'info>(
             release_to_claimable_or_payable(&mut domain_sheet, delivery_mode, amount)?;
             release_to_claimable_or_payable(&mut plan_sheet, delivery_mode, amount)?;
             release_to_claimable_or_payable(&mut funding_line_sheet, delivery_mode, amount)?;
-            if let Some(sheet) = series_sheet.as_mut() {
-                release_to_claimable_or_payable(sheet, delivery_mode, amount)?;
-            }
             obligation_status = OBLIGATION_STATUS_CLAIMABLE_PAYABLE;
             obligation_claimable_amount = if delivery_mode == OBLIGATION_DELIVERY_MODE_CLAIMABLE {
                 amount
@@ -628,9 +566,6 @@ pub(crate) fn settle_obligation<'info>(
             settle_from_sheet(&mut domain_sheet, delivery_mode, amount)?;
             settle_from_sheet(&mut plan_sheet, delivery_mode, amount)?;
             settle_from_sheet(&mut funding_line_sheet, delivery_mode, amount)?;
-            if let Some(sheet) = series_sheet.as_mut() {
-                settle_from_sheet(sheet, delivery_mode, amount)?;
-            }
             domain_total_assets = checked_sub(domain_total_assets, amount)?;
             funding_reserved_amount = funding_reserved_amount.saturating_sub(amount);
             funding_spent_amount = checked_add(funding_spent_amount, amount)?;
@@ -683,9 +618,6 @@ pub(crate) fn settle_obligation<'info>(
                 release_reserved_sheet(&mut domain_sheet, amount)?;
                 release_reserved_sheet(&mut plan_sheet, amount)?;
                 release_reserved_sheet(&mut funding_line_sheet, amount)?;
-                if let Some(sheet) = series_sheet.as_mut() {
-                    release_reserved_sheet(sheet, amount)?;
-                }
                 funding_reserved_amount = funding_reserved_amount.saturating_sub(amount);
                 funding_released_amount = checked_add(funding_released_amount, amount)?;
                 obligation_reserved_amount = obligation_reserved_amount.saturating_sub(amount);
@@ -693,9 +625,6 @@ pub(crate) fn settle_obligation<'info>(
                 quasar_cancel_delivery_bucket(&mut domain_sheet, delivery_mode, amount)?;
                 quasar_cancel_delivery_bucket(&mut plan_sheet, delivery_mode, amount)?;
                 quasar_cancel_delivery_bucket(&mut funding_line_sheet, delivery_mode, amount)?;
-                if let Some(sheet) = series_sheet.as_mut() {
-                    quasar_cancel_delivery_bucket(sheet, delivery_mode, amount)?;
-                }
                 if delivery_mode == OBLIGATION_DELIVERY_MODE_CLAIMABLE {
                     obligation_claimable_amount =
                         obligation_claimable_amount.saturating_sub(amount);
@@ -846,17 +775,6 @@ pub(crate) fn settle_obligation<'info>(
     let asset_mint = funding_line_ledger.asset_mint;
     let bump = funding_line_ledger.bump;
     funding_line_ledger.set_inner(funding_line_key, asset_mint, funding_line_sheet, bump);
-
-    if let (Some(series_ledger), Some(sheet)) = (
-        ctx.accounts.series_reserve_ledger.as_mut(),
-        series_sheet.as_ref(),
-    ) {
-        let series_ledger = &mut **series_ledger;
-        let policy_series = series_ledger.policy_series;
-        let asset_mint = series_ledger.asset_mint;
-        let bump = series_ledger.bump;
-        series_ledger.set_inner(policy_series, asset_mint, *sheet, bump);
-    }
 
     let funding_line = &mut ctx.accounts.funding_line;
     let reserve_domain = funding_line.reserve_domain;
@@ -1030,11 +948,6 @@ pub struct SettleObligation<'info> {
         ) @ OmegaXProtocolError::HealthPlanMismatch
     )]
     pub plan_reserve_ledger: &'info mut Account<PlanReserveLedger>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: Option<&'info mut Account<SeriesReserveLedger>>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_OBLIGATION, funding_line.key().as_ref(), obligation.obligation_id.as_bytes()], bump = obligation.bump)]
     pub obligation: Box<Account<'info, Obligation>>,

@@ -156,7 +156,6 @@ import {
   derivePolicySeriesPda,
   derivePoolClassLedgerPda,
   deriveReserveDomainPda,
-  deriveSeriesReserveLedgerPda,
 } from "./protocol/pdas";
 
 export * from "./protocol/constants";
@@ -1117,7 +1116,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
   };
 
   const planLedgersRaw: Array<{ address: string; healthPlan: string; assetMint: string; sheet: unknown }> = [];
-  const seriesLedgersRaw: Array<{ address: string; policySeries: string; assetMint: string; sheet: unknown }> = [];
   const lineLedgersRaw: Array<{ address: string; fundingLine: string; assetMint: string; sheet: unknown }> = [];
 
   for (const row of accounts) {
@@ -1381,14 +1379,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           sheet: decoded.sheet,
         });
         break;
-      case "SeriesReserveLedger":
-        seriesLedgersRaw.push({
-          address,
-          policySeries: asAddress(decodedField(decoded, "policySeries", "policy_series")),
-          assetMint: asAddress(decodedField(decoded, "assetMint", "asset_mint")),
-          sheet: decoded.sheet,
-        });
-        break;
       case "FundingLineLedger":
         lineLedgersRaw.push({
           address,
@@ -1449,23 +1439,12 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
   }
 
   const planToDomain = new Map(snapshot.healthPlans.map((plan) => [plan.address, plan.reserveDomain]));
-  const seriesToDomain = new Map(
-    snapshot.policySeries.map((series) => [series.address, planToDomain.get(series.healthPlan) ?? ZERO_PUBKEY]),
-  );
   const lineToDomain = new Map(snapshot.fundingLines.map((line) => [line.address, line.reserveDomain]));
 
   snapshot.planReserveLedgers = planLedgersRaw.map((ledger) =>
     reserveLedgerSnapshot({
       address: ledger.address,
       reserveDomain: planToDomain.get(ledger.healthPlan) ?? ZERO_PUBKEY,
-      assetMint: ledger.assetMint,
-      sheet: ledger.sheet,
-    }),
-  );
-  snapshot.seriesReserveLedgers = seriesLedgersRaw.map((ledger) =>
-    reserveLedgerSnapshot({
-      address: ledger.address,
-      reserveDomain: seriesToDomain.get(ledger.policySeries) ?? ZERO_PUBKEY,
       assetMint: ledger.assetMint,
       sheet: ledger.sheet,
     }),
@@ -1622,19 +1601,6 @@ function optionalNonZeroProtocolAccount(
   return isMissingOrZeroPublicKey(pubkey)
     ? optionalProtocolAccount(undefined)
     : optionalProtocolAccount(pubkey, isWritable);
-}
-
-function optionalSeriesReserveLedgerAccount(
-  policySeriesAddress: PublicKeyish | null | undefined,
-  assetMint: PublicKeyish | null | undefined,
-): ProtocolInstructionAccountInput {
-  if (!policySeriesAddress || !assetMint) return optionalProtocolAccount(undefined);
-  const policySeries = toPublicKey(policySeriesAddress);
-  if (policySeries.equals(ZERO_PUBKEY_KEY)) return optionalProtocolAccount(undefined);
-  return optionalProtocolAccount(
-    deriveSeriesReserveLedgerPda({ policySeries, assetMint }),
-    true,
-  );
 }
 
 function optionalPoolClassLedgerAccount(
@@ -2309,10 +2275,6 @@ export function buildVersionPolicySeriesTx(params: {
     healthPlan: params.healthPlanAddress,
     seriesId: params.seriesId,
   });
-  const nextSeriesReserveLedger = deriveSeriesReserveLedgerPda({
-    policySeries: nextPolicySeries,
-    assetMint: params.assetMint,
-  });
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -2336,7 +2298,6 @@ export function buildVersionPolicySeriesTx(params: {
       { pubkey: params.healthPlanAddress },
       { pubkey: params.currentPolicySeriesAddress, isWritable: true },
       { pubkey: nextPolicySeries, isWritable: true },
-      { pubkey: nextSeriesReserveLedger, isWritable: true },
       { pubkey: SystemProgram.programId },
     ],
   });
@@ -2368,10 +2329,6 @@ export function buildCreatePolicySeriesTx(params: {
     healthPlan: params.healthPlanAddress,
     seriesId: params.seriesId,
   });
-  const seriesReserveLedger = deriveSeriesReserveLedgerPda({
-    policySeries,
-    assetMint: params.assetMint,
-  });
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -2399,7 +2356,6 @@ export function buildCreatePolicySeriesTx(params: {
       { pubkey: authority, isSigner: true, isWritable: true },
       { pubkey: params.healthPlanAddress },
       { pubkey: policySeries, isWritable: true },
-      { pubkey: seriesReserveLedger, isWritable: true },
       { pubkey: SystemProgram.programId },
     ],
   });
@@ -2412,27 +2368,8 @@ export function buildInitializeSeriesReserveLedgerTx(params: {
   assetMint: PublicKeyish;
   recentBlockhash: string;
 }): Transaction {
-  const authority = toPublicKey(params.authority);
-  const assetMint = toPublicKey(params.assetMint);
-  const seriesReserveLedger = deriveSeriesReserveLedgerPda({
-    policySeries: params.policySeriesAddress,
-    assetMint,
-  });
-  return buildProtocolTransactionFromInstruction({
-    feePayer: authority,
-    recentBlockhash: params.recentBlockhash,
-    instructionName: "initialize_series_reserve_ledger",
-    args: {
-      asset_mint: assetMint,
-    },
-    accounts: [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: params.healthPlanAddress },
-      { pubkey: params.policySeriesAddress },
-      { pubkey: seriesReserveLedger, isWritable: true },
-      { pubkey: SystemProgram.programId },
-    ],
-  });
+  void params;
+  throw new Error("initialize_series_reserve_ledger was removed from the base OmegaX protocol surface");
 }
 
 export function buildOpenFundingLineTx(params: {
@@ -2499,7 +2436,6 @@ export function buildOpenFundingLineTx(params: {
         isWritable: true,
       },
       optionalNonZeroProtocolAccount(params.policySeriesAddress),
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, assetMint),
       { pubkey: SystemProgram.programId },
     ],
   });
@@ -2588,7 +2524,6 @@ export function buildFundSponsorBudgetTx(params: {
         }),
         isWritable: true,
       },
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
       { pubkey: params.sourceTokenAccountAddress, isWritable: true },
       { pubkey: params.assetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
@@ -2651,7 +2586,6 @@ export function buildRecordPremiumPaymentTx(params: {
         }),
         isWritable: true,
       },
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
       { pubkey: params.sourceTokenAccountAddress, isWritable: true },
       { pubkey: params.assetMint },
       { pubkey: params.vaultTokenAccountAddress, isWritable: true },
@@ -2725,7 +2659,6 @@ export function buildCreateObligationTx(params: {
         }),
         isWritable: true,
       },
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
       { pubkey: obligation, isWritable: true },
       { pubkey: SystemProgram.programId },
     ],
@@ -2905,7 +2838,6 @@ function buildObligationFlowTx(params: {
         }),
         isWritable: true,
       },
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
       { pubkey: params.obligationAddress, isWritable: true },
       optionalProtocolAccount(params.claimCaseAddress, true),
       ...settlementOutflowAccounts,
@@ -3048,7 +2980,6 @@ export function buildSettleClaimCaseTx(params: {
         }),
         isWritable: true,
       },
-      optionalSeriesReserveLedgerAccount(params.policySeriesAddress, params.assetMint),
       { pubkey: params.claimCaseAddress, isWritable: true },
       optionalProtocolAccount(params.obligationAddress, true),
       { pubkey: params.assetMint },

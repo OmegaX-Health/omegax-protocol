@@ -26,7 +26,6 @@ import {
   SEED_POOL_CLASS_LEDGER,
   SEED_PROTOCOL_GOVERNANCE,
   SEED_RESERVE_DOMAIN,
-  SEED_SERIES_RESERVE_LEDGER,
   ZERO_PUBKEY_KEY,
 } from "./constants";
 import { assertSeedId, TEXT_ENCODER } from "./encoding";
@@ -148,21 +147,6 @@ export function derivePolicySeriesPda(params: {
       TEXT_ENCODER.encode(SEED_POLICY_SERIES),
       toPublicKey(params.healthPlan).toBytes(),
       stringSeed(params.seriesId, "series id"),
-    ],
-    params.programId ?? getProgramId(),
-  );
-}
-
-export function deriveSeriesReserveLedgerPda(params: {
-  policySeries: PublicKeyish;
-  assetMint: PublicKeyish;
-  programId?: PublicKey;
-}): PublicKey {
-  return derivePda(
-    [
-      TEXT_ENCODER.encode(SEED_SERIES_RESERVE_LEDGER),
-      toPublicKey(params.policySeries).toBytes(),
-      toPublicKey(params.assetMint).toBytes(),
     ],
     params.programId ?? getProgramId(),
   );

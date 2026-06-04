@@ -74,44 +74,6 @@ fn require_quasar_supported_obligation_delivery_mode(delivery_mode: u8) -> Resul
 }
 
 #[cfg(feature = "quasar")]
-fn validate_quasar_optional_series_ledger(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
-    expected_policy_series: Pubkey,
-    expected_asset_mint: Pubkey,
-) -> Result<()> {
-    if let Some(ledger) = series_ledger {
-        require!(
-            expected_policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::PolicySeriesMissing
-        );
-        require_keys_eq!(
-            ledger.policy_series,
-            expected_policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            ledger.asset_mint,
-            expected_asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-        require!(
-            quasar_pda_matches(
-                ledger.address(),
-                &crate::ID,
-                &[
-                    SEED_SERIES_RESERVE_LEDGER,
-                    expected_policy_series.as_ref(),
-                    expected_asset_mint.as_ref(),
-                ],
-                ledger.bump,
-            ),
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-    }
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 fn validate_quasar_obligation_creation_scope(
     health_plan: &Account<HealthPlanAccountData<'_>>,
     funding_line: &FundingLineAccountData<'_>,
@@ -167,12 +129,6 @@ pub(crate) fn create_obligation<'info>(
     );
     require_quasar_positive_amount(amount)?;
 
-    let series_ledger = ctx
-        .accounts
-        .series_reserve_ledger
-        .as_ref()
-        .map(|ledger| &**ledger);
-    validate_quasar_optional_series_ledger(series_ledger, policy_series, asset_mint)?;
     validate_quasar_obligation_creation_scope(
         &ctx.accounts.health_plan,
         &ctx.accounts.funding_line,
@@ -240,16 +196,6 @@ pub(crate) fn create_obligation<'info>(
         ledger_bump,
     );
 
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_mut() {
-        let series_ledger = &mut **series_ledger;
-        let mut sheet = series_ledger.sheet;
-        quasar_book_owed(&mut sheet, amount)?;
-        let policy_series = series_ledger.policy_series;
-        let asset_mint = series_ledger.asset_mint;
-        let bump = series_ledger.bump;
-        series_ledger.set_inner(policy_series, asset_mint, sheet, bump);
-    }
-
     Ok(())
 }
 
@@ -274,11 +220,6 @@ pub(crate) fn create_obligation(
         OmegaXProtocolError::PolicySeriesMismatch
     );
     require_positive_amount(args.amount)?;
-    validate_optional_series_ledger(
-        ctx.accounts.series_reserve_ledger.as_deref(),
-        args.policy_series,
-        args.asset_mint,
-    )?;
     validate_obligation_creation_scope(&ctx.accounts.health_plan, &ctx.accounts.funding_line)?;
     require_supported_obligation_delivery_mode(args.delivery_mode)?;
 
@@ -311,10 +252,6 @@ pub(crate) fn create_obligation(
     book_owed(&mut ctx.accounts.domain_asset_ledger.sheet, args.amount)?;
     book_owed(&mut ctx.accounts.plan_reserve_ledger.sheet, args.amount)?;
     book_owed(&mut ctx.accounts.funding_line_ledger.sheet, args.amount)?;
-
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
-        book_owed(&mut series_ledger.sheet, args.amount)?;
-    }
 
     emit!(ObligationStatusChangedEvent {
         obligation: obligation.key(),
@@ -417,11 +354,6 @@ pub struct CreateObligation<'info> {
             ) @ OmegaXProtocolError::HealthPlanMismatch
         )]
     pub plan_reserve_ledger: &'info mut Account<PlanReserveLedger>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: Option<&'info mut Account<SeriesReserveLedger>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(

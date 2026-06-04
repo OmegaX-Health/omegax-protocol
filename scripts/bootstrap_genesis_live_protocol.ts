@@ -395,13 +395,6 @@ async function main() {
         { pubkey: governanceAddress },
         { pubkey: config.healthPlan.address },
         { pubkey: series.address, isWritable: true },
-        {
-          pubkey: protocol.deriveSeriesReserveLedgerPda({
-            policySeries: series.address,
-            assetMint: series.assetMint,
-          }),
-          isWritable: true,
-        },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -444,13 +437,6 @@ async function main() {
         {
           pubkey: protocol.derivePlanReserveLedgerPda({
             healthPlan: config.healthPlan.address,
-            assetMint: config.settlementMint,
-          }),
-          isWritable: true,
-        },
-        {
-          pubkey: protocol.deriveSeriesReserveLedgerPda({
-            policySeries,
             assetMint: config.settlementMint,
           }),
           isWritable: true,
@@ -661,10 +647,6 @@ async function main() {
     capitalClass: capitalClassAddress,
     assetMint: config.settlementMint,
   }).toBase58();
-  const seriesReserveLedgerFor = (policySeriesAddress: string) => protocol.deriveSeriesReserveLedgerPda({
-    policySeries: policySeriesAddress,
-    assetMint: config.settlementMint,
-  }).toBase58();
   const fundingLineLedgerFor = (fundingLineAddress: string) => protocol.deriveFundingLineLedgerPda({
     fundingLine: fundingLineAddress,
     assetMint: config.settlementMint,
@@ -746,7 +728,6 @@ async function main() {
           { pubkey: config.fundingLines.event7Sponsor.address, isWritable: true },
           { pubkey: fundingLineLedgerFor(config.fundingLines.event7Sponsor.address), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: config.healthPlan.address, assetMint: config.settlementMint }), isWritable: true },
-          { pubkey: seriesReserveLedgerFor(config.policySeries.event7.address), isWritable: true },
           { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
           { pubkey: config.settlementMint },
           { pubkey: vaultTokenAccountAddress, isWritable: true },
@@ -816,7 +797,6 @@ async function main() {
         { pubkey: premium.fundingLine, isWritable: true },
         { pubkey: fundingLineLedgerFor(premium.fundingLine), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: config.healthPlan.address, assetMint: config.settlementMint }), isWritable: true },
-        { pubkey: seriesReserveLedgerFor(premium.policySeries), isWritable: true },
         { pubkey: protocolFeeVault, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_GENESIS_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: config.settlementMint },

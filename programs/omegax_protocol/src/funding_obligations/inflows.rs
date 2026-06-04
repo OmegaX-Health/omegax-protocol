@@ -24,12 +24,6 @@ pub(crate) fn fund_sponsor_budget(
         &ctx.accounts.token_program,
         &ctx.accounts.domain_asset_vault,
     )?;
-    validate_optional_series_ledger(
-        ctx.accounts.series_reserve_ledger.as_deref(),
-        ctx.accounts.funding_line.policy_series,
-        ctx.accounts.funding_line.asset_mint,
-    )?;
-
     let amount = args.amount;
     let funding_line = &mut ctx.accounts.funding_line;
     funding_line.funded_amount = checked_add(funding_line.funded_amount, amount)?;
@@ -37,10 +31,6 @@ pub(crate) fn fund_sponsor_budget(
     book_inflow_sheet(&mut ctx.accounts.domain_asset_ledger.sheet, amount)?;
     book_inflow_sheet(&mut ctx.accounts.plan_reserve_ledger.sheet, amount)?;
     book_inflow_sheet(&mut ctx.accounts.funding_line_ledger.sheet, amount)?;
-
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
-        book_inflow_sheet(&mut series_ledger.sheet, amount)?;
-    }
 
     emit!(FundingFlowRecordedEvent {
         funding_line: funding_line.key(),
@@ -70,12 +60,6 @@ pub(crate) fn record_premium_payment(
         &ctx.accounts.token_program,
         &ctx.accounts.domain_asset_vault,
     )?;
-    validate_optional_series_ledger(
-        ctx.accounts.series_reserve_ledger.as_deref(),
-        ctx.accounts.funding_line.policy_series,
-        ctx.accounts.funding_line.asset_mint,
-    )?;
-
     let amount = args.amount;
     let funding_line_key = ctx.accounts.funding_line.key();
 
@@ -85,10 +69,6 @@ pub(crate) fn record_premium_payment(
     book_inflow_sheet(&mut ctx.accounts.domain_asset_ledger.sheet, amount)?;
     book_inflow_sheet(&mut ctx.accounts.plan_reserve_ledger.sheet, amount)?;
     book_inflow_sheet(&mut ctx.accounts.funding_line_ledger.sheet, amount)?;
-
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
-        book_inflow_sheet(&mut series_ledger.sheet, amount)?;
-    }
 
     emit!(FundingFlowRecordedEvent {
         funding_line: funding_line_key,
@@ -148,44 +128,6 @@ fn quasar_book_inflow_sheet(sheet: &mut ReserveBalanceSheet, amount: u64) -> Res
 }
 
 #[cfg(feature = "quasar")]
-fn validate_quasar_optional_series_ledger(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
-    expected_policy_series: Pubkey,
-    expected_asset_mint: Pubkey,
-) -> Result<()> {
-    if let Some(ledger) = series_ledger {
-        require!(
-            expected_policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::PolicySeriesMissing
-        );
-        require_keys_eq!(
-            ledger.policy_series,
-            expected_policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            ledger.asset_mint,
-            expected_asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-        require!(
-            quasar_pda_matches(
-                ledger.address(),
-                &crate::ID,
-                &[
-                    SEED_SERIES_RESERVE_LEDGER,
-                    expected_policy_series.as_ref(),
-                    expected_asset_mint.as_ref(),
-                ],
-                ledger.bump,
-            ),
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-    }
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 pub(crate) fn fund_sponsor_budget<'info>(
     ctx: &mut Ctx<'info, FundSponsorBudget<'info>>,
     amount: u64,
@@ -206,15 +148,6 @@ pub(crate) fn fund_sponsor_budget<'info>(
         ctx.accounts.token_program,
         &ctx.accounts.domain_asset_vault,
     )?;
-    validate_quasar_optional_series_ledger(
-        ctx.accounts
-            .series_reserve_ledger
-            .as_ref()
-            .map(|ledger| &**ledger),
-        ctx.accounts.funding_line.policy_series,
-        ctx.accounts.funding_line.asset_mint,
-    )?;
-
     let new_funded_amount =
         quasar_checked_add(ctx.accounts.funding_line.funded_amount.get(), amount)?;
     let new_total_assets =
@@ -294,16 +227,6 @@ pub(crate) fn fund_sponsor_budget<'info>(
     let bump = line_ledger.bump;
     line_ledger.set_inner(funding_line, asset_mint, funding_line_sheet, bump);
 
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_mut() {
-        let series_ledger = &mut **series_ledger;
-        let mut sheet = series_ledger.sheet;
-        quasar_book_inflow_sheet(&mut sheet, amount)?;
-        let policy_series = series_ledger.policy_series;
-        let asset_mint = series_ledger.asset_mint;
-        let bump = series_ledger.bump;
-        series_ledger.set_inner(policy_series, asset_mint, sheet, bump);
-    }
-
     Ok(())
 }
 
@@ -328,15 +251,6 @@ pub(crate) fn record_premium_payment<'info>(
         ctx.accounts.token_program,
         &ctx.accounts.domain_asset_vault,
     )?;
-    validate_quasar_optional_series_ledger(
-        ctx.accounts
-            .series_reserve_ledger
-            .as_ref()
-            .map(|ledger| &**ledger),
-        ctx.accounts.funding_line.policy_series,
-        ctx.accounts.funding_line.asset_mint,
-    )?;
-
     let new_funded_amount =
         quasar_checked_add(ctx.accounts.funding_line.funded_amount.get(), amount)?;
     let new_total_assets =
@@ -415,16 +329,6 @@ pub(crate) fn record_premium_payment<'info>(
     let asset_mint = line_ledger.asset_mint;
     let bump = line_ledger.bump;
     line_ledger.set_inner(funding_line, asset_mint, funding_line_sheet, bump);
-
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_mut() {
-        let series_ledger = &mut **series_ledger;
-        let mut sheet = series_ledger.sheet;
-        quasar_book_inflow_sheet(&mut sheet, amount)?;
-        let policy_series = series_ledger.policy_series;
-        let asset_mint = series_ledger.asset_mint;
-        let bump = series_ledger.bump;
-        series_ledger.set_inner(policy_series, asset_mint, sheet, bump);
-    }
 
     Ok(())
 }
@@ -518,11 +422,6 @@ pub struct FundSponsorBudget<'info> {
         ) @ OmegaXProtocolError::HealthPlanMismatch
     )]
     pub plan_reserve_ledger: &'info mut Account<PlanReserveLedger>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: Option<&'info mut Account<SeriesReserveLedger>>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub source_token_account: Account<'info, TokenAccount>,
@@ -633,11 +532,6 @@ pub struct RecordPremiumPayment<'info> {
         ) @ OmegaXProtocolError::HealthPlanMismatch
     )]
     pub plan_reserve_ledger: &'info mut Account<PlanReserveLedger>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: Option<&'info mut Account<SeriesReserveLedger>>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut)]
     pub source_token_account: Account<'info, TokenAccount>,

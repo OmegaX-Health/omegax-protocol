@@ -19,7 +19,6 @@ export const SEED_DOMAIN_ASSET_LEDGER = "domain_asset_ledger";
 export const SEED_HEALTH_PLAN = "health_plan";
 export const SEED_PLAN_RESERVE_LEDGER = "plan_reserve_ledger";
 export const SEED_POLICY_SERIES = "policy_series";
-export const SEED_SERIES_RESERVE_LEDGER = "series_reserve_ledger";
 export const SEED_MEMBER_POSITION = "member_position";
 export const SEED_MEMBERSHIP_ANCHOR_SEAT = "membership_anchor_seat";
 export const SEED_FUNDING_LINE = "funding_line";

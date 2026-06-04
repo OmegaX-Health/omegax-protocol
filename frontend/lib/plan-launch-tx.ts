@@ -14,7 +14,6 @@ import {
   deriveFundingLineLedgerPda,
   deriveMembershipAnchorSeatPda,
   derivePlanReserveLedgerPda,
-  deriveSeriesReserveLedgerPda,
   getProgramId,
 } from "@/lib/protocol";
 import type { MembershipGateKind, MembershipMode } from "@/lib/plan-launch";
@@ -52,7 +51,6 @@ type CreatePolicySeriesInstructionParams = {
   authority: PublicKey;
   healthPlan: PublicKey;
   policySeries: PublicKey;
-  seriesReserveLedger: PublicKey;
   args: {
     seriesId: string;
     displayName: string;
@@ -81,7 +79,6 @@ type OpenFundingLineInstructionParams = {
   fundingLine: PublicKey;
   fundingLineLedger: PublicKey;
   planReserveLedger: PublicKey;
-  seriesReserveLedger: PublicKey;
   args: {
     lineId: string;
     policySeries: PublicKey;
@@ -239,7 +236,6 @@ export function buildCreatePolicySeriesInstruction(params: CreatePolicySeriesIns
       { pubkey: params.authority, isSigner: true, isWritable: true },
       { pubkey: params.healthPlan, isSigner: false, isWritable: false },
       { pubkey: params.policySeries, isSigner: false, isWritable: true },
-      { pubkey: params.seriesReserveLedger, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
   });
@@ -280,7 +276,6 @@ export function buildOpenFundingLineInstruction(params: OpenFundingLineInstructi
       { pubkey: params.fundingLineLedger, isSigner: false, isWritable: true },
       { pubkey: params.planReserveLedger, isSigner: false, isWritable: true },
       { pubkey: params.policySeries, isSigner: false, isWritable: false },
-      { pubkey: params.seriesReserveLedger, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
   });
@@ -304,10 +299,6 @@ export function deriveLaunchLedgerAddresses(params: {
     }),
     planReserveLedger: derivePlanReserveLedgerPda({
       healthPlan: params.healthPlan,
-      assetMint: params.assetMint,
-    }),
-    seriesReserveLedger: deriveSeriesReserveLedgerPda({
-      policySeries: params.policySeries,
       assetMint: params.assetMint,
     }),
     fundingLineLedger: deriveFundingLineLedgerPda({

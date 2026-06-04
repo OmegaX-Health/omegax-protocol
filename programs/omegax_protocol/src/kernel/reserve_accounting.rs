@@ -359,15 +359,11 @@ pub(crate) fn release_reserved_scoped(
     domain_sheet: &mut ReserveBalanceSheet,
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
-    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
     amount: u64,
 ) -> Result<()> {
     release_reserved_sheet(domain_sheet, amount)?;
     release_reserved_sheet(plan_sheet, amount)?;
     release_reserved_sheet(line_sheet, amount)?;
-    if let Some(series) = series_sheet {
-        release_reserved_sheet(&mut series.sheet, amount)?;
-    }
     Ok(())
 }
 
@@ -375,16 +371,12 @@ pub(crate) fn release_reserved_to_delivery(
     domain_sheet: &mut ReserveBalanceSheet,
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
-    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
     delivery_mode: u8,
     amount: u64,
 ) -> Result<()> {
     release_to_claimable_or_payable(domain_sheet, delivery_mode, amount)?;
     release_to_claimable_or_payable(plan_sheet, delivery_mode, amount)?;
     release_to_claimable_or_payable(line_sheet, delivery_mode, amount)?;
-    if let Some(series) = series_sheet {
-        release_to_claimable_or_payable(&mut series.sheet, delivery_mode, amount)?;
-    }
     Ok(())
 }
 
@@ -393,7 +385,6 @@ pub(crate) fn settle_delivery(
     domain_sheet: &mut ReserveBalanceSheet,
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
-    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
     funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
     obligation: &mut ObligationAccountData<'_>,
@@ -401,9 +392,6 @@ pub(crate) fn settle_delivery(
     settle_from_sheet(domain_sheet, obligation.delivery_mode, amount)?;
     settle_from_sheet(plan_sheet, obligation.delivery_mode, amount)?;
     settle_from_sheet(line_sheet, obligation.delivery_mode, amount)?;
-    if let Some(series) = series_sheet {
-        settle_from_sheet(&mut series.sheet, obligation.delivery_mode, amount)?;
-    }
     *domain_assets = checked_sub(*domain_assets, amount)?;
     funding_line.reserved_amount = funding_line.reserved_amount.saturating_sub(amount);
     funding_line.spent_amount = checked_add(funding_line.spent_amount, amount)?;
@@ -419,7 +407,6 @@ pub(crate) fn cancel_outstanding(
     domain_sheet: &mut ReserveBalanceSheet,
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
-    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
     funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
     obligation: &mut ObligationAccountData<'_>,
@@ -428,9 +415,6 @@ pub(crate) fn cancel_outstanding(
         release_reserved_sheet(domain_sheet, amount)?;
         release_reserved_sheet(plan_sheet, amount)?;
         release_reserved_sheet(line_sheet, amount)?;
-        if let Some(series) = series_sheet {
-            release_reserved_sheet(&mut series.sheet, amount)?;
-        }
         funding_line.reserved_amount = funding_line.reserved_amount.saturating_sub(amount);
         funding_line.released_amount = checked_add(funding_line.released_amount, amount)?;
         obligation.reserved_amount = obligation.reserved_amount.saturating_sub(amount);
@@ -439,19 +423,11 @@ pub(crate) fn cancel_outstanding(
             domain_sheet.claimable = domain_sheet.claimable.saturating_sub(amount);
             plan_sheet.claimable = plan_sheet.claimable.saturating_sub(amount);
             line_sheet.claimable = line_sheet.claimable.saturating_sub(amount);
-            if let Some(series) = series_sheet {
-                series.sheet.claimable = series.sheet.claimable.saturating_sub(amount);
-                recompute_sheet(&mut series.sheet)?;
-            }
             obligation.claimable_amount = obligation.claimable_amount.saturating_sub(amount);
         } else {
             domain_sheet.payable = domain_sheet.payable.saturating_sub(amount);
             plan_sheet.payable = plan_sheet.payable.saturating_sub(amount);
             line_sheet.payable = line_sheet.payable.saturating_sub(amount);
-            if let Some(series) = series_sheet {
-                series.sheet.payable = series.sheet.payable.saturating_sub(amount);
-                recompute_sheet(&mut series.sheet)?;
-            }
             obligation.payable_amount = obligation.payable_amount.saturating_sub(amount);
         }
         domain_sheet.owed = domain_sheet.owed.saturating_sub(amount);
@@ -472,16 +448,12 @@ pub(crate) fn book_direct_claim_payout(
     domain_sheet: &mut ReserveBalanceSheet,
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
-    series_sheet: Option<&mut Account<SeriesReserveLedger>>,
     funding_line: &mut FundingLineAccountData<'_>,
     amount: u64,
 ) -> Result<()> {
     require_free_reserve_capacity(domain_sheet, amount)?;
     require_free_reserve_capacity(plan_sheet, amount)?;
     require_free_reserve_capacity(line_sheet, amount)?;
-    if let Some(series) = series_sheet.as_ref() {
-        require_free_reserve_capacity(&series.sheet, amount)?;
-    }
 
     domain_sheet.funded = checked_sub(domain_sheet.funded, amount)?;
     domain_sheet.settled = checked_add(domain_sheet.settled, amount)?;
@@ -494,12 +466,6 @@ pub(crate) fn book_direct_claim_payout(
     line_sheet.funded = checked_sub(line_sheet.funded, amount)?;
     line_sheet.settled = checked_add(line_sheet.settled, amount)?;
     recompute_sheet(line_sheet)?;
-
-    if let Some(series) = series_sheet {
-        series.sheet.funded = checked_sub(series.sheet.funded, amount)?;
-        series.sheet.settled = checked_add(series.sheet.settled, amount)?;
-        recompute_sheet(&mut series.sheet)?;
-    }
 
     *domain_assets = checked_sub(*domain_assets, amount)?;
     funding_line.spent_amount = checked_add(funding_line.spent_amount, amount)?;

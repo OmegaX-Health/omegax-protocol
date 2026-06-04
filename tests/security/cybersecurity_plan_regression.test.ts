@@ -65,14 +65,8 @@ test("[ALMANAX-c46c7b81/5a8f554b] nonzero policy series must be canonical for cl
     extractRustFunctionBody("open_funding_line"),
     /validate_optional_policy_series\([\s\S]+args\.policy_series[\s\S]+false/,
   );
-  assert.match(
-    extractRustFunctionBody("open_funding_line"),
-    /args\.policy_series == ZERO_PUBKEY[\s\S]+series_reserve_ledger\.is_none\(\)/,
-  );
-  assert.match(
-    extractRustFunctionBody("open_funding_line"),
-    /series_reserve_ledger[\s\S]+ok_or\(OmegaXProtocolError::PolicySeriesMissing\)/,
-  );
+  assert.doesNotMatch(programSource, /series_reserve_ledger/);
+  assert.doesNotMatch(programSource, /SEED_SERIES_RESERVE_LEDGER/);
   assert.match(
     extractRustFunctionBody("create_obligation"),
     /funding_line\.policy_series[\s\S]+args\.policy_series[\s\S]+PolicySeriesMismatch/,

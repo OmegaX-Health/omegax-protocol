@@ -670,11 +670,6 @@
           }
         },
         {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "obligation",
           "writable": true,
           "pda": {
@@ -802,48 +797,6 @@
               {
                 "kind": "arg",
                 "path": "args.series_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  101,
-                  114,
-                  105,
-                  101,
-                  115,
-                  95,
-                  114,
-                  101,
-                  115,
-                  101,
-                  114,
-                  118,
-                  101,
-                  95,
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "policy_series"
-              },
-              {
-                "kind": "arg",
-                "path": "args.asset_mint"
               }
             ]
           }
@@ -1179,11 +1132,6 @@
           }
         },
         {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "source_token_account",
           "writable": true
         },
@@ -1205,149 +1153,6 @@
           "type": {
             "defined": {
               "name": "FundSponsorBudgetArgs"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "initialize_series_reserve_ledger",
-      "discriminator": [
-        113,
-        155,
-        191,
-        126,
-        81,
-        152,
-        220,
-        249
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "health_plan",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  104,
-                  101,
-                  97,
-                  108,
-                  116,
-                  104,
-                  95,
-                  112,
-                  108,
-                  97,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "health_plan.reserve_domain",
-                "account": "HealthPlan"
-              },
-              {
-                "kind": "account",
-                "path": "health_plan.health_plan_id",
-                "account": "HealthPlan"
-              }
-            ]
-          }
-        },
-        {
-          "name": "policy_series",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  108,
-                  105,
-                  99,
-                  121,
-                  95,
-                  115,
-                  101,
-                  114,
-                  105,
-                  101,
-                  115
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "health_plan"
-              },
-              {
-                "kind": "account",
-                "path": "policy_series.series_id",
-                "account": "PolicySeries"
-              }
-            ]
-          }
-        },
-        {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  101,
-                  114,
-                  105,
-                  101,
-                  115,
-                  95,
-                  114,
-                  101,
-                  115,
-                  101,
-                  114,
-                  118,
-                  101,
-                  95,
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "policy_series"
-              },
-              {
-                "kind": "arg",
-                "path": "args.asset_mint"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": {
-              "name": "InitializeSeriesReserveLedgerArgs"
             }
           }
         }
@@ -1733,11 +1538,6 @@
           "optional": true
         },
         {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -2003,11 +1803,6 @@
           }
         },
         {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "source_token_account",
           "writable": true
         },
@@ -2241,11 +2036,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "obligation",
@@ -2531,11 +2321,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "obligation",
@@ -2864,11 +2649,6 @@
           }
         },
         {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "claim_case",
           "writable": true,
           "pda": {
@@ -3180,11 +2960,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "series_reserve_ledger",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "obligation",
@@ -3527,49 +3302,6 @@
           }
         },
         {
-          "name": "next_series_reserve_ledger",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  101,
-                  114,
-                  105,
-                  101,
-                  115,
-                  95,
-                  114,
-                  101,
-                  115,
-                  101,
-                  114,
-                  118,
-                  101,
-                  95,
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "next_policy_series"
-              },
-              {
-                "kind": "account",
-                "path": "current_policy_series.asset_mint",
-                "account": "PolicySeries"
-              }
-            ]
-          }
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -3715,19 +3447,6 @@
         116,
         88,
         178
-      ]
-    },
-    {
-      "name": "SeriesReserveLedger",
-      "discriminator": [
-        0,
-        109,
-        195,
-        30,
-        140,
-        79,
-        210,
-        234
       ]
     }
   ],
@@ -4843,18 +4562,6 @@
       }
     },
     {
-      "name": "InitializeSeriesReserveLedgerArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "asset_mint",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
       "name": "LedgerInitializedEvent",
       "type": {
         "kind": "struct",
@@ -5482,34 +5189,6 @@
           {
             "name": "audit_nonce",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "SeriesReserveLedger",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "policy_series",
-            "type": "pubkey"
-          },
-          {
-            "name": "asset_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "sheet",
-            "type": {
-              "defined": {
-                "name": "ReserveBalanceSheet"
-              }
-            }
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }

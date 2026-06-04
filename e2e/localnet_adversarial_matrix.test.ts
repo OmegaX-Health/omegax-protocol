@@ -65,7 +65,6 @@ const domainAssetVault = protocol.deriveDomainAssetVaultPda({ reserveDomain, ass
 const domainAssetLedger = protocol.deriveDomainAssetLedgerPda({ reserveDomain, assetMint });
 const fundingLineLedger = protocol.deriveFundingLineLedgerPda({ fundingLine, assetMint });
 const planReserveLedger = protocol.derivePlanReserveLedgerPda({ healthPlan, assetMint });
-const seriesReserveLedger = protocol.deriveSeriesReserveLedgerPda({ policySeries, assetMint });
 const vaultTokenAccount = protocol.deriveDomainAssetVaultTokenAccountPda({ reserveDomain, assetMint });
 const attackerAta = getAssociatedTokenAddressSync(assetMint, attacker, true, TOKEN_PROGRAM_ID);
 const memberAta = getAssociatedTokenAddressSync(assetMint, member, true, TOKEN_PROGRAM_ID);
@@ -147,7 +146,6 @@ const knownLedgerAccounts = [
   domainAssetLedger,
   fundingLineLedger,
   planReserveLedger,
-  seriesReserveLedger,
 ];
 
 function cloneTxWithReplacement(row: MatrixRow, replacements: Map<string, PublicKey>): Transaction | null {
@@ -326,7 +324,6 @@ const matrixRows: MatrixRow[] = [
       domainAssetLedger,
       fundingLineLedger,
       planReserveLedger,
-      seriesReserveLedger,
       attackerAta,
       vaultTokenAccount,
       TOKEN_PROGRAM_ID,
@@ -355,7 +352,6 @@ const matrixRows: MatrixRow[] = [
       domainAssetLedger,
       fundingLineLedger,
       planReserveLedger,
-      seriesReserveLedger,
       attackerAta,
       vaultTokenAccount,
       TOKEN_PROGRAM_ID,
@@ -382,7 +378,6 @@ const matrixRows: MatrixRow[] = [
       domainAssetLedger,
       fundingLineLedger,
       planReserveLedger,
-      seriesReserveLedger,
       obligation,
       claimCase,
     ],
@@ -465,7 +460,7 @@ test("adversarial matrix owns all live instructions through the surface manifest
   assert.deepEqual(duplicateOwnedInstructions(), []);
   assert.deepEqual(blankInstructionExceptionReasons(), []);
   assert.deepEqual(missing, []);
-  assert.equal(live.length, 19);
+  assert.equal(live.length, 18);
 });
 
 test("money and control paths include adversarial signer and account-binding probes", () => {

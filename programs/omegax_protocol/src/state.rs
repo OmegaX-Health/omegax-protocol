@@ -380,16 +380,6 @@ pub struct PlanReserveLedger {
 }
 
 #[cfg_attr(not(feature = "quasar"), account)]
-#[cfg_attr(feature = "quasar", account(discriminator = [0, 109, 195, 30, 140, 79, 210, 234]))]
-#[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
-pub struct SeriesReserveLedger {
-    pub policy_series: Pubkey,
-    pub asset_mint: Pubkey,
-    pub sheet: ReserveBalanceSheet,
-    pub bump: u8,
-}
-
-#[cfg_attr(not(feature = "quasar"), account)]
 #[cfg_attr(feature = "quasar", account(discriminator = [233, 46, 244, 60, 190, 65, 156, 68]))]
 #[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
 pub struct FundingLineLedger {
@@ -470,7 +460,6 @@ impl_quasar_fixed_init_space!(
     DomainAssetVault,
     DomainAssetLedger,
     PlanReserveLedger,
-    SeriesReserveLedger,
     FundingLineLedger,
 );
 

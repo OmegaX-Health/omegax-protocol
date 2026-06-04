@@ -253,7 +253,6 @@ pub(crate) fn create_policy_series<'info>(
     let authority = *ctx.accounts.authority.address();
     require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
 
-    let policy_series_key = *ctx.accounts.policy_series.address();
     let live_since_ts = if status == SERIES_STATUS_ACTIVE {
         Clock::get()?.unix_timestamp.get()
     } else {
@@ -286,38 +285,6 @@ pub(crate) fn create_policy_series<'info>(
         ctx.accounts.authority.to_account_view(),
         None,
     )?;
-
-    let series_reserve_ledger_bump = ctx.accounts.series_reserve_ledger.bump;
-    ctx.accounts.series_reserve_ledger.set_inner(
-        policy_series_key,
-        asset_mint,
-        ReserveBalanceSheet::default(),
-        series_reserve_ledger_bump,
-    );
-
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-pub(crate) fn initialize_series_reserve_ledger<'info>(
-    ctx: &mut Ctx<'info, InitializeSeriesReserveLedger<'info>>,
-    asset_mint: Pubkey,
-) -> Result<()> {
-    let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
-    require_keys_eq!(
-        ctx.accounts.policy_series.health_plan,
-        *ctx.accounts.health_plan.address(),
-        OmegaXProtocolError::HealthPlanMismatch
-    );
-
-    let series_reserve_ledger_bump = ctx.accounts.series_reserve_ledger.bump;
-    ctx.accounts.series_reserve_ledger.set_inner(
-        *ctx.accounts.policy_series.address(),
-        asset_mint,
-        ReserveBalanceSheet::default(),
-        series_reserve_ledger_bump,
-    );
 
     Ok(())
 }
@@ -430,14 +397,6 @@ pub(crate) fn version_policy_series<'info>(
         None,
     )?;
 
-    let next_series_reserve_ledger_bump = ctx.accounts.next_series_reserve_ledger.bump;
-    ctx.accounts.next_series_reserve_ledger.set_inner(
-        next_key,
-        current_asset_mint,
-        ReserveBalanceSheet::default(),
-        next_series_reserve_ledger_bump,
-    );
-
     Ok(())
 }
 
@@ -477,45 +436,12 @@ pub(crate) fn create_policy_series(
     series.material_locked = args.status == SERIES_STATUS_ACTIVE;
     series.bump = ctx.bumps.policy_series;
 
-    let ledger = &mut ctx.accounts.series_reserve_ledger;
-    ledger.policy_series = series.key();
-    ledger.asset_mint = args.asset_mint;
-    ledger.sheet = ReserveBalanceSheet::default();
-    ledger.bump = ctx.bumps.series_reserve_ledger;
-
     emit!(PolicySeriesCreatedEvent {
         health_plan: series.health_plan,
         policy_series: series.key(),
         asset_mint: series.asset_mint,
         mode: series.mode,
         terms_version: series.terms_version,
-    });
-
-    Ok(())
-}
-
-#[cfg(not(feature = "quasar"))]
-pub(crate) fn initialize_series_reserve_ledger(
-    ctx: Context<InitializeSeriesReserveLedger>,
-    args: InitializeSeriesReserveLedgerArgs,
-) -> Result<()> {
-    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
-    require_keys_eq!(
-        ctx.accounts.policy_series.health_plan,
-        ctx.accounts.health_plan.key(),
-        OmegaXProtocolError::HealthPlanMismatch
-    );
-
-    let ledger = &mut ctx.accounts.series_reserve_ledger;
-    ledger.policy_series = ctx.accounts.policy_series.key();
-    ledger.asset_mint = args.asset_mint;
-    ledger.sheet = ReserveBalanceSheet::default();
-    ledger.bump = ctx.bumps.series_reserve_ledger;
-
-    emit!(LedgerInitializedEvent {
-        scope_kind: ScopeKind::PolicySeries as u8,
-        scope: ctx.accounts.policy_series.key(),
-        asset_mint: args.asset_mint,
     });
 
     Ok(())
@@ -564,12 +490,6 @@ pub(crate) fn version_policy_series(
     };
     next.material_locked = args.status == SERIES_STATUS_ACTIVE;
     next.bump = ctx.bumps.next_policy_series;
-
-    let ledger = &mut ctx.accounts.next_series_reserve_ledger;
-    ledger.policy_series = next.key();
-    ledger.asset_mint = next.asset_mint;
-    ledger.sheet = ReserveBalanceSheet::default();
-    ledger.bump = ctx.bumps.next_series_reserve_ledger;
 
     emit!(PolicySeriesVersionedEvent {
         prior_series: current.key(),
@@ -676,7 +596,7 @@ pub struct UpdateHealthPlanControls<'info> {
 #[cfg_attr(
     feature = "quasar",
     instruction(
-        asset_mint: Pubkey,
+        _asset_mint: Pubkey,
         _mode: u8,
         _status: u8,
         _adjudication_mode: u8,
@@ -736,99 +656,6 @@ pub struct CreatePolicySeries<'info> {
     )]
     #[cfg(feature = "quasar")]
     pub policy_series: Account<PolicySeriesAccountData<'info>>,
-    #[cfg_attr(
-        not(feature = "quasar"),
-        account(
-            init,
-            payer = authority,
-            space = 8 + SeriesReserveLedger::INIT_SPACE,
-            seeds = [SEED_SERIES_RESERVE_LEDGER, policy_series.key().as_ref(), args.asset_mint.as_ref()],
-            bump
-        )
-    )]
-    #[cfg(not(feature = "quasar"))]
-    pub series_reserve_ledger: Account<'info, SeriesReserveLedger>,
-    #[cfg_attr(
-        feature = "quasar",
-        account(
-            mut,
-            constraint = quasar_pda_matches(
-                series_reserve_ledger.address(),
-                &crate::ID,
-                &[SEED_SERIES_RESERVE_LEDGER, policy_series.address().as_ref(), asset_mint.as_ref()],
-                series_reserve_ledger.bump,
-            ) @ OmegaXProtocolError::PolicySeriesMismatch
-        )
-    )]
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: &'info mut Account<SeriesReserveLedger>,
-    #[cfg(not(feature = "quasar"))]
-    pub system_program: Program<'info, System>,
-    #[cfg(feature = "quasar")]
-    pub system_program: &'info Program<System>,
-}
-
-#[derive(Accounts)]
-#[cfg_attr(not(feature = "quasar"), instruction(args: InitializeSeriesReserveLedgerArgs))]
-#[cfg_attr(feature = "quasar", instruction(asset_mint: Pubkey))]
-pub struct InitializeSeriesReserveLedger<'info> {
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    #[cfg(feature = "quasar")]
-    pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
-    pub health_plan: Box<Account<'info, HealthPlan>>,
-    #[cfg(feature = "quasar")]
-    #[account(
-        constraint = quasar_pda_matches(
-            health_plan.address(),
-            &crate::ID,
-            &[SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id().as_bytes()],
-            health_plan.bump,
-        ) @ OmegaXProtocolError::HealthPlanMismatch
-    )]
-    pub health_plan: Account<HealthPlanAccountData<'info>>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_POLICY_SERIES, health_plan.key().as_ref(), policy_series.series_id.as_bytes()], bump = policy_series.bump)]
-    pub policy_series: Box<Account<'info, PolicySeries>>,
-    #[cfg(feature = "quasar")]
-    #[account(
-        constraint = quasar_pda_matches(
-            policy_series.address(),
-            &crate::ID,
-            &[SEED_POLICY_SERIES, health_plan.address().as_ref(), policy_series.series_id().as_bytes()],
-            policy_series.bump,
-        ) @ OmegaXProtocolError::PolicySeriesMismatch
-    )]
-    pub policy_series: Account<PolicySeriesAccountData<'info>>,
-    #[cfg_attr(
-        not(feature = "quasar"),
-        account(
-            init,
-            payer = authority,
-            space = 8 + SeriesReserveLedger::INIT_SPACE,
-            seeds = [SEED_SERIES_RESERVE_LEDGER, policy_series.key().as_ref(), args.asset_mint.as_ref()],
-            bump
-        )
-    )]
-    #[cfg(not(feature = "quasar"))]
-    pub series_reserve_ledger: Box<Account<'info, SeriesReserveLedger>>,
-    #[cfg_attr(
-        feature = "quasar",
-        account(
-            mut,
-            constraint = quasar_pda_matches(
-                series_reserve_ledger.address(),
-                &crate::ID,
-                &[SEED_SERIES_RESERVE_LEDGER, policy_series.address().as_ref(), asset_mint.as_ref()],
-                series_reserve_ledger.bump,
-            ) @ OmegaXProtocolError::PolicySeriesMismatch
-        )
-    )]
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: &'info mut Account<SeriesReserveLedger>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]
@@ -911,32 +738,6 @@ pub struct VersionPolicySeries<'info> {
     )]
     #[cfg(feature = "quasar")]
     pub next_policy_series: Account<PolicySeriesAccountData<'info>>,
-    #[cfg_attr(
-        not(feature = "quasar"),
-        account(
-            init,
-            payer = authority,
-            space = 8 + SeriesReserveLedger::INIT_SPACE,
-            seeds = [SEED_SERIES_RESERVE_LEDGER, next_policy_series.key().as_ref(), current_policy_series.asset_mint.as_ref()],
-            bump
-        )
-    )]
-    #[cfg(not(feature = "quasar"))]
-    pub next_series_reserve_ledger: Box<Account<'info, SeriesReserveLedger>>,
-    #[cfg_attr(
-        feature = "quasar",
-        account(
-            mut,
-            constraint = quasar_pda_matches(
-                next_series_reserve_ledger.address(),
-                &crate::ID,
-                &[SEED_SERIES_RESERVE_LEDGER, next_policy_series.address().as_ref(), current_policy_series.asset_mint.as_ref()],
-                next_series_reserve_ledger.bump,
-            ) @ OmegaXProtocolError::PolicySeriesMismatch
-        )
-    )]
-    #[cfg(feature = "quasar")]
-    pub next_series_reserve_ledger: &'info mut Account<SeriesReserveLedger>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

@@ -95,13 +95,6 @@ pub mod omegax_protocol {
         crate::plans_membership::create_policy_series(ctx, args)
     }
 
-    pub fn initialize_series_reserve_ledger(
-        ctx: Context<InitializeSeriesReserveLedger>,
-        args: InitializeSeriesReserveLedgerArgs,
-    ) -> Result<()> {
-        crate::plans_membership::initialize_series_reserve_ledger(ctx, args)
-    }
-
     pub fn version_policy_series(
         ctx: Context<VersionPolicySeries>,
         args: VersionPolicySeriesArgs,
@@ -345,14 +338,6 @@ pub mod omegax_protocol {
             display_name,
             metadata_uri,
         )
-    }
-
-    #[instruction(discriminator = [113, 155, 191, 126, 81, 152, 220, 249])]
-    pub fn initialize_series_reserve_ledger(
-        ctx: Ctx<InitializeSeriesReserveLedger>,
-        asset_mint: Pubkey,
-    ) -> Result<()> {
-        crate::plans_membership::initialize_series_reserve_ledger(&mut ctx, asset_mint)
     }
 
     #[instruction(discriminator = [64, 76, 132, 253, 41, 220, 169, 146])]

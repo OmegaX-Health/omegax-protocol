@@ -786,7 +786,6 @@ async function main() {
         { pubkey: governanceAddress },
         { pubkey: series.healthPlan },
         { pubkey: series.address, isWritable: true },
-        { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: series.address, assetMint: series.assetMint }), isWritable: true },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -802,9 +801,6 @@ async function main() {
   ];
   for (const line of fundingLineSpecs) {
     if (await protocol.accountExists(connection, line.address)) continue;
-    const seriesLedger = line.policySeries
-      ? protocol.deriveSeriesReserveLedgerPda({ policySeries: line.policySeries, assetMint: line.assetMint })
-      : null;
     await sendProtocolInstruction({
       protocol,
       connection,
@@ -829,7 +825,6 @@ async function main() {
         { pubkey: line.address, isWritable: true },
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: line.address, assetMint: line.assetMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: line.healthPlan, assetMint: line.assetMint }), isWritable: true },
-        { pubkey: seriesLedger, isWritable: true },
         { pubkey: SystemProgram.programId },
       ],
     });
@@ -1044,7 +1039,6 @@ async function main() {
         { pubkey: seekerSponsorLine.address, isWritable: true },
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: seekerPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
-        { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.rewardMint },
         { pubkey: openRewardVaultTokenAccount, isWritable: true },
@@ -1072,7 +1066,6 @@ async function main() {
         { pubkey: blendedSponsorLine.address, isWritable: true },
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
-        { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_REWARD_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.rewardMint },
         { pubkey: openRewardVaultTokenAccount, isWritable: true },
@@ -1123,7 +1116,6 @@ async function main() {
         { pubkey: blendedPremiumLine.address, isWritable: true },
         { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
-        { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
         { pubkey: openSettlementProtocolFeeVault, isWritable: true },
         { pubkey: requiredPublicKeyEnv("OMEGAX_DEVNET_GOVERNANCE_SETTLEMENT_SOURCE_TOKEN_ACCOUNT"), isWritable: true },
         { pubkey: fixtureState.settlementMint },
@@ -1402,7 +1394,6 @@ async function main() {
           { pubkey: seekerSponsorLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: seekerPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: address, isWritable: true },
@@ -1432,7 +1423,6 @@ async function main() {
           { pubkey: seekerSponsorLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: seekerPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: null },
@@ -1465,7 +1455,6 @@ async function main() {
           { pubkey: seekerSponsorLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: seekerPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: null },
@@ -1506,7 +1495,6 @@ async function main() {
           { pubkey: seekerSponsorLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLine.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: seekerPlan.address, assetMint: fixtureState.rewardMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeries.address, assetMint: fixtureState.rewardMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: null },
@@ -1614,7 +1602,6 @@ async function main() {
           { pubkey: blendedPremiumLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: claimSpec.obligationAddress, isWritable: true },
@@ -1665,7 +1652,6 @@ async function main() {
           { pubkey: blendedPremiumLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: null },
@@ -1702,7 +1688,6 @@ async function main() {
           { pubkey: blendedPremiumLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: null },
@@ -1741,7 +1726,6 @@ async function main() {
           { pubkey: blendedPremiumLine.address, isWritable: true },
           { pubkey: protocol.deriveFundingLineLedgerPda({ fundingLine: blendedPremiumLine.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: protocol.derivePlanReserveLedgerPda({ healthPlan: blendedPlan.address, assetMint: fixtureState.settlementMint }), isWritable: true },
-          { pubkey: protocol.deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeries.address, assetMint: fixtureState.settlementMint }), isWritable: true },
           { pubkey: null },
           { pubkey: null },
           { pubkey: null },

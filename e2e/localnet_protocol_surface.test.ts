@@ -76,7 +76,6 @@ const {
   derivePoolOraclePolicyPda,
   deriveReserveDomainPda,
   deriveSchemaDependencyLedgerPda,
-  deriveSeriesReserveLedgerPda,
   getProgramId,
   recomputeReserveBalanceSheet,
 } = protocolModule as typeof import("../frontend/lib/protocol.ts");
@@ -633,35 +632,27 @@ const scenarioAssertions: Record<ScenarioName, () => void> = {
     assert.equal(setPoolOraclePolicyTx.instructions[0]!.keys[3]!.pubkey.toBase58(), derivePoolOraclePolicyPda({
       liquidityPool: pool.address,
     }).toBase58());
-    assert.equal(createPolicySeriesTx.instructions[0]!.keys[3]!.pubkey.toBase58(), derivePolicySeriesPda({
+    assert.equal(createPolicySeriesTx.instructions[0]!.keys[2]!.pubkey.toBase58(), derivePolicySeriesPda({
       healthPlan: plan.address,
       seriesId: protectionSeries.seriesId,
     }).toBase58());
-    assert.equal(createPolicySeriesTx.instructions[0]!.keys[4]!.pubkey.toBase58(), deriveSeriesReserveLedgerPda({
-      policySeries: protectionSeries.address,
-      assetMint: protectionSeries.assetMint,
-    }).toBase58());
-    assert.equal(openFundingLineTx.instructions[0]!.keys[3]!.pubkey.toBase58(), deriveDomainAssetVaultPda({
+    assert.equal(openFundingLineTx.instructions[0]!.keys[2]!.pubkey.toBase58(), deriveDomainAssetVaultPda({
       reserveDomain: plan.reserveDomain,
       assetMint: protectionLine.assetMint,
     }).toBase58());
-    assert.equal(openFundingLineTx.instructions[0]!.keys[5]!.pubkey.toBase58(), deriveFundingLinePda({
+    assert.equal(openFundingLineTx.instructions[0]!.keys[4]!.pubkey.toBase58(), deriveFundingLinePda({
       healthPlan: plan.address,
       lineId: protectionLine.lineId,
     }).toBase58());
-    assert.equal(openFundingLineTx.instructions[0]!.keys[6]!.pubkey.toBase58(), deriveFundingLineLedgerPda({
+    assert.equal(openFundingLineTx.instructions[0]!.keys[5]!.pubkey.toBase58(), deriveFundingLineLedgerPda({
       fundingLine: protectionLine.address,
       assetMint: protectionLine.assetMint,
     }).toBase58());
-    assert.equal(openFundingLineTx.instructions[0]!.keys[7]!.pubkey.toBase58(), derivePlanReserveLedgerPda({
+    assert.equal(openFundingLineTx.instructions[0]!.keys[6]!.pubkey.toBase58(), derivePlanReserveLedgerPda({
       healthPlan: plan.address,
       assetMint: protectionLine.assetMint,
     }).toBase58());
-    assert.equal(openFundingLineTx.instructions[0]!.keys[8]!.pubkey.toBase58(), protectionSeries.address);
-    assert.equal(openFundingLineTx.instructions[0]!.keys[9]!.pubkey.toBase58(), deriveSeriesReserveLedgerPda({
-      policySeries: protectionSeries.address,
-      assetMint: protectionLine.assetMint,
-    }).toBase58());
+    assert.equal(openFundingLineTx.instructions[0]!.keys[7]!.pubkey.toBase58(), protectionSeries.address);
     assert.equal(openClaimCaseTx.instructions[0]!.keys[3]!.pubkey.toBase58(), protectionClaim.address);
     assert.equal(adjudicateClaimCaseTx.instructions[0]!.keys[4]!.pubkey.toBase58(), linkedObligation.address);
     assert.equal(reserveObligationTx.instructions[0]!.keys[12]!.pubkey.toBase58(), protectionClaim.address);

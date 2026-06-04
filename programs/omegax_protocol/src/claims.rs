@@ -123,46 +123,7 @@ fn require_quasar_direct_claim_case_settlement(
 }
 
 #[cfg(feature = "quasar")]
-fn validate_quasar_optional_series_ledger(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
-    expected_policy_series: Pubkey,
-    expected_asset_mint: Pubkey,
-) -> Result<()> {
-    if let Some(ledger) = series_ledger {
-        require!(
-            expected_policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::PolicySeriesMissing
-        );
-        require_keys_eq!(
-            ledger.policy_series,
-            expected_policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            ledger.asset_mint,
-            expected_asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-        require!(
-            quasar_pda_matches(
-                ledger.address(),
-                &crate::ID,
-                &[
-                    SEED_SERIES_RESERVE_LEDGER,
-                    expected_policy_series.as_ref(),
-                    expected_asset_mint.as_ref(),
-                ],
-                ledger.bump,
-            ),
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-    }
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 fn validate_quasar_direct_claim_settlement_bindings(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
     claim_case: &ClaimCaseAccountData<'_>,
     funding_line_key: Pubkey,
     funding_line_asset_mint: Pubkey,
@@ -177,11 +138,7 @@ fn validate_quasar_direct_claim_settlement_bindings(
         funding_line_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
     );
-    validate_quasar_optional_series_ledger(
-        series_ledger,
-        claim_case.policy_series,
-        claim_case.asset_mint,
-    )
+    Ok(())
 }
 
 #[cfg(feature = "quasar")]
@@ -200,16 +157,12 @@ fn book_quasar_direct_claim_payout(
     domain_sheet: &mut ReserveBalanceSheet,
     plan_sheet: &mut ReserveBalanceSheet,
     line_sheet: &mut ReserveBalanceSheet,
-    series_sheet: Option<&mut ReserveBalanceSheet>,
     funding_spent_amount: &mut u64,
     amount: u64,
 ) -> Result<()> {
     require_quasar_free_reserve_capacity(domain_sheet, amount)?;
     require_quasar_free_reserve_capacity(plan_sheet, amount)?;
     require_quasar_free_reserve_capacity(line_sheet, amount)?;
-    if let Some(series) = series_sheet.as_ref() {
-        require_quasar_free_reserve_capacity(series, amount)?;
-    }
 
     domain_sheet.funded = checked_sub(domain_sheet.funded, amount)?;
     domain_sheet.settled = checked_add(domain_sheet.settled, amount)?;
@@ -222,12 +175,6 @@ fn book_quasar_direct_claim_payout(
     line_sheet.funded = checked_sub(line_sheet.funded, amount)?;
     line_sheet.settled = checked_add(line_sheet.settled, amount)?;
     recompute_sheet(line_sheet)?;
-
-    if let Some(series) = series_sheet {
-        series.funded = checked_sub(series.funded, amount)?;
-        series.settled = checked_add(series.settled, amount)?;
-        recompute_sheet(series)?;
-    }
 
     *domain_assets = checked_sub(*domain_assets, amount)?;
     *funding_spent_amount = checked_add(*funding_spent_amount, amount)?;
@@ -694,7 +641,6 @@ pub(crate) fn settle_claim_case(
     );
     require_positive_amount(args.amount)?;
     validate_direct_claim_settlement_bindings(
-        ctx.accounts.series_reserve_ledger.as_deref(),
         &ctx.accounts.claim_case,
         ctx.accounts.funding_line.key(),
         ctx.accounts.funding_line.asset_mint,
@@ -734,7 +680,6 @@ pub(crate) fn settle_claim_case(
         &mut ctx.accounts.domain_asset_ledger.sheet,
         &mut ctx.accounts.plan_reserve_ledger.sheet,
         &mut ctx.accounts.funding_line_ledger.sheet,
-        ctx.accounts.series_reserve_ledger.as_deref_mut(),
         &mut ctx.accounts.funding_line,
         amount,
     )?;
@@ -778,13 +723,7 @@ pub(crate) fn settle_claim_case<'info>(
     );
     require_quasar_positive_amount(amount)?;
 
-    let series_ledger = ctx
-        .accounts
-        .series_reserve_ledger
-        .as_ref()
-        .map(|ledger| &**ledger);
     validate_quasar_direct_claim_settlement_bindings(
-        series_ledger,
         &ctx.accounts.claim_case,
         funding_line_key,
         ctx.accounts.funding_line.asset_mint,
@@ -805,18 +744,12 @@ pub(crate) fn settle_claim_case<'info>(
     let mut domain_sheet = ctx.accounts.domain_asset_ledger.sheet;
     let mut plan_sheet = ctx.accounts.plan_reserve_ledger.sheet;
     let mut funding_line_sheet = ctx.accounts.funding_line_ledger.sheet;
-    let mut series_sheet = ctx
-        .accounts
-        .series_reserve_ledger
-        .as_ref()
-        .map(|ledger| ledger.sheet);
     let mut funding_spent_amount = ctx.accounts.funding_line.spent_amount.get();
     book_quasar_direct_claim_payout(
         &mut domain_total_assets,
         &mut domain_sheet,
         &mut plan_sheet,
         &mut funding_line_sheet,
-        series_sheet.as_mut(),
         &mut funding_spent_amount,
         amount,
     )?;
@@ -917,17 +850,6 @@ pub(crate) fn settle_claim_case<'info>(
     let asset_mint = funding_line_ledger.asset_mint;
     let bump = funding_line_ledger.bump;
     funding_line_ledger.set_inner(funding_line_key, asset_mint, funding_line_sheet, bump);
-
-    if let (Some(series_ledger), Some(sheet)) = (
-        ctx.accounts.series_reserve_ledger.as_mut(),
-        series_sheet.as_ref(),
-    ) {
-        let series_ledger = &mut **series_ledger;
-        let policy_series = series_ledger.policy_series;
-        let asset_mint = series_ledger.asset_mint;
-        let bump = series_ledger.bump;
-        series_ledger.set_inner(policy_series, asset_mint, *sheet, bump);
-    }
 
     let funding_line = &mut ctx.accounts.funding_line;
     let reserve_domain = funding_line.reserve_domain;
@@ -1210,11 +1132,6 @@ pub struct SettleClaimCase<'info> {
         ) @ OmegaXProtocolError::HealthPlanMismatch
     )]
     pub plan_reserve_ledger: &'info mut Account<PlanReserveLedger>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: Option<&'info mut Account<SeriesReserveLedger>>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_CLAIM_CASE, health_plan.key().as_ref(), claim_case.claim_id.as_bytes()], bump = claim_case.bump)]
     pub claim_case: Box<Account<'info, ClaimCase>>,

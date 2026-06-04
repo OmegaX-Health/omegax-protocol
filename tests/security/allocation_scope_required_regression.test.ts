@@ -58,19 +58,16 @@ test("[CSO-2026-05-04] treasury mutation bindings are sponsor-reserve scoped onl
 
   assert.match(body, /obligation\.funding_line[\s\S]+funding_line_key[\s\S]+FundingLineMismatch/);
   assert.match(body, /obligation\.asset_mint[\s\S]+funding_line_asset_mint[\s\S]+AssetMintMismatch/);
-  assert.match(body, /validate_optional_series_ledger/);
+  assert.doesNotMatch(body, /validate_optional_series_ledger/);
   assert.doesNotMatch(body, /liquidity_pool/);
   assert.doesNotMatch(body, /capital_class/);
   assert.doesNotMatch(body, /allocation_position/);
 });
 
-test("[CSO-2026-05-06] optional reserve ledgers remain canonical PDAs", () => {
-  const seriesBody = extractRustFunctionBody("validate_optional_series_ledger");
-
-  assert.match(seriesBody, /Pubkey::find_program_address/);
-  assert.match(seriesBody, /SEED_SERIES_RESERVE_LEDGER/);
-  assert.match(seriesBody, /ledger\.key\(\)[\s\S]+expected_ledger/);
-  assert.match(seriesBody, /ledger\.bump == expected_bump/);
+test("[CSO-2026-05-06] retired series reserve ledger stays out of the treasury path", () => {
+  assert.doesNotMatch(programSource, /validate_optional_series_ledger/);
+  assert.doesNotMatch(programSource, /SEED_SERIES_RESERVE_LEDGER/);
+  assert.doesNotMatch(programSource, /SeriesReserveLedger/);
   assert.doesNotMatch(programSource, /validate_optional_pool_class_ledger/);
   assert.doesNotMatch(programSource, /validate_optional_allocation_position/);
   assert.doesNotMatch(programSource, /validate_optional_allocation_ledger/);
@@ -116,7 +113,7 @@ test("[CSO-2026-05-04] settlement debits only reserve ledgers and vault totals",
   assert.match(body, /settle_from_sheet\(domain_sheet/);
   assert.match(body, /settle_from_sheet\(plan_sheet/);
   assert.match(body, /settle_from_sheet\(line_sheet/);
-  assert.match(body, /settle_from_sheet\(&mut series\.sheet/);
+  assert.doesNotMatch(body, /series/);
   assert.match(body, /\*domain_assets\s*=\s*checked_sub\(\*domain_assets,\s*amount\)\?/);
   assert.doesNotMatch(body, /settle_from_allocation_sheet/);
   assert.doesNotMatch(body, /allocation_position/);

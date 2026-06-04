@@ -53,7 +53,6 @@ import {
   derivePolicySeriesPda,
   derivePoolClassLedgerPda,
   deriveReserveDomainPda,
-  deriveSeriesReserveLedgerPda,
 } from "./protocol";
 import {
   GENESIS_PROTECT_ACUTE_JUNIOR_CLASS_DISPLAY_NAME,
@@ -996,51 +995,7 @@ export const DEVNET_PROTOCOL_FIXTURE_STATE: DevnetProtocolFixtureState = {
       sheet: { funded: networkSchoolAcuteAssistTotalFunding, allocated: networkSchoolAcuteAssistTotalLiquidityFunding },
     },
   ],
-  seriesReserveLedgers: [
-    {
-      address: deriveSeriesReserveLedgerPda({ policySeries: seekerRewardSeriesAddress, assetMint: rewardMint }).toBase58(),
-      reserveDomain: openReserveDomain,
-      assetMint: rewardMint,
-      sheet: { funded: 250_000n, reserved: 14_000n, claimable: 8_000n, settled: 20_000n, owed: 22_000n },
-    },
-    {
-      address: deriveSeriesReserveLedgerPda({ policySeries: blendedRewardSeriesAddress, assetMint: rewardMint }).toBase58(),
-      reserveDomain: openReserveDomain,
-      assetMint: rewardMint,
-      sheet: { funded: 270_000n, allocated: 150_000n, reserved: 26_000n, settled: 12_000n, owed: 26_000n },
-    },
-    {
-      address: deriveSeriesReserveLedgerPda({ policySeries: blendedProtectionSeriesAddress, assetMint: settlementMint }).toBase58(),
-      reserveDomain: openReserveDomain,
-      assetMint: settlementMint,
-      sheet: { funded: 1_480_000n, allocated: 1_000_000n, reserved: 245_000n, payable: 50_000n, settled: 65_000n, owed: 295_000n },
-    },
-    {
-      address: deriveSeriesReserveLedgerPda({ policySeries: genesisEvent7SeriesAddress, assetMint: settlementMint }).toBase58(),
-      reserveDomain: openReserveDomain,
-      assetMint: settlementMint,
-      sheet: { funded: 33_400n, allocated: 12_500n },
-    },
-    {
-      address: deriveSeriesReserveLedgerPda({ policySeries: genesisTravel30SeriesAddress, assetMint: settlementMint }).toBase58(),
-      reserveDomain: openReserveDomain,
-      assetMint: settlementMint,
-      sheet: { funded: 54_900n, allocated: 45_000n },
-    },
-    ...NETWORK_SCHOOL_ACUTE_ASSIST_SKU_LIST.map((sku) => ({
-      address: deriveSeriesReserveLedgerPda({
-        policySeries: networkSchoolAcuteAssistSeriesAddresses[sku.key],
-        assetMint: settlementMint,
-      }).toBase58(),
-      reserveDomain: openReserveDomain,
-      assetMint: settlementMint,
-      sheet: {
-        funded: networkSchoolAcuteAssistPremiumFundingBySku[sku.key]
-          + networkSchoolAcuteAssistLiquidityFundingBySku[sku.key],
-        allocated: networkSchoolAcuteAssistLiquidityFundingBySku[sku.key],
-      },
-    })),
-  ],
+  seriesReserveLedgers: [],
   fundingLineLedgers: [
     {
       address: deriveFundingLineLedgerPda({ fundingLine: seekerSponsorLineAddress, assetMint: rewardMint }).toBase58(),

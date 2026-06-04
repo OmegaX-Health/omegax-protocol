@@ -14,8 +14,6 @@ pub mod instruction {
     pub const IX_CREATE_POLICY_SERIES: [u8; 8] = [70, 162, 231, 218, 211, 136, 110, 176];
     pub const IX_CREATE_RESERVE_DOMAIN: [u8; 8] = [222, 2, 8, 218, 45, 157, 193, 246];
     pub const IX_FUND_SPONSOR_BUDGET: [u8; 8] = [150, 210, 161, 31, 50, 12, 224, 32];
-    pub const IX_INITIALIZE_SERIES_RESERVE_LEDGER: [u8; 8] =
-        [113, 155, 191, 126, 81, 152, 220, 249];
     pub const IX_OPEN_CLAIM_CASE: [u8; 8] = [151, 125, 231, 211, 63, 132, 248, 184];
     pub const IX_OPEN_FUNDING_LINE: [u8; 8] = [231, 140, 66, 127, 163, 1, 197, 9];
     pub const IX_RECORD_PREMIUM_PAYMENT: [u8; 8] = [196, 182, 182, 56, 146, 87, 170, 29];
@@ -39,7 +37,6 @@ pub mod account {
     pub const ACCOUNT_PLAN_RESERVE_LEDGER: [u8; 8] = [243, 245, 230, 224, 27, 105, 48, 128];
     pub const ACCOUNT_POLICY_SERIES: [u8; 8] = [196, 117, 121, 249, 37, 71, 245, 23];
     pub const ACCOUNT_RESERVE_DOMAIN: [u8; 8] = [119, 76, 223, 192, 177, 116, 88, 178];
-    pub const ACCOUNT_SERIES_RESERVE_LEDGER: [u8; 8] = [0, 109, 195, 30, 140, 79, 210, 234];
 }
 
 pub mod event {

@@ -113,14 +113,6 @@ pub struct CreatePolicySeriesArgs {
     not(feature = "quasar"),
     derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
 )]
-pub struct InitializeSeriesReserveLedgerArgs {
-    pub asset_mint: Pubkey,
-}
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
 pub struct VersionPolicySeriesArgs {
     #[cfg_attr(not(feature = "quasar"), max_len(MAX_ID_LEN))]
     pub series_id: String,

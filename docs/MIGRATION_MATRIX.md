@@ -13,7 +13,7 @@ This matrix records the hard-break migration from the legacy pool-centric devnet
 | `PolicyPosition` | `MemberPosition` | Policy participation is represented directly as a member position in a series. |
 | `CoverageClaimRecord` | `ClaimCase` + `Obligation` | Claim workflow and economic liability are separated but linked. |
 | reward claim accounts | `Obligation` | Fast reward flows book canonical liabilities too. |
-| `PoolTreasuryReserve` | `DomainAssetLedger`, `PlanReserveLedger`, `SeriesReserveLedger`, `FundingLineLedger`, `PoolClassLedger`, `AllocationLedger` | One reserve kernel, many scoped ledgers. |
+| `PoolTreasuryReserve` | `DomainAssetLedger`, `PlanReserveLedger`, `FundingLineLedger` | One reserve kernel, sponsor-reserve scoped ledgers. |
 | `PoolLiquidityConfig` | `LiquidityPool` | LP-facing capital sleeve. |
 | `PoolCapitalClass` | `CapitalClass` | Same core concept, but no longer hanging off a sponsor program root. |
 | redemption request state | `LPPosition` + queue fields on `CapitalClass` | Queue semantics are class-level investor mechanics, not plan semantics. |
@@ -26,7 +26,7 @@ This matrix records the hard-break migration from the legacy pool-centric devnet
 | sponsor funding lands in a pool treasury | sponsor funding lands in `FundingLine` of type `SponsorBudget` | Sponsor expense capital is not LP capital. |
 | premium logic tied to series but treasury truth tied to pool | premiums flow into `FundingLine` and reserve ledgers | Funding source attribution becomes explicit. |
 | LP deposits can look like generic pool funding | LP deposits mint `LPPosition` inside a `CapitalClass` | Capital rights stay explicit. |
-| reserve truth summarized mostly at pool level | reserve truth lives at domain, plan, series, funding line, class, and allocation scopes | Shared reserve without accounting fog. |
+| reserve truth summarized mostly at pool level | reserve truth lives at domain, plan, and funding-line scopes | Shared reserve without accounting fog. |
 | claim reserves tracked separately from reward reserves | both create `Obligation` state | One shared settlement foundation. |
 
 ## Instructions

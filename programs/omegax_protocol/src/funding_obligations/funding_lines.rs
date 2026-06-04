@@ -74,44 +74,6 @@ fn validate_quasar_optional_policy_series(
 }
 
 #[cfg(feature = "quasar")]
-fn validate_quasar_optional_series_ledger(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
-    expected_policy_series: Pubkey,
-    expected_asset_mint: Pubkey,
-) -> Result<()> {
-    if let Some(ledger) = series_ledger {
-        require!(
-            expected_policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::PolicySeriesMissing
-        );
-        require_keys_eq!(
-            ledger.policy_series,
-            expected_policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            ledger.asset_mint,
-            expected_asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-        require!(
-            quasar_pda_matches(
-                ledger.address(),
-                &crate::ID,
-                &[
-                    SEED_SERIES_RESERVE_LEDGER,
-                    expected_policy_series.as_ref(),
-                    expected_asset_mint.as_ref(),
-                ],
-                ledger.bump,
-            ),
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-    }
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 pub(crate) fn open_funding_line<'info>(
     ctx: &mut Ctx<'info, OpenFundingLine<'info>>,
     policy_series_arg: Pubkey,
@@ -152,20 +114,6 @@ pub(crate) fn open_funding_line<'info>(
         health_plan_key,
         false,
     )?;
-    if policy_series_arg == ZERO_PUBKEY {
-        require!(
-            ctx.accounts.series_reserve_ledger.is_none(),
-            OmegaXProtocolError::SeriesLedgerUnexpected
-        );
-    } else {
-        let series_ledger = ctx
-            .accounts
-            .series_reserve_ledger
-            .as_deref()
-            .ok_or(OmegaXProtocolError::PolicySeriesMissing)?;
-        validate_quasar_optional_series_ledger(Some(series_ledger), policy_series_arg, asset_mint)?;
-    }
-
     let funding_line_key = *ctx.accounts.funding_line.address();
     let funding_line_bump = ctx.accounts.funding_line.bump;
     ctx.accounts.funding_line.set_inner(
@@ -218,23 +166,6 @@ pub(crate) fn open_funding_line<'info>(
         );
     }
 
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
-        require!(
-            policy_series_arg != ZERO_PUBKEY,
-            OmegaXProtocolError::SeriesLedgerUnexpected
-        );
-        require_keys_eq!(
-            series_ledger.policy_series,
-            policy_series_arg,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            series_ledger.asset_mint,
-            asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-    }
-
     Ok(())
 }
 
@@ -259,20 +190,6 @@ pub(crate) fn open_funding_line(
         ctx.accounts.health_plan.key(),
         false,
     )?;
-    if args.policy_series == ZERO_PUBKEY {
-        require!(
-            ctx.accounts.series_reserve_ledger.is_none(),
-            OmegaXProtocolError::SeriesLedgerUnexpected
-        );
-    } else {
-        let series_ledger = ctx
-            .accounts
-            .series_reserve_ledger
-            .as_deref()
-            .ok_or(OmegaXProtocolError::PolicySeriesMissing)?;
-        validate_optional_series_ledger(Some(series_ledger), args.policy_series, args.asset_mint)?;
-    }
-
     let funding_line = &mut ctx.accounts.funding_line;
     funding_line.reserve_domain = ctx.accounts.health_plan.reserve_domain;
     funding_line.health_plan = ctx.accounts.health_plan.key();
@@ -303,21 +220,6 @@ pub(crate) fn open_funding_line(
         plan_ledger.asset_mint = args.asset_mint;
         plan_ledger.sheet = ReserveBalanceSheet::default();
         plan_ledger.bump = ctx.bumps.plan_reserve_ledger;
-    }
-
-    if let Some(series_ledger) = ctx.accounts.series_reserve_ledger.as_deref_mut() {
-        require!(
-            args.policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::SeriesLedgerUnexpected
-        );
-        require!(
-            series_ledger.policy_series == args.policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require!(
-            series_ledger.asset_mint == args.asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
     }
 
     emit!(FundingLineOpenedEvent {
@@ -472,11 +374,6 @@ pub struct OpenFundingLine<'info> {
     pub policy_series: Option<Box<Account<'info, PolicySeries>>>,
     #[cfg(feature = "quasar")]
     pub policy_series: Option<Account<PolicySeriesAccountData<'info>>>,
-    #[cfg(not(feature = "quasar"))]
-    #[account(mut)]
-    pub series_reserve_ledger: Option<Box<Account<'info, SeriesReserveLedger>>>,
-    #[cfg(feature = "quasar")]
-    pub series_reserve_ledger: Option<&'info mut Account<SeriesReserveLedger>>,
     #[cfg(not(feature = "quasar"))]
     pub system_program: Program<'info, System>,
     #[cfg(feature = "quasar")]

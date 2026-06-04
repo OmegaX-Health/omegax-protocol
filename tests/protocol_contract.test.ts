@@ -32,7 +32,6 @@ test("canonical contract exposes the reserve-accounting surface", () => {
   assert(instructionNames.includes("create_reserve_domain"));
   assert(instructionNames.includes("create_health_plan"));
   assert(instructionNames.includes("create_policy_series"));
-  assert(instructionNames.includes("initialize_series_reserve_ledger"));
   assert(instructionNames.includes("open_funding_line"));
   assert(!instructionNames.includes("open_member_position"));
   assert(!instructionNames.includes("update_member_eligibility"));
@@ -77,6 +76,7 @@ test("canonical contract exposes the reserve-accounting surface", () => {
     "update_oracle_profile",
     "configure_reserve_asset_rail",
     "publish_reserve_asset_rail_price",
+    "initialize_series_reserve_ledger",
     "attach_claim_evidence_ref",
     "attest_claim_case",
   ]) {
@@ -111,6 +111,7 @@ test("canonical contract exposes the reserve-accounting surface", () => {
     "OracleProfile",
     "ClaimAttestation",
     "ReserveAssetRail",
+    "SeriesReserveLedger",
   ]) {
     assert(!accountNames.includes(removedAccount), `${removedAccount} should be removed`);
   }
@@ -120,10 +121,12 @@ test("canonical contract exposes the reserve-accounting surface", () => {
   assert(!serializedAccounts.includes("pool_oracle_fee_vault"));
   assert(!serializedAccounts.includes("member_position"));
   assert(!serializedAccounts.includes("reserve_asset_rail"));
+  assert(!serializedAccounts.includes("series_reserve_ledger"));
   assert(!Object.prototype.hasOwnProperty.call(PROTOCOL_INSTRUCTION_ACCOUNTS, "attach_claim_evidence_ref"));
   assert(!Object.prototype.hasOwnProperty.call(PROTOCOL_INSTRUCTION_ACCOUNTS, "attest_claim_case"));
   assert(!Object.prototype.hasOwnProperty.call(PROTOCOL_INSTRUCTION_ACCOUNTS, "configure_reserve_asset_rail"));
   assert(!Object.prototype.hasOwnProperty.call(PROTOCOL_INSTRUCTION_ACCOUNTS, "publish_reserve_asset_rail_price"));
+  assert(!Object.prototype.hasOwnProperty.call(PROTOCOL_INSTRUCTION_ACCOUNTS, "initialize_series_reserve_ledger"));
 
   assert(!instructionNames.includes("create_pool"));
   assert(!instructionNames.includes("set_pool_status"));
@@ -157,6 +160,8 @@ test("canonical contract exposes the reserve-accounting surface", () => {
   assert(!idl.types.some((entry) => entry.name === "ConfigureReserveAssetRailArgs"));
   assert(!idl.types.some((entry) => entry.name === "PublishReserveAssetRailPriceArgs"));
   assert(!idl.types.some((entry) => entry.name === "ReserveAssetRail"));
+  assert(!idl.types.some((entry) => entry.name === "InitializeSeriesReserveLedgerArgs"));
+  assert(!idl.types.some((entry) => entry.name === "SeriesReserveLedger"));
   assert(!selectedAssetPayoutArgs);
   assert(!policySeriesAccount?.type.fields?.some((field) => field.name === "evidence_requirements_hash"));
   for (const removedHealthPlanField of [

@@ -68,7 +68,6 @@ The reserve kernel is implemented as scoped ledgers rather than one giant monoli
 
 - `DomainAssetLedger`
 - `PlanReserveLedger`
-- `SeriesReserveLedger`
 - `FundingLineLedger`
 - `PoolClassLedger`
 - `AllocationLedger`

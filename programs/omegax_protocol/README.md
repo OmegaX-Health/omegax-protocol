@@ -44,7 +44,6 @@ The active public object model is:
 - `HealthPlan`
 - `PlanReserveLedger`
 - `PolicySeries`
-- `SeriesReserveLedger`
 - `FundingLine`
 - `FundingLineLedger`
 - `ClaimCase`

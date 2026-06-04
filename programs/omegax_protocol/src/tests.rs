@@ -168,7 +168,6 @@ fn full_settlement_and_cancellation_amounts_remain_supported() {
         &mut domain_sheet,
         &mut plan_sheet,
         &mut line_sheet,
-        None,
         &mut settlement_line,
         60,
         &mut settlement_obligation,
@@ -211,7 +210,6 @@ fn full_settlement_and_cancellation_amounts_remain_supported() {
         &mut cancel_domain_sheet,
         &mut cancel_plan_sheet,
         &mut cancel_line_sheet,
-        None,
         &mut cancellation_line,
         60,
         &mut cancellation_obligation,
@@ -996,7 +994,6 @@ fn direct_claim_payout_debits_free_reserve_without_delivery_buckets() {
         &mut domain_sheet,
         &mut plan_sheet,
         &mut line_sheet,
-        None,
         &mut funding_line,
         250,
     )
@@ -1027,7 +1024,6 @@ fn direct_claim_payout_debits_free_reserve_without_delivery_buckets() {
         &mut insufficient_sheet,
         &mut plan_sheet,
         &mut line_sheet,
-        None,
         &mut funding_line,
         50,
     )

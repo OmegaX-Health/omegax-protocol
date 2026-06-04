@@ -60,47 +60,6 @@ pub(crate) fn validate_optional_policy_series(
     Ok(())
 }
 
-pub(crate) fn validate_optional_series_ledger(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
-    expected_policy_series: Pubkey,
-    expected_asset_mint: Pubkey,
-) -> Result<()> {
-    if let Some(ledger) = series_ledger {
-        require!(
-            expected_policy_series != ZERO_PUBKEY,
-            OmegaXProtocolError::PolicySeriesMissing
-        );
-        require_keys_eq!(
-            ledger.policy_series,
-            expected_policy_series,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require_keys_eq!(
-            ledger.asset_mint,
-            expected_asset_mint,
-            OmegaXProtocolError::AssetMintMismatch
-        );
-        let (expected_ledger, expected_bump) = Pubkey::find_program_address(
-            &[
-                SEED_SERIES_RESERVE_LEDGER,
-                expected_policy_series.as_ref(),
-                expected_asset_mint.as_ref(),
-            ],
-            &crate::ID,
-        );
-        require_keys_eq!(
-            ledger.key(),
-            expected_ledger,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-        require!(
-            ledger.bump == expected_bump,
-            OmegaXProtocolError::PolicySeriesMismatch
-        );
-    }
-    Ok(())
-}
-
 pub(crate) fn validate_obligation_creation_scope(
     health_plan: &Account<HealthPlanAccountData<'_>>,
     funding_line: &FundingLineAccountData<'_>,
@@ -123,7 +82,6 @@ pub(crate) fn validate_obligation_creation_scope(
 }
 
 pub(crate) fn validate_treasury_mutation_bindings(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
     obligation: &ObligationAccountData<'_>,
     funding_line_key: Pubkey,
     funding_line_asset_mint: Pubkey,
@@ -138,15 +96,10 @@ pub(crate) fn validate_treasury_mutation_bindings(
         funding_line_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
     );
-    validate_optional_series_ledger(
-        series_ledger,
-        obligation.policy_series,
-        obligation.asset_mint,
-    )
+    Ok(())
 }
 
 pub(crate) fn validate_direct_claim_settlement_bindings(
-    series_ledger: Option<&Account<SeriesReserveLedger>>,
     claim_case: &ClaimCaseAccountData<'_>,
     funding_line_key: Pubkey,
     funding_line_asset_mint: Pubkey,
@@ -161,9 +114,5 @@ pub(crate) fn validate_direct_claim_settlement_bindings(
         funding_line_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
     );
-    validate_optional_series_ledger(
-        series_ledger,
-        claim_case.policy_series,
-        claim_case.asset_mint,
-    )
+    Ok(())
 }

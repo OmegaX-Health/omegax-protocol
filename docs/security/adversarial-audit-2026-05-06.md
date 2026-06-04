@@ -53,9 +53,9 @@ What is probably fine now because current code and tests prove it: classic-SPL-o
 - Moment: optional series/pool/allocation accounts are supplied to reserve, settlement, impairment, or claim paths.
 - Target asset: reserve ledgers and allocation accounting.
 - Technical path: provide an account whose inner fields look correct but whose address is not the canonical PDA for those fields.
-- What the ledger should show: only canonical `SeriesReserveLedger`, `PoolClassLedger`, `AllocationPosition`, and `AllocationLedger` can mutate.
-- Existing tripwires: field equality checks.
-- Hardening added: validators now recompute PDA addresses and bumps before accepting optional accounts.
+- What the ledger should show: current sponsor-reserve accounting mutates only canonical domain, plan, and funding-line ledgers.
+- Existing tripwires: field equality checks and PDA seed constraints on live ledger accounts.
+- Hardening added: the former optional scoped-ledger paths were removed from the live base protocol surface.
 
 ### Story: Bootstrap Governance Is Not Upgrade Authority
 
@@ -98,15 +98,15 @@ What is probably fine now because current code and tests prove it: classic-SPL-o
 - Fix: add `require_keys_eq!(allocation_position.liquidity_pool, liquidity_pool.key(), LiquidityPoolMismatch)`.
 - Regression test: `tests/security/cybersecurity_plan_regression.test.ts` `CSO-2026-05-06`.
 
-### [Medium, Fixed/Hardening] Optional Reserve And Allocation Accounts Did Not Prove Canonical PDA Addresses
+### [Medium, Retired] Optional Reserve And Allocation Accounts Did Not Prove Canonical PDA Addresses
 
 - Confidence: medium for hardening, lower for direct exploitability because Anchor account ownership already limits fake program accounts.
 - Attack goal: mutate reserve/allocation accounting through a noncanonical account that matches inner fields.
-- Impacted asset: series, pool class, allocation position, and allocation ledger accounting.
+- Impacted asset: former series, pool class, allocation position, and allocation ledger accounting.
 - Preconditions: a noncanonical program-owned account of the correct type exists through a future migration/init bug or account-state corruption.
 - Concrete path: optional validators checked stored fields but not the derived PDA address/bump.
 - Violated invariant: optional money-account inputs must be canonical PDAs, not just program-owned accounts with matching fields.
-- Evidence: `programs/omegax_protocol/src/kernel/bindings.rs` now recomputes `SEED_SERIES_RESERVE_LEDGER`, `SEED_POOL_CLASS_LEDGER`, `SEED_ALLOCATION_POSITION`, and `SEED_ALLOCATION_LEDGER`.
+- Evidence: the live base protocol no longer accepts the optional series, pool-class, allocation-position, or allocation-ledger accounts on treasury mutation paths.
 - Regression test: `tests/security/allocation_scope_required_regression.test.ts` `CSO-2026-05-06`.
 
 ### [High, Fixed] Protocol Governance Initialization Did Not Prove Upgrade-Authority Control
