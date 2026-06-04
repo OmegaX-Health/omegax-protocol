@@ -24,7 +24,6 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   const processRedemptionArgs = idl.types.find((entry) => entry.name === "ProcessRedemptionQueueArgs");
   const createLiquidityPoolArgs = idl.types.find((entry) => entry.name === "CreateLiquidityPoolArgs");
   const createCapitalClassArgs = idl.types.find((entry) => entry.name === "CreateCapitalClassArgs");
-  const setPoolOraclePolicyArgs = idl.types.find((entry) => entry.name === "SetPoolOraclePolicyArgs");
   const configureReserveAssetRailArgs = idl.types.find((entry) => entry.name === "ConfigureReserveAssetRailArgs");
   const reserveAssetRailAccount = idl.types.find((entry) => entry.name === "ReserveAssetRail");
   const selectedAssetPayoutArgs = idl.types.find((entry) => entry.name === "SettleClaimCaseSelectedAssetArgs");
@@ -48,7 +47,9 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(instructionNames.includes("mark_impairment"));
   assert(instructionNames.includes("register_oracle"));
   assert(instructionNames.includes("claim_oracle"));
-  assert(instructionNames.includes("set_pool_oracle_policy"));
+  assert(!instructionNames.includes("set_pool_oracle"));
+  assert(!instructionNames.includes("set_pool_oracle_permissions"));
+  assert(!instructionNames.includes("set_pool_oracle_policy"));
   assert(!instructionNames.includes("register_outcome_schema"));
   assert(!instructionNames.includes("verify_outcome_schema"));
   assert(!instructionNames.includes("backfill_schema_dependency_ledger"));
@@ -79,9 +80,9 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(accountNames.includes("AllocationPosition"));
   assert(accountNames.includes("Obligation"));
   assert(accountNames.includes("OracleProfile"));
-  assert(accountNames.includes("PoolOracleApproval"));
-  assert(accountNames.includes("PoolOraclePolicy"));
-  assert(accountNames.includes("PoolOraclePermissionSet"));
+  assert(!accountNames.includes("PoolOracleApproval"));
+  assert(!accountNames.includes("PoolOraclePolicy"));
+  assert(!accountNames.includes("PoolOraclePermissionSet"));
   assert(!accountNames.includes("OutcomeSchema"));
   assert(!accountNames.includes("SchemaDependencyLedger"));
   assert(accountNames.includes("ClaimAttestation"));
@@ -96,6 +97,13 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   for (const accountName of [
     "health_plan",
     "funding_line",
+  ]) {
+    assert(
+      PROTOCOL_INSTRUCTION_ACCOUNTS.attest_claim_case.some((account) => account.name === accountName),
+      `attest_claim_case missing ${accountName}`,
+    );
+  }
+  for (const removedAccount of [
     "liquidity_pool",
     "capital_class",
     "allocation_position",
@@ -104,8 +112,8 @@ test("canonical contract exposes the health-capital-markets surface", () => {
     "pool_oracle_policy",
   ]) {
     assert(
-      PROTOCOL_INSTRUCTION_ACCOUNTS.attest_claim_case.some((account) => account.name === accountName),
-      `attest_claim_case missing ${accountName}`,
+      !PROTOCOL_INSTRUCTION_ACCOUNTS.attest_claim_case.some((account) => account.name === removedAccount),
+      `attest_claim_case should not carry ${removedAccount}`,
     );
   }
 
@@ -148,7 +156,6 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   );
   assert(!createLiquidityPoolArgs?.type.fields?.some((field) => field.name === "fee_bps"));
   assert(!createCapitalClassArgs?.type.fields?.some((field) => field.name === "fee_bps"));
-  assert(!setPoolOraclePolicyArgs?.type.fields?.some((field) => field.name === "oracle_fee_bps"));
   assert.deepEqual(
     requestRedemptionArgs?.type.fields?.map((field) => field.name),
     ["shares"],
@@ -166,12 +173,12 @@ test("canonical contract exposes the health-capital-markets surface", () => {
     "decision_support_hash",
     "schema_hash",
     "schema_version",
-    "liquidity_pool",
-    "allocation_position",
   ]) {
     assert(
       claimAttestationAccount?.type.fields?.some((field) => field.name === fieldName),
       `ClaimAttestation missing ${fieldName}`,
     );
   }
+  assert(!claimAttestationAccount?.type.fields?.some((field) => field.name === "liquidity_pool"));
+  assert(!claimAttestationAccount?.type.fields?.some((field) => field.name === "allocation_position"));
 });

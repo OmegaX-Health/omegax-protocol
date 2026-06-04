@@ -293,7 +293,7 @@ signs the attestation via `attest_claim_case`.
 | Schema is governance-verified | `attestation_ref_hash` must reference `genesis-protect-acute-claim` v1 schema |
 | Evidence hash matches | `attestation_ref_hash == claim_case.evidence_ref_hash` |
 | No oracle-finality hold on the plan | `HealthPlan.oracle_finality_hold == false` |
-| Correct oracle authority for funding source | Premium/sponsor claims: plan's `oracle_authority`; LP-backed claims: pool oracle approval + `POOL_ORACLE_PERMISSION_ATTEST_CLAIM` |
+| Correct oracle authority for funding source | Claims require the plan's `oracle_authority`; LP-backed claim attestation is outside the current public program surface |
 
 ### 8.2 What the oracle attestation records onchain
 

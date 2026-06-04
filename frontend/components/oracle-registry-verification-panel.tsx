@@ -24,13 +24,9 @@ import {
   buildClaimOracleTx,
   fetchProtocolReadiness,
   listOraclesWithProfiles,
-  listPoolOracleApprovals,
-  listPoolOraclePolicies,
   listPools,
   listSchemas,
   type OracleWithProfileSummary,
-  type PoolOracleApprovalSummary,
-  type PoolOraclePolicySummary,
   type ProtocolReadiness,
   type SchemaSummary,
 } from "@/lib/protocol";
@@ -137,8 +133,6 @@ export function OracleRegistryVerificationPanel() {
   const [oracles, setOracles] = useState<OracleWithProfileSummary[]>([]);
   const [schemas, setSchemas] = useState<SchemaSummary[]>([]);
   const [pools, setPools] = useState<PoolRef[]>([]);
-  const [approvals, setApprovals] = useState<PoolOracleApprovalSummary[]>([]);
-  const [policies, setPolicies] = useState<PoolOraclePolicySummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedOracleAddress, setSelectedOracleAddress] = useState("");
@@ -161,12 +155,10 @@ export function OracleRegistryVerificationPanel() {
     setLoading(true);
     setError(null);
     try {
-      const [nextOracles, nextSchemas, nextPools, nextApprovals, nextPolicies] = await Promise.all([
+      const [nextOracles, nextSchemas, nextPools] = await Promise.all([
         listOraclesWithProfiles({ connection, activeOnly: false }),
         listSchemas({ connection, verifiedOnly: false }),
         listPools({ connection }),
-        listPoolOracleApprovals({ connection, activeOnly: false }),
-        listPoolOraclePolicies({ connection }),
       ]);
       setOracles(nextOracles);
       setSchemas(nextSchemas);
@@ -177,8 +169,6 @@ export function OracleRegistryVerificationPanel() {
           organizationRef: row.organizationRef,
         })),
       );
-      setApprovals(nextApprovals);
-      setPolicies(nextPolicies);
     } catch (cause) {
       setError(
         formatRpcError(cause, {
@@ -340,27 +330,6 @@ export function OracleRegistryVerificationPanel() {
     }
   }, [loadSchemaPreview, schemaPreviewByHash, selectedOracleSupportedHashes]);
 
-  const poolByAddress = useMemo(() => {
-    const map = new Map<string, PoolRef>();
-    for (const pool of pools) {
-      map.set(pool.address, pool);
-    }
-    return map;
-  }, [pools]);
-
-  const policiesByPool = useMemo(() => {
-    const set = new Set<string>();
-    for (const policy of policies) {
-      set.add(policy.liquidityPool);
-    }
-    return set;
-  }, [policies]);
-
-  const verificationApprovals = useMemo(
-    () => approvals.filter((row) => row.oracle === verificationOracleAddress),
-    [approvals, verificationOracleAddress],
-  );
-
   useEffect(() => {
     if (!oracles.length) {
       setVerificationOracleAddress("");
@@ -373,18 +342,18 @@ export function OracleRegistryVerificationPanel() {
   }, [oracles, verificationOracleAddress]);
 
   useEffect(() => {
-    if (!verificationApprovals.length) {
+    if (!pools.length) {
       setVerificationPoolAddress("");
       setSnapshot(null);
       setSnapshotAt(null);
       return;
     }
-    if (!verificationApprovals.some((row) => row.liquidityPool === verificationPoolAddress)) {
-      setVerificationPoolAddress(verificationApprovals[0].liquidityPool);
+    if (!pools.some((row) => row.address === verificationPoolAddress)) {
+      setVerificationPoolAddress(pools[0].address);
       setSnapshot(null);
       setSnapshotAt(null);
     }
-  }, [verificationApprovals, verificationPoolAddress]);
+  }, [pools, verificationPoolAddress]);
 
   const copyAddress = useCallback(async (value: string) => {
     try {
@@ -469,8 +438,6 @@ export function OracleRegistryVerificationPanel() {
     ? [
       { label: "Oracle registry entry", value: snapshot.oracleRegistered },
       { label: "Oracle profile", value: snapshot.oracleProfileExists },
-      { label: "Pool oracle approval", value: snapshot.poolOracleApproved },
-      { label: "Pool oracle policy", value: snapshot.poolOraclePolicyConfigured },
       { label: "Oracle stake position", value: snapshot.oracleStakePositionExists },
     ]
     : [];
@@ -543,8 +510,6 @@ export function OracleRegistryVerificationPanel() {
             {filteredRegistry.map((row) => {
               const profile = row.profile;
               const isSelected = row.oracle === selectedOracleAddress;
-              const oracleApprovals = approvals.filter((entry) => entry.oracle === row.oracle);
-              const policiesConfigured = oracleApprovals.filter((entry) => policiesByPool.has(entry.liquidityPool)).length;
               return (
                 <button
                   key={row.address}
@@ -574,8 +539,6 @@ export function OracleRegistryVerificationPanel() {
                     </div>
                   </div>
                   <div className="mt-3 grid gap-1.5 text-xs text-[var(--muted-foreground)]">
-                    <p>Approved pools: {oracleApprovals.length}</p>
-                    <p>Policies configured: {policiesConfigured}</p>
                     <p>Supported schemas: {profile?.supportedSchemaCount ?? 0}</p>
                   </div>
                 </button>
@@ -718,14 +681,11 @@ export function OracleRegistryVerificationPanel() {
                 value={verificationPoolAddress}
                 onChange={(event) => setVerificationPoolAddress(event.target.value)}
               >
-                {verificationApprovals.map((approval) => {
-                  const pool = poolByAddress.get(approval.liquidityPool);
-                  return (
-                    <option key={approval.address} value={approval.liquidityPool}>
-                      {pool?.poolId || shortAddress(approval.liquidityPool)}
-                    </option>
-                  );
-                })}
+                {pools.map((pool) => (
+                  <option key={pool.address} value={pool.address}>
+                    {pool.poolId || shortAddress(pool.address)}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -763,12 +723,6 @@ export function OracleRegistryVerificationPanel() {
                 ))}
               </div>
 
-              {!snapshot.poolOracleApproved || !snapshot.poolOraclePolicyConfigured ? (
-                <p className="field-help">
-                  Missing pool oracle configuration detected. Open the pool workspace and configure oracle approvals and quorum policy.
-                </p>
-              ) : null}
-
               {snapshotAt ? (
                 <p className="text-[11px] text-[var(--muted-foreground)]">Snapshot: {new Date(snapshotAt).toLocaleString()}</p>
               ) : null}
@@ -778,8 +732,6 @@ export function OracleRegistryVerificationPanel() {
                 <div className="mt-2 font-mono text-xs break-all space-y-1 text-[var(--muted-foreground)]">
                   <p>Oracle entry: {snapshot.derived.oracleEntryAddress || "—"}</p>
                   <p>Oracle profile: {snapshot.derived.oracleProfileAddress || "—"}</p>
-                  <p>Pool oracle approval: {snapshot.derived.poolOracleAddress || "—"}</p>
-                  <p>Pool oracle policy: {snapshot.derived.poolOraclePolicyAddress || "—"}</p>
                 </div>
               </details>
             </div>
@@ -787,11 +739,6 @@ export function OracleRegistryVerificationPanel() {
             <p className="field-help">No readiness snapshot yet. Select an oracle and pool, then run check.</p>
           )}
 
-          {!verificationApprovals.length && verificationOracleAddress ? (
-            <p className="field-help">
-              Selected oracle has no pool approvals yet. Configure pool approval first.
-            </p>
-          ) : null}
         </div>
       </details>
     </div>

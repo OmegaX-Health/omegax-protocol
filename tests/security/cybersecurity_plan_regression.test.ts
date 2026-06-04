@@ -188,9 +188,7 @@ test("[CSO-2026-05-04] broad pool authority helper is removed from mutation path
   assert.doesNotMatch(programSource, /fn require_pool_control\(/);
   assert.match(extractRustFunctionBody("create_capital_class"), /require_curator_control\(/);
   assert.match(extractRustFunctionBody("update_capital_class_controls"), /require_curator_control\(/);
-  assert.match(extractRustFunctionBody("set_pool_oracle"), /require_curator_control\(/);
-  assert.match(extractRustFunctionBody("set_pool_oracle_permissions"), /require_curator_control\(/);
-  assert.match(extractRustFunctionBody("set_pool_oracle_policy"), /require_curator_control\(/);
+  assert.doesNotMatch(programSource, /set_pool_oracle/);
   assert.match(extractRustFunctionBody("update_allocation_caps"), /require_allocator\(/);
 });
 

@@ -25,9 +25,6 @@ import {
   SEED_PLAN_RESERVE_LEDGER,
   SEED_POLICY_SERIES,
   SEED_POOL_CLASS_LEDGER,
-  SEED_POOL_ORACLE_APPROVAL,
-  SEED_POOL_ORACLE_PERMISSION_SET,
-  SEED_POOL_ORACLE_POLICY,
   SEED_PROTOCOL_GOVERNANCE,
   SEED_RESERVE_ASSET_RAIL,
   SEED_RESERVE_DOMAIN,
@@ -376,46 +373,6 @@ export function deriveOracleProfilePda(params: {
 }): PublicKey {
   return derivePda(
     [TEXT_ENCODER.encode(SEED_ORACLE_PROFILE), toPublicKey(params.oracle).toBytes()],
-    params.programId ?? getProgramId(),
-  );
-}
-
-export function derivePoolOracleApprovalPda(params: {
-  liquidityPool: PublicKeyish;
-  oracle: PublicKeyish;
-  programId?: PublicKey;
-}): PublicKey {
-  return derivePda(
-    [
-      TEXT_ENCODER.encode(SEED_POOL_ORACLE_APPROVAL),
-      toPublicKey(params.liquidityPool).toBytes(),
-      toPublicKey(params.oracle).toBytes(),
-    ],
-    params.programId ?? getProgramId(),
-  );
-}
-
-export function derivePoolOraclePolicyPda(params: {
-  liquidityPool: PublicKeyish;
-  programId?: PublicKey;
-}): PublicKey {
-  return derivePda(
-    [TEXT_ENCODER.encode(SEED_POOL_ORACLE_POLICY), toPublicKey(params.liquidityPool).toBytes()],
-    params.programId ?? getProgramId(),
-  );
-}
-
-export function derivePoolOraclePermissionSetPda(params: {
-  liquidityPool: PublicKeyish;
-  oracle: PublicKeyish;
-  programId?: PublicKey;
-}): PublicKey {
-  return derivePda(
-    [
-      TEXT_ENCODER.encode(SEED_POOL_ORACLE_PERMISSION_SET),
-      toPublicKey(params.liquidityPool).toBytes(),
-      toPublicKey(params.oracle).toBytes(),
-    ],
     params.programId ?? getProgramId(),
   );
 }

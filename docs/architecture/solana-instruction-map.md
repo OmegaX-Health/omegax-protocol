@@ -17,16 +17,13 @@ All current public instructions remain present in [`programs/omegax_protocol/src
 | `update_capital_class_controls` | update class-scoped redemption and activity flags |
 | `update_allocation_caps` | change allocation caps, weights, or deallocation-only mode |
 
-## Oracle Registry and Pool Binding
+## Oracle Registry
 
 | Instruction | Primary purpose |
 | --- | --- |
 | `register_oracle` | register a first-class oracle operator profile |
 | `claim_oracle` | let the operator wallet claim and control its own profile |
 | `update_oracle_profile` | update the canonical oracle profile metadata and supported schema set |
-| `set_pool_oracle` | approve or deactivate an oracle for a specific liquidity pool |
-| `set_pool_oracle_permissions` | set pool-scoped oracle permission bits |
-| `set_pool_oracle_policy` | configure quorum, schema posture, fee, and challenge settings for a pool |
 
 ## Plan and Product Surface
 

@@ -333,24 +333,6 @@ pub mod omegax_protocol {
         crate::oracle_schema::update_oracle_profile(ctx, args)
     }
 
-    pub fn set_pool_oracle(ctx: Context<SetPoolOracle>, args: SetPoolOracleArgs) -> Result<()> {
-        crate::oracle_schema::set_pool_oracle(ctx, args)
-    }
-
-    pub fn set_pool_oracle_permissions(
-        ctx: Context<SetPoolOraclePermissions>,
-        args: SetPoolOraclePermissionsArgs,
-    ) -> Result<()> {
-        crate::oracle_schema::set_pool_oracle_permissions(ctx, args)
-    }
-
-    pub fn set_pool_oracle_policy(
-        ctx: Context<SetPoolOraclePolicy>,
-        args: SetPoolOraclePolicyArgs,
-    ) -> Result<()> {
-        crate::oracle_schema::set_pool_oracle_policy(ctx, args)
-    }
-
     pub fn attest_claim_case(
         ctx: Context<AttestClaimCase>,
         args: AttestClaimCaseArgs,
@@ -1050,38 +1032,6 @@ pub mod omegax_protocol {
             logo_uri,
             webhook_url,
             supported_schema_key_hashes,
-        )
-    }
-
-    #[instruction(discriminator = [140, 225, 146, 45, 210, 81, 225, 223])]
-    pub fn set_pool_oracle(ctx: Ctx<SetPoolOracle>, active: bool) -> Result<()> {
-        crate::oracle_schema::set_pool_oracle(&mut ctx, active)
-    }
-
-    #[instruction(discriminator = [168, 14, 22, 106, 118, 145, 105, 44])]
-    pub fn set_pool_oracle_permissions(
-        ctx: Ctx<SetPoolOraclePermissions>,
-        permissions: u32,
-    ) -> Result<()> {
-        crate::oracle_schema::set_pool_oracle_permissions(&mut ctx, permissions)
-    }
-
-    #[instruction(discriminator = [190, 13, 51, 113, 230, 140, 103, 82])]
-    pub fn set_pool_oracle_policy(
-        ctx: Ctx<SetPoolOraclePolicy>,
-        quorum_m: u8,
-        quorum_n: u8,
-        require_verified_schema: bool,
-        allow_delegate_claim: bool,
-        challenge_window_secs: u32,
-    ) -> Result<()> {
-        crate::oracle_schema::set_pool_oracle_policy(
-            &mut ctx,
-            quorum_m,
-            quorum_n,
-            require_verified_schema,
-            allow_delegate_claim,
-            challenge_window_secs,
         )
     }
 

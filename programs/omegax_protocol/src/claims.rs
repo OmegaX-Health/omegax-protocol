@@ -1225,9 +1225,6 @@ pub(crate) fn attest_claim_case(
         &args,
     )?;
 
-    let (liquidity_pool, allocation_position) =
-        validate_claim_attestation_pool_scope(ctx.accounts)?;
-
     let attestation = &mut ctx.accounts.claim_attestation;
     attestation.oracle = oracle_profile.oracle;
     attestation.oracle_profile = oracle_profile.key();
@@ -1242,8 +1239,6 @@ pub(crate) fn attest_claim_case(
     attestation.schema_key_hash = args.schema_key_hash;
     attestation.schema_hash = [0; 32];
     attestation.schema_version = 0;
-    attestation.liquidity_pool = liquidity_pool;
-    attestation.allocation_position = allocation_position;
     attestation.created_at_ts = now_ts;
     attestation.updated_at_ts = now_ts;
     attestation.bump = ctx.bumps.claim_attestation;
@@ -1312,10 +1307,6 @@ fn require_quasar_claim_attestation_oracle_authority(
     funding_line: &FundingLineAccountData<'_>,
     oracle_profile: &OracleProfileAccountData<'_>,
 ) -> Result<()> {
-    if funding_line.line_type == FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
-        return Ok(());
-    }
-
     require_keys_eq!(
         oracle_profile.oracle,
         health_plan.oracle_authority,
@@ -1385,242 +1376,12 @@ fn validate_quasar_claim_attestation_common(
         funding_line.status == FUNDING_LINE_STATUS_OPEN,
         OmegaXProtocolError::FundingLineMismatch
     );
+    require!(
+        funding_line.line_type != FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
+        OmegaXProtocolError::FundingLineTypeMismatch
+    );
     require_quasar_claim_attestation_oracle_authority(health_plan, funding_line, oracle_profile)?;
     Ok(())
-}
-
-#[cfg(feature = "quasar")]
-fn validate_quasar_lp_claim_attestation_scope(
-    health_plan: &HealthPlanAccountData<'_>,
-    funding_line: &FundingLineAccountData<'_>,
-    funding_line_key: Pubkey,
-    claim_case: &ClaimCaseAccountData<'_>,
-    oracle_profile: &OracleProfileAccountData<'_>,
-    liquidity_pool: &Account<LiquidityPoolAccountData<'_>>,
-    capital_class: &Account<CapitalClassAccountData<'_>>,
-    allocation_position: &Account<AllocationPosition>,
-    pool_oracle_approval: &Account<PoolOracleApproval>,
-    pool_oracle_permission_set: &Account<PoolOraclePermissionSet>,
-    pool_oracle_policy: &Account<PoolOraclePolicy>,
-) -> Result<(Pubkey, Pubkey)> {
-    let liquidity_pool_key = *liquidity_pool.address();
-    let capital_class_key = *capital_class.address();
-    let allocation_position_key = *allocation_position.address();
-
-    require!(
-        quasar_pda_matches(
-            liquidity_pool.address(),
-            &crate::ID,
-            &[
-                SEED_LIQUIDITY_POOL,
-                liquidity_pool.reserve_domain.as_ref(),
-                liquidity_pool.pool_id().as_bytes(),
-            ],
-            liquidity_pool.bump,
-        ),
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        liquidity_pool.reserve_domain,
-        health_plan.reserve_domain,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        liquidity_pool.deposit_asset_mint,
-        funding_line.asset_mint,
-        OmegaXProtocolError::AssetMintMismatch
-    );
-    require!(
-        quasar_pda_matches(
-            capital_class.address(),
-            &crate::ID,
-            &[
-                SEED_CAPITAL_CLASS,
-                liquidity_pool.address().as_ref(),
-                capital_class.class_id().as_bytes(),
-            ],
-            capital_class.bump,
-        ),
-        OmegaXProtocolError::CapitalClassMismatch
-    );
-    require_keys_eq!(
-        capital_class.reserve_domain,
-        health_plan.reserve_domain,
-        OmegaXProtocolError::CapitalClassMismatch
-    );
-    require_keys_eq!(
-        capital_class.liquidity_pool,
-        liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        allocation_position.reserve_domain,
-        health_plan.reserve_domain,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        allocation_position.liquidity_pool,
-        liquidity_pool_key,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        allocation_position.capital_class,
-        capital_class_key,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require!(
-        quasar_pda_matches(
-            allocation_position.address(),
-            &crate::ID,
-            &[
-                SEED_ALLOCATION_POSITION,
-                capital_class.address().as_ref(),
-                funding_line_key.as_ref(),
-            ],
-            allocation_position.bump,
-        ),
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        allocation_position.health_plan,
-        claim_case.health_plan,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        allocation_position.policy_series,
-        claim_case.policy_series,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        allocation_position.funding_line,
-        funding_line_key,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require!(
-        allocation_position.active.get(),
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require!(
-        quasar_pda_matches(
-            pool_oracle_approval.address(),
-            &crate::ID,
-            &[
-                SEED_POOL_ORACLE_APPROVAL,
-                liquidity_pool.address().as_ref(),
-                oracle_profile.oracle.as_ref(),
-            ],
-            pool_oracle_approval.bump,
-        ),
-        OmegaXProtocolError::PoolOracleApprovalRequired
-    );
-    require_keys_eq!(
-        pool_oracle_approval.liquidity_pool,
-        liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        pool_oracle_approval.oracle,
-        oracle_profile.oracle,
-        OmegaXProtocolError::OracleProfileMismatch
-    );
-    require!(
-        pool_oracle_approval.active.get(),
-        OmegaXProtocolError::PoolOracleApprovalRequired
-    );
-    require!(
-        quasar_pda_matches(
-            pool_oracle_permission_set.address(),
-            &crate::ID,
-            &[
-                SEED_POOL_ORACLE_PERMISSION_SET,
-                liquidity_pool.address().as_ref(),
-                oracle_profile.oracle.as_ref(),
-            ],
-            pool_oracle_permission_set.bump,
-        ),
-        OmegaXProtocolError::PoolOraclePermissionRequired
-    );
-    require_keys_eq!(
-        pool_oracle_permission_set.liquidity_pool,
-        liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        pool_oracle_permission_set.oracle,
-        oracle_profile.oracle,
-        OmegaXProtocolError::OracleProfileMismatch
-    );
-    require!(
-        pool_oracle_permission_set.permissions.get() & POOL_ORACLE_PERMISSION_ATTEST_CLAIM != 0,
-        OmegaXProtocolError::PoolOraclePermissionRequired
-    );
-    require!(
-        quasar_pda_matches(
-            pool_oracle_policy.address(),
-            &crate::ID,
-            &[SEED_POOL_ORACLE_POLICY, liquidity_pool.address().as_ref()],
-            pool_oracle_policy.bump,
-        ),
-        OmegaXProtocolError::PoolOracleApprovalRequired
-    );
-    require_keys_eq!(
-        pool_oracle_policy.liquidity_pool,
-        liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-
-    Ok((liquidity_pool_key, allocation_position_key))
-}
-
-#[cfg(feature = "quasar")]
-fn validate_quasar_claim_attestation_pool_scope(
-    accounts: &AttestClaimCase<'_>,
-) -> Result<(Pubkey, Pubkey)> {
-    if accounts.funding_line.line_type != FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
-        require!(
-            accounts.liquidity_pool.is_none()
-                && accounts.capital_class.is_none()
-                && accounts.allocation_position.is_none()
-                && accounts.pool_oracle_approval.is_none()
-                && accounts.pool_oracle_permission_set.is_none()
-                && accounts.pool_oracle_policy.is_none(),
-            OmegaXProtocolError::FundingLineTypeMismatch
-        );
-        return Ok((ZERO_PUBKEY, ZERO_PUBKEY));
-    }
-
-    let Some(liquidity_pool) = accounts.liquidity_pool.as_ref() else {
-        return err!(OmegaXProtocolError::LiquidityPoolMismatch);
-    };
-    let Some(capital_class) = accounts.capital_class.as_ref() else {
-        return err!(OmegaXProtocolError::CapitalClassMismatch);
-    };
-    let Some(allocation_position) = accounts.allocation_position.as_ref() else {
-        return err!(OmegaXProtocolError::AllocationPositionMismatch);
-    };
-    let Some(pool_oracle_approval) = accounts.pool_oracle_approval.as_ref() else {
-        return err!(OmegaXProtocolError::PoolOracleApprovalRequired);
-    };
-    let Some(pool_oracle_permission_set) = accounts.pool_oracle_permission_set.as_ref() else {
-        return err!(OmegaXProtocolError::PoolOraclePermissionRequired);
-    };
-    let Some(pool_oracle_policy) = accounts.pool_oracle_policy.as_ref() else {
-        return err!(OmegaXProtocolError::PoolOracleApprovalRequired);
-    };
-
-    validate_quasar_lp_claim_attestation_scope(
-        &accounts.health_plan,
-        &accounts.funding_line,
-        *accounts.funding_line.address(),
-        &accounts.claim_case,
-        &accounts.oracle_profile,
-        liquidity_pool,
-        capital_class,
-        allocation_position,
-        pool_oracle_approval,
-        pool_oracle_permission_set,
-        pool_oracle_policy,
-    )
 }
 
 #[cfg(feature = "quasar")]
@@ -1654,9 +1415,6 @@ pub(crate) fn attest_claim_case<'info>(
         attestation_ref_hash,
     )?;
 
-    let (liquidity_pool, allocation_position) =
-        validate_quasar_claim_attestation_pool_scope(&ctx.accounts)?;
-
     let oracle = ctx.accounts.oracle_profile.oracle;
     let health_plan = ctx.accounts.claim_case.health_plan;
     let policy_series = ctx.accounts.claim_case.policy_series;
@@ -1678,8 +1436,6 @@ pub(crate) fn attest_claim_case<'info>(
         schema_key_hash,
         [0; 32],
         0,
-        liquidity_pool,
-        allocation_position,
         now_ts,
         now_ts,
         claim_attestation_bump,
@@ -1828,260 +1584,12 @@ pub(crate) fn validate_claim_attestation_common(
         funding_line.status == FUNDING_LINE_STATUS_OPEN,
         OmegaXProtocolError::FundingLineMismatch
     );
+    require!(
+        funding_line.line_type != FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION,
+        OmegaXProtocolError::FundingLineTypeMismatch
+    );
     require_claim_attestation_oracle_authority(health_plan, funding_line, oracle_profile)?;
     Ok(())
-}
-
-#[cfg(not(feature = "quasar"))]
-pub(crate) struct ClaimAttestationPoolScope<'a> {
-    pub liquidity_pool_key: Pubkey,
-    pub liquidity_pool: &'a LiquidityPoolAccountData<'a>,
-    pub capital_class_key: Pubkey,
-    pub capital_class: &'a CapitalClassAccountData<'a>,
-    pub allocation_position_key: Pubkey,
-    pub allocation_position: &'a AllocationPosition,
-    pub funding_line_key: Pubkey,
-    pub pool_oracle_approval_key: Pubkey,
-    pub pool_oracle_approval: &'a PoolOracleApproval,
-    pub pool_oracle_permission_set_key: Pubkey,
-    pub pool_oracle_permission_set: &'a PoolOraclePermissionSet,
-    pub pool_oracle_policy_key: Pubkey,
-    pub pool_oracle_policy: &'a PoolOraclePolicy,
-}
-
-#[cfg(not(feature = "quasar"))]
-pub(crate) fn validate_lp_claim_attestation_scope(
-    health_plan: &HealthPlanAccountData<'_>,
-    funding_line: &FundingLineAccountData<'_>,
-    claim_case: &ClaimCaseAccountData<'_>,
-    oracle_profile: &OracleProfileAccountData<'_>,
-    scope: ClaimAttestationPoolScope<'_>,
-) -> Result<()> {
-    let (expected_liquidity_pool, _) = Pubkey::find_program_address(
-        &[
-            SEED_LIQUIDITY_POOL,
-            scope.liquidity_pool.reserve_domain.as_ref(),
-            scope.liquidity_pool.pool_id.as_bytes(),
-        ],
-        &crate::ID,
-    );
-    require_keys_eq!(
-        scope.liquidity_pool_key,
-        expected_liquidity_pool,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        scope.liquidity_pool.reserve_domain,
-        health_plan.reserve_domain,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        scope.liquidity_pool.deposit_asset_mint,
-        funding_line.asset_mint,
-        OmegaXProtocolError::AssetMintMismatch
-    );
-    let (expected_capital_class, _) = Pubkey::find_program_address(
-        &[
-            SEED_CAPITAL_CLASS,
-            scope.liquidity_pool_key.as_ref(),
-            scope.capital_class.class_id.as_bytes(),
-        ],
-        &crate::ID,
-    );
-    require_keys_eq!(
-        scope.capital_class_key,
-        expected_capital_class,
-        OmegaXProtocolError::CapitalClassMismatch
-    );
-    require_keys_eq!(
-        scope.capital_class.reserve_domain,
-        health_plan.reserve_domain,
-        OmegaXProtocolError::CapitalClassMismatch
-    );
-    require_keys_eq!(
-        scope.capital_class.liquidity_pool,
-        scope.liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        scope.allocation_position.reserve_domain,
-        health_plan.reserve_domain,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        scope.allocation_position.liquidity_pool,
-        scope.liquidity_pool_key,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        scope.allocation_position.capital_class,
-        scope.capital_class_key,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    let (expected_allocation_position, _) = Pubkey::find_program_address(
-        &[
-            SEED_ALLOCATION_POSITION,
-            scope.capital_class_key.as_ref(),
-            scope.funding_line_key.as_ref(),
-        ],
-        &crate::ID,
-    );
-    require_keys_eq!(
-        scope.allocation_position_key,
-        expected_allocation_position,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        scope.allocation_position.health_plan,
-        claim_case.health_plan,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        scope.allocation_position.policy_series,
-        claim_case.policy_series,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require_keys_eq!(
-        scope.allocation_position.funding_line,
-        scope.funding_line_key,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    require!(
-        scope.allocation_position.active,
-        OmegaXProtocolError::AllocationPositionMismatch
-    );
-    let (expected_pool_oracle_approval, _) = Pubkey::find_program_address(
-        &[
-            SEED_POOL_ORACLE_APPROVAL,
-            scope.liquidity_pool_key.as_ref(),
-            oracle_profile.oracle.as_ref(),
-        ],
-        &crate::ID,
-    );
-    require_keys_eq!(
-        scope.pool_oracle_approval_key,
-        expected_pool_oracle_approval,
-        OmegaXProtocolError::PoolOracleApprovalRequired
-    );
-    require_keys_eq!(
-        scope.pool_oracle_approval.liquidity_pool,
-        scope.liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        scope.pool_oracle_approval.oracle,
-        oracle_profile.oracle,
-        OmegaXProtocolError::OracleProfileMismatch
-    );
-    require!(
-        scope.pool_oracle_approval.active,
-        OmegaXProtocolError::PoolOracleApprovalRequired
-    );
-    let (expected_pool_oracle_permission_set, _) = Pubkey::find_program_address(
-        &[
-            SEED_POOL_ORACLE_PERMISSION_SET,
-            scope.liquidity_pool_key.as_ref(),
-            oracle_profile.oracle.as_ref(),
-        ],
-        &crate::ID,
-    );
-    require_keys_eq!(
-        scope.pool_oracle_permission_set_key,
-        expected_pool_oracle_permission_set,
-        OmegaXProtocolError::PoolOraclePermissionRequired
-    );
-    require_keys_eq!(
-        scope.pool_oracle_permission_set.liquidity_pool,
-        scope.liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    require_keys_eq!(
-        scope.pool_oracle_permission_set.oracle,
-        oracle_profile.oracle,
-        OmegaXProtocolError::OracleProfileMismatch
-    );
-    require!(
-        scope.pool_oracle_permission_set.permissions & POOL_ORACLE_PERMISSION_ATTEST_CLAIM != 0,
-        OmegaXProtocolError::PoolOraclePermissionRequired
-    );
-    let (expected_pool_oracle_policy, _) = Pubkey::find_program_address(
-        &[SEED_POOL_ORACLE_POLICY, scope.liquidity_pool_key.as_ref()],
-        &crate::ID,
-    );
-    require_keys_eq!(
-        scope.pool_oracle_policy_key,
-        expected_pool_oracle_policy,
-        OmegaXProtocolError::PoolOracleApprovalRequired
-    );
-    require_keys_eq!(
-        scope.pool_oracle_policy.liquidity_pool,
-        scope.liquidity_pool_key,
-        OmegaXProtocolError::LiquidityPoolMismatch
-    );
-    Ok(())
-}
-
-#[cfg(not(feature = "quasar"))]
-fn validate_claim_attestation_pool_scope(
-    accounts: &AttestClaimCase<'_>,
-) -> Result<(Pubkey, Pubkey)> {
-    if accounts.funding_line.line_type != FUNDING_LINE_TYPE_LIQUIDITY_POOL_ALLOCATION {
-        require!(
-            accounts.liquidity_pool.is_none()
-                && accounts.capital_class.is_none()
-                && accounts.allocation_position.is_none()
-                && accounts.pool_oracle_approval.is_none()
-                && accounts.pool_oracle_permission_set.is_none()
-                && accounts.pool_oracle_policy.is_none(),
-            OmegaXProtocolError::FundingLineTypeMismatch
-        );
-        return Ok((ZERO_PUBKEY, ZERO_PUBKEY));
-    }
-
-    let Some(liquidity_pool) = accounts.liquidity_pool.as_deref() else {
-        return err!(OmegaXProtocolError::LiquidityPoolMismatch);
-    };
-    let Some(capital_class) = accounts.capital_class.as_deref() else {
-        return err!(OmegaXProtocolError::CapitalClassMismatch);
-    };
-    let Some(allocation_position) = accounts.allocation_position.as_deref() else {
-        return err!(OmegaXProtocolError::AllocationPositionMismatch);
-    };
-    let Some(pool_oracle_approval) = accounts.pool_oracle_approval.as_deref() else {
-        return err!(OmegaXProtocolError::PoolOracleApprovalRequired);
-    };
-    let Some(pool_oracle_permission_set) = accounts.pool_oracle_permission_set.as_deref() else {
-        return err!(OmegaXProtocolError::PoolOraclePermissionRequired);
-    };
-    let Some(pool_oracle_policy) = accounts.pool_oracle_policy.as_deref() else {
-        return err!(OmegaXProtocolError::PoolOracleApprovalRequired);
-    };
-
-    let liquidity_pool_key = liquidity_pool.key();
-    let allocation_position_key = allocation_position.key();
-    validate_lp_claim_attestation_scope(
-        &accounts.health_plan,
-        &accounts.funding_line,
-        &accounts.claim_case,
-        &accounts.oracle_profile,
-        ClaimAttestationPoolScope {
-            liquidity_pool_key,
-            liquidity_pool,
-            capital_class_key: capital_class.key(),
-            capital_class,
-            allocation_position_key,
-            allocation_position,
-            funding_line_key: accounts.funding_line.key(),
-            pool_oracle_approval_key: pool_oracle_approval.key(),
-            pool_oracle_approval,
-            pool_oracle_permission_set_key: pool_oracle_permission_set.key(),
-            pool_oracle_permission_set,
-            pool_oracle_policy_key: pool_oracle_policy.key(),
-            pool_oracle_policy,
-        },
-    )?;
-
-    Ok((liquidity_pool_key, allocation_position_key))
 }
 
 #[derive(Accounts)]
@@ -2607,30 +2115,6 @@ pub struct AttestClaimCase<'info> {
         constraint = funding_line.asset_mint == claim_case.asset_mint @ OmegaXProtocolError::AssetMintMismatch,
     )]
     pub funding_line: Account<FundingLineAccountData<'info>>,
-    #[cfg(not(feature = "quasar"))]
-    pub liquidity_pool: Option<Box<Account<'info, LiquidityPool>>>,
-    #[cfg(feature = "quasar")]
-    pub liquidity_pool: Option<Account<LiquidityPoolAccountData<'info>>>,
-    #[cfg(not(feature = "quasar"))]
-    pub capital_class: Option<Box<Account<'info, CapitalClass>>>,
-    #[cfg(feature = "quasar")]
-    pub capital_class: Option<Account<CapitalClassAccountData<'info>>>,
-    #[cfg(not(feature = "quasar"))]
-    pub allocation_position: Option<Box<Account<'info, AllocationPosition>>>,
-    #[cfg(feature = "quasar")]
-    pub allocation_position: Option<&'info Account<AllocationPosition>>,
-    #[cfg(not(feature = "quasar"))]
-    pub pool_oracle_approval: Option<Box<Account<'info, PoolOracleApproval>>>,
-    #[cfg(feature = "quasar")]
-    pub pool_oracle_approval: Option<&'info Account<PoolOracleApproval>>,
-    #[cfg(not(feature = "quasar"))]
-    pub pool_oracle_permission_set: Option<Box<Account<'info, PoolOraclePermissionSet>>>,
-    #[cfg(feature = "quasar")]
-    pub pool_oracle_permission_set: Option<&'info Account<PoolOraclePermissionSet>>,
-    #[cfg(not(feature = "quasar"))]
-    pub pool_oracle_policy: Option<Box<Account<'info, PoolOraclePolicy>>>,
-    #[cfg(feature = "quasar")]
-    pub pool_oracle_policy: Option<&'info Account<PoolOraclePolicy>>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(

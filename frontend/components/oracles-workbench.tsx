@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { OracleRegistryVerificationPanel } from "@/components/oracle-registry-verification-panel";
-import { PoolOraclesPanel } from "@/components/pool-oracles-panel";
 import { useWorkspacePersona } from "@/components/workspace-persona";
 import { claimCasesForOracleContext, formatSettlementUnits, rawAmountTitle, seriesForPool } from "@/lib/canonical-ui";
 import { firstSearchParamValue, type RouteSearchParams, toURLSearchParams } from "@/lib/search-params";
@@ -219,21 +218,6 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
     return [...registry.values()];
   }, [snapshot.healthPlans]);
 
-  const selectedPoolApprovals = useMemo(
-    () => snapshot.poolOracleApprovals.filter((approval) => approval.liquidityPool === selectedPool?.address),
-    [selectedPool, snapshot.poolOracleApprovals],
-  );
-
-  const selectedPoolPermissionSets = useMemo(
-    () => snapshot.poolOraclePermissionSets.filter((permissionSet) => permissionSet.liquidityPool === selectedPool?.address),
-    [selectedPool, snapshot.poolOraclePermissionSets],
-  );
-
-  const selectedPoolPolicy = useMemo(
-    () => snapshot.poolOraclePolicies.find((policy) => policy.liquidityPool === selectedPool?.address) ?? null,
-    [selectedPool, snapshot.poolOraclePolicies],
-  );
-
   const oracleOperators = useMemo(() => {
     if (snapshot.oracleProfiles.length === 0) {
       return planScopedOperators
@@ -241,22 +225,18 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
         .map((wallet) => ({
           address: wallet.address,
           label: wallet.label,
-          approvalActive: selectedPoolApprovals.some((approval) => approval.oracle === wallet.address && approval.active),
-          permissions: selectedPoolPermissionSets.find((permissionSet) => permissionSet.oracle === wallet.address)?.permissions ?? 0,
+          role: "Plan authority",
           profile: null,
         }));
     }
 
-    const approvalByOracle = new Map(selectedPoolApprovals.map((approval) => [approval.oracle, approval]));
-    const permissionsByOracle = new Map(selectedPoolPermissionSets.map((permissionSet) => [permissionSet.oracle, permissionSet]));
     return snapshot.oracleProfiles.map((profile) => ({
       address: profile.oracle,
       label: profile.displayName || `Oracle · ${shortenAddress(profile.oracle, 6)}`,
-      approvalActive: approvalByOracle.get(profile.oracle)?.active ?? false,
-      permissions: permissionsByOracle.get(profile.oracle)?.permissions ?? 0,
+      role: "Registered profile",
       profile,
     }));
-  }, [planScopedOperators, selectedPoolApprovals, selectedPoolPermissionSets, snapshot.oracleProfiles]);
+  }, [planScopedOperators, snapshot.oracleProfiles]);
 
   const scopedClaimCases = useMemo(
     () => (selectedPool ? claimCasesForOracleContext(selectedPool.address, selectedSeries?.address, snapshot) : []),
@@ -460,7 +440,7 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
             <span className="plans-kpi-label">Snapshot operators</span>
             <span className="plans-kpi-value">{oracleOperators.length}</span>
             <span className="plans-kpi-meta">
-              {selectedPoolApprovals.filter((approval) => approval.active).length} pool approved · {claimsOperators.length} claims operators
+              {oracleOperators.filter((operator) => operator.profile?.claimed).length} claimed profiles · {claimsOperators.length} claims operators
             </span>
           </div>
           <div className="plans-kpi-metric">
@@ -516,7 +496,6 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
               {activeTab === "registry" ? (
                 <div className="plans-stack">
                   <OracleRegistryVerificationPanel />
-                  {selectedPool ? <PoolOraclesPanel poolAddress={selectedPool.address} sectionMode="embedded" /> : null}
                   <article className="plans-card heavy-glass">
                     <div className="plans-card-head">
                       <div>
@@ -538,8 +517,8 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                         <thead>
                           <tr>
                             <th>Operator</th>
-                            <th>Approval</th>
-                            <th>Permissions</th>
+                            <th>Profile</th>
+                            <th>Source</th>
                             <th>Address</th>
                           </tr>
                         </thead>
@@ -554,11 +533,11 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                                   </span>
                                 </div>
                               </td>
-                              <td data-label="Approval">
-                                <StatusBadge label={wallet.approvalActive ? "Approved" : "Pending"} />
+                              <td data-label="Profile">
+                                <StatusBadge label={wallet.profile?.claimed ? "Claimed" : "Visible"} />
                               </td>
-                              <td data-label="Permissions">
-                                <span className="plans-table-mono">{wallet.permissions}</span>
+                              <td data-label="Source">
+                                <span className="plans-table-mono">{wallet.role}</span>
                               </td>
                               <td data-label="Address">
                                 <span className="plans-table-mono">{shortenAddress(wallet.address, 8)}</span>
@@ -579,49 +558,46 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                     <div>
                       <p className="plans-card-eyebrow">Source bindings</p>
                       <h2 className="plans-card-title plans-card-title-display">
-                        {selectedPoolApprovals.length} approved <em>operators</em>
+                        {oracleOperators.length} plan <em>operators</em>
                       </h2>
                     </div>
                     <span className="plans-card-meta">{selectedPool?.poolId ?? "—"}</span>
                   </div>
-                  {selectedPoolApprovals.length > 0 ? (
+                  {oracleOperators.length > 0 ? (
                     <div className="plans-table-wrap">
                       <table className="plans-table">
                         <thead>
                           <tr>
                             <th>Operator</th>
                             <th>Profile</th>
-                            <th>Permissions</th>
-                            <th>Schema gate</th>
+                            <th>Source</th>
+                            <th>Supported schemas</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedPoolApprovals.map((approval) => {
-                            const operator = oracleOperators.find((candidate) => candidate.address === approval.oracle);
-                            return (
-                              <tr key={approval.address}>
+                          {oracleOperators.map((operator) => (
+                              <tr key={operator.address}>
                                 <td data-label="Operator">
-                                  <span>{operator?.label ?? shortenAddress(approval.oracle, 6)}</span>
+                                  <span>{operator.label}</span>
                                 </td>
                                 <td data-label="Profile">
-                                  <StatusBadge label={operator?.profile?.claimed ? "Claimed" : "Registered"} />
+                                  <StatusBadge label={operator.profile?.claimed ? "Claimed" : "Visible"} />
                                 </td>
-                                <td data-label="Permissions">
-                                  <span className="plans-table-mono">{operator?.permissions ?? 0}</span>
+                                <td data-label="Source">
+                                  <span className="plans-table-mono">{operator.role}</span>
                                 </td>
-                                <td data-label="Schema gate">
-                                  <StatusBadge label={selectedPoolPolicy?.requireVerifiedSchema ? "Verified only" : "Open"} />
+                                <td data-label="Supported schemas">
+                                  <span className="plans-table-mono">{operator.profile?.supportedSchemaCount ?? 0}</span>
                                 </td>
                               </tr>
-                            );
-                          })}
+                            ))}
                         </tbody>
                       </table>
                     </div>
                   ) : (
                     <PlansEmptyState
-                      title="No approved operators"
-                      copy="This pool does not currently have any pool-level oracle approval records."
+                      title="No visible operators"
+                      copy="This context does not currently expose any plan oracle operators or registered oracle profiles."
                     />
                   )}
                 </article>
@@ -761,16 +737,12 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                         <strong className="plans-data-value">{claimsOperators.length}</strong>
                       </div>
                       <div className="plans-data-row">
-                        <span className="plans-data-label">Quorum</span>
-                        <span className="plans-data-value">
-                          {selectedPoolPolicy ? `${selectedPoolPolicy.quorumM}/${selectedPoolPolicy.quorumN}` : "Unconfigured"}
-                        </span>
+                        <span className="plans-data-label">Authority path</span>
+                        <span className="plans-data-value">Plan oracle</span>
                       </div>
                       <div className="plans-data-row">
-                        <span className="plans-data-label">Schema gate</span>
-                        <span className="plans-data-value">
-                          {selectedPoolPolicy?.requireVerifiedSchema ? "Verified only" : "Open"}
-                        </span>
+                        <span className="plans-data-label">Profile schemas</span>
+                        <span className="plans-data-value">{oracleOperators.filter((operator) => (operator.profile?.supportedSchemaCount ?? 0) > 0).length}</span>
                       </div>
                     </div>
                   </article>
@@ -873,10 +845,8 @@ export function OraclesWorkbench({ searchParams = {} }: OraclesWorkbenchProps) {
                       <strong>{selectedSeries.termsVersion}</strong>
                     </div>
                     <div className="plans-rail-row">
-                      <span>Oracle quorum</span>
-                      <strong>
-                        {selectedPoolPolicy ? `${selectedPoolPolicy.quorumM}/${selectedPoolPolicy.quorumN}` : "Unconfigured"}
-                      </strong>
+                      <span>Oracle path</span>
+                      <strong>Plan authority</strong>
                     </div>
                     <div className="plans-rail-row">
                       <span>Address</span>

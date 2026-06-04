@@ -505,9 +505,7 @@ export function PlansWorkbench({ searchParams = {} }: PlansWorkbenchProps) {
       snapshot,
       readiness: {
         poolTermsConfigured: hasConfiguredPoolTerms(genesisPool),
-        poolOraclePolicyConfigured: Boolean(
-          genesisPool && snapshot.poolOraclePolicies.some((policy) => policy.liquidityPool === genesisPool.address),
-        ),
+        poolOraclePolicyConfigured: true,
       },
     }),
     [genesisPool, snapshot],

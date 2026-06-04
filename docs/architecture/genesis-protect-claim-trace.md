@@ -62,11 +62,11 @@ The default recipient is the member's own wallet. This step lets the member rout
 
 | Signer | Authority check | What changes |
 |--------|------------------|----|
-| Oracle authority | Protocol emergency pause is clear; plan oracle-finality hold is clear; oracle profile is active/claimed and supports a governance-verified schema; `attestation_ref_hash == claim_case.evidence_ref_hash`; non-LP claims require the plan's configured `HealthPlan.oracle_authority`; LP-allocation claims require active `PoolOracleApproval` plus `POOL_ORACLE_PERMISSION_ATTEST_CLAIM` on the pool | New `ClaimAttestation` PDA; attestation hash, evidence hash, decision-support hash, schema hash/version, and LP pool/allocation reference are snapshotted |
+| Oracle authority | Protocol emergency pause is clear; plan oracle-finality hold is clear; oracle profile is active/claimed and supports a governance-verified schema; `attestation_ref_hash == claim_case.evidence_ref_hash`; claims require the plan's configured `HealthPlan.oracle_authority` | New `ClaimAttestation` PDA; attestation hash, evidence hash, decision-support hash, and schema hash/version are snapshotted |
 
 **Member-visible**: the claim shows `attested by oracle <name>` with the attestation's reference URI.
 
-**Truth chain**: an oracle the protocol trusts has signed off on the exact evidence hash attached to the claim. PT-07 closed the spoof-oracle gap (`register_oracle` requires `signer == args.oracle`). The Phase 0 attestation gate enforces verified schema plus plan oracle authority for non-LP claims, and pool oracle approval/permission for LP-backed claims; pool quorum remains policy metadata until the later multi-attestation finality gate ships.
+**Truth chain**: an oracle the protocol trusts has signed off on the exact evidence hash attached to the claim. PT-07 closed the spoof-oracle gap (`register_oracle` requires `signer == args.oracle`). The attestation gate enforces verified schema plus plan oracle authority.
 
 ### Step 5 — `adjudicate_claim_case`
 

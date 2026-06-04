@@ -113,14 +113,8 @@ pub enum OmegaXProtocolError {
     MembershipInvitePermitExpired,
     #[msg("Bounded string field exceeds the canonical maximum")]
     StringTooLong,
-    #[msg("Oracle quorum configuration is invalid")]
-    InvalidOracleQuorum,
     #[msg("Too many supported schema hashes were provided for one oracle profile")]
     TooManyOracleSupportedSchemas,
-    #[msg("Pool oracle approval is required before permissions can be granted")]
-    PoolOracleApprovalRequired,
-    #[msg("Pool oracle permission is required for this claim attestation")]
-    PoolOraclePermissionRequired,
     #[msg("Oracle profile is inactive")]
     OracleProfileInactive,
     #[msg("Oracle profile has not been claimed by its signing key")]
@@ -249,10 +243,7 @@ pub enum OmegaXProtocolError {
     MembershipInviteAuthorityInvalid,
     MembershipInvitePermitExpired,
     StringTooLong,
-    InvalidOracleQuorum,
     TooManyOracleSupportedSchemas,
-    PoolOracleApprovalRequired,
-    PoolOraclePermissionRequired,
     OracleProfileInactive,
     OracleProfileUnclaimed,
     InvalidClaimAttestationDecision,

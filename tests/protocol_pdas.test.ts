@@ -11,15 +11,11 @@ const {
 } = fixturesModule as typeof import("../frontend/lib/devnet-fixtures.ts");
 const {
   buildAttestClaimCaseTx,
-  deriveAllocationPositionPda,
   buildOpenMemberPositionTx,
   deriveClaimAttestationPda,
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
   deriveOracleProfilePda,
-  derivePoolOracleApprovalPda,
-  derivePoolOraclePolicyPda,
-  derivePoolOraclePermissionSetPda,
   deriveReserveDomainPda,
   MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
   ZERO_PUBKEY,
@@ -52,24 +48,6 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
     /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   );
   assert.match(
-    derivePoolOracleApprovalPda({
-      liquidityPool: pool.address,
-      oracle: oracleAddress,
-    }).toBase58(),
-    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
-  );
-  assert.match(
-    derivePoolOraclePolicyPda({ liquidityPool: pool.address }).toBase58(),
-    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
-  );
-  assert.match(
-    derivePoolOraclePermissionSetPda({
-      liquidityPool: pool.address,
-      oracle: oracleAddress,
-    }).toBase58(),
-    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
-  );
-  assert.match(
     deriveClaimAttestationPda({
       claimCase: seekerPlan.address,
       oracle: oracleAddress,
@@ -94,12 +72,9 @@ test("claim attestation builders reject unsupported decisions before chain submi
   );
 });
 
-test("claim attestation builder wires funding and LP oracle accounts", () => {
+test("claim attestation builder wires plan oracle accounts", () => {
   const claim = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases[0]!;
   const fundingLine = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.find((row) => row.address === claim.fundingLine)!;
-  const allocation = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.find(
-    (row) => row.fundingLine === fundingLine.address,
-  )!;
   const oracle = DEFAULT_HEALTH_PLAN_ADDRESS;
   const tx = buildAttestClaimCaseTx({
     oracle,
@@ -111,8 +86,6 @@ test("claim attestation builder wires funding and LP oracle accounts", () => {
     attestationHashHex: "11".repeat(32),
     attestationRefHashHex: "22".repeat(32),
     schemaKeyHashHex: "33".repeat(32),
-    liquidityPoolAddress: allocation.liquidityPool,
-    capitalClassAddress: allocation.capitalClass,
   });
   const keys = tx.instructions[0]!.keys;
   const keyFor = (address: string) => keys.find((key) => key.pubkey.toBase58() === address);
@@ -121,27 +94,6 @@ test("claim attestation builder wires funding and LP oracle accounts", () => {
   assert.equal(keyFor(claim.healthPlan)?.isWritable, false);
   assert.equal(keyFor(claim.address)?.isWritable, true);
   assert.equal(keyFor(fundingLine.address)?.isWritable, false);
-  assert.equal(keyFor(allocation.liquidityPool)?.isWritable, false);
-  assert.equal(keyFor(allocation.capitalClass)?.isWritable, false);
-  assert.equal(
-    keyFor(deriveAllocationPositionPda({
-      capitalClass: allocation.capitalClass,
-      fundingLine: fundingLine.address,
-    }).toBase58())?.isWritable,
-    false,
-  );
-  assert.equal(
-    keyFor(derivePoolOracleApprovalPda({ liquidityPool: allocation.liquidityPool, oracle }).toBase58())?.isWritable,
-    false,
-  );
-  assert.equal(
-    keyFor(derivePoolOraclePermissionSetPda({ liquidityPool: allocation.liquidityPool, oracle }).toBase58())?.isWritable,
-    false,
-  );
-  assert.equal(
-    keyFor(derivePoolOraclePolicyPda({ liquidityPool: allocation.liquidityPool }).toBase58())?.isWritable,
-    false,
-  );
   assert.equal(
     keyFor(deriveClaimAttestationPda({ claimCase: claim.address, oracle }).toBase58())?.isWritable,
     true,

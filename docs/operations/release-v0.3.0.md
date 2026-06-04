@@ -31,7 +31,7 @@ It is intentionally a hard-break devnet migration rather than a compatibility re
 
 ## On-chain release notes
 
-- the canonical public program now includes first-class oracle registry state: `OracleProfile`, `PoolOracleApproval`, `PoolOraclePolicy`, and `PoolOraclePermissionSet`
+- the canonical public program now includes first-class oracle registry state through `OracleProfile`
 - schema metadata is now off-chain; oracle profiles advertise supported schema hashes instead of creating on-chain schema registry accounts
 - the canonical public program now includes `attest_claim_case`, which anchors schema-hash-bound oracle attestations directly against live `ClaimCase` state
 - linked protection claims now settle through the obligation path, with reserve, release, and settlement lifecycle mirrored back onto the linked `ClaimCase`

@@ -309,36 +309,6 @@ export type OracleProfileSnapshot = {
   bump: number;
 };
 
-export type PoolOracleApprovalSnapshot = {
-  address: string;
-  liquidityPool: string;
-  oracle: string;
-  active: boolean;
-  updatedAtTs: number;
-  bump: number;
-};
-
-export type PoolOraclePolicySnapshot = {
-  address: string;
-  liquidityPool: string;
-  quorumM: number;
-  quorumN: number;
-  requireVerifiedSchema: boolean;
-  allowDelegateClaim: boolean;
-  challengeWindowSecs: number;
-  updatedAtTs: number;
-  bump: number;
-};
-
-export type PoolOraclePermissionSetSnapshot = {
-  address: string;
-  liquidityPool: string;
-  oracle: string;
-  permissions: number;
-  updatedAtTs: number;
-  bump: number;
-};
-
 export type OutcomeSchemaSnapshot = {
   address: string;
   publisher: string;
@@ -378,8 +348,6 @@ export type ClaimAttestationSnapshot = {
   schemaKeyHashHex: string;
   schemaHashHex?: string;
   schemaVersion?: number;
-  liquidityPool?: string | null;
-  allocationPosition?: string | null;
   createdAtTs: number;
   updatedAtTs: number;
   bump: number;
@@ -408,9 +376,6 @@ export type ProtocolConsoleSnapshot = {
   allocationLedgers: AllocationLedgerSnapshot[];
   outcomesBySeries: Record<string, bigint>;
   oracleProfiles: OracleProfileSnapshot[];
-  poolOracleApprovals: PoolOracleApprovalSnapshot[];
-  poolOraclePolicies: PoolOraclePolicySnapshot[];
-  poolOraclePermissionSets: PoolOraclePermissionSetSnapshot[];
   outcomeSchemas: OutcomeSchemaSnapshot[];
   schemaDependencyLedgers: SchemaDependencyLedgerSnapshot[];
   claimAttestations: ClaimAttestationSnapshot[];
@@ -590,12 +555,6 @@ export type OracleSummary = {
 };
 
 export type OracleWithProfileSummary = OracleSummary;
-
-export type PoolOracleApprovalSummary = PoolOracleApprovalSnapshot;
-
-export type PoolOraclePolicySummary = PoolOraclePolicySnapshot;
-
-export type PoolOraclePermissionSetSummary = PoolOraclePermissionSetSnapshot;
 
 export type SchemaSummary = OutcomeSchemaSnapshot;
 

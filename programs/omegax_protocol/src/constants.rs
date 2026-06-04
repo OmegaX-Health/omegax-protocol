@@ -35,9 +35,6 @@ pub const SEED_LP_POSITION: &[u8] = b"lp_position";
 pub const SEED_ALLOCATION_POSITION: &[u8] = b"allocation_position";
 pub const SEED_ALLOCATION_LEDGER: &[u8] = b"allocation_ledger";
 pub const SEED_ORACLE_PROFILE: &[u8] = b"oracle_profile";
-pub const SEED_POOL_ORACLE_APPROVAL: &[u8] = b"pool_oracle_approval";
-pub const SEED_POOL_ORACLE_POLICY: &[u8] = b"pool_oracle_policy";
-pub const SEED_POOL_ORACLE_PERMISSION_SET: &[u8] = b"pool_oracle_permission_set";
 pub const SEED_CLAIM_ATTESTATION: &[u8] = b"claim_attestation";
 
 pub const SERIES_MODE_REWARD: u8 = 0;
@@ -96,8 +93,6 @@ pub const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE: u8 = 0;
 pub const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY: u8 = 1;
 pub const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW: u8 = 2;
 pub const CLAIM_ATTESTATION_DECISION_ABSTAIN: u8 = 3;
-
-pub const POOL_ORACLE_PERMISSION_ATTEST_CLAIM: u32 = 1 << 0;
 
 pub const OBLIGATION_STATUS_PROPOSED: u8 = 0;
 pub const OBLIGATION_STATUS_RESERVED: u8 = 1;

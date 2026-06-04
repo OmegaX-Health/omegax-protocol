@@ -90,9 +90,6 @@ import type {
   AllocationPositionSnapshot,
   AllocationLedgerSnapshot,
   OracleProfileSnapshot,
-  PoolOracleApprovalSnapshot,
-  PoolOraclePolicySnapshot,
-  PoolOraclePermissionSetSnapshot,
   ClaimAttestationSnapshot,
   ProtocolConsoleSnapshot,
   SponsorReadModel,
@@ -109,9 +106,6 @@ import type {
   DomainAssetVaultSummary,
   OracleSummary,
   OracleWithProfileSummary,
-  PoolOracleApprovalSummary,
-  PoolOraclePolicySummary,
-  PoolOraclePermissionSetSummary,
   SchemaSummary,
   ProtocolConfigSummary,
   PoolSummary,
@@ -166,9 +160,6 @@ import {
   derivePlanReserveLedgerPda,
   derivePolicySeriesPda,
   derivePoolClassLedgerPda,
-  derivePoolOracleApprovalPda,
-  derivePoolOraclePermissionSetPda,
-  derivePoolOraclePolicyPda,
   deriveReserveAssetRailPda,
   deriveReserveDomainPda,
   deriveSeriesReserveLedgerPda,
@@ -1139,9 +1130,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     allocationLedgers: [],
     outcomesBySeries: {},
     oracleProfiles: [],
-    poolOracleApprovals: [],
-    poolOraclePolicies: [],
-    poolOraclePermissionSets: [],
     outcomeSchemas: [],
     schemaDependencyLedgers: [],
     claimAttestations: [],
@@ -1503,39 +1491,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           bump: Number(decodedField(decoded, "bump") ?? 0),
         });
         break;
-      case "PoolOracleApproval":
-        snapshot.poolOracleApprovals.push({
-          address,
-          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
-          oracle: asAddress(decodedField(decoded, "oracle")),
-          active: Boolean(decodedField(decoded, "active")),
-          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
-          bump: Number(decodedField(decoded, "bump") ?? 0),
-        });
-        break;
-      case "PoolOraclePolicy":
-        snapshot.poolOraclePolicies.push({
-          address,
-          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
-          quorumM: Number(decodedField(decoded, "quorumM") ?? 0),
-          quorumN: Number(decodedField(decoded, "quorumN") ?? 0),
-          requireVerifiedSchema: Boolean(decodedField(decoded, "requireVerifiedSchema")),
-          allowDelegateClaim: Boolean(decodedField(decoded, "allowDelegateClaim")),
-          challengeWindowSecs: Number(decodedField(decoded, "challengeWindowSecs") ?? 0),
-          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
-          bump: Number(decodedField(decoded, "bump") ?? 0),
-        });
-        break;
-      case "PoolOraclePermissionSet":
-        snapshot.poolOraclePermissionSets.push({
-          address,
-          liquidityPool: asAddress(decodedField(decoded, "liquidityPool")),
-          oracle: asAddress(decodedField(decoded, "oracle")),
-          permissions: Number(decodedField(decoded, "permissions") ?? 0),
-          updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs")),
-          bump: Number(decodedField(decoded, "bump") ?? 0),
-        });
-        break;
       case "ClaimAttestation": {
         const policySeriesValue = decodedField(decoded, "policySeries", "policy_series");
         const policySeries = policySeriesValue ? asAddress(policySeriesValue) : null;
@@ -1558,8 +1513,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           schemaKeyHashHex: bytesToHex(decodedField(decoded, "schemaKeyHash", "schema_key_hash")),
           schemaHashHex: bytesToHex(decodedField(decoded, "schemaHash", "schema_hash")),
           schemaVersion: Number(decodedField(decoded, "schemaVersion", "schema_version") ?? 0),
-          liquidityPool: asOptionalAddress(decodedField(decoded, "liquidityPool", "liquidity_pool")),
-          allocationPosition: asOptionalAddress(decodedField(decoded, "allocationPosition", "allocation_position")),
           createdAtTs: numberFromAnchorValue(decodedField(decoded, "createdAtTs", "created_at_ts")),
           updatedAtTs: numberFromAnchorValue(decodedField(decoded, "updatedAtTs", "updated_at_ts")),
           bump: Number(decodedField(decoded, "bump") ?? 0),
@@ -1619,9 +1572,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
   snapshot.lpPositions = sortByLabel(snapshot.lpPositions, (row) => `${row.capitalClass}:${row.owner}`);
   snapshot.allocationPositions = sortByLabel(snapshot.allocationPositions, (row) => `${row.capitalClass}:${row.fundingLine}`);
   snapshot.oracleProfiles = sortByLabel(snapshot.oracleProfiles, (row) => row.displayName || row.oracle);
-  snapshot.poolOracleApprovals = sortByLabel(snapshot.poolOracleApprovals, (row) => `${row.liquidityPool}:${row.oracle}`);
-  snapshot.poolOraclePolicies = sortByLabel(snapshot.poolOraclePolicies, (row) => row.liquidityPool);
-  snapshot.poolOraclePermissionSets = sortByLabel(snapshot.poolOraclePermissionSets, (row) => `${row.liquidityPool}:${row.oracle}`);
   snapshot.outcomeSchemas = sortByLabel(snapshot.outcomeSchemas, (row) => `${row.schemaKey}:${row.version}`);
   snapshot.schemaDependencyLedgers = sortByLabel(snapshot.schemaDependencyLedgers, (row) => row.schemaKeyHashHex);
   snapshot.claimAttestations.sort((left, right) =>
@@ -1976,38 +1926,6 @@ export async function listOracles(params: {
   return listOraclesWithProfiles(params);
 }
 
-export async function listPoolOracleApprovals(params: {
-  connection: Connection;
-  poolAddress?: string | null;
-  activeOnly?: boolean;
-}): Promise<PoolOracleApprovalSummary[]> {
-  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
-  return snapshot.poolOracleApprovals.filter((approval) =>
-    (!params.poolAddress || approval.liquidityPool === params.poolAddress)
-    && (!params.activeOnly || approval.active),
-  );
-}
-
-export async function listPoolOraclePolicies(params: {
-  connection: Connection;
-  poolAddress?: string | null;
-}): Promise<PoolOraclePolicySummary[]> {
-  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
-  return snapshot.poolOraclePolicies.filter((policy) =>
-    !params.poolAddress || policy.liquidityPool === params.poolAddress,
-  );
-}
-
-export async function listPoolOraclePermissionSets(params: {
-  connection: Connection;
-  poolAddress?: string | null;
-}): Promise<PoolOraclePermissionSetSummary[]> {
-  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
-  return snapshot.poolOraclePermissionSets.filter((permissionSet) =>
-    !params.poolAddress || permissionSet.liquidityPool === params.poolAddress,
-  );
-}
-
 export async function fetchProtocolConfig(params: {
   connection: Connection;
 }): Promise<ProtocolConfigSummary | null> {
@@ -2170,13 +2088,6 @@ export async function fetchProtocolReadiness(params: {
   const oracleProfile = oracleAddress
     ? snapshot.oracleProfiles.find((entry) => entry.oracle === oracleAddress || entry.address === oracleAddress) ?? null
     : null;
-  const poolOracleApproval = pool && oracleAddress
-    ? snapshot.poolOracleApprovals.find((entry) => entry.liquidityPool === pool.address && entry.oracle === oracleAddress)
-      ?? null
-    : null;
-  const poolOraclePolicy = pool
-    ? snapshot.poolOraclePolicies.find((entry) => entry.liquidityPool === pool.address) ?? null
-    : null;
   const matchingSchema = schemaKeyHashHex
     ? snapshot.outcomeSchemas.find((entry) => entry.schemaKeyHashHex.toLowerCase() === schemaKeyHashHex) ?? null
     : null;
@@ -2214,8 +2125,8 @@ export async function fetchProtocolReadiness(params: {
     poolExists: Boolean(pool),
     oracleRegistered: Boolean(oracleProfile),
     oracleProfileExists: Boolean(oracleProfile),
-    poolOracleApproved: Boolean(poolOracleApproval?.active),
-    poolOraclePolicyConfigured: Boolean(poolOraclePolicy),
+    poolOracleApproved: true,
+    poolOraclePolicyConfigured: true,
     oracleStakePositionExists: false,
     inviteIssuerRegistered: false,
     schemaRegistered: Boolean(matchingSchema),
@@ -2234,8 +2145,8 @@ export async function fetchProtocolReadiness(params: {
       poolAssetVaultAddress: domainAssetVault?.address ?? null,
       oracleEntryAddress: oracleProfile?.address ?? null,
       oracleProfileAddress: oracleProfile?.address ?? null,
-      poolOracleAddress: poolOracleApproval?.address ?? null,
-      poolOraclePolicyAddress: poolOraclePolicy?.address ?? null,
+      poolOracleAddress: null,
+      poolOraclePolicyAddress: null,
       oracleStakeAddress: params.stakerAddress?.trim() || null,
       inviteIssuerAddress: null,
       membershipAddress: memberPosition?.address ?? null,
@@ -3086,47 +2997,12 @@ export function buildAttestClaimCaseTx(params: {
   attestationHashHex: string;
   attestationRefHashHex?: string | null;
   schemaKeyHashHex: string;
-  liquidityPoolAddress?: PublicKeyish | null;
-  capitalClassAddress?: PublicKeyish | null;
-  allocationPositionAddress?: PublicKeyish | null;
-  poolOracleApprovalAddress?: PublicKeyish | null;
-  poolOraclePermissionSetAddress?: PublicKeyish | null;
-  poolOraclePolicyAddress?: PublicKeyish | null;
 }): Transaction {
   const oracle = toPublicKey(params.oracle);
   assertValidClaimAttestationDecision(params.decision);
   const healthPlan = toPublicKey(params.healthPlanAddress);
   const fundingLine = toPublicKey(params.fundingLineAddress);
   const oracleProfile = deriveOracleProfilePda({ oracle });
-  const liquidityPool = params.liquidityPoolAddress
-    ? toPublicKey(params.liquidityPoolAddress)
-    : null;
-  const capitalClass = params.capitalClassAddress
-    ? toPublicKey(params.capitalClassAddress)
-    : null;
-  const allocationPosition = params.allocationPositionAddress
-    ? toPublicKey(params.allocationPositionAddress)
-    : capitalClass
-      ? deriveAllocationPositionPda({
-        capitalClass,
-        fundingLine,
-      })
-      : null;
-  const poolOracleApproval = params.poolOracleApprovalAddress
-    ? toPublicKey(params.poolOracleApprovalAddress)
-    : liquidityPool
-      ? derivePoolOracleApprovalPda({ liquidityPool, oracle })
-      : null;
-  const poolOraclePermissionSet = params.poolOraclePermissionSetAddress
-    ? toPublicKey(params.poolOraclePermissionSetAddress)
-    : liquidityPool
-      ? derivePoolOraclePermissionSetPda({ liquidityPool, oracle })
-      : null;
-  const poolOraclePolicy = params.poolOraclePolicyAddress
-    ? toPublicKey(params.poolOraclePolicyAddress)
-    : liquidityPool
-      ? derivePoolOraclePolicyPda({ liquidityPool })
-      : null;
   const normalizedSchemaKeyHashHex = normalizeHex32(params.schemaKeyHashHex);
   const claimAttestation = deriveClaimAttestationPda({
     claimCase: params.claimCaseAddress,
@@ -3152,12 +3028,6 @@ export function buildAttestClaimCaseTx(params: {
       { pubkey: oracleProfile },
       { pubkey: params.claimCaseAddress, isWritable: true },
       { pubkey: fundingLine },
-      optionalProtocolAccount(liquidityPool),
-      optionalProtocolAccount(capitalClass),
-      optionalProtocolAccount(allocationPosition),
-      optionalProtocolAccount(poolOracleApproval),
-      optionalProtocolAccount(poolOraclePermissionSet),
-      optionalProtocolAccount(poolOraclePolicy),
       { pubkey: claimAttestation, isWritable: true },
       { pubkey: SystemProgram.programId },
     ],
@@ -4103,101 +3973,6 @@ export function buildUpdateOracleProfileTx(params: {
   });
 }
 
-export function buildSetPoolOracleTx(params: {
-  authority: PublicKeyish;
-  poolAddress: PublicKeyish;
-  oracle: PublicKeyish;
-  recentBlockhash: string;
-  active: boolean;
-}): Transaction {
-  const authority = toPublicKey(params.authority);
-  const pool = toPublicKey(params.poolAddress);
-  const oracleProfile = deriveOracleProfilePda({ oracle: params.oracle });
-  const approval = derivePoolOracleApprovalPda({ liquidityPool: pool, oracle: params.oracle });
-  const instruction = buildProtocolInstruction(
-    "set_pool_oracle",
-    { active: params.active },
-    [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: pool },
-      { pubkey: oracleProfile },
-      { pubkey: approval, isWritable: true },
-      { pubkey: SystemProgram.programId },
-    ],
-  );
-  return buildProtocolTransaction({
-    feePayer: authority,
-    recentBlockhash: params.recentBlockhash,
-    instructions: [instruction],
-  });
-}
-
-export function buildSetPoolOraclePermissionsTx(params: {
-  authority: PublicKeyish;
-  poolAddress: PublicKeyish;
-  oracle: PublicKeyish;
-  permissions: number;
-  recentBlockhash: string;
-}): Transaction {
-  const authority = toPublicKey(params.authority);
-  const pool = toPublicKey(params.poolAddress);
-  const oracleProfile = deriveOracleProfilePda({ oracle: params.oracle });
-  const approval = derivePoolOracleApprovalPda({ liquidityPool: pool, oracle: params.oracle });
-  const permissionSet = derivePoolOraclePermissionSetPda({ liquidityPool: pool, oracle: params.oracle });
-  const instruction = buildProtocolInstruction(
-    "set_pool_oracle_permissions",
-    { permissions: params.permissions },
-    [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: pool },
-      { pubkey: oracleProfile },
-      { pubkey: approval },
-      { pubkey: permissionSet, isWritable: true },
-      { pubkey: SystemProgram.programId },
-    ],
-  );
-  return buildProtocolTransaction({
-    feePayer: authority,
-    recentBlockhash: params.recentBlockhash,
-    instructions: [instruction],
-  });
-}
-
-export function buildSetPoolOraclePolicyTx(params: {
-  authority: PublicKeyish;
-  poolAddress: PublicKeyish;
-  recentBlockhash: string;
-  quorumM: number;
-  quorumN: number;
-  requireVerifiedSchema: boolean;
-  allowDelegateClaim: boolean;
-  challengeWindowSecs: number;
-}): Transaction {
-  const authority = toPublicKey(params.authority);
-  const pool = toPublicKey(params.poolAddress);
-  const policy = derivePoolOraclePolicyPda({ liquidityPool: pool });
-  const instruction = buildProtocolInstruction(
-    "set_pool_oracle_policy",
-    {
-      quorum_m: params.quorumM,
-      quorum_n: params.quorumN,
-      require_verified_schema: params.requireVerifiedSchema,
-      allow_delegate_claim: params.allowDelegateClaim,
-      challenge_window_secs: params.challengeWindowSecs,
-    },
-    [
-      { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: pool },
-      { pubkey: policy, isWritable: true },
-      { pubkey: SystemProgram.programId },
-    ],
-  );
-  return buildProtocolTransaction({
-    feePayer: authority,
-    recentBlockhash: params.recentBlockhash,
-    instructions: [instruction],
-  });
-}
 
 export {
   PROTOCOL_ACCOUNT_DISCRIMINATORS,

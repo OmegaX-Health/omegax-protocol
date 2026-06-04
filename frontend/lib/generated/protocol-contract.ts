@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 35afb98ed7911c396f20ddfcbfeb2fc6c4fe68622ad144cc880002e745196849
+// contract_sha256: 0556f0c5e1984d88df248ecf13b85da11faec19e00fd63ab7a3ef5ca44cd0633
 
 export type ProtocolInstructionName =
   | "adjudicate_claim_case"
@@ -33,9 +33,6 @@ export type ProtocolInstructionName =
   | "release_reserve"
   | "request_redemption"
   | "reserve_obligation"
-  | "set_pool_oracle"
-  | "set_pool_oracle_permissions"
-  | "set_pool_oracle_policy"
   | "settle_claim_case"
   | "settle_obligation"
   | "update_allocation_caps"
@@ -94,9 +91,6 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "release_reserve": Uint8Array.from([170, 102, 52, 144, 33, 176, 41, 60]),
   "request_redemption": Uint8Array.from([14, 62, 182, 237, 59, 79, 149, 22]),
   "reserve_obligation": Uint8Array.from([48, 113, 133, 225, 40, 36, 197, 86]),
-  "set_pool_oracle": Uint8Array.from([140, 225, 146, 45, 210, 81, 225, 223]),
-  "set_pool_oracle_permissions": Uint8Array.from([168, 14, 22, 106, 118, 145, 105, 44]),
-  "set_pool_oracle_policy": Uint8Array.from([190, 13, 51, 113, 230, 140, 103, 82]),
   "settle_claim_case": Uint8Array.from([178, 123, 229, 204, 50, 204, 91, 71]),
   "settle_obligation": Uint8Array.from([209, 166, 218, 35, 147, 139, 238, 208]),
   "update_allocation_caps": Uint8Array.from([224, 101, 103, 146, 78, 5, 48, 132]),
@@ -200,15 +194,6 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   "reserve_obligation": [
       { name: "args", type: {"defined":{"name":"ReserveObligationArgs"}} },
   ],
-  "set_pool_oracle": [
-      { name: "args", type: {"defined":{"name":"SetPoolOracleArgs"}} },
-  ],
-  "set_pool_oracle_permissions": [
-      { name: "args", type: {"defined":{"name":"SetPoolOraclePermissionsArgs"}} },
-  ],
-  "set_pool_oracle_policy": [
-      { name: "args", type: {"defined":{"name":"SetPoolOraclePolicyArgs"}} },
-  ],
   "settle_claim_case": [
       { name: "args", type: {"defined":{"name":"SettleClaimCaseArgs"}} },
   ],
@@ -268,12 +253,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "oracle_profile", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle_profile.oracle" }] },
       { name: "claim_case", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "claim_case.health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
       { name: "funding_line", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [102, 117, 110, 100, 105, 110, 103, 95, 108, 105, 110, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "funding_line.line_id" }] },
-      { name: "liquidity_pool", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
-      { name: "capital_class", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
-      { name: "allocation_position", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
-      { name: "pool_oracle_approval", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
-      { name: "pool_oracle_permission_set", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
-      { name: "pool_oracle_policy", writable: false, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "claim_attestation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110] }, { kind: "account", path: "claim_case" }, { kind: "account", path: "oracle" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
   ],
@@ -517,27 +496,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
       { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
   ],
-  "set_pool_oracle": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "liquidity_pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 112, 111, 111, 108] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "liquidity_pool.pool_id" }] },
-      { name: "oracle_profile", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle_profile.oracle" }] },
-      { name: "pool_oracle_approval", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 97, 112, 112, 114, 111, 118, 97, 108] }, { kind: "account", path: "liquidity_pool" }, { kind: "account", path: "oracle_profile.oracle" }] },
-      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
-  ],
-  "set_pool_oracle_permissions": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "liquidity_pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 112, 111, 111, 108] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "liquidity_pool.pool_id" }] },
-      { name: "oracle_profile", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 114, 97, 99, 108, 101, 95, 112, 114, 111, 102, 105, 108, 101] }, { kind: "account", path: "oracle_profile.oracle" }] },
-      { name: "pool_oracle_approval", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 97, 112, 112, 114, 111, 118, 97, 108] }, { kind: "account", path: "liquidity_pool" }, { kind: "account", path: "oracle_profile.oracle" }] },
-      { name: "pool_oracle_permission_set", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 101, 114, 109, 105, 115, 115, 105, 111, 110, 95, 115, 101, 116] }, { kind: "account", path: "liquidity_pool" }, { kind: "account", path: "oracle_profile.oracle" }] },
-      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
-  ],
-  "set_pool_oracle_policy": [
-      { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "liquidity_pool", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [108, 105, 113, 117, 105, 100, 105, 116, 121, 95, 112, 111, 111, 108] }, { kind: "account", path: "liquidity_pool.reserve_domain" }, { kind: "account", path: "liquidity_pool.pool_id" }] },
-      { name: "pool_oracle_policy", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 111, 111, 108, 95, 111, 114, 97, 99, 108, 101, 95, 112, 111, 108, 105, 99, 121] }, { kind: "account", path: "liquidity_pool" }] },
-      { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
-  ],
   "settle_claim_case": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "health_plan", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [104, 101, 97, 108, 116, 104, 95, 112, 108, 97, 110] }, { kind: "account", path: "health_plan.reserve_domain" }, { kind: "account", path: "health_plan.health_plan_id" }] },
@@ -643,9 +601,6 @@ export const PROTOCOL_ACCOUNT_DISCRIMINATORS: Record<string, Uint8Array> = {
   "PlanReserveLedger": Uint8Array.from([243, 245, 230, 224, 27, 105, 48, 128]),
   "PolicySeries": Uint8Array.from([196, 117, 121, 249, 37, 71, 245, 23]),
   "PoolClassLedger": Uint8Array.from([147, 125, 17, 88, 188, 78, 109, 204]),
-  "PoolOracleApproval": Uint8Array.from([116, 241, 25, 184, 205, 21, 153, 29]),
-  "PoolOraclePermissionSet": Uint8Array.from([3, 136, 243, 231, 172, 143, 123, 245]),
-  "PoolOraclePolicy": Uint8Array.from([246, 134, 133, 108, 100, 203, 226, 43]),
   "ReserveAssetRail": Uint8Array.from([48, 92, 233, 170, 158, 126, 122, 67]),
   "ReserveDomain": Uint8Array.from([119, 76, 223, 192, 177, 116, 88, 178]),
   "SeriesReserveLedger": Uint8Array.from([0, 109, 195, 30, 140, 79, 210, 234]),
@@ -673,8 +628,5 @@ export const PROTOCOL_PDA_SEEDS: Record<string, string[]> = {
   "allocation_position": ["allocation_position", "<capital_class>", "<funding_line>"],
   "allocation_ledger": ["allocation_ledger", "<allocation_position>", "<asset_mint>"],
   "oracle_profile": ["oracle_profile", "<oracle>"],
-  "pool_oracle_approval": ["pool_oracle_approval", "<liquidity_pool>", "<oracle>"],
-  "pool_oracle_policy": ["pool_oracle_policy", "<liquidity_pool>"],
-  "pool_oracle_permission_set": ["pool_oracle_permission_set", "<liquidity_pool>", "<oracle>"],
   "claim_attestation": ["claim_attestation", "<claim_case>", "<oracle>"],
 };

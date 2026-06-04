@@ -738,42 +738,6 @@ pub struct OracleProfile<'info> {
 }
 
 #[cfg_attr(not(feature = "quasar"), account)]
-#[cfg_attr(feature = "quasar", account(discriminator = [116, 241, 25, 184, 205, 21, 153, 29]))]
-#[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
-pub struct PoolOracleApproval {
-    pub liquidity_pool: Pubkey,
-    pub oracle: Pubkey,
-    pub active: bool,
-    pub updated_at_ts: i64,
-    pub bump: u8,
-}
-
-#[cfg_attr(not(feature = "quasar"), account)]
-#[cfg_attr(feature = "quasar", account(discriminator = [246, 134, 133, 108, 100, 203, 226, 43]))]
-#[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
-pub struct PoolOraclePolicy {
-    pub liquidity_pool: Pubkey,
-    pub quorum_m: u8,
-    pub quorum_n: u8,
-    pub require_verified_schema: bool,
-    pub allow_delegate_claim: bool,
-    pub challenge_window_secs: u32,
-    pub updated_at_ts: i64,
-    pub bump: u8,
-}
-
-#[cfg_attr(not(feature = "quasar"), account)]
-#[cfg_attr(feature = "quasar", account(discriminator = [3, 136, 243, 231, 172, 143, 123, 245]))]
-#[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
-pub struct PoolOraclePermissionSet {
-    pub liquidity_pool: Pubkey,
-    pub oracle: Pubkey,
-    pub permissions: u32,
-    pub updated_at_ts: i64,
-    pub bump: u8,
-}
-
-#[cfg_attr(not(feature = "quasar"), account)]
 #[cfg_attr(feature = "quasar", account(discriminator = [93, 71, 134, 41, 234, 89, 150, 80]))]
 #[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
 pub struct ClaimAttestation {
@@ -790,8 +754,6 @@ pub struct ClaimAttestation {
     pub schema_key_hash: [u8; 32],
     pub schema_hash: [u8; 32],
     pub schema_version: u16,
-    pub liquidity_pool: Pubkey,
-    pub allocation_position: Pubkey,
     pub created_at_ts: i64,
     pub updated_at_ts: i64,
     pub bump: u8,
@@ -895,9 +857,6 @@ impl_quasar_fixed_init_space!(
     FundingLineLedger,
     PoolClassLedger,
     AllocationLedger,
-    PoolOracleApproval,
-    PoolOraclePolicy,
-    PoolOraclePermissionSet,
     ClaimAttestation,
 );
 

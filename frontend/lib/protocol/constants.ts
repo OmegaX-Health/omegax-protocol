@@ -34,16 +34,12 @@ export const SEED_LP_POSITION = "lp_position";
 export const SEED_ALLOCATION_POSITION = "allocation_position";
 export const SEED_ALLOCATION_LEDGER = "allocation_ledger";
 export const SEED_ORACLE_PROFILE = "oracle_profile";
-export const SEED_POOL_ORACLE_APPROVAL = "pool_oracle_approval";
-export const SEED_POOL_ORACLE_POLICY = "pool_oracle_policy";
-export const SEED_POOL_ORACLE_PERMISSION_SET = "pool_oracle_permission_set";
 export const SEED_CLAIM_ATTESTATION = "claim_attestation";
 
 export const CLAIM_ATTESTATION_DECISION_SUPPORT_APPROVE = 0;
 export const CLAIM_ATTESTATION_DECISION_SUPPORT_DENY = 1;
 export const CLAIM_ATTESTATION_DECISION_REQUEST_REVIEW = 2;
 export const CLAIM_ATTESTATION_DECISION_ABSTAIN = 3;
-export const POOL_ORACLE_PERMISSION_ATTEST_CLAIM = 1 << 0;
 
 export const MEMBERSHIP_MODE_OPEN = 0;
 export const MEMBERSHIP_MODE_TOKEN_GATE = 1;

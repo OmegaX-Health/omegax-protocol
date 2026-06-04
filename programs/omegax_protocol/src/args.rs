@@ -528,31 +528,3 @@ pub struct UpdateOracleProfileArgs {
     #[cfg_attr(not(feature = "quasar"), max_len(MAX_ORACLE_SUPPORTED_SCHEMAS))]
     pub supported_schema_key_hashes: Vec<[u8; 32]>,
 }
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
-pub struct SetPoolOracleArgs {
-    pub active: bool,
-}
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
-pub struct SetPoolOraclePermissionsArgs {
-    pub permissions: u32,
-}
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
-pub struct SetPoolOraclePolicyArgs {
-    pub quorum_m: u8,
-    pub quorum_n: u8,
-    pub require_verified_schema: bool,
-    pub allow_delegate_claim: bool,
-    pub challenge_window_secs: u32,
-}
