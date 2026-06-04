@@ -348,9 +348,6 @@ fn sentinel_is_not_curator_control() {
     let governance_authority = Pubkey::new_unique();
     let governance = ProtocolGovernance {
         governance_authority,
-        pending_governance_authority: ZERO_PUBKEY,
-        pending_governance_proposed_at: 0,
-        pending_governance_expires_at: 0,
         protocol_fee_bps: 0,
         emergency_pause: false,
         audit_nonce: 0,
@@ -944,154 +941,6 @@ fn allocation_and_impairment_reduce_redeemable_before_free_hits_zero() {
     assert_eq!(sheet.redeemable, 350);
 }
 
-#[test]
-fn governance_authority_rotation_requires_pending_authority_acceptance() {
-    let current_governance_authority = Pubkey::new_unique();
-    let next_governance_authority = Pubkey::new_unique();
-    let mut governance = ProtocolGovernance {
-        governance_authority: current_governance_authority,
-        pending_governance_authority: ZERO_PUBKEY,
-        pending_governance_proposed_at: 0,
-        pending_governance_expires_at: 0,
-        protocol_fee_bps: 50,
-        emergency_pause: false,
-        audit_nonce: 2,
-        bump: 7,
-    };
-
-    let (previous, expires_at_ts) = propose_protocol_governance_authority_transfer_state(
-        &mut governance,
-        next_governance_authority,
-        1_000,
-    )
-    .unwrap();
-
-    assert_eq!(previous, current_governance_authority);
-    assert_eq!(
-        governance.governance_authority,
-        current_governance_authority
-    );
-    assert_eq!(
-        governance.pending_governance_authority,
-        next_governance_authority
-    );
-    assert_eq!(governance.pending_governance_proposed_at, 1_000);
-    assert_eq!(
-        expires_at_ts,
-        1_000 + GOVERNANCE_AUTHORITY_TRANSFER_WINDOW_SECONDS
-    );
-    assert_eq!(governance.audit_nonce, 3);
-
-    let accepted_previous = accept_protocol_governance_authority_transfer_state(
-        &mut governance,
-        &next_governance_authority,
-        expires_at_ts,
-    )
-    .unwrap();
-
-    assert_eq!(accepted_previous, current_governance_authority);
-    assert_eq!(governance.governance_authority, next_governance_authority);
-    assert_eq!(governance.pending_governance_authority, ZERO_PUBKEY);
-    assert_eq!(governance.pending_governance_proposed_at, 0);
-    assert_eq!(governance.pending_governance_expires_at, 0);
-    assert_eq!(governance.audit_nonce, 4);
-}
-
-#[test]
-fn governance_authority_transfer_rejects_zero_missing_and_expired() {
-    let current_governance_authority = Pubkey::new_unique();
-    let next_governance_authority = Pubkey::new_unique();
-    let mut governance = ProtocolGovernance {
-        governance_authority: current_governance_authority,
-        pending_governance_authority: ZERO_PUBKEY,
-        pending_governance_proposed_at: 0,
-        pending_governance_expires_at: 0,
-        protocol_fee_bps: 50,
-        emergency_pause: false,
-        audit_nonce: 2,
-        bump: 7,
-    };
-
-    let error =
-        propose_protocol_governance_authority_transfer_state(&mut governance, ZERO_PUBKEY, 1_000)
-            .unwrap_err();
-
-    assert!(error
-        .to_string()
-        .contains("Governance authority is invalid"));
-    assert_eq!(
-        governance.governance_authority,
-        current_governance_authority
-    );
-    assert_eq!(governance.audit_nonce, 2);
-
-    let missing_error = accept_protocol_governance_authority_transfer_state(
-        &mut governance,
-        &next_governance_authority,
-        1_000,
-    )
-    .unwrap_err();
-    assert!(missing_error
-        .to_string()
-        .contains("Governance authority transfer is missing"));
-
-    propose_protocol_governance_authority_transfer_state(
-        &mut governance,
-        next_governance_authority,
-        1_000,
-    )
-    .unwrap();
-
-    let expired_error = accept_protocol_governance_authority_transfer_state(
-        &mut governance,
-        &next_governance_authority,
-        1_000 + GOVERNANCE_AUTHORITY_TRANSFER_WINDOW_SECONDS + 1,
-    )
-    .unwrap_err();
-    assert!(expired_error
-        .to_string()
-        .contains("Governance authority transfer has expired"));
-    assert_eq!(
-        governance.governance_authority,
-        current_governance_authority
-    );
-}
-
-#[test]
-fn governance_authority_transfer_cancel_clears_pending_authority() {
-    let current_governance_authority = Pubkey::new_unique();
-    let next_governance_authority = Pubkey::new_unique();
-    let mut governance = ProtocolGovernance {
-        governance_authority: current_governance_authority,
-        pending_governance_authority: ZERO_PUBKEY,
-        pending_governance_proposed_at: 0,
-        pending_governance_expires_at: 0,
-        protocol_fee_bps: 50,
-        emergency_pause: false,
-        audit_nonce: 2,
-        bump: 7,
-    };
-
-    propose_protocol_governance_authority_transfer_state(
-        &mut governance,
-        next_governance_authority,
-        1_000,
-    )
-    .unwrap();
-
-    let canceled = cancel_protocol_governance_authority_transfer_state(&mut governance).unwrap();
-
-    assert_eq!(canceled, next_governance_authority);
-    assert_eq!(
-        governance.governance_authority,
-        current_governance_authority
-    );
-    assert_eq!(governance.pending_governance_authority, ZERO_PUBKEY);
-    assert_eq!(governance.pending_governance_proposed_at, 0);
-    assert_eq!(governance.pending_governance_expires_at, 0);
-    assert_eq!(governance.audit_nonce, 4);
-}
-
 fn sample_claim_case(
     health_plan: Pubkey,
     policy_series: Pubkey,
@@ -1523,9 +1372,6 @@ fn membership_proof_input(membership_mode: u8, proof_mode: u8) -> MembershipProo
 fn sample_governance(governance_authority: Pubkey) -> ProtocolGovernance {
     ProtocolGovernance {
         governance_authority,
-        pending_governance_authority: ZERO_PUBKEY,
-        pending_governance_proposed_at: 0,
-        pending_governance_expires_at: 0,
         protocol_fee_bps: 50,
         emergency_pause: false,
         audit_nonce: 0,

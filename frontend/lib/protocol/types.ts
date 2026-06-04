@@ -320,9 +320,6 @@ export type AllocationLedgerSnapshot = {
 export type ProtocolGovernanceSnapshot = {
   address: string;
   governanceAuthority: string;
-  pendingGovernanceAuthority: string;
-  pendingGovernanceProposedAt: number;
-  pendingGovernanceExpiresAt: number;
   protocolFeeBps: number;
   emergencyPause: boolean;
   auditNonce: BigNumberish;
@@ -718,8 +715,6 @@ export type ProtocolConfigSummary = {
   address: string;
   admin: string;
   governanceAuthority: string;
-  pendingGovernanceAuthority?: string | null;
-  pendingGovernanceExpiresAt?: number;
   governanceRealm: string;
   governanceConfig: string;
   protocolFeeBps: number;

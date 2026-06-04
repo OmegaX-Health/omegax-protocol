@@ -9,12 +9,6 @@ use crate::platform::*;
 pub enum OmegaXProtocolError {
     #[msg("Caller is not authorized for this scope")]
     Unauthorized,
-    #[msg("Governance authority is invalid")]
-    InvalidGovernanceAuthority,
-    #[msg("Governance authority transfer is missing")]
-    GovernanceAuthorityTransferMissing,
-    #[msg("Governance authority transfer has expired")]
-    GovernanceAuthorityTransferExpired,
     #[msg("Protocol governance is emergency paused")]
     ProtocolEmergencyPaused,
     #[msg("Reserve domain is inactive")]
@@ -227,9 +221,6 @@ pub enum OmegaXProtocolError {
 #[error_code]
 pub enum OmegaXProtocolError {
     Unauthorized,
-    InvalidGovernanceAuthority,
-    GovernanceAuthorityTransferMissing,
-    GovernanceAuthorityTransferExpired,
     ProtocolEmergencyPaused,
     ReserveDomainInactive,
     VaultTokenAccountInvalid,

@@ -6,8 +6,6 @@
 //! migration preserves the existing Anchor instruction/account byte prefixes.
 
 pub mod instruction {
-    pub const IX_ACCEPT_PROTOCOL_GOVERNANCE_AUTHORITY: [u8; 8] =
-        [202, 235, 28, 119, 167, 24, 81, 85];
     pub const IX_ADJUDICATE_CLAIM_CASE: [u8; 8] = [146, 99, 255, 26, 223, 88, 235, 114];
     pub const IX_ALLOCATE_CAPITAL: [u8; 8] = [146, 129, 60, 205, 88, 225, 60, 183];
     pub const IX_ATTACH_CLAIM_EVIDENCE_REF: [u8; 8] = [52, 246, 203, 87, 244, 143, 132, 131];
@@ -15,8 +13,6 @@ pub mod instruction {
     pub const IX_AUTHORIZE_CLAIM_RECIPIENT: [u8; 8] = [112, 97, 129, 42, 125, 165, 226, 163];
     pub const IX_BACKFILL_SCHEMA_DEPENDENCY_LEDGER: [u8; 8] =
         [109, 109, 247, 151, 229, 78, 52, 167];
-    pub const IX_CANCEL_PROTOCOL_GOVERNANCE_AUTHORITY_TRANSFER: [u8; 8] =
-        [113, 25, 246, 12, 38, 35, 223, 114];
     pub const IX_CLAIM_ORACLE: [u8; 8] = [1, 252, 166, 132, 45, 24, 23, 233];
     pub const IX_CLOSE_OUTCOME_SCHEMA: [u8; 8] = [196, 81, 8, 61, 95, 145, 225, 2];
     pub const IX_CONFIGURE_RESERVE_ASSET_RAIL: [u8; 8] = [78, 48, 108, 190, 181, 203, 194, 176];
@@ -49,8 +45,6 @@ pub mod instruction {
     pub const IX_RELEASE_RESERVE: [u8; 8] = [170, 102, 52, 144, 33, 176, 41, 60];
     pub const IX_REQUEST_REDEMPTION: [u8; 8] = [14, 62, 182, 237, 59, 79, 149, 22];
     pub const IX_RESERVE_OBLIGATION: [u8; 8] = [48, 113, 133, 225, 40, 36, 197, 86];
-    pub const IX_ROTATE_PROTOCOL_GOVERNANCE_AUTHORITY: [u8; 8] =
-        [173, 25, 179, 236, 198, 190, 207, 98];
     pub const IX_SET_POOL_ORACLE: [u8; 8] = [140, 225, 146, 45, 210, 81, 225, 223];
     pub const IX_SET_POOL_ORACLE_PERMISSIONS: [u8; 8] = [168, 14, 22, 106, 118, 145, 105, 44];
     pub const IX_SET_POOL_ORACLE_POLICY: [u8; 8] = [190, 13, 51, 113, 230, 140, 103, 82];
@@ -146,12 +140,6 @@ pub mod event {
         [151, 96, 35, 111, 20, 154, 112, 211];
     pub const EVENT_POOL_ORACLE_POLICY_CHANGED_EVENT: [u8; 8] =
         [142, 195, 149, 88, 218, 243, 91, 84];
-    pub const EVENT_PROTOCOL_GOVERNANCE_AUTHORITY_ROTATED_EVENT: [u8; 8] =
-        [182, 225, 228, 198, 36, 195, 73, 212];
-    pub const EVENT_PROTOCOL_GOVERNANCE_AUTHORITY_TRANSFER_CANCELED_EVENT: [u8; 8] =
-        [159, 189, 24, 31, 242, 105, 166, 146];
-    pub const EVENT_PROTOCOL_GOVERNANCE_AUTHORITY_TRANSFER_PROPOSED_EVENT: [u8; 8] =
-        [255, 93, 25, 129, 137, 23, 184, 130];
     pub const EVENT_PROTOCOL_GOVERNANCE_INITIALIZED_EVENT: [u8; 8] =
         [89, 34, 67, 141, 79, 64, 188, 254];
     pub const EVENT_REDEMPTION_REQUESTED_EVENT: [u8; 8] = [202, 47, 51, 231, 221, 144, 164, 57];

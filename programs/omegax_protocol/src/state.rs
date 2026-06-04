@@ -10,9 +10,6 @@ use crate::platform::*;
 #[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
 pub struct ProtocolGovernance {
     pub governance_authority: Pubkey,
-    pub pending_governance_authority: Pubkey,
-    pub pending_governance_proposed_at: i64,
-    pub pending_governance_expires_at: i64,
     pub protocol_fee_bps: u16,
     pub emergency_pause: bool,
     pub audit_nonce: u64,

@@ -1050,33 +1050,8 @@ async function main() {
       throw new Error("Protocol governance config could not be loaded after Genesis live bootstrap.");
     }
     if (protocolConfig.governanceAuthority !== config.governanceConfigAddress) {
-      if (protocolConfig.governanceAuthority !== governance.publicKey.toBase58()) {
-        throw new Error(
-          `Protocol governance authority is ${protocolConfig.governanceAuthority}, but Genesis live bootstrap can only hand off from ${governance.publicKey.toBase58()} to ${config.governanceConfigAddress}.`,
-        );
-      }
-      await sendProtocolInstruction({
-        protocol,
-        connection,
-        feePayer: governance,
-        label: "rotate_protocol_governance_authority:propose",
-        instructionName: "rotate_protocol_governance_authority",
-        args: {
-          new_governance_authority: new PublicKey(config.governanceConfigAddress),
-        },
-        accounts: [
-          { pubkey: governance.publicKey, isSigner: true, isWritable: true },
-          { pubkey: governanceAddress, isWritable: true },
-        ],
-      });
-      const pendingConfig = await protocol.fetchProtocolConfig({ connection });
-      if (pendingConfig?.pendingGovernanceAuthority !== config.governanceConfigAddress) {
-        throw new Error(
-          `Protocol governance transfer proposal did not persist. Pending authority is ${pendingConfig?.pendingGovernanceAuthority ?? "unset"}.`,
-        );
-      }
-      console.log(
-        `[bootstrap] proposed protocol governance authority transfer to ${config.governanceConfigAddress}; execute accept_protocol_governance_authority from that authority before treating the handoff as complete.`,
+      throw new Error(
+        `Protocol governance authority is ${protocolConfig.governanceAuthority}, but the configured governance control is ${config.governanceConfigAddress}. In-program governance handoff has been removed; initialize the program with the intended authority or redeploy before running Genesis live bootstrap.`,
       );
     }
   }
@@ -1084,7 +1059,6 @@ async function main() {
   const finalSnapshot = await protocol.loadProtocolConsoleSnapshot(connection);
   console.log(stringifyJson({
     protocolGovernance: finalSnapshot.protocolGovernance?.address ?? null,
-    pendingGovernanceAuthority: finalSnapshot.protocolGovernance?.pendingGovernanceAuthority ?? null,
     reserveDomain: config.reserveDomain.address,
     healthPlan: config.healthPlan.address,
     policySeries: [

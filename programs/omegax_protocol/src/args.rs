@@ -27,14 +27,6 @@ pub struct SetProtocolEmergencyPauseArgs {
     not(feature = "quasar"),
     derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
 )]
-pub struct RotateProtocolGovernanceAuthorityArgs {
-    pub new_governance_authority: Pubkey,
-}
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
 pub struct CreateReserveDomainArgs {
     #[cfg_attr(not(feature = "quasar"), max_len(MAX_ID_LEN))]
     pub domain_id: String,

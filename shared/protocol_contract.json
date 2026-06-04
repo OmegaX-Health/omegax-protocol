@@ -4,62 +4,6 @@
   "instructionSetVersion": 1,
   "instructions": [
     {
-      "name": "accept_protocol_governance_authority",
-      "discriminator": [
-        202,
-        235,
-        28,
-        119,
-        167,
-        24,
-        81,
-        85
-      ],
-      "args": [],
-      "accounts": [
-        {
-          "name": "pending_authority",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "protocol_governance",
-          "writable": true,
-          "signer": false,
-          "optional": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  103,
-                  111,
-                  118,
-                  101,
-                  114,
-                  110,
-                  97,
-                  110,
-                  99,
-                  101
-                ]
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "name": "adjudicate_claim_case",
       "discriminator": [
         146,
@@ -1249,62 +1193,6 @@
           "signer": false,
           "optional": false,
           "address": "11111111111111111111111111111111"
-        }
-      ]
-    },
-    {
-      "name": "cancel_protocol_governance_authority_transfer",
-      "discriminator": [
-        113,
-        25,
-        246,
-        12,
-        38,
-        35,
-        223,
-        114
-      ],
-      "args": [],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "protocol_governance",
-          "writable": true,
-          "signer": false,
-          "optional": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  103,
-                  111,
-                  118,
-                  101,
-                  114,
-                  110,
-                  97,
-                  110,
-                  99,
-                  101
-                ]
-              }
-            ]
-          }
         }
       ]
     },
@@ -8329,71 +8217,6 @@
                 "kind": "account",
                 "path": "claim_case.claim_id",
                 "account": "ClaimCase"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "rotate_protocol_governance_authority",
-      "discriminator": [
-        173,
-        25,
-        179,
-        236,
-        198,
-        190,
-        207,
-        98
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": {
-              "name": "RotateProtocolGovernanceAuthorityArgs"
-            }
-          }
-        }
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "protocol_governance",
-          "writable": true,
-          "signer": false,
-          "optional": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  103,
-                  111,
-                  118,
-                  101,
-                  114,
-                  110,
-                  97,
-                  110,
-                  99,
-                  101
-                ]
               }
             ]
           }

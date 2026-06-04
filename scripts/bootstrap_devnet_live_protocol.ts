@@ -2077,33 +2077,8 @@ async function main() {
       throw new Error("Protocol governance config could not be loaded after live bootstrap.");
     }
     if (protocolConfig.governanceAuthority !== configuredGovernanceControl) {
-      if (protocolConfig.governanceAuthority !== governance.publicKey.toBase58()) {
-        throw new Error(
-          `Protocol governance authority is ${protocolConfig.governanceAuthority}, but live bootstrap can only hand off from ${governance.publicKey.toBase58()} to ${configuredGovernanceControl}.`,
-        );
-      }
-      await sendProtocolInstruction({
-        protocol,
-        connection,
-        feePayer: governance,
-        label: "rotate_protocol_governance_authority:propose",
-        instructionName: "rotate_protocol_governance_authority",
-        args: {
-          new_governance_authority: new PublicKey(configuredGovernanceControl),
-        },
-        accounts: [
-          { pubkey: governance.publicKey, isSigner: true, isWritable: true },
-          { pubkey: governanceAddress, isWritable: true },
-        ],
-      });
-      const pendingConfig = await protocol.fetchProtocolConfig({ connection });
-      if (pendingConfig?.pendingGovernanceAuthority !== configuredGovernanceControl) {
-        throw new Error(
-          `Protocol governance transfer proposal did not persist. Pending authority is ${pendingConfig?.pendingGovernanceAuthority ?? "unset"}.`,
-        );
-      }
-      console.log(
-        `[bootstrap] proposed protocol governance authority transfer to ${configuredGovernanceControl}; execute accept_protocol_governance_authority from that authority before treating the handoff as complete.`,
+      throw new Error(
+        `Protocol governance authority is ${protocolConfig.governanceAuthority}, but the configured governance control is ${configuredGovernanceControl}. In-program governance handoff has been removed; initialize the program with the intended authority or redeploy before running live bootstrap.`,
       );
     }
   }
@@ -2116,7 +2091,6 @@ async function main() {
     JSON.stringify(
       {
         protocolGovernance: finalSnapshot.protocolGovernance?.address ?? null,
-        pendingGovernanceAuthority: finalSnapshot.protocolGovernance?.pendingGovernanceAuthority ?? null,
         reserveDomains: finalSnapshot.reserveDomains.length,
         domainAssetLedgers: finalSnapshot.domainAssetLedgers.length,
         healthPlans: finalSnapshot.healthPlans.length,

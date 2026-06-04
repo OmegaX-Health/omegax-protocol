@@ -4,7 +4,7 @@
 
 Current posture after this implementation pass: no unauthenticated or attacker-recipient money-out path was found in the patched tree. The fastest real money-loss path before the earlier pass was scoped authority/account confusion around allocator-controlled surfaces; that remains closed for `update_allocation_caps` and hardened for optional reserve/allocation accounts.
 
-The remaining exploitable edge is operational rather than a newly observed vault-drain path: compromised governance/curator/operator keys, a bad bootstrap authority split, or a launch environment that does not match the evidence packet. Mistaken governance authority rotation is now materially reduced by a proposal/accept/cancel handoff, and the devnet operator drawer simulation has been rerun with the canonical governance signer; mainnet funding still depends on proving the intended multisig.
+The remaining exploitable edge is operational rather than a newly observed vault-drain path: compromised governance/curator/operator keys, a bad bootstrap authority split, or a launch environment that does not match the evidence packet. The trimmed protocol surface removes in-program governance authority handoff; launch environments must initialize or redeploy with the intended multisig. The devnet operator drawer simulation has been rerun with the canonical governance signer; mainnet funding still depends on proving the intended multisig.
 
 What destroys trust fastest is a public reservation/reserve story that implies pending or haircut-adjusted assets are active claims-paying reserve. The code, docs, and UI copy now describe Founder reservations as off-chain Squads custody only; pending reservations remain separate from active cover and claims-paying reserve.
 
@@ -23,7 +23,7 @@ What is probably fine now because current code and tests prove it: classic-SPL-o
 
 | Surface | Entrypoints | Assets | Trust Boundary | Existing Controls | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Governance | `initialize_protocol_governance`, `rotate_protocol_governance_authority`, `accept_protocol_governance_authority`, `cancel_protocol_governance_authority_transfer`, pause | Entire protocol control plane | Upgrade authority, governance signer, release operator | Init requires ProgramData upgrade authority; rotation is proposal/accept/cancel with expiry; pause guard; DCO docs | Acceptance requires the pending authority signer. |
+| Governance | `initialize_protocol_governance`, pause | Entire protocol control plane | Upgrade authority, governance signer, release operator | Init requires ProgramData upgrade authority; no trimmed in-program authority handoff; pause guard; DCO docs | Deployment must initialize with the intended governance authority. |
 | Reserve custody | domain vault setup, SPL inflow/outflow helpers | SPL token custody and accounting sheets | Token program, vault PDA, mint, recipient | Classic SPL guard, PDA-signed outflows, vault/mint checks | No Token-2022 acceptance found. |
 | Claims | claim intake, evidence, attestation, settlement | Approved claim value and member payout | Member, operator, oracle, funding line, settlement recipient | Claimant binding, recipient lock, evidence lock, payout rail pricing | Direct claim settlement rejects LP allocation accounts. |
 | Obligations | reserve, release, settle, cancel | Reserved/payable/claimable obligations | Plan authority, claim operator, optional scoped accounts | Full-transition guards, outflow-required settlement, canonical optional PDA hardening | Linked claims require claim/member context. |
@@ -127,9 +127,9 @@ What is probably fine now because current code and tests prove it: classic-SPL-o
 - Attack goal: brick or silently transfer governance by rotating to a wrong/dead key.
 - Impacted asset: protocol governance authority.
 - Preconditions: current governance authority signs a mistaken or compromised rotation.
-- Concrete path before this fix: `rotate_protocol_governance_authority_state` immediately wrote `governance.governance_authority = new_governance_authority`; only zero pubkey was rejected.
+- Concrete path before the two-step fix: `rotate_protocol_governance_authority_state` immediately wrote `governance.governance_authority = new_governance_authority`; only zero pubkey was rejected.
 - Violated invariant: high-value ownership transfer should require proposal plus acceptance by the new authority.
-- Evidence: `ProtocolGovernance` now stores pending authority/proposed/expires fields; `rotate_protocol_governance_authority` proposes only; `accept_protocol_governance_authority` requires the pending authority signer; current governance can cancel before acceptance.
+- Current trimmed surface: the in-program authority handoff has been removed; deployments must initialize or redeploy with the intended governance authority.
 - Fix: add pending authority, accept, cancel, and 7-day expiry semantics.
 - Regression tests: Rust unit coverage for propose/accept/cancel/expired/missing pending authority, plus Node builder coverage for proposal, acceptance, and cancellation.
 

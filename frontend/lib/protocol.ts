@@ -1246,9 +1246,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
         snapshot.protocolGovernance = {
           address,
           governanceAuthority: asAddress(decodedField(decoded, "governanceAuthority")),
-          pendingGovernanceAuthority: asAddress(decodedField(decoded, "pendingGovernanceAuthority")),
-          pendingGovernanceProposedAt: numberFromAnchorValue(decodedField(decoded, "pendingGovernanceProposedAt")),
-          pendingGovernanceExpiresAt: numberFromAnchorValue(decodedField(decoded, "pendingGovernanceExpiresAt")),
           protocolFeeBps: Number(decodedField(decoded, "protocolFeeBps") ?? 0),
           emergencyPause: Boolean(decodedField(decoded, "emergencyPause")),
           auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce")),
@@ -2033,10 +2030,6 @@ function protocolConfigFromSnapshot(snapshot: ProtocolConsoleSnapshot): Protocol
     address: snapshot.protocolGovernance.address,
     admin: snapshot.protocolGovernance.governanceAuthority,
     governanceAuthority: snapshot.protocolGovernance.governanceAuthority,
-    pendingGovernanceAuthority: snapshot.protocolGovernance.pendingGovernanceAuthority === ZERO_PUBKEY
-      ? null
-      : snapshot.protocolGovernance.pendingGovernanceAuthority,
-    pendingGovernanceExpiresAt: snapshot.protocolGovernance.pendingGovernanceExpiresAt,
     governanceRealm,
     governanceConfig,
     protocolFeeBps: snapshot.protocolGovernance.protocolFeeBps,
@@ -2566,61 +2559,6 @@ export function buildInitializeProtocolGovernanceTx(params: {
       { pubkey: getProgramId() },
       { pubkey: deriveProgramDataAddress() },
       { pubkey: SystemProgram.programId },
-    ],
-  });
-}
-
-export function buildRotateGovernanceAuthorityTx(params: {
-  governanceAuthority: PublicKeyish;
-  newAuthority: PublicKeyish;
-  recentBlockhash: string;
-}): Transaction {
-  const governanceAuthority = toPublicKey(params.governanceAuthority);
-  const newAuthority = toPublicKey(params.newAuthority);
-  return buildProtocolTransactionFromInstruction({
-    feePayer: governanceAuthority,
-    recentBlockhash: params.recentBlockhash,
-    instructionName: "rotate_protocol_governance_authority",
-    args: {
-      new_governance_authority: newAuthority,
-    },
-    accounts: [
-      { pubkey: governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
-    ],
-  });
-}
-
-export function buildAcceptGovernanceAuthorityTx(params: {
-  pendingAuthority: PublicKeyish;
-  recentBlockhash: string;
-}): Transaction {
-  const pendingAuthority = toPublicKey(params.pendingAuthority);
-  return buildProtocolTransactionFromInstruction({
-    feePayer: pendingAuthority,
-    recentBlockhash: params.recentBlockhash,
-    instructionName: "accept_protocol_governance_authority",
-    args: {},
-    accounts: [
-      { pubkey: pendingAuthority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
-    ],
-  });
-}
-
-export function buildCancelGovernanceAuthorityTransferTx(params: {
-  governanceAuthority: PublicKeyish;
-  recentBlockhash: string;
-}): Transaction {
-  const governanceAuthority = toPublicKey(params.governanceAuthority);
-  return buildProtocolTransactionFromInstruction({
-    feePayer: governanceAuthority,
-    recentBlockhash: params.recentBlockhash,
-    instructionName: "cancel_protocol_governance_authority_transfer",
-    args: {},
-    accounts: [
-      { pubkey: governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
     ],
   });
 }

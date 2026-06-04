@@ -95,25 +95,6 @@ pub mod omegax_protocol {
         crate::governance::set_protocol_emergency_pause(ctx, args)
     }
 
-    pub fn rotate_protocol_governance_authority(
-        ctx: Context<RotateProtocolGovernanceAuthority>,
-        args: RotateProtocolGovernanceAuthorityArgs,
-    ) -> Result<()> {
-        crate::governance::rotate_protocol_governance_authority(ctx, args)
-    }
-
-    pub fn accept_protocol_governance_authority(
-        ctx: Context<AcceptProtocolGovernanceAuthority>,
-    ) -> Result<()> {
-        crate::governance::accept_protocol_governance_authority(ctx)
-    }
-
-    pub fn cancel_protocol_governance_authority_transfer(
-        ctx: Context<CancelProtocolGovernanceAuthorityTransfer>,
-    ) -> Result<()> {
-        crate::governance::cancel_protocol_governance_authority_transfer(ctx)
-    }
-
     pub fn create_reserve_domain(
         ctx: Context<CreateReserveDomain>,
         args: CreateReserveDomainArgs,
@@ -546,28 +527,6 @@ pub mod omegax_protocol {
     ) -> Result<()> {
         let _ = &reason_hash;
         crate::governance::set_protocol_emergency_pause(&mut ctx, emergency_pause)
-    }
-
-    #[instruction(discriminator = [173, 25, 179, 236, 198, 190, 207, 98])]
-    pub fn rotate_protocol_governance_authority(
-        ctx: Ctx<RotateProtocolGovernanceAuthority>,
-        new_governance_authority: Pubkey,
-    ) -> Result<()> {
-        crate::governance::rotate_protocol_governance_authority(&mut ctx, new_governance_authority)
-    }
-
-    #[instruction(discriminator = [202, 235, 28, 119, 167, 24, 81, 85])]
-    pub fn accept_protocol_governance_authority(
-        ctx: Ctx<AcceptProtocolGovernanceAuthority>,
-    ) -> Result<()> {
-        crate::governance::accept_protocol_governance_authority(&mut ctx)
-    }
-
-    #[instruction(discriminator = [113, 25, 246, 12, 38, 35, 223, 114])]
-    pub fn cancel_protocol_governance_authority_transfer(
-        ctx: Ctx<CancelProtocolGovernanceAuthorityTransfer>,
-    ) -> Result<()> {
-        crate::governance::cancel_protocol_governance_authority_transfer(&mut ctx)
     }
 
     #[instruction(discriminator = [222, 2, 8, 218, 45, 157, 193, 246])]

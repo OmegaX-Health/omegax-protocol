@@ -1,16 +1,14 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
 // source: shared/protocol_contract.json
-// contract_sha256: 18a0d308ccbeb7082bc81ab8177705dbbceca63481902f631ee6398cd482fd52
+// contract_sha256: 0a824db37a24da0de9a25aae2a80a3e6497cb144fe38eef78af657a376ec1eda
 
 export type ProtocolInstructionName =
-  | "accept_protocol_governance_authority"
   | "adjudicate_claim_case"
   | "allocate_capital"
   | "attach_claim_evidence_ref"
   | "attest_claim_case"
   | "authorize_claim_recipient"
   | "backfill_schema_dependency_ledger"
-  | "cancel_protocol_governance_authority_transfer"
   | "claim_oracle"
   | "close_outcome_schema"
   | "configure_reserve_asset_rail"
@@ -42,7 +40,6 @@ export type ProtocolInstructionName =
   | "release_reserve"
   | "request_redemption"
   | "reserve_obligation"
-  | "rotate_protocol_governance_authority"
   | "set_pool_oracle"
   | "set_pool_oracle_permissions"
   | "set_pool_oracle_policy"
@@ -83,14 +80,12 @@ export type ProtocolInstructionAccount = {
 export const PROTOCOL_PROGRAM_ID = "Bn6eixac1QEEVErGBvBjxAd6pgB9e2q4XHvAkinQ5y1B" as const;
 
 export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName, Uint8Array> = {
-  "accept_protocol_governance_authority": Uint8Array.from([202, 235, 28, 119, 167, 24, 81, 85]),
   "adjudicate_claim_case": Uint8Array.from([146, 99, 255, 26, 223, 88, 235, 114]),
   "allocate_capital": Uint8Array.from([146, 129, 60, 205, 88, 225, 60, 183]),
   "attach_claim_evidence_ref": Uint8Array.from([52, 246, 203, 87, 244, 143, 132, 131]),
   "attest_claim_case": Uint8Array.from([111, 40, 46, 51, 76, 157, 214, 136]),
   "authorize_claim_recipient": Uint8Array.from([112, 97, 129, 42, 125, 165, 226, 163]),
   "backfill_schema_dependency_ledger": Uint8Array.from([109, 109, 247, 151, 229, 78, 52, 167]),
-  "cancel_protocol_governance_authority_transfer": Uint8Array.from([113, 25, 246, 12, 38, 35, 223, 114]),
   "claim_oracle": Uint8Array.from([1, 252, 166, 132, 45, 24, 23, 233]),
   "close_outcome_schema": Uint8Array.from([196, 81, 8, 61, 95, 145, 225, 2]),
   "configure_reserve_asset_rail": Uint8Array.from([78, 48, 108, 190, 181, 203, 194, 176]),
@@ -122,7 +117,6 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
   "release_reserve": Uint8Array.from([170, 102, 52, 144, 33, 176, 41, 60]),
   "request_redemption": Uint8Array.from([14, 62, 182, 237, 59, 79, 149, 22]),
   "reserve_obligation": Uint8Array.from([48, 113, 133, 225, 40, 36, 197, 86]),
-  "rotate_protocol_governance_authority": Uint8Array.from([173, 25, 179, 236, 198, 190, 207, 98]),
   "set_pool_oracle": Uint8Array.from([140, 225, 146, 45, 210, 81, 225, 223]),
   "set_pool_oracle_permissions": Uint8Array.from([168, 14, 22, 106, 118, 145, 105, 44]),
   "set_pool_oracle_policy": Uint8Array.from([190, 13, 51, 113, 230, 140, 103, 82]),
@@ -148,9 +142,6 @@ export const PROTOCOL_INSTRUCTION_DISCRIMINATORS: Record<ProtocolInstructionName
 };
 
 export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, ProtocolInstructionArg[]> = {
-  "accept_protocol_governance_authority": [
-
-  ],
   "adjudicate_claim_case": [
       { name: "args", type: {"defined":{"name":"AdjudicateClaimCaseArgs"}} },
   ],
@@ -168,9 +159,6 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   ],
   "backfill_schema_dependency_ledger": [
       { name: "args", type: {"defined":{"name":"BackfillSchemaDependencyLedgerArgs"}} },
-  ],
-  "cancel_protocol_governance_authority_transfer": [
-
   ],
   "claim_oracle": [
 
@@ -265,9 +253,6 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
   "reserve_obligation": [
       { name: "args", type: {"defined":{"name":"ReserveObligationArgs"}} },
   ],
-  "rotate_protocol_governance_authority": [
-      { name: "args", type: {"defined":{"name":"RotateProtocolGovernanceAuthorityArgs"}} },
-  ],
   "set_pool_oracle": [
       { name: "args", type: {"defined":{"name":"SetPoolOracleArgs"}} },
   ],
@@ -337,10 +322,6 @@ export const PROTOCOL_INSTRUCTION_ARGS: Record<ProtocolInstructionName, Protocol
 };
 
 export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, ProtocolInstructionAccount[]> = {
-  "accept_protocol_governance_authority": [
-      { name: "pending_authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "protocol_governance", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
-  ],
   "adjudicate_claim_case": [
       { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
       { name: "protocol_governance", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
@@ -393,10 +374,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "outcome_schema", writable: false, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 117, 116, 99, 111, 109, 101, 95, 115, 99, 104, 101, 109, 97] }, { kind: "arg", path: "args.schema_key_hash" }] },
       { name: "schema_dependency_ledger", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [115, 99, 104, 101, 109, 97, 95, 100, 101, 112, 101, 110, 100, 101, 110, 99, 121, 95, 108, 101, 100, 103, 101, 114] }, { kind: "arg", path: "args.schema_key_hash" }] },
       { name: "system_program", writable: false, signer: false, optional: false, address: "11111111111111111111111111111111", pdaSeeds: undefined },
-  ],
-  "cancel_protocol_governance_authority_transfer": [
-      { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "protocol_governance", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
   ],
   "claim_oracle": [
       { name: "oracle", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
@@ -704,10 +681,6 @@ export const PROTOCOL_INSTRUCTION_ACCOUNTS: Record<ProtocolInstructionName, Prot
       { name: "allocation_ledger", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: undefined },
       { name: "obligation", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [111, 98, 108, 105, 103, 97, 116, 105, 111, 110] }, { kind: "account", path: "funding_line" }, { kind: "account", path: "obligation.obligation_id" }] },
       { name: "claim_case", writable: true, signer: false, optional: true, address: undefined, pdaSeeds: [{ kind: "const", value: [99, 108, 97, 105, 109, 95, 99, 97, 115, 101] }, { kind: "account", path: "health_plan" }, { kind: "account", path: "claim_case.claim_id" }] },
-  ],
-  "rotate_protocol_governance_authority": [
-      { name: "authority", writable: false, signer: true, optional: false, address: undefined, pdaSeeds: undefined },
-      { name: "protocol_governance", writable: true, signer: false, optional: false, address: undefined, pdaSeeds: [{ kind: "const", value: [112, 114, 111, 116, 111, 99, 111, 108, 95, 103, 111, 118, 101, 114, 110, 97, 110, 99, 101] }] },
   ],
   "set_pool_oracle": [
       { name: "authority", writable: true, signer: true, optional: false, address: undefined, pdaSeeds: undefined },

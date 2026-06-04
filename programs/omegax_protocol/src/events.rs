@@ -22,64 +22,6 @@ pub struct ProtocolGovernanceInitializedEvent {
 
 #[cfg(not(feature = "quasar"))]
 #[event]
-pub struct ProtocolGovernanceAuthorityRotatedEvent {
-    pub previous_governance_authority: Pubkey,
-    pub new_governance_authority: Pubkey,
-    pub authority: Pubkey,
-    pub audit_nonce: u64,
-}
-
-#[cfg(feature = "quasar")]
-#[cfg_attr(any(), event(discriminator = [182, 225, 228, 198, 36, 195, 73, 212]))]
-pub struct ProtocolGovernanceAuthorityRotatedEvent {
-    pub previous_governance_authority: Address,
-    pub new_governance_authority: Address,
-    pub authority: Address,
-    pub audit_nonce: u64,
-}
-
-#[cfg(not(feature = "quasar"))]
-#[event]
-pub struct ProtocolGovernanceAuthorityTransferProposedEvent {
-    pub current_governance_authority: Pubkey,
-    pub pending_governance_authority: Pubkey,
-    pub authority: Pubkey,
-    pub proposed_at_ts: i64,
-    pub expires_at_ts: i64,
-    pub audit_nonce: u64,
-}
-
-#[cfg(feature = "quasar")]
-#[cfg_attr(any(), event(discriminator = [255, 93, 25, 129, 137, 23, 184, 130]))]
-pub struct ProtocolGovernanceAuthorityTransferProposedEvent {
-    pub current_governance_authority: Address,
-    pub pending_governance_authority: Address,
-    pub authority: Address,
-    pub proposed_at_ts: i64,
-    pub expires_at_ts: i64,
-    pub audit_nonce: u64,
-}
-
-#[cfg(not(feature = "quasar"))]
-#[event]
-pub struct ProtocolGovernanceAuthorityTransferCanceledEvent {
-    pub governance_authority: Pubkey,
-    pub canceled_governance_authority: Pubkey,
-    pub authority: Pubkey,
-    pub audit_nonce: u64,
-}
-
-#[cfg(feature = "quasar")]
-#[cfg_attr(any(), event(discriminator = [159, 189, 24, 31, 242, 105, 166, 146]))]
-pub struct ProtocolGovernanceAuthorityTransferCanceledEvent {
-    pub governance_authority: Address,
-    pub canceled_governance_authority: Address,
-    pub authority: Address,
-    pub audit_nonce: u64,
-}
-
-#[cfg(not(feature = "quasar"))]
-#[event]
 pub struct ReserveDomainCreatedEvent {
     pub reserve_domain: Pubkey,
     pub domain_admin: Pubkey,

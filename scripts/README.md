@@ -33,7 +33,7 @@ This directory contains the repository's command-line helpers.
 
 - `bootstrap_governance_realms.ts` provisions governance state
 - `bootstrap_protocol.ts` writes the canonical hard-break devnet migration manifest and env exports
-- `bootstrap_devnet_live_protocol.ts` seeds the canonical shared-devnet plan/capital/oracle/schema graph, then proposes protocol-governance transfer to the configured governance PDA when one is present; that PDA must later execute `accept_protocol_governance_authority`
+- `bootstrap_devnet_live_protocol.ts` seeds the canonical shared-devnet plan/capital/oracle/schema graph and requires the initialized protocol-governance authority to already match the configured governance control when one is present
 - `bootstrap_genesis_live_protocol.ts` seeds the real Genesis Protect Acute launch surface from explicit live inputs instead of the baked devnet fixture matrix
 - `bootstrap_devnet_frontend_parity.ts` syncs canonical fixture env values and writes `frontend/public/devnet-fixtures.json`
 - `devnet_beta_observability.ts` collects structured devnet observability output
