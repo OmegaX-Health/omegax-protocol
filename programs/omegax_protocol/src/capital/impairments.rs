@@ -12,12 +12,7 @@ pub(crate) fn mark_impairment(
     ctx: Context<MarkImpairment>,
     args: MarkImpairmentArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_claim_operator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_claim_operator(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_positive_amount(args.amount)?;
     validate_impairment_bindings(
         ctx.accounts.series_reserve_ledger.as_deref(),
@@ -94,25 +89,11 @@ fn quasar_debit_realized_pnl_for_loss(realized_pnl: i64, amount: u64) -> Result<
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_claim_operator(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
-    if *authority == plan.claims_operator
-        || *authority == plan.plan_admin
-        || *authority == governance.governance_authority
-    {
+    if *authority == plan.claims_operator || *authority == plan.plan_admin {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -527,13 +508,8 @@ pub(crate) fn mark_impairment<'info>(
     amount: u64,
     reason_hash: [u8; 32],
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_claim_operator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_claim_operator(&authority, &ctx.accounts.health_plan)?;
     require_quasar_positive_amount(amount)?;
 
     let series_ledger = ctx
@@ -786,12 +762,6 @@ pub struct MarkImpairment<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,

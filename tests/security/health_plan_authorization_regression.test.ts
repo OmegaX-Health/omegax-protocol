@@ -10,6 +10,6 @@ test("[CSO-2026-05-10] health plan creation requires reserve-domain control", ()
 
   assert.match(body, /require_domain_control\(/);
   assert.match(body, /plan_admin\.key\(\)/);
-  assert.match(body, /protocol_governance/);
+  assert.doesNotMatch(body, /protocol_governance/);
   assert.match(body, /reserve_domain/);
 });

@@ -11,7 +11,6 @@ pub(crate) fn settle_obligation(
     ctx: Context<SettleObligation>,
     args: SettleObligationArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let amount = args.amount;
     require_positive_amount(amount)?;
     let now_ts = Clock::get()?.unix_timestamp;
@@ -19,7 +18,6 @@ pub(crate) fn settle_obligation(
     let obligation_key = obligation.key();
     require_obligation_settlement_control(
         &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
         &ctx.accounts.health_plan,
         obligation,
     )?;
@@ -387,16 +385,6 @@ fn settle_from_allocation_sheet(
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_positive_amount(amount: u64) -> Result<()> {
     require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
     Ok(())
@@ -405,21 +393,14 @@ fn require_quasar_positive_amount(amount: u64) -> Result<()> {
 #[cfg(feature = "quasar")]
 fn require_quasar_obligation_settlement_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
     obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
     if obligation.claim_case != ZERO_PUBKEY {
-        if *authority == plan.claims_operator
-            || *authority == plan.plan_admin
-            || *authority == governance.governance_authority
-        {
+        if *authority == plan.claims_operator || *authority == plan.plan_admin {
             return Ok(());
         }
-    } else if *authority == plan.plan_admin
-        || *authority == plan.sponsor_operator
-        || *authority == governance.governance_authority
-    {
+    } else if *authority == plan.plan_admin || *authority == plan.sponsor_operator {
         return Ok(());
     }
 
@@ -790,7 +771,6 @@ pub(crate) fn settle_obligation<'info>(
     amount: u64,
     settlement_reason_hash: [u8; 32],
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_positive_amount(amount)?;
     let now_ts = Clock::get()?.unix_timestamp.get();
     let authority = *ctx.accounts.authority.address();
@@ -798,7 +778,6 @@ pub(crate) fn settle_obligation<'info>(
     let health_plan_key = *ctx.accounts.health_plan.address();
     require_quasar_obligation_settlement_control(
         &authority,
-        &ctx.accounts.protocol_governance,
         &ctx.accounts.health_plan,
         &ctx.accounts.obligation,
     )?;
@@ -1435,12 +1414,6 @@ pub struct SettleObligation<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,

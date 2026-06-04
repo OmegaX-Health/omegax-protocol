@@ -9,23 +9,6 @@ use crate::platform::*;
     not(feature = "quasar"),
     derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
 )]
-pub struct InitializeProtocolGovernanceArgs {
-    pub emergency_pause: bool,
-}
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
-pub struct SetProtocolEmergencyPauseArgs {
-    pub emergency_pause: bool,
-    pub reason_hash: [u8; 32],
-}
-
-#[cfg_attr(
-    not(feature = "quasar"),
-    derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)
-)]
 pub struct CreateReserveDomainArgs {
     #[cfg_attr(not(feature = "quasar"), max_len(MAX_ID_LEN))]
     pub domain_id: String,

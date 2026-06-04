@@ -12,13 +12,12 @@ import { executeProtocolTransactionWithToast } from "@/lib/protocol-action-toast
 import {
   buildCreateDomainAssetVaultTx,
   buildCreateReserveDomainTx,
-  buildInitializeProtocolGovernanceTx,
   hashStringTo32Hex,
   type ProtocolConsoleSnapshot,
 } from "@/lib/protocol";
 import { cn } from "@/lib/cn";
 
-export type GovernanceOperatorSection = "governance" | "domain" | "vault";
+export type GovernanceOperatorSection = "domain" | "vault";
 
 type Status = {
   tone: "ok" | "error";
@@ -28,7 +27,7 @@ type Status = {
 
 type SnapshotSlice = Pick<
   ProtocolConsoleSnapshot,
-  "protocolGovernance" | "reserveDomains" | "domainAssetVaults"
+  "reserveDomains" | "domainAssetVaults"
 >;
 
 type GovernanceOperatorDrawerProps = {
@@ -41,14 +40,9 @@ type GovernanceOperatorDrawerProps = {
 
 const SECTIONS: Array<{ id: GovernanceOperatorSection; label: string; blurb: string }> = [
   {
-    id: "governance",
-    label: "Governance",
-    blurb: "Initialize the protocol governance authority.",
-  },
-  {
     id: "domain",
     label: "Reserve domain",
-    blurb: "Create a reserve domain under governance control.",
+    blurb: "Create a reserve domain under local domain-admin control.",
   },
   {
     id: "vault",
@@ -74,11 +68,10 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const canAct = Boolean(publicKey);
-  const governanceReady = Boolean(props.snapshot.protocolGovernance);
   const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
 
   const [section, setSection] = useState<GovernanceOperatorSection>(
-    props.initialSection ?? "governance",
+    props.initialSection ?? "domain",
   );
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -86,10 +79,6 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
   useEffect(() => {
     if (props.open && props.initialSection) setSection(props.initialSection);
   }, [props.open, props.initialSection]);
-
-  const [emergencyPaused, setEmergencyPaused] = useState(
-    props.snapshot.protocolGovernance?.emergencyPause ?? false,
-  );
 
   // Domain
   const [domainId, setDomainId] = useState("");
@@ -174,23 +163,22 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
 
   const sheetMeta = useMemo(() => {
     const meta: Array<{ label: string; tone?: "default" | "accent" | "muted" }> = [];
-    meta.push({ label: governanceReady ? "Governance ready" : "Bootstrap pending", tone: governanceReady ? "accent" : "muted" });
     meta.push({ label: `${props.snapshot.reserveDomains.length} domain${props.snapshot.reserveDomains.length === 1 ? "" : "s"}` });
     return meta;
-  }, [governanceReady, props.snapshot.reserveDomains.length]);
+  }, [props.snapshot.reserveDomains.length]);
 
   return (
     <WizardDetailSheet
       open={props.open}
       onOpenChange={props.onOpenChange}
       title="Operator actions"
-      summary="Initialize governance, create reserve domains, and open domain asset vaults."
+      summary="Create reserve domains and open domain asset vaults."
       meta={sheetMeta}
       size="wide"
     >
       {reviewPrompt}
       <div className="operator-drawer">
-        <nav className="operator-drawer-nav" aria-label="Governance operator action sections">
+        <nav className="operator-drawer-nav" aria-label="Operator action sections">
           {SECTIONS.map((item) => (
             <button
               key={item.id}
@@ -211,7 +199,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
         <div className="operator-drawer-body">
           {!canAct ? (
             <p className="operator-drawer-hint">
-              Connect the governance or domain-admin wallet before submitting protocol transactions.
+              Connect the domain-admin wallet before submitting protocol transactions.
             </p>
           ) : null}
 
@@ -239,53 +227,10 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
             </div>
           ) : null}
 
-          {section === "governance" ? (
-            <div className="operator-drawer-section">
-              <fieldset className="operator-drawer-fieldset">
-                <legend className="operator-drawer-legend">Initialize protocol governance</legend>
-                <p className="operator-drawer-hint">
-                  {governanceReady
-                    ? "Protocol governance is already initialized."
-                    : "Sets the governance authority and emergency pause posture."}
-                </p>
-                <Toggle
-                  label="Emergency pause"
-                  description="Enable to freeze the protocol at launch."
-                  checked={emergencyPaused}
-                  onChange={setEmergencyPaused}
-                />
-                <div className="operator-drawer-actions">
-                  <button
-                    type="button"
-                    className="plans-primary-cta"
-                    disabled={!canAct || governanceReady || busyOn("Initialize protocol governance")}
-                    onClick={() =>
-                      run("Initialize protocol governance", async () => {
-                        const { blockhash } = await connection.getLatestBlockhash("confirmed");
-                        return buildInitializeProtocolGovernanceTx({
-                          governanceAuthority: publicKey!,
-                          recentBlockhash: blockhash,
-                          emergencyPaused,
-                        });
-                      })
-                    }
-                  >
-                    {governanceReady ? "Governance ready" : "Initialize governance"}
-                  </button>
-                </div>
-              </fieldset>
-            </div>
-          ) : null}
-
           {section === "domain" ? (
             <div className="operator-drawer-section">
               <fieldset className="operator-drawer-fieldset">
                 <legend className="operator-drawer-legend">Create reserve domain</legend>
-                {!governanceReady ? (
-                  <p className="operator-drawer-hint">
-                    Initialize protocol governance first.
-                  </p>
-                ) : null}
                 <div className="plans-wizard-row">
                   <TextField
                     label="Domain identifier"
@@ -340,7 +285,6 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
                     className="plans-primary-cta"
                     disabled={
                       !canAct ||
-                      !governanceReady ||
                       !domainId.trim() ||
                       busyOn("Create reserve domain")
                     }
@@ -373,11 +317,7 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
             <div className="operator-drawer-section">
               <fieldset className="operator-drawer-fieldset">
                 <legend className="operator-drawer-legend">Create domain asset vault</legend>
-                {!governanceReady ? (
-                  <p className="operator-drawer-hint">
-                    Initialize protocol governance first.
-                  </p>
-                ) : props.snapshot.reserveDomains.length === 0 ? (
+                {props.snapshot.reserveDomains.length === 0 ? (
                   <p className="operator-drawer-hint">
                     Create a reserve domain before opening a vault.
                   </p>
@@ -420,7 +360,6 @@ export function GovernanceOperatorDrawer(props: GovernanceOperatorDrawerProps) {
                     className="plans-primary-cta"
                     disabled={
                       !canAct ||
-                      !governanceReady ||
                       !selectedReserveDomainAddress ||
                       !assetMint.trim() ||
                       !vaultTokenAccount.trim() ||

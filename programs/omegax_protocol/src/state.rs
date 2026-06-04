@@ -5,21 +5,10 @@
 use crate::constants::*;
 use crate::platform::*;
 
-#[cfg_attr(not(feature = "quasar"), account)]
-#[cfg_attr(feature = "quasar", account(discriminator = [71, 235, 253, 251, 202, 254, 132, 177]))]
-#[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
-pub struct ProtocolGovernance {
-    pub governance_authority: Pubkey,
-    pub emergency_pause: bool,
-    pub audit_nonce: u64,
-    pub bump: u8,
-}
-
 #[cfg(not(feature = "quasar"))]
 #[account]
 #[cfg_attr(not(feature = "quasar"), derive(InitSpace))]
 pub struct ReserveDomain {
-    pub protocol_governance: Pubkey,
     pub domain_admin: Pubkey,
     #[max_len(MAX_ID_LEN)]
     pub domain_id: String,
@@ -38,7 +27,6 @@ pub struct ReserveDomain {
 #[cfg(feature = "quasar")]
 #[account(discriminator = [119, 76, 223, 192, 177, 116, 88, 178])]
 pub struct ReserveDomain<'info> {
-    pub protocol_governance: Pubkey,
     pub domain_admin: Pubkey,
     pub settlement_mode: u8,
     pub legal_structure_hash: [u8; 32],
@@ -964,7 +952,6 @@ macro_rules! impl_quasar_dynamic_init_space {
 
 #[cfg(feature = "quasar")]
 impl_quasar_fixed_init_space!(
-    ProtocolGovernance,
     DomainAssetVault,
     MemberPosition,
     LPPosition,

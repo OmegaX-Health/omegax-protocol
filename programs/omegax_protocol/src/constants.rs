@@ -15,7 +15,6 @@ pub const MAX_SCHEMA_DEPENDENCY_RULES: usize = 32;
 pub const BASIS_POINTS_DENOMINATOR: u16 = 10_000;
 pub const MAX_SELECTED_ASSET_PAYOUT_OVERPAY_BPS: u16 = 50;
 
-pub const SEED_PROTOCOL_GOVERNANCE: &[u8] = b"protocol_governance";
 pub const SEED_RESERVE_DOMAIN: &[u8] = b"reserve_domain";
 pub const SEED_DOMAIN_ASSET_VAULT: &[u8] = b"domain_asset_vault";
 pub const SEED_DOMAIN_ASSET_VAULT_TOKEN: &[u8] = b"domain_asset_vault_token";

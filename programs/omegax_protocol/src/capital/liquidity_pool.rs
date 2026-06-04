@@ -18,10 +18,9 @@ fn require_quasar_id(value: &str) -> Result<()> {
 #[inline(always)]
 fn require_quasar_domain_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     domain: &ReserveDomainAccountData<'_>,
 ) -> Result<()> {
-    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+    if *authority == domain.domain_admin {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -34,11 +33,7 @@ pub(crate) fn create_liquidity_pool(
     args: CreateLiquidityPoolArgs,
 ) -> Result<()> {
     require_id(&args.pool_id)?;
-    require_domain_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_domain_control(&ctx.accounts.authority.key(), &ctx.accounts.reserve_domain)?;
     require!(
         ctx.accounts.domain_asset_vault.asset_mint == args.deposit_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
@@ -91,11 +86,7 @@ pub(crate) fn create_liquidity_pool<'info>(
 ) -> Result<()> {
     require_quasar_id(pool_id)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_domain_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_quasar_domain_control(&authority, &ctx.accounts.reserve_domain)?;
     require!(
         ctx.accounts.domain_asset_vault.asset_mint == deposit_asset_mint,
         OmegaXProtocolError::AssetMintMismatch
@@ -152,12 +143,6 @@ pub struct CreateLiquidityPool<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,

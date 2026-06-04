@@ -19,7 +19,6 @@ pub mod constants;
 pub mod errors;
 pub mod events;
 pub mod funding_obligations;
-pub mod governance;
 pub mod kernel;
 pub mod oracle_schema;
 pub mod plans_membership;
@@ -36,7 +35,6 @@ pub use constants::*;
 pub use errors::*;
 pub use events::*;
 pub use funding_obligations::*;
-pub use governance::*;
 #[cfg(test)]
 pub(crate) use kernel::*;
 pub use oracle_schema::*;
@@ -78,20 +76,6 @@ pub(crate) use reserve_waterfall::{
 #[program]
 pub mod omegax_protocol {
     use super::*;
-
-    pub fn initialize_protocol_governance(
-        ctx: Context<InitializeProtocolGovernance>,
-        args: InitializeProtocolGovernanceArgs,
-    ) -> Result<()> {
-        crate::governance::initialize_protocol_governance(ctx, args)
-    }
-
-    pub fn set_protocol_emergency_pause(
-        ctx: Context<SetProtocolEmergencyPause>,
-        args: SetProtocolEmergencyPauseArgs,
-    ) -> Result<()> {
-        crate::governance::set_protocol_emergency_pause(ctx, args)
-    }
 
     pub fn create_reserve_domain(
         ctx: Context<CreateReserveDomain>,
@@ -416,24 +400,6 @@ pub mod omegax_protocol {
     #[inline(always)]
     fn quasar_handler_port_pending() -> Result<()> {
         Err(ProgramError::InvalidInstructionData)
-    }
-
-    #[instruction(discriminator = [220, 188, 231, 198, 20, 71, 42, 123])]
-    pub fn initialize_protocol_governance(
-        ctx: Ctx<InitializeProtocolGovernance>,
-        emergency_pause: bool,
-    ) -> Result<()> {
-        crate::governance::initialize_protocol_governance(&mut ctx, emergency_pause)
-    }
-
-    #[instruction(discriminator = [180, 209, 92, 144, 227, 14, 97, 94])]
-    pub fn set_protocol_emergency_pause(
-        ctx: Ctx<SetProtocolEmergencyPause>,
-        emergency_pause: bool,
-        reason_hash: [u8; 32],
-    ) -> Result<()> {
-        let _ = &reason_hash;
-        crate::governance::set_protocol_emergency_pause(&mut ctx, emergency_pause)
     }
 
     #[instruction(discriminator = [222, 2, 8, 218, 45, 157, 193, 246])]

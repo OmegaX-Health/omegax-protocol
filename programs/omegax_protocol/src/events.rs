@@ -6,20 +6,6 @@ use crate::platform::*;
 
 #[cfg(not(feature = "quasar"))]
 #[event]
-pub struct ProtocolGovernanceInitializedEvent {
-    pub governance_authority: Pubkey,
-    pub emergency_pause: bool,
-}
-
-#[cfg(feature = "quasar")]
-#[cfg_attr(any(), event(discriminator = [89, 34, 67, 141, 79, 64, 188, 254]))]
-pub struct ProtocolGovernanceInitializedEvent {
-    pub governance_authority: Address,
-    pub emergency_pause: bool,
-}
-
-#[cfg(not(feature = "quasar"))]
-#[event]
 pub struct ReserveDomainCreatedEvent {
     pub reserve_domain: Pubkey,
     pub domain_admin: Pubkey,

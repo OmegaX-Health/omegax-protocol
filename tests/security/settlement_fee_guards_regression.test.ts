@@ -78,16 +78,10 @@ test("[CSO-2026-06-04] settlement fee-vault surface is removed", () => {
   }
 });
 
-test("[ALAMANX-509b8643] protocol governance init requires program upgrade authority", () => {
-  assert.match(programSource, /program\.programdata_address\(\)\? == Some\(program_data\.key\(\)\)/);
-  assert.match(
-    programSource,
-    /program_data\.upgrade_authority_address == Some\(governance_authority\.key\(\)\)/,
-  );
-  assert.deepEqual(
-    listProtocolInstructionAccounts("initialize_protocol_governance").map((account) => account.name),
-    ["governance_authority", "protocol_governance", "program", "program_data", "system_program"],
-  );
+test("[ALAMANX-509b8643] protocol governance init surface is removed", () => {
+  assert.doesNotMatch(programSource, /initialize_protocol_governance/);
+  assert.doesNotMatch(programSource, /set_protocol_emergency_pause/);
+  assert.doesNotMatch(programSource, /ProtocolGovernance/);
 });
 
 test("[CSO-2026-04-29] settlement builders preserve outflow account slots", () => {
@@ -122,8 +116,10 @@ test("[CSO-2026-04-29] settlement builders preserve outflow account slots", () =
     recipientTokenAccountAddress: recipientTokenAccount,
   });
   assertAccountCount("settle_claim_case", settleClaim.instructions[0]!.keys.length);
+  const reserveAssetRailIndex = listProtocolInstructionAccounts("settle_claim_case")
+    .findIndex((account) => account.name === "reserve_asset_rail");
   assert.equal(
-    settleClaim.instructions[0]!.keys[3]!.pubkey.toBase58(),
+    settleClaim.instructions[0]!.keys[reserveAssetRailIndex]!.pubkey.toBase58(),
     deriveReserveAssetRailPda({
       reserveDomain: claim.reserveDomain,
       assetMint: fundingLine.assetMint,

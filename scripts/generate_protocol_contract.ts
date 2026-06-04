@@ -76,7 +76,6 @@ const FRONTEND_GENERATED_PATH = resolve(REPO_ROOT, 'frontend/lib/generated/proto
 const FRONTEND_GENERATED_JS_PATH = resolve(REPO_ROOT, 'frontend/lib/generated/protocol-contract.js');
 
 const PDA_SEEDS: Record<string, string[]> = {
-  protocol_governance: ['protocol_governance'],
   reserve_domain: ['reserve_domain', '<domain_id>'],
   domain_asset_vault: ['domain_asset_vault', '<reserve_domain>', '<asset_mint>'],
   domain_asset_vault_token: ['domain_asset_vault_token', '<reserve_domain>', '<asset_mint>'],

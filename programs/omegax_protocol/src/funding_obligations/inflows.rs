@@ -9,12 +9,7 @@ pub(crate) fn fund_sponsor_budget(
     ctx: Context<FundSponsorBudget>,
     args: FundSponsorBudgetArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_positive_amount(args.amount)?;
     require!(
         ctx.accounts.funding_line.line_type == FUNDING_LINE_TYPE_SPONSOR_BUDGET,
@@ -60,12 +55,7 @@ pub(crate) fn record_premium_payment(
     ctx: Context<RecordPremiumPayment>,
     args: RecordPremiumPaymentArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_positive_amount(args.amount)?;
     require!(
         ctx.accounts.funding_line.line_type == FUNDING_LINE_TYPE_PREMIUM_INCOME,
@@ -118,16 +108,6 @@ fn quasar_checked_add(lhs: u64, rhs: u64) -> Result<u64> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_positive_amount(amount: u64) -> Result<()> {
     require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
     Ok(())
@@ -135,15 +115,8 @@ fn require_quasar_positive_amount(amount: u64) -> Result<()> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_plan_control(
-    authority: &Pubkey,
-    governance: &ProtocolGovernance,
-    plan: &HealthPlanAccountData<'_>,
-) -> Result<()> {
-    if *authority == plan.plan_admin
-        || *authority == plan.sponsor_operator
-        || *authority == governance.governance_authority
-    {
+fn require_quasar_plan_control(authority: &Pubkey, plan: &HealthPlanAccountData<'_>) -> Result<()> {
+    if *authority == plan.plan_admin || *authority == plan.sponsor_operator {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -217,13 +190,8 @@ pub(crate) fn fund_sponsor_budget<'info>(
     ctx: &mut Ctx<'info, FundSponsorBudget<'info>>,
     amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
     require_quasar_positive_amount(amount)?;
     require!(
         ctx.accounts.funding_line.line_type == FUNDING_LINE_TYPE_SPONSOR_BUDGET,
@@ -344,13 +312,8 @@ pub(crate) fn record_premium_payment<'info>(
     ctx: &mut Ctx<'info, RecordPremiumPayment<'info>>,
     amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
     require_quasar_positive_amount(amount)?;
     require!(
         ctx.accounts.funding_line.line_type == FUNDING_LINE_TYPE_PREMIUM_INCOME,
@@ -473,12 +436,6 @@ pub struct FundSponsorBudget<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
     #[cfg(feature = "quasar")]
@@ -593,12 +550,6 @@ pub struct RecordPremiumPayment<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,

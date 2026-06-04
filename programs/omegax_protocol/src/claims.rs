@@ -16,15 +16,6 @@ use crate::state::*;
 use quasar_lang::sysvars::Sysvar;
 
 #[cfg(feature = "quasar")]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 #[inline(always)]
 fn require_quasar_id(value: &str) -> Result<()> {
     require!(
@@ -44,13 +35,9 @@ fn require_quasar_health_plan_active(plan: &HealthPlanAccountData<'_>) -> Result
 #[cfg(feature = "quasar")]
 fn require_quasar_claim_operator(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
-    if *authority == plan.claims_operator
-        || *authority == plan.plan_admin
-        || *authority == governance.governance_authority
-    {
+    if *authority == plan.claims_operator || *authority == plan.plan_admin {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -396,7 +383,6 @@ fn book_quasar_direct_claim_payout(
 
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn open_claim_case(ctx: Context<OpenClaimCase>, args: OpenClaimCaseArgs) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_id(&args.claim_id)?;
     require_health_plan_active(&ctx.accounts.health_plan)?;
     require!(
@@ -455,7 +441,6 @@ pub(crate) fn open_claim_case<'info>(
     evidence_ref_hash: [u8; 32],
     claim_id: &str,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_id(claim_id)?;
     require_quasar_health_plan_active(&ctx.accounts.health_plan)?;
     require!(
@@ -511,7 +496,6 @@ pub(crate) fn authorize_claim_recipient(
     ctx: Context<AuthorizeClaimRecipient>,
     args: AuthorizeClaimRecipientArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     // The Anchor context binds member_position.wallet == authority.key()
     // and claim_case.member_position == member_position.key(), so reaching
     // this body means the member of record signed.
@@ -530,8 +514,6 @@ pub(crate) fn authorize_claim_recipient<'info>(
     ctx: &mut Ctx<'info, AuthorizeClaimRecipient<'info>>,
     delegate_recipient: Pubkey,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-
     let claim_case = &mut ctx.accounts.claim_case;
     require!(
         claim_case.intake_status < CLAIM_INTAKE_APPROVED && claim_case.paid_amount.get() == 0,
@@ -603,12 +585,7 @@ pub(crate) fn attach_claim_evidence_ref(
     ctx: Context<AttachClaimEvidenceRef>,
     args: AttachClaimEvidenceRefArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_claim_operator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_claim_operator(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
 
     let claim_case = &mut ctx.accounts.claim_case;
     require_claim_evidence_mutable(claim_case)?;
@@ -624,13 +601,8 @@ pub(crate) fn attach_claim_evidence_ref<'info>(
     evidence_ref_hash: [u8; 32],
     decision_support_hash: [u8; 32],
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_claim_operator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_claim_operator(&authority, &ctx.accounts.health_plan)?;
 
     let claim_case = &mut ctx.accounts.claim_case;
     require_quasar_claim_evidence_mutable(claim_case)?;
@@ -699,12 +671,7 @@ pub(crate) fn adjudicate_claim_case(
     ctx: Context<AdjudicateClaimCase>,
     args: AdjudicateClaimCaseArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_claim_operator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_claim_operator(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require!(
         args.reserve_amount <= args.approved_amount,
         OmegaXProtocolError::AmountExceedsApprovedClaim
@@ -822,13 +789,8 @@ pub(crate) fn adjudicate_claim_case<'info>(
     reserve_amount: u64,
     decision_support_hash: [u8; 32],
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_claim_operator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_claim_operator(&authority, &ctx.accounts.health_plan)?;
     require!(
         reserve_amount <= approved_amount,
         OmegaXProtocolError::AmountExceedsApprovedClaim
@@ -996,12 +958,7 @@ pub(crate) fn settle_claim_case(
     ctx: Context<SettleClaimCase>,
     args: SettleClaimCaseArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_claim_operator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_claim_operator(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
     crate::reserve_waterfall::require_reserve_asset_rail_payout_enabled(
         &ctx.accounts.reserve_asset_rail,
@@ -1089,14 +1046,9 @@ pub(crate) fn settle_claim_case<'info>(
     ctx: &mut Ctx<'info, SettleClaimCase<'info>>,
     amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
     let funding_line_key = *ctx.accounts.funding_line.address();
-    require_quasar_claim_operator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_claim_operator(&authority, &ctx.accounts.health_plan)?;
     require_quasar_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
     let now_ts = Clock::get()?.unix_timestamp.get();
     require_quasar_reserve_asset_rail_payout_enabled(&ctx.accounts.reserve_asset_rail, now_ts)?;
@@ -1328,12 +1280,7 @@ pub(crate) fn settle_claim_case_selected_asset(
     ctx: Context<SettleClaimCaseSelectedAsset>,
     args: SettleClaimCaseSelectedAssetArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_claim_operator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_claim_operator(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
     require_positive_amount(args.claim_credit_amount)?;
     require_positive_amount(args.payout_amount)?;
@@ -1455,14 +1402,9 @@ pub(crate) fn settle_claim_case_selected_asset<'info>(
     settlement_reason_hash: [u8; 32],
 ) -> Result<()> {
     let _ = settlement_reason_hash;
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
     let health_plan_key = *ctx.accounts.health_plan.address();
-    require_quasar_claim_operator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_claim_operator(&authority, &ctx.accounts.health_plan)?;
     require_quasar_direct_claim_case_settlement(&ctx.accounts.claim_case)?;
     require_quasar_positive_amount(claim_credit_amount)?;
     require_quasar_positive_amount(payout_amount)?;
@@ -1725,7 +1667,6 @@ pub(crate) fn attest_claim_case(
     let claim_case_key = ctx.accounts.claim_case.key();
 
     validate_claim_attestation_common(
-        &ctx.accounts.protocol_governance,
         ctx.accounts.health_plan.key(),
         &ctx.accounts.health_plan,
         ctx.accounts.funding_line.key(),
@@ -1837,7 +1778,6 @@ fn require_quasar_claim_attestation_oracle_authority(
 
 #[cfg(feature = "quasar")]
 fn validate_quasar_claim_attestation_common(
-    protocol_governance: &ProtocolGovernance,
     health_plan_key: Pubkey,
     health_plan: &HealthPlanAccountData<'_>,
     funding_line_key: Pubkey,
@@ -1847,7 +1787,6 @@ fn validate_quasar_claim_attestation_common(
     oracle_profile: &OracleProfileAccountData<'_>,
     attestation_ref_hash: [u8; 32],
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(protocol_governance)?;
     require!(
         health_plan.pause_flags.get() & PAUSE_FLAG_ORACLE_FINALITY_HOLD == 0,
         OmegaXProtocolError::OracleFinalityHeld
@@ -2161,7 +2100,6 @@ pub(crate) fn attest_claim_case<'info>(
     let funding_line_key = *ctx.accounts.funding_line.address();
 
     validate_quasar_claim_attestation_common(
-        &ctx.accounts.protocol_governance,
         health_plan_key,
         &ctx.accounts.health_plan,
         funding_line_key,
@@ -2290,7 +2228,6 @@ fn require_quasar_claim_evidence_mutable(claim_case: &ClaimCaseAccountData<'_>) 
 
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn validate_claim_attestation_common(
-    protocol_governance: &ProtocolGovernance,
     health_plan_key: Pubkey,
     health_plan: &HealthPlanAccountData<'_>,
     funding_line_key: Pubkey,
@@ -2300,7 +2237,6 @@ pub(crate) fn validate_claim_attestation_common(
     oracle_profile: &OracleProfileAccountData<'_>,
     args: &AttestClaimCaseArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(protocol_governance)?;
     require!(
         health_plan.pause_flags & PAUSE_FLAG_ORACLE_FINALITY_HOLD == 0,
         OmegaXProtocolError::OracleFinalityHeld
@@ -2629,12 +2565,6 @@ pub struct OpenClaimCase<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
     #[cfg(feature = "quasar")]
@@ -2731,12 +2661,6 @@ pub struct AuthorizeClaimRecipient<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[account(
         seeds = [
             SEED_MEMBER_POSITION,
@@ -2791,12 +2715,6 @@ pub struct AttachClaimEvidenceRef<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
     #[cfg(feature = "quasar")]
@@ -2831,12 +2749,6 @@ pub struct AdjudicateClaimCase<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
@@ -2878,12 +2790,6 @@ pub struct SettleClaimCase<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
@@ -3079,12 +2985,6 @@ pub struct SettleClaimCaseSelectedAsset<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
@@ -3332,12 +3232,6 @@ pub struct AttestClaimCase<'info> {
     pub oracle: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub oracle: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()],

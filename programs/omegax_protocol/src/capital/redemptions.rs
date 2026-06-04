@@ -12,7 +12,6 @@ pub(crate) fn request_redemption(
     ctx: Context<RequestRedemption>,
     args: RequestRedemptionArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_positive_amount(args.shares)?;
     require_class_access(
         &ctx.accounts.capital_class,
@@ -101,16 +100,6 @@ fn quasar_checked_u128_to_u64(value: u128) -> Result<u64> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_positive_amount(amount: u64) -> Result<()> {
     require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
     Ok(())
@@ -120,10 +109,9 @@ fn require_quasar_positive_amount(amount: u64) -> Result<()> {
 #[inline(always)]
 fn require_quasar_curator_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
-    if *authority == pool.curator || *authority == governance.governance_authority {
+    if *authority == pool.curator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -225,7 +213,6 @@ pub(crate) fn request_redemption<'info>(
     ctx: &mut Ctx<'info, RequestRedemption<'info>>,
     shares: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_positive_amount(shares)?;
     require_quasar_class_access_mode(
         ctx.accounts.capital_class.restriction_mode,
@@ -442,12 +429,7 @@ pub(crate) fn process_redemption_queue(
     ctx: Context<ProcessRedemptionQueue>,
     args: ProcessRedemptionQueueArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     require_positive_amount(args.shares)?;
     require!(
         args.shares <= ctx.accounts.lp_position.pending_redemption_shares,
@@ -533,13 +515,8 @@ pub(crate) fn process_redemption_queue<'info>(
     ctx: &mut Ctx<'info, ProcessRedemptionQueue<'info>>,
     shares: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
     require_quasar_positive_amount(shares)?;
 
     let pending_redemption_shares = ctx.accounts.lp_position.pending_redemption_shares.get();
@@ -795,12 +772,6 @@ pub struct RequestRedemption<'info> {
     #[cfg(feature = "quasar")]
     pub owner: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[cfg(feature = "quasar")]
@@ -878,12 +849,6 @@ pub struct ProcessRedemptionQueue<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_vault.bump)]
     pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,

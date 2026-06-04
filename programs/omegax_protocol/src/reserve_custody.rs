@@ -21,10 +21,9 @@ use crate::types::*;
 #[inline(always)]
 fn require_quasar_domain_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     domain: &ReserveDomainAccountData<'_>,
 ) -> Result<()> {
-    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+    if *authority == domain.domain_admin {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -33,12 +32,8 @@ fn require_quasar_domain_control(
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_governance(authority: &Pubkey, governance: &ProtocolGovernance) -> Result<()> {
-    require_keys_eq!(
-        *authority,
-        governance.governance_authority,
-        OmegaXProtocolError::Unauthorized
-    );
+fn require_quasar_domain_admin(authority: &Pubkey, domain_admin: &Pubkey) -> Result<()> {
+    require_keys_eq!(*authority, *domain_admin, OmegaXProtocolError::Unauthorized);
     Ok(())
 }
 
@@ -57,14 +52,14 @@ pub(crate) fn create_reserve_domain(
     ctx: Context<CreateReserveDomain>,
     args: CreateReserveDomainArgs,
 ) -> Result<()> {
-    require_governance(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-    )?;
+    require_keys_eq!(
+        ctx.accounts.authority.key(),
+        args.domain_admin,
+        OmegaXProtocolError::Unauthorized
+    );
     require_id(&args.domain_id)?;
 
     let domain = &mut ctx.accounts.reserve_domain;
-    domain.protocol_governance = ctx.accounts.protocol_governance.key();
     domain.domain_admin = args.domain_admin;
     domain.domain_id = args.domain_id;
     domain.display_name = args.display_name;
@@ -91,11 +86,7 @@ pub(crate) fn update_reserve_domain_controls(
     ctx: Context<UpdateReserveDomainControls>,
     args: UpdateReserveDomainControlsArgs,
 ) -> Result<()> {
-    require_domain_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_domain_control(&ctx.accounts.authority.key(), &ctx.accounts.reserve_domain)?;
 
     let domain = &mut ctx.accounts.reserve_domain;
     domain.allowed_rail_mask = args.allowed_rail_mask;
@@ -128,12 +119,11 @@ pub(crate) fn create_reserve_domain<'info>(
     display_name: &str,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require_quasar_domain_admin(&authority, &domain_admin)?;
     require_quasar_id(domain_id)?;
 
     let bump = ctx.accounts.reserve_domain.bump;
     ctx.accounts.reserve_domain.set_inner(
-        *ctx.accounts.protocol_governance.address(),
         domain_admin,
         settlement_mode,
         legal_structure_hash,
@@ -160,14 +150,9 @@ pub(crate) fn update_reserve_domain_controls<'info>(
     active: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_domain_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_quasar_domain_control(&authority, &ctx.accounts.reserve_domain)?;
 
     let domain = &mut ctx.accounts.reserve_domain;
-    let protocol_governance = domain.protocol_governance;
     let domain_admin = domain.domain_admin;
     let settlement_mode = domain.settlement_mode;
     let legal_structure_hash = domain.legal_structure_hash;
@@ -178,7 +163,6 @@ pub(crate) fn update_reserve_domain_controls<'info>(
     let display_name = domain.display_name().to_owned();
 
     domain.set_inner(
-        protocol_governance,
         domain_admin,
         settlement_mode,
         legal_structure_hash,
@@ -202,11 +186,7 @@ pub(crate) fn create_domain_asset_vault(
     ctx: Context<CreateDomainAssetVault>,
     args: CreateDomainAssetVaultArgs,
 ) -> Result<()> {
-    require_domain_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_domain_control(&ctx.accounts.authority.key(), &ctx.accounts.reserve_domain)?;
     require!(
         args.asset_mint != ZERO_PUBKEY,
         OmegaXProtocolError::VaultTokenAccountInvalid
@@ -272,11 +252,7 @@ pub(crate) fn create_domain_asset_vault<'info>(
     asset_mint_key: Pubkey,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_domain_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_quasar_domain_control(&authority, &ctx.accounts.reserve_domain)?;
     require!(
         asset_mint_key != ZERO_PUBKEY,
         OmegaXProtocolError::VaultTokenAccountInvalid
@@ -320,12 +296,6 @@ pub struct CreateReserveDomain<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg_attr(
         not(feature = "quasar"),
         account(
@@ -365,12 +335,6 @@ pub struct UpdateReserveDomainControls<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,
     #[cfg(feature = "quasar")]
@@ -395,12 +359,6 @@ pub struct CreateDomainAssetVault<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,

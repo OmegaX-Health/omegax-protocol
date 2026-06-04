@@ -21,7 +21,6 @@ const {
   derivePoolOracleApprovalPda,
   derivePoolOraclePolicyPda,
   derivePoolOraclePermissionSetPda,
-  deriveProtocolGovernancePda,
   deriveReserveDomainPda,
   deriveSchemaDependencyLedgerPda,
   MEMBERSHIP_PROOF_MODE_INVITE_PERMIT,
@@ -91,7 +90,6 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
     }).toBase58(),
     /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   );
-  assert.match(deriveProtocolGovernancePda().toBase58(), /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
 });
 
 test("claim attestation builders reject unsupported decisions before chain submission", () => {
@@ -110,7 +108,7 @@ test("claim attestation builders reject unsupported decisions before chain submi
   );
 });
 
-test("claim attestation builder wires governance, funding, and LP oracle accounts", () => {
+test("claim attestation builder wires funding and LP oracle accounts", () => {
   const claim = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases[0]!;
   const fundingLine = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines.find((row) => row.address === claim.fundingLine)!;
   const allocation = DEVNET_PROTOCOL_FIXTURE_STATE.allocationPositions.find(
@@ -131,32 +129,36 @@ test("claim attestation builder wires governance, funding, and LP oracle account
     capitalClassAddress: allocation.capitalClass,
   });
   const keys = tx.instructions[0]!.keys;
+  const keyFor = (address: string) => keys.find((key) => key.pubkey.toBase58() === address);
 
-  assert.equal(keys[1]!.pubkey.toBase58(), deriveProtocolGovernancePda().toBase58());
-  assert.equal(keys[2]!.pubkey.toBase58(), claim.healthPlan);
-  assert.equal(keys[4]!.pubkey.toBase58(), claim.address);
-  assert.equal(keys[4]!.isWritable, true);
-  assert.equal(keys[5]!.pubkey.toBase58(), fundingLine.address);
-  assert.equal(keys[7]!.pubkey.toBase58(), allocation.liquidityPool);
-  assert.equal(keys[8]!.pubkey.toBase58(), allocation.capitalClass);
+  assert.equal(keyFor(oracle)?.isSigner, true);
+  assert.equal(keyFor(claim.healthPlan)?.isWritable, false);
+  assert.equal(keyFor(claim.address)?.isWritable, true);
+  assert.equal(keyFor(fundingLine.address)?.isWritable, false);
+  assert.equal(keyFor(allocation.liquidityPool)?.isWritable, false);
+  assert.equal(keyFor(allocation.capitalClass)?.isWritable, false);
   assert.equal(
-    keys[9]!.pubkey.toBase58(),
-    deriveAllocationPositionPda({
+    keyFor(deriveAllocationPositionPda({
       capitalClass: allocation.capitalClass,
       fundingLine: fundingLine.address,
-    }).toBase58(),
+    }).toBase58())?.isWritable,
+    false,
   );
   assert.equal(
-    keys[10]!.pubkey.toBase58(),
-    derivePoolOracleApprovalPda({ liquidityPool: allocation.liquidityPool, oracle }).toBase58(),
+    keyFor(derivePoolOracleApprovalPda({ liquidityPool: allocation.liquidityPool, oracle }).toBase58())?.isWritable,
+    false,
   );
   assert.equal(
-    keys[11]!.pubkey.toBase58(),
-    derivePoolOraclePermissionSetPda({ liquidityPool: allocation.liquidityPool, oracle }).toBase58(),
+    keyFor(derivePoolOraclePermissionSetPda({ liquidityPool: allocation.liquidityPool, oracle }).toBase58())?.isWritable,
+    false,
   );
   assert.equal(
-    keys[12]!.pubkey.toBase58(),
-    derivePoolOraclePolicyPda({ liquidityPool: allocation.liquidityPool }).toBase58(),
+    keyFor(derivePoolOraclePolicyPda({ liquidityPool: allocation.liquidityPool }).toBase58())?.isWritable,
+    false,
+  );
+  assert.equal(
+    keyFor(deriveClaimAttestationPda({ claimCase: claim.address, oracle }).toBase58())?.isWritable,
+    true,
   );
 });
 

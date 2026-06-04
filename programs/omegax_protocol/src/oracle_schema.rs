@@ -193,11 +193,7 @@ pub(crate) fn update_oracle_profile(
     ctx: Context<UpdateOracleProfile>,
     args: UpdateOracleProfileArgs,
 ) -> Result<()> {
-    require_oracle_profile_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.oracle_profile,
-    )?;
+    require_oracle_profile_control(&ctx.accounts.authority.key(), &ctx.accounts.oracle_profile)?;
     validate_oracle_profile_fields_update(&args)?;
 
     let profile = &mut ctx.accounts.oracle_profile;
@@ -229,13 +225,9 @@ pub(crate) fn update_oracle_profile(
 #[inline(always)]
 fn require_quasar_oracle_profile_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     oracle_profile: &OracleProfileAccountData<'_>,
 ) -> Result<()> {
-    if *authority == oracle_profile.admin
-        || *authority == oracle_profile.oracle
-        || *authority == governance.governance_authority
-    {
+    if *authority == oracle_profile.admin || *authority == oracle_profile.oracle {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -246,10 +238,9 @@ fn require_quasar_oracle_profile_control(
 #[inline(always)]
 fn require_quasar_curator_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
-    if *authority == pool.curator || *authority == governance.governance_authority {
+    if *authority == pool.curator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -321,11 +312,7 @@ pub(crate) fn update_oracle_profile<'info>(
     supported_schema_key_hashes: &[[u8; 32]],
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_oracle_profile_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.oracle_profile,
-    )?;
+    require_quasar_oracle_profile_control(&authority, &ctx.accounts.oracle_profile)?;
     validate_quasar_oracle_profile_update_fields(
         display_name,
         legal_name,
@@ -375,11 +362,7 @@ pub(crate) fn update_oracle_profile<'info>(
 
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn set_pool_oracle(ctx: Context<SetPoolOracle>, args: SetPoolOracleArgs) -> Result<()> {
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     if args.active {
         require!(
             ctx.accounts.oracle_profile.active,
@@ -409,11 +392,7 @@ pub(crate) fn set_pool_oracle_permissions(
     ctx: Context<SetPoolOraclePermissions>,
     args: SetPoolOraclePermissionsArgs,
 ) -> Result<()> {
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     require!(
         ctx.accounts.pool_oracle_approval.active || args.permissions == 0,
         OmegaXProtocolError::PoolOracleApprovalRequired
@@ -441,11 +420,7 @@ pub(crate) fn set_pool_oracle_policy(
     ctx: Context<SetPoolOraclePolicy>,
     args: SetPoolOraclePolicyArgs,
 ) -> Result<()> {
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     require!(
         args.quorum_m > 0 && args.quorum_n > 0 && args.quorum_m <= args.quorum_n,
         OmegaXProtocolError::InvalidOracleQuorum
@@ -476,11 +451,7 @@ pub(crate) fn set_pool_oracle<'info>(
     active: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
     if active {
         require!(
             ctx.accounts.oracle_profile.active.get(),
@@ -510,11 +481,7 @@ pub(crate) fn set_pool_oracle_permissions<'info>(
     permissions: u32,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
     require!(
         ctx.accounts.pool_oracle_approval.active.get() || permissions == 0,
         OmegaXProtocolError::PoolOracleApprovalRequired
@@ -546,11 +513,7 @@ pub(crate) fn set_pool_oracle_policy<'info>(
     challenge_window_secs: u32,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
     require!(
         quorum_m > 0 && quorum_n > 0 && quorum_m <= quorum_n,
         OmegaXProtocolError::InvalidOracleQuorum
@@ -671,12 +634,12 @@ pub(crate) fn verify_outcome_schema(
     ctx: Context<VerifyOutcomeSchema>,
     args: VerifyOutcomeSchemaArgs,
 ) -> Result<()> {
-    require_governance(
-        &ctx.accounts.governance_authority.key(),
-        &ctx.accounts.protocol_governance,
-    )?;
-
     let schema = &mut ctx.accounts.outcome_schema;
+    require_keys_eq!(
+        ctx.accounts.governance_authority.key(),
+        schema.publisher,
+        OmegaXProtocolError::Unauthorized
+    );
     schema.verified = args.verified;
     schema.updated_at_ts = Clock::get()?.unix_timestamp;
 
@@ -691,23 +654,16 @@ pub(crate) fn verify_outcome_schema(
 }
 
 #[cfg(feature = "quasar")]
-#[inline(always)]
-fn require_quasar_governance(authority: &Pubkey, governance: &ProtocolGovernance) -> Result<()> {
-    require_keys_eq!(
-        *authority,
-        governance.governance_authority,
-        OmegaXProtocolError::Unauthorized
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
 pub(crate) fn verify_outcome_schema<'info>(
     ctx: &mut Ctx<'info, VerifyOutcomeSchema<'info>>,
     verified: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.governance_authority.address();
-    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require_keys_eq!(
+        authority,
+        ctx.accounts.outcome_schema.publisher,
+        OmegaXProtocolError::Unauthorized
+    );
 
     let schema = &mut ctx.accounts.outcome_schema;
     let publisher = schema.publisher;
@@ -747,15 +703,16 @@ pub(crate) fn backfill_schema_dependency_ledger(
     ctx: Context<BackfillSchemaDependencyLedger>,
     args: BackfillSchemaDependencyLedgerArgs,
 ) -> Result<()> {
-    require_governance(
-        &ctx.accounts.governance_authority.key(),
-        &ctx.accounts.protocol_governance,
-    )?;
     require!(
         args.pool_rule_addresses.len() <= MAX_SCHEMA_DEPENDENCY_RULES,
         OmegaXProtocolError::TooManySchemaDependencies
     );
 
+    require_keys_eq!(
+        ctx.accounts.governance_authority.key(),
+        ctx.accounts.outcome_schema.publisher,
+        OmegaXProtocolError::Unauthorized
+    );
     let ledger = &mut ctx.accounts.schema_dependency_ledger;
     ledger.schema_key_hash = ctx.accounts.outcome_schema.schema_key_hash;
     ledger.pool_rule_addresses = args.pool_rule_addresses;
@@ -779,7 +736,11 @@ pub(crate) fn backfill_schema_dependency_ledger<'info>(
     pool_rule_addresses: &[Pubkey],
 ) -> Result<()> {
     let authority = *ctx.accounts.governance_authority.address();
-    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require_keys_eq!(
+        authority,
+        ctx.accounts.outcome_schema.publisher,
+        OmegaXProtocolError::Unauthorized
+    );
     require!(
         ctx.accounts.outcome_schema.schema_key_hash == schema_key_hash,
         OmegaXProtocolError::ClaimAttestationSchemaRequired
@@ -805,10 +766,11 @@ pub(crate) fn backfill_schema_dependency_ledger<'info>(
 
 #[cfg(not(feature = "quasar"))]
 pub(crate) fn close_outcome_schema(ctx: Context<CloseOutcomeSchema>) -> Result<()> {
-    require_governance(
-        &ctx.accounts.governance_authority.key(),
-        &ctx.accounts.protocol_governance,
-    )?;
+    require_keys_eq!(
+        ctx.accounts.governance_authority.key(),
+        ctx.accounts.outcome_schema.publisher,
+        OmegaXProtocolError::Unauthorized
+    );
 
     emit!(OutcomeSchemaClosedEvent {
         outcome_schema: ctx.accounts.outcome_schema.key(),
@@ -825,7 +787,11 @@ pub(crate) fn close_outcome_schema<'info>(
     ctx: &mut Ctx<'info, CloseOutcomeSchema<'info>>,
 ) -> Result<()> {
     let authority = *ctx.accounts.governance_authority.address();
-    require_quasar_governance(&authority, &ctx.accounts.protocol_governance)?;
+    require_keys_eq!(
+        authority,
+        ctx.accounts.outcome_schema.publisher,
+        OmegaXProtocolError::Unauthorized
+    );
     Ok(())
 }
 
@@ -903,12 +869,6 @@ pub struct UpdateOracleProfile<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_ORACLE_PROFILE, oracle_profile.oracle.as_ref()],
@@ -935,12 +895,6 @@ pub struct SetPoolOracle<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
@@ -1012,12 +966,6 @@ pub struct SetPoolOraclePermissions<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
@@ -1105,12 +1053,6 @@ pub struct SetPoolOraclePolicy<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()],
@@ -1233,12 +1175,6 @@ pub struct VerifyOutcomeSchema<'info> {
     #[cfg(feature = "quasar")]
     pub governance_authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(
         mut,
         seeds = [SEED_OUTCOME_SCHEMA, outcome_schema.schema_key_hash.as_ref()],
@@ -1267,12 +1203,6 @@ pub struct BackfillSchemaDependencyLedger<'info> {
     pub governance_authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub governance_authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_OUTCOME_SCHEMA, args.schema_key_hash.as_ref()],
@@ -1327,12 +1257,6 @@ pub struct CloseOutcomeSchema<'info> {
     pub governance_authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub governance_authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         mut,

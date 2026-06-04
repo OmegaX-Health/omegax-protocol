@@ -153,7 +153,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
   const [proposalQueueError, setProposalQueueError] = useState<string | null>(null);
   const canOperate = OPERATOR_PERSONAS.has(effectivePersona);
   const [operatorOpen, setOperatorOpen] = useState(false);
-  const [operatorSection, setOperatorSection] = useState<GovernanceOperatorSection>("governance");
+  const [operatorSection, setOperatorSection] = useState<GovernanceOperatorSection>("domain");
 
   const openOperator = useCallback((next: GovernanceOperatorSection) => {
     setOperatorSection(next);
@@ -192,18 +192,6 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
     : null;
   const authorityWallets = useMemo<GovernanceAuthorityLane[]>(() => {
     const rows: GovernanceAuthorityLane[] = [];
-
-    if (isConfiguredAuthority(snapshot.protocolGovernance?.governanceAuthority)) {
-      rows.push({
-        key: `protocol_governance:${snapshot.protocolGovernance.governanceAuthority}`,
-        role: "protocol_governance",
-        label: "Shared protocol timelock",
-        lane: "Protocol shell",
-        address: snapshot.protocolGovernance.governanceAuthority,
-        actions: GOVERNANCE_ROLE_ACTIONS.protocol_governance,
-        configured: true,
-      });
-    }
 
     for (const domain of snapshot.reserveDomains) {
       if (!isConfiguredAuthority(domain.domainAdmin)) continue;
@@ -302,7 +290,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
     }
 
     return [...rows].sort(compareAuthorityLanes);
-  }, [snapshot.healthPlans, snapshot.liquidityPools, snapshot.protocolGovernance, snapshot.reserveDomains]);
+  }, [snapshot.healthPlans, snapshot.liquidityPools, snapshot.reserveDomains]);
   const configuredAuthorityWallets = authorityWallets.filter((wallet) => wallet.configured);
   const reserveDomains = snapshot.reserveDomains;
   const queueStateCounts = useMemo(() => buildQueueStateCounts(queue), [queue]);
@@ -428,7 +416,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                 <button
                   type="button"
                   className="plans-hero-cta"
-                  onClick={() => openOperator("governance")}
+                  onClick={() => openOperator("domain")}
                 >
                   <span className="material-symbols-outlined" aria-hidden="true">tune</span>
                   Operator actions
@@ -583,13 +571,7 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                         type="button"
                         className="plans-secondary-cta"
                         onClick={() =>
-                          openOperator(
-                            snapshot.protocolGovernance
-                              ? snapshot.reserveDomains.length === 0
-                                ? "domain"
-                                : "vault"
-                              : "governance",
-                          )
+                          openOperator(snapshot.reserveDomains.length === 0 ? "domain" : "vault")
                         }
                       >
                         <span className="material-symbols-outlined" aria-hidden="true">tune</span>
@@ -598,12 +580,6 @@ export function GovernanceWorkbench({ searchParams = {} }: GovernanceWorkbenchPr
                     ) : null}
                   </div>
                   <div className="plans-data-grid">
-                    <div className="plans-data-row">
-                      <span className="plans-data-label">Governance</span>
-                      <span className="plans-data-value">
-                        {snapshot.protocolGovernance ? "Initialized" : "Missing"}
-                      </span>
-                    </div>
                     <div className="plans-data-row">
                       <span className="plans-data-label">Reserve domains</span>
                       <span className="plans-data-value">

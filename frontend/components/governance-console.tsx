@@ -21,20 +21,16 @@ import {
   buildWithdrawGoverningTokensTx,
   formatGovernanceAmount,
   getGovernanceRuntimeConfig,
-  loadDefaultProtocolConfig,
   loadGovernanceDashboard,
   parseGovernanceAmountInput,
   type GovernanceDashboardSummary,
 } from "@/lib/governance";
 import {
-  buildSetProtocolEmergencyPauseTx,
   listSchemas,
-  type ProtocolConfigSummary,
   type SchemaSummary,
 } from "@/lib/protocol";
 
 type GovernanceConsoleProps = {
-  initialProtocolConfig?: ProtocolConfigSummary | null;
   sectionMode?: "full" | "embedded";
 };
 
@@ -89,7 +85,6 @@ function GovernanceReviewRow({ label, value }: { label: string; value: string })
 }
 
 export function GovernanceConsole({
-  initialProtocolConfig = null,
   sectionMode = "full",
 }: GovernanceConsoleProps) {
   const { connection } = useConnection();
@@ -98,7 +93,6 @@ export function GovernanceConsole({
   const runtime = useMemo(() => getGovernanceRuntimeConfig(), []);
   const { confirmReview, reviewPrompt } = useProtocolTransactionReviewPrompt();
   const [dashboard, setDashboard] = useState<GovernanceDashboardSummary | null>(null);
-  const [protocolConfig, setProtocolConfig] = useState<ProtocolConfigSummary | null>(initialProtocolConfig);
   const [schemas, setSchemas] = useState<SchemaSummary[]>([]);
   const [selectedProposalAddress, setSelectedProposalAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,8 +102,6 @@ export function GovernanceConsole({
   const [txUrl, setTxUrl] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState("1");
   const [votingPowerAction, setVotingPowerAction] = useState<VotingPowerAction | null>(null);
-
-  const [emergencyPaused, setEmergencyPaused] = useState(false);
 
   const [selectedVerifySchemaAddress, setSelectedVerifySchemaAddress] = useState("");
   const [selectedUnverifySchemaAddress, setSelectedUnverifySchemaAddress] = useState("");
@@ -121,16 +113,14 @@ export function GovernanceConsole({
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [nextDashboard, nextProtocolConfig, nextSchemas] = await Promise.all([
+      const [nextDashboard, nextSchemas] = await Promise.all([
         loadGovernanceDashboard({
           connection,
           walletAddress: publicKey ?? null,
         }),
-        loadDefaultProtocolConfig(connection).catch(() => initialProtocolConfig),
         listSchemas({ connection, verifiedOnly: false }),
       ]);
       setDashboard(nextDashboard);
-      setProtocolConfig(nextProtocolConfig ?? initialProtocolConfig);
       setSchemas(nextSchemas);
     } catch (cause) {
       console.warn("Governance state load failed", cause);
@@ -139,16 +129,11 @@ export function GovernanceConsole({
     } finally {
       setLoading(false);
     }
-  }, [connection, initialProtocolConfig, publicKey]);
+  }, [connection, publicKey]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    if (!protocolConfig) return;
-    setEmergencyPaused(protocolConfig.emergencyPaused);
-  }, [protocolConfig]);
 
   useEffect(() => {
     if (!dashboard?.proposals.length) {
@@ -197,19 +182,6 @@ export function GovernanceConsole({
     }
     return walletGuard;
   }, [dashboard?.rules.pluginEnabled, dashboard?.wallet?.depositedVotesRaw, dashboard?.wallet?.tokenOwnerRecordAddress, walletGuard]);
-
-  const protocolPauseGuard = useMemo(() => {
-    if (!publicKey || !sendTransaction) {
-      return "Connect the governance authority wallet to change protocol pause state.";
-    }
-    if (!protocolConfig) {
-      return "Protocol governance is not visible on this RPC endpoint yet.";
-    }
-    if (publicKey.toBase58() !== protocolConfig.governanceAuthority) {
-      return "Only the current protocol governance authority can change protocol pause state directly.";
-    }
-    return null;
-  }, [protocolConfig, publicKey, sendTransaction]);
 
   const selectedVerifySchema = useMemo(
     () => schemas.find((schema) => schema.address === selectedVerifySchemaAddress) ?? null,
@@ -354,44 +326,6 @@ export function GovernanceConsole({
       router.push(`/governance/proposals/${plan.proposalAddress}`);
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : `${label} proposal failed.`);
-      setStatusTone("error");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function onApplyProtocolPause() {
-    if (!publicKey || !sendTransaction || protocolPauseGuard) return;
-    setBusy("Protocol pause");
-    setStatus(null);
-    setTxUrl(null);
-    try {
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      const tx = buildSetProtocolEmergencyPauseTx({
-        authority: publicKey,
-        recentBlockhash: blockhash,
-        emergencyPaused,
-      });
-      const result = await executeProtocolTransactionWithToast({
-        connection,
-        sendTransaction,
-        tx,
-        label: emergencyPaused ? "Enable protocol pause" : "Resume protocol",
-        confirmReview,
-        onConfirmed: async () => {
-          await refresh();
-        },
-      });
-      if (!result.ok) {
-        setStatus(result.error);
-        setStatusTone("error");
-        return;
-      }
-      setStatus(result.message);
-      setStatusTone("ok");
-      setTxUrl(result.explorerUrl);
-    } catch (cause) {
-      setStatus(cause instanceof Error ? cause.message : "Protocol pause update failed.");
       setStatusTone("error");
     } finally {
       setBusy(null);
@@ -604,67 +538,10 @@ export function GovernanceConsole({
             <p className="metric-label">Create proposal</p>
           </div>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Schema-state governance stays proposal-driven. Protocol-wide pause is exposed as a live authority control because that is the scoped on-chain surface available today.
+            Schema-state governance stays proposal-driven through the connected Realms configuration.
           </p>
 
           <div className="grid gap-4">
-            <article className="operator-task-card">
-              <div className="operator-task-head">
-                <h3 className="operator-task-title">Control protocol pause</h3>
-                <p className="operator-task-copy">
-                  Review the live protocol-governance account, then apply the current emergency-pause target directly when you hold the governance authority wallet.
-                </p>
-              </div>
-
-              <div className="operator-summary-grid">
-                <article className="operator-summary-card">
-                  <p className="metric-label">Governance authority</p>
-                  <p className="text-sm font-semibold text-[var(--foreground)]">{shortAddress(protocolConfig?.governanceAuthority)}</p>
-                </article>
-              </div>
-
-              <div className="grid gap-3">
-                <label className="toggle-card">
-                  <div>
-                    <p className="toggle-card-title">Emergency pause</p>
-                    <p className="field-help">This toggles the live protocol-wide pause bit that gates new activity across the public program surface.</p>
-                  </div>
-                  <input type="checkbox" checked={emergencyPaused} onChange={(event) => setEmergencyPaused(event.target.checked)} />
-                </label>
-              </div>
-
-              <ProtocolDetailDisclosure
-                title="Surface note"
-                summary="The broader protocol settings proposal bundle is intentionally not exposed here."
-                description="The current public protocol surface supports live protocol-governance review plus scoped emergency pause. Schema verification and closure remain governance-proposal flows below."
-              >
-                <div className="grid gap-3 md:grid-cols-2">
-                  <article className="operator-summary-card">
-                    <p className="metric-label">Governance account</p>
-                    <p className="text-sm font-semibold text-[var(--foreground)] break-all">{protocolConfig?.address ?? "Unavailable"}</p>
-                  </article>
-                  <article className="operator-summary-card">
-                    <p className="metric-label">Emergency state</p>
-                    <p className="text-sm font-semibold text-[var(--foreground)]">{protocolConfig?.emergencyPaused ? "Paused" : "Operational"}</p>
-                  </article>
-                </div>
-              </ProtocolDetailDisclosure>
-
-              <button
-                type="button"
-                className="action-button"
-                onClick={() => void onApplyProtocolPause()}
-                disabled={Boolean(protocolPauseGuard) || busy != null}
-              >
-                {busy === "Protocol pause"
-                  ? "Submitting..."
-                  : emergencyPaused
-                    ? "Enable emergency pause"
-                    : "Resume protocol"}
-              </button>
-              {protocolPauseGuard ? <p className="field-help">{protocolPauseGuard}</p> : null}
-            </article>
-
             <article className="operator-task-card">
               <div className="operator-task-head">
                 <h3 className="operator-task-title">Maintain schema state</h3>

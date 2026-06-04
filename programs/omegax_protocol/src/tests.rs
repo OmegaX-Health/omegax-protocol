@@ -345,13 +345,7 @@ fn redemption_fifo_blocks_out_of_order_and_advances_only_when_clear() {
 fn sentinel_is_not_curator_control() {
     let curator = Pubkey::new_unique();
     let sentinel = Pubkey::new_unique();
-    let governance_authority = Pubkey::new_unique();
-    let governance = ProtocolGovernance {
-        governance_authority,
-        emergency_pause: false,
-        audit_nonce: 0,
-        bump: 1,
-    };
+    let outsider = Pubkey::new_unique();
     let pool = LiquidityPool {
         reserve_domain: Pubkey::new_unique(),
         curator,
@@ -375,12 +369,12 @@ fn sentinel_is_not_curator_control() {
         bump: 1,
     };
 
-    assert!(require_curator_control(&curator, &governance, &pool).is_ok());
-    assert!(require_curator_control(&governance_authority, &governance, &pool).is_ok());
-    assert!(require_curator_control(&sentinel, &governance, &pool).is_err());
-    assert!(require_allocator(&pool.allocator, &governance, &pool).is_ok());
-    assert!(require_allocator(&curator, &governance, &pool).is_ok());
-    assert!(require_allocator(&sentinel, &governance, &pool).is_err());
+    assert!(require_curator_control(&curator, &pool).is_ok());
+    assert!(require_curator_control(&outsider, &pool).is_err());
+    assert!(require_curator_control(&sentinel, &pool).is_err());
+    assert!(require_allocator(&pool.allocator, &pool).is_ok());
+    assert!(require_allocator(&curator, &pool).is_ok());
+    assert!(require_allocator(&sentinel, &pool).is_err());
 }
 
 #[test]
@@ -1367,15 +1361,6 @@ fn membership_proof_input(membership_mode: u8, proof_mode: u8) -> MembershipProo
     }
 }
 
-fn sample_governance(governance_authority: Pubkey) -> ProtocolGovernance {
-    ProtocolGovernance {
-        governance_authority,
-        emergency_pause: false,
-        audit_nonce: 0,
-        bump: 1,
-    }
-}
-
 fn sample_health_plan_roles(
     plan_admin: Pubkey,
     sponsor_operator: Pubkey,
@@ -1757,14 +1742,12 @@ fn linked_claim_reserve_control_allows_claim_and_oracle_operators() {
     let sponsor_operator = Pubkey::new_unique();
     let claims_operator = Pubkey::new_unique();
     let oracle_authority = Pubkey::new_unique();
-    let governance_authority = Pubkey::new_unique();
     let plan = sample_health_plan_roles(
         plan_admin,
         sponsor_operator,
         claims_operator,
         oracle_authority,
     );
-    let governance = sample_governance(governance_authority);
     let mut obligation = sample_obligation(
         Pubkey::new_unique(),
         Pubkey::new_unique(),
@@ -1773,24 +1756,9 @@ fn linked_claim_reserve_control_allows_claim_and_oracle_operators() {
     );
     obligation.claim_case = Pubkey::new_unique();
 
-    assert!(
-        require_obligation_reserve_control(&claims_operator, &governance, &plan, &obligation,)
-            .is_ok()
-    );
-    assert!(
-        require_obligation_reserve_control(&oracle_authority, &governance, &plan, &obligation,)
-            .is_ok()
-    );
-    assert!(
-        require_obligation_reserve_control(&plan_admin, &governance, &plan, &obligation,).is_ok()
-    );
-    assert!(require_obligation_reserve_control(
-        &governance_authority,
-        &governance,
-        &plan,
-        &obligation,
-    )
-    .is_ok());
+    assert!(require_obligation_reserve_control(&claims_operator, &plan, &obligation,).is_ok());
+    assert!(require_obligation_reserve_control(&oracle_authority, &plan, &obligation,).is_ok());
+    assert!(require_obligation_reserve_control(&plan_admin, &plan, &obligation,).is_ok());
 }
 
 #[test]
@@ -1799,14 +1767,12 @@ fn linked_claim_reserve_control_rejects_sponsor_operator() {
     let sponsor_operator = Pubkey::new_unique();
     let claims_operator = Pubkey::new_unique();
     let oracle_authority = Pubkey::new_unique();
-    let governance_authority = Pubkey::new_unique();
     let plan = sample_health_plan_roles(
         plan_admin,
         sponsor_operator,
         claims_operator,
         oracle_authority,
     );
-    let governance = sample_governance(governance_authority);
     let mut obligation = sample_obligation(
         Pubkey::new_unique(),
         Pubkey::new_unique(),
@@ -1816,8 +1782,7 @@ fn linked_claim_reserve_control_rejects_sponsor_operator() {
     obligation.claim_case = Pubkey::new_unique();
 
     let error =
-        require_obligation_reserve_control(&sponsor_operator, &governance, &plan, &obligation)
-            .unwrap_err();
+        require_obligation_reserve_control(&sponsor_operator, &plan, &obligation).unwrap_err();
 
     assert!(error.to_string().contains("Unauthorized"));
 }
@@ -1828,14 +1793,13 @@ fn linked_claim_settlement_control_is_claim_operator_scoped() {
     let sponsor_operator = Pubkey::new_unique();
     let claims_operator = Pubkey::new_unique();
     let oracle_authority = Pubkey::new_unique();
-    let governance_authority = Pubkey::new_unique();
+    let outsider = Pubkey::new_unique();
     let plan = sample_health_plan_roles(
         plan_admin,
         sponsor_operator,
         claims_operator,
         oracle_authority,
     );
-    let governance = sample_governance(governance_authority);
     let mut obligation = sample_obligation(
         Pubkey::new_unique(),
         Pubkey::new_unique(),
@@ -1844,28 +1808,12 @@ fn linked_claim_settlement_control_is_claim_operator_scoped() {
     );
     obligation.claim_case = Pubkey::new_unique();
 
-    assert!(require_obligation_settlement_control(
-        &claims_operator,
-        &governance,
-        &plan,
-        &obligation,
-    )
-    .is_ok());
-    assert!(
-        require_obligation_settlement_control(&plan_admin, &governance, &plan, &obligation,)
-            .is_ok()
-    );
-    assert!(require_obligation_settlement_control(
-        &governance_authority,
-        &governance,
-        &plan,
-        &obligation,
-    )
-    .is_ok());
+    assert!(require_obligation_settlement_control(&claims_operator, &plan, &obligation,).is_ok());
+    assert!(require_obligation_settlement_control(&plan_admin, &plan, &obligation,).is_ok());
+    assert!(require_obligation_settlement_control(&outsider, &plan, &obligation,).is_err());
 
     let error =
-        require_obligation_settlement_control(&oracle_authority, &governance, &plan, &obligation)
-            .unwrap_err();
+        require_obligation_settlement_control(&oracle_authority, &plan, &obligation).unwrap_err();
     assert!(error.to_string().contains("Unauthorized"));
 }
 
@@ -1875,14 +1823,12 @@ fn unlinked_obligation_reserve_control_preserves_sponsor_operator_path() {
     let sponsor_operator = Pubkey::new_unique();
     let claims_operator = Pubkey::new_unique();
     let oracle_authority = Pubkey::new_unique();
-    let governance_authority = Pubkey::new_unique();
     let plan = sample_health_plan_roles(
         plan_admin,
         sponsor_operator,
         claims_operator,
         oracle_authority,
     );
-    let governance = sample_governance(governance_authority);
     let obligation = sample_obligation(
         Pubkey::new_unique(),
         Pubkey::new_unique(),
@@ -1890,17 +1836,8 @@ fn unlinked_obligation_reserve_control_preserves_sponsor_operator_path() {
         Pubkey::new_unique(),
     );
 
-    assert!(
-        require_obligation_reserve_control(&sponsor_operator, &governance, &plan, &obligation,)
-            .is_ok()
-    );
-    assert!(require_obligation_settlement_control(
-        &sponsor_operator,
-        &governance,
-        &plan,
-        &obligation,
-    )
-    .is_ok());
+    assert!(require_obligation_reserve_control(&sponsor_operator, &plan, &obligation,).is_ok());
+    assert!(require_obligation_settlement_control(&sponsor_operator, &plan, &obligation,).is_ok());
 }
 
 #[test]
@@ -2020,8 +1957,6 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
     let funding_line_key = Pubkey::new_unique();
     let policy_series = Pubkey::new_unique();
     let asset_mint = Pubkey::new_unique();
-    let governance_authority = Pubkey::new_unique();
-    let mut governance = sample_governance(governance_authority);
     let mut health_plan = sample_health_plan_roles(
         Pubkey::new_unique(),
         Pubkey::new_unique(),
@@ -2051,7 +1986,6 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
     };
 
     assert!(claims::validate_claim_attestation_common(
-        &governance,
         health_plan_key,
         &health_plan,
         funding_line_key,
@@ -2063,26 +1997,8 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
     )
     .is_ok());
 
-    governance.emergency_pause = true;
-    assert!(claims::validate_claim_attestation_common(
-        &governance,
-        health_plan_key,
-        &health_plan,
-        funding_line_key,
-        &funding_line,
-        &claim_case,
-        &schema,
-        &oracle_profile,
-        &args,
-    )
-    .unwrap_err()
-    .to_string()
-    .contains("Protocol governance is emergency paused"));
-
-    governance.emergency_pause = false;
     health_plan.pause_flags = PAUSE_FLAG_ORACLE_FINALITY_HOLD;
     assert!(claims::validate_claim_attestation_common(
-        &governance,
         health_plan_key,
         &health_plan,
         funding_line_key,
@@ -2100,7 +2016,6 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
     let mut mismatched_args = args.clone();
     mismatched_args.attestation_ref_hash = [9; 32];
     assert!(claims::validate_claim_attestation_common(
-        &governance,
         health_plan_key,
         &health_plan,
         funding_line_key,
@@ -2116,7 +2031,6 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
 
     let draft_schema = sample_outcome_schema(schema_key_hash, false);
     assert!(claims::validate_claim_attestation_common(
-        &governance,
         health_plan_key,
         &health_plan,
         funding_line_key,
@@ -2132,7 +2046,6 @@ fn claim_attestation_common_rejects_pause_evidence_and_unverified_schema_gaps() 
 
     let unapproved_oracle_profile = oracle_profile_with_supported_schemas(&[schema_key_hash]);
     assert!(claims::validate_claim_attestation_common(
-        &governance,
         health_plan_key,
         &health_plan,
         funding_line_key,

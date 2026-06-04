@@ -22,26 +22,6 @@ pub(crate) fn require_bounded_string(value: &str, max_len: usize) -> Result<()> 
     Ok(())
 }
 
-pub(crate) fn require_governance(
-    authority: &Pubkey,
-    governance: &ProtocolGovernance,
-) -> Result<()> {
-    require_keys_eq!(
-        *authority,
-        governance.governance_authority,
-        OmegaXProtocolError::Unauthorized
-    );
-    Ok(())
-}
-
-pub(crate) fn require_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause,
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
 pub(crate) fn require_health_plan_active(plan: &HealthPlanAccountData<'_>) -> Result<()> {
     require!(plan.active, OmegaXProtocolError::HealthPlanInactive);
     Ok(())
@@ -79,10 +59,9 @@ pub(crate) fn require_positive_amount(amount: u64) -> Result<()> {
 
 pub(crate) fn require_domain_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     domain: &ReserveDomainAccountData<'_>,
 ) -> Result<()> {
-    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+    if *authority == domain.domain_admin {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -91,13 +70,9 @@ pub(crate) fn require_domain_control(
 
 pub(crate) fn require_oracle_profile_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     oracle_profile: &OracleProfileAccountData<'_>,
 ) -> Result<()> {
-    if *authority == oracle_profile.admin
-        || *authority == oracle_profile.oracle
-        || *authority == governance.governance_authority
-    {
+    if *authority == oracle_profile.admin || *authority == oracle_profile.oracle {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -168,13 +143,9 @@ pub(crate) fn validate_outcome_schema_fields(args: &RegisterOutcomeSchemaArgs) -
 
 pub(crate) fn require_plan_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
-    if *authority == plan.plan_admin
-        || *authority == plan.sponsor_operator
-        || *authority == governance.governance_authority
-    {
+    if *authority == plan.plan_admin || *authority == plan.sponsor_operator {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -187,13 +158,11 @@ pub(crate) fn obligation_has_linked_claim_case(obligation: &ObligationAccountDat
 
 pub(crate) fn require_linked_claim_reserve_operator(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
     if *authority == plan.oracle_authority
         || *authority == plan.claims_operator
         || *authority == plan.plan_admin
-        || *authority == governance.governance_authority
     {
         Ok(())
     } else {
@@ -203,13 +172,9 @@ pub(crate) fn require_linked_claim_reserve_operator(
 
 pub(crate) fn require_linked_claim_settlement_operator(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
-    if *authority == plan.claims_operator
-        || *authority == plan.plan_admin
-        || *authority == governance.governance_authority
-    {
+    if *authority == plan.claims_operator || *authority == plan.plan_admin {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -218,27 +183,25 @@ pub(crate) fn require_linked_claim_settlement_operator(
 
 pub(crate) fn require_obligation_reserve_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
     obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
     if obligation_has_linked_claim_case(obligation) {
-        require_linked_claim_reserve_operator(authority, governance, plan)
+        require_linked_claim_reserve_operator(authority, plan)
     } else {
-        require_plan_control(authority, governance, plan)
+        require_plan_control(authority, plan)
     }
 }
 
 pub(crate) fn require_obligation_settlement_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
     obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
     if obligation_has_linked_claim_case(obligation) {
-        require_linked_claim_settlement_operator(authority, governance, plan)
+        require_linked_claim_settlement_operator(authority, plan)
     } else {
-        require_plan_control(authority, governance, plan)
+        require_plan_control(authority, plan)
     }
 }
 
@@ -282,13 +245,9 @@ pub(crate) fn require_claim_intake_submitter(
 
 pub(crate) fn require_claim_operator(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
 ) -> Result<()> {
-    if *authority == plan.claims_operator
-        || *authority == plan.plan_admin
-        || *authority == governance.governance_authority
-    {
+    if *authority == plan.claims_operator || *authority == plan.plan_admin {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -349,10 +308,9 @@ pub(crate) fn require_claim_attestation_oracle_authority(
 
 pub(crate) fn require_curator_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
-    if *authority == pool.curator || *authority == governance.governance_authority {
+    if *authority == pool.curator {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)
@@ -361,13 +319,9 @@ pub(crate) fn require_curator_control(
 
 pub(crate) fn require_allocator(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
-    if *authority == pool.allocator
-        || *authority == pool.curator
-        || *authority == governance.governance_authority
-    {
+    if *authority == pool.allocator || *authority == pool.curator {
         Ok(())
     } else {
         err!(OmegaXProtocolError::Unauthorized)

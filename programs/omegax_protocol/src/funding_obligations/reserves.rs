@@ -12,7 +12,6 @@ pub(crate) fn reserve_obligation(
     ctx: Context<ReserveObligation>,
     args: ReserveObligationArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let reserve_amount = args.amount;
     require_positive_amount(reserve_amount)?;
     let now_ts = Clock::get()?.unix_timestamp;
@@ -20,7 +19,6 @@ pub(crate) fn reserve_obligation(
     let obligation_key = obligation.key();
     require_obligation_reserve_control(
         &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
         &ctx.accounts.health_plan,
         obligation,
     )?;
@@ -117,16 +115,6 @@ fn quasar_checked_sub(lhs: u64, rhs: u64) -> Result<u64> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_positive_amount(amount: u64) -> Result<()> {
     require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
     Ok(())
@@ -191,7 +179,6 @@ fn require_quasar_obligation_reserve_capacity(
 #[inline(always)]
 fn require_quasar_obligation_reserve_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     plan: &HealthPlanAccountData<'_>,
     obligation: &ObligationAccountData<'_>,
 ) -> Result<()> {
@@ -199,14 +186,10 @@ fn require_quasar_obligation_reserve_control(
         if *authority == plan.oracle_authority
             || *authority == plan.claims_operator
             || *authority == plan.plan_admin
-            || *authority == governance.governance_authority
         {
             return Ok(());
         }
-    } else if *authority == plan.plan_admin
-        || *authority == plan.sponsor_operator
-        || *authority == governance.governance_authority
-    {
+    } else if *authority == plan.plan_admin || *authority == plan.sponsor_operator {
         return Ok(());
     }
 
@@ -486,14 +469,12 @@ pub(crate) fn reserve_obligation<'info>(
     ctx: &mut Ctx<'info, ReserveObligation<'info>>,
     reserve_amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_positive_amount(reserve_amount)?;
     let now_ts = Clock::get()?.unix_timestamp.get();
     let obligation_key = *ctx.accounts.obligation.address();
     let authority = *ctx.accounts.authority.address();
     require_quasar_obligation_reserve_control(
         &authority,
-        &ctx.accounts.protocol_governance,
         &ctx.accounts.health_plan,
         &ctx.accounts.obligation,
     )?;
@@ -822,14 +803,12 @@ pub(crate) fn release_reserve<'info>(
     ctx: &mut Ctx<'info, ReleaseReserve<'info>>,
     amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_positive_amount(amount)?;
     let now_ts = Clock::get()?.unix_timestamp.get();
     let obligation_key = *ctx.accounts.obligation.address();
     let authority = *ctx.accounts.authority.address();
     require_quasar_obligation_reserve_control(
         &authority,
-        &ctx.accounts.protocol_governance,
         &ctx.accounts.health_plan,
         &ctx.accounts.obligation,
     )?;
@@ -1174,7 +1153,6 @@ pub(crate) fn release_reserve(
     ctx: Context<ReleaseReserve>,
     args: ReleaseReserveArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let amount = args.amount;
     require_positive_amount(amount)?;
     let now_ts = Clock::get()?.unix_timestamp;
@@ -1182,7 +1160,6 @@ pub(crate) fn release_reserve(
     let obligation_key = obligation.key();
     require_obligation_reserve_control(
         &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
         &ctx.accounts.health_plan,
         obligation,
     )?;
@@ -1250,12 +1227,6 @@ pub struct ReserveObligation<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
@@ -1380,12 +1351,6 @@ pub struct ReleaseReserve<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,

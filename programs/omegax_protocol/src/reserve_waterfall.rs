@@ -20,10 +20,9 @@ use quasar_lang::sysvars::Sysvar;
 #[inline(always)]
 fn require_quasar_domain_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     domain: &ReserveDomainAccountData<'_>,
 ) -> Result<()> {
-    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+    if *authority == domain.domain_admin {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -35,12 +34,7 @@ pub(crate) fn configure_reserve_asset_rail(
     ctx: Context<ConfigureReserveAssetRail>,
     args: ConfigureReserveAssetRailArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_domain_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_domain_control(&ctx.accounts.authority.key(), &ctx.accounts.reserve_domain)?;
     require_id(&args.asset_symbol)?;
     require_valid_reserve_asset_role(args.role)?;
     require_valid_reserve_oracle_source(args.oracle_source)?;
@@ -124,14 +118,12 @@ pub(crate) fn publish_reserve_asset_rail_price(
     ctx: Context<PublishReserveAssetRailPrice>,
     args: PublishReserveAssetRailPriceArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_positive_amount(args.price_usd_1e8)?;
     require_bps(args.confidence_bps)?;
 
     let authority = ctx.accounts.authority.key();
     require!(
-        authority == ctx.accounts.reserve_asset_rail.oracle_authority
-            || authority == ctx.accounts.protocol_governance.governance_authority,
+        authority == ctx.accounts.reserve_asset_rail.oracle_authority,
         OmegaXProtocolError::Unauthorized
     );
     require_reserve_asset_rail_active(&ctx.accounts.reserve_asset_rail)?;
@@ -167,16 +159,6 @@ pub(crate) fn publish_reserve_asset_rail_price(
         proof_hash: rail.last_price_proof_hash,
     });
 
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
     Ok(())
 }
 
@@ -223,13 +205,8 @@ pub(crate) fn configure_reserve_asset_rail<'info>(
     active: bool,
     asset_symbol: &str,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_domain_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_quasar_domain_control(&authority, &ctx.accounts.reserve_domain)?;
     require_valid_reserve_asset_role(role)?;
     require_valid_reserve_oracle_source(oracle_source)?;
     require_quasar_bps(haircut_bps)?;
@@ -318,14 +295,12 @@ pub(crate) fn publish_reserve_asset_rail_price<'info>(
     published_at_ts: i64,
     proof_hash: [u8; 32],
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_positive_amount(price_usd_1e8)?;
     require_quasar_bps(confidence_bps)?;
 
     let authority = *ctx.accounts.authority.address();
     require!(
-        authority == ctx.accounts.reserve_asset_rail.oracle_authority
-            || authority == ctx.accounts.protocol_governance.governance_authority,
+        authority == ctx.accounts.reserve_asset_rail.oracle_authority,
         OmegaXProtocolError::Unauthorized
     );
     require_quasar_reserve_asset_rail_active(&ctx.accounts.reserve_asset_rail)?;
@@ -623,12 +598,6 @@ pub struct ConfigureReserveAssetRail<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(
         seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()],
         bump = reserve_domain.bump,
@@ -682,12 +651,6 @@ pub struct PublishReserveAssetRailPrice<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(
         mut,

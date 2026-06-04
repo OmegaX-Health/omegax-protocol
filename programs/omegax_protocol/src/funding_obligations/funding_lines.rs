@@ -16,15 +16,8 @@ fn require_quasar_id(value: &str) -> Result<()> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_plan_control(
-    authority: &Pubkey,
-    governance: &ProtocolGovernance,
-    plan: &HealthPlanAccountData<'_>,
-) -> Result<()> {
-    if *authority == plan.plan_admin
-        || *authority == plan.sponsor_operator
-        || *authority == governance.governance_authority
-    {
+fn require_quasar_plan_control(authority: &Pubkey, plan: &HealthPlanAccountData<'_>) -> Result<()> {
+    if *authority == plan.plan_admin || *authority == plan.sponsor_operator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -131,11 +124,7 @@ pub(crate) fn open_funding_line<'info>(
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
     let health_plan_key = *ctx.accounts.health_plan.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
     require_quasar_id(line_id)?;
     require_keys_eq!(
         ctx.accounts.domain_asset_vault.asset_mint,
@@ -254,11 +243,7 @@ pub(crate) fn open_funding_line(
     ctx: Context<OpenFundingLine>,
     args: OpenFundingLineArgs,
 ) -> Result<()> {
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_id(&args.line_id)?;
     require!(
         ctx.accounts.domain_asset_vault.asset_mint == args.asset_mint,
@@ -365,12 +350,6 @@ pub struct OpenFundingLine<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,

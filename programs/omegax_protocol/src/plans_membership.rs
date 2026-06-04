@@ -21,18 +21,10 @@ pub(crate) fn create_health_plan(
 ) -> Result<()> {
     require_id(&args.plan_id)?;
     require!(
-        !ctx.accounts.protocol_governance.emergency_pause,
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    require!(
         ctx.accounts.reserve_domain.active,
         OmegaXProtocolError::ReserveDomainInactive
     );
-    require_domain_control(
-        &ctx.accounts.plan_admin.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_domain_control(&ctx.accounts.plan_admin.key(), &ctx.accounts.reserve_domain)?;
     validate_membership_gate_config(&args)?;
 
     let plan = &mut ctx.accounts.health_plan;
@@ -75,11 +67,7 @@ pub(crate) fn update_health_plan_controls(
     ctx: Context<UpdateHealthPlanControls>,
     args: UpdateHealthPlanControlsArgs,
 ) -> Result<()> {
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     validate_membership_gate_update_config(&args)?;
 
     let plan = &mut ctx.accounts.health_plan;
@@ -114,15 +102,8 @@ pub(crate) fn update_health_plan_controls(
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_plan_control(
-    authority: &Pubkey,
-    governance: &ProtocolGovernance,
-    plan: &HealthPlanAccountData<'_>,
-) -> Result<()> {
-    if *authority == plan.plan_admin
-        || *authority == plan.sponsor_operator
-        || *authority == governance.governance_authority
-    {
+fn require_quasar_plan_control(authority: &Pubkey, plan: &HealthPlanAccountData<'_>) -> Result<()> {
+    if *authority == plan.plan_admin || *authority == plan.sponsor_operator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -141,22 +122,11 @@ fn require_quasar_id(value: &str) -> Result<()> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_domain_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     domain: &ReserveDomainAccountData<'_>,
 ) -> Result<()> {
-    if *authority == domain.domain_admin || *authority == governance.governance_authority {
+    if *authority == domain.domain_admin {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -339,11 +309,7 @@ pub(crate) fn update_health_plan_controls<'info>(
     active: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
     validate_quasar_membership_gate_fields(
         membership_mode,
         membership_gate_kind,
@@ -419,17 +385,12 @@ pub(crate) fn create_health_plan<'info>(
     metadata_uri: &str,
 ) -> Result<()> {
     require_quasar_id(plan_id)?;
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require!(
         ctx.accounts.reserve_domain.active.get(),
         OmegaXProtocolError::ReserveDomainInactive
     );
     let plan_admin = *ctx.accounts.plan_admin.address();
-    require_quasar_domain_control(
-        &plan_admin,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.reserve_domain,
-    )?;
+    require_quasar_domain_control(&plan_admin, &ctx.accounts.reserve_domain)?;
     validate_quasar_membership_gate_fields(
         membership_mode,
         membership_gate_kind,
@@ -493,11 +454,7 @@ pub(crate) fn create_policy_series<'info>(
 ) -> Result<()> {
     require_quasar_id(series_id)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
 
     let policy_series_key = *ctx.accounts.policy_series.address();
     let live_since_ts = if status == SERIES_STATUS_ACTIVE {
@@ -551,11 +508,7 @@ pub(crate) fn initialize_series_reserve_ledger<'info>(
     asset_mint: Pubkey,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
     require_keys_eq!(
         ctx.accounts.policy_series.health_plan,
         *ctx.accounts.health_plan.address(),
@@ -591,11 +544,7 @@ pub(crate) fn version_policy_series<'info>(
     metadata_uri: &str,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
     require!(
         ctx.accounts.current_policy_series.health_plan == *ctx.accounts.health_plan.address(),
         OmegaXProtocolError::HealthPlanMismatch
@@ -714,7 +663,6 @@ pub(crate) fn open_member_position<'info>(
     invite_id_hash: [u8; 32],
     invite_expires_at: i64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_health_plan_active(&ctx.accounts.health_plan)?;
     require!(
         ctx.accounts.health_plan.pause_flags.get() & PAUSE_FLAG_PLAN_OPERATIONS == 0,
@@ -759,11 +707,7 @@ pub(crate) fn create_policy_series(
     args: CreatePolicySeriesArgs,
 ) -> Result<()> {
     require_id(&args.series_id)?;
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
 
     let series = &mut ctx.accounts.policy_series;
     series.reserve_domain = ctx.accounts.health_plan.reserve_domain;
@@ -816,11 +760,7 @@ pub(crate) fn initialize_series_reserve_ledger(
     ctx: Context<InitializeSeriesReserveLedger>,
     args: InitializeSeriesReserveLedgerArgs,
 ) -> Result<()> {
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require_keys_eq!(
         ctx.accounts.policy_series.health_plan,
         ctx.accounts.health_plan.key(),
@@ -847,11 +787,7 @@ pub(crate) fn version_policy_series(
     ctx: Context<VersionPolicySeries>,
     args: VersionPolicySeriesArgs,
 ) -> Result<()> {
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
     require!(
         ctx.accounts.current_policy_series.health_plan == ctx.accounts.health_plan.key(),
         OmegaXProtocolError::HealthPlanMismatch
@@ -911,7 +847,6 @@ pub(crate) fn open_member_position(
     ctx: Context<OpenMemberPosition>,
     args: OpenMemberPositionArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_health_plan_active(&ctx.accounts.health_plan)?;
     require!(
         ctx.accounts.health_plan.pause_flags & PAUSE_FLAG_PLAN_OPERATIONS == 0,
@@ -960,11 +895,7 @@ pub(crate) fn update_member_eligibility(
     ctx: Context<UpdateMemberEligibility>,
     args: UpdateMemberEligibilityArgs,
 ) -> Result<()> {
-    require_plan_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_plan_control(&ctx.accounts.authority.key(), &ctx.accounts.health_plan)?;
 
     let member_position = &mut ctx.accounts.member_position;
     member_position.eligibility_status = args.eligibility_status;
@@ -983,11 +914,7 @@ pub(crate) fn update_member_eligibility<'info>(
     active: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_plan_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.health_plan,
-    )?;
+    require_quasar_plan_control(&authority, &ctx.accounts.health_plan)?;
 
     let member_position = &mut ctx.accounts.member_position;
     let health_plan = member_position.health_plan;
@@ -1048,12 +975,6 @@ pub struct CreateHealthPlan<'info> {
     #[cfg(feature = "quasar")]
     pub plan_admin: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_RESERVE_DOMAIN, reserve_domain.domain_id.as_bytes()], bump = reserve_domain.bump)]
     pub reserve_domain: Account<'info, ReserveDomain>,
     #[cfg(feature = "quasar")]
@@ -1105,12 +1026,6 @@ pub struct UpdateHealthPlanControls<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
     #[cfg(feature = "quasar")]
@@ -1153,12 +1068,6 @@ pub struct CreatePolicySeries<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
@@ -1239,12 +1148,6 @@ pub struct InitializeSeriesReserveLedger<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
@@ -1327,12 +1230,6 @@ pub struct VersionPolicySeries<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Box<Account<'info, HealthPlan>>,
@@ -1439,12 +1336,6 @@ pub struct OpenMemberPosition<'info> {
     #[cfg(feature = "quasar")]
     pub wallet: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,
     #[cfg(feature = "quasar")]
@@ -1503,12 +1394,6 @@ pub struct UpdateMemberEligibility<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_HEALTH_PLAN, health_plan.reserve_domain.as_ref(), health_plan.health_plan_id.as_bytes()], bump = health_plan.bump)]
     pub health_plan: Account<'info, HealthPlan>,

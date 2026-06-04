@@ -31,7 +31,8 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   const claimCaseAccount = idl.types.find((entry) => entry.name === "ClaimCase");
   const claimAttestationAccount = idl.types.find((entry) => entry.name === "ClaimAttestation");
 
-  assert(instructionNames.includes("initialize_protocol_governance"));
+  assert(!instructionNames.includes("initialize_protocol_governance"));
+  assert(!instructionNames.includes("set_protocol_emergency_pause"));
   assert(!instructionNames.includes("rotate_protocol_governance_authority"));
   assert(!instructionNames.includes("accept_protocol_governance_authority"));
   assert(!instructionNames.includes("cancel_protocol_governance_authority_transfer"));
@@ -84,15 +85,14 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(accountNames.includes("SchemaDependencyLedger"));
   assert(accountNames.includes("ClaimAttestation"));
 
-  for (const removedAccount of ["ProtocolFeeVault", "PoolTreasuryVault", "PoolOracleFeeVault"]) {
+  for (const removedAccount of ["ProtocolGovernance", "ProtocolFeeVault", "PoolTreasuryVault", "PoolOracleFeeVault"]) {
     assert(!accountNames.includes(removedAccount), `${removedAccount} should be removed`);
   }
+  assert(!serializedAccounts.includes("protocol_governance"));
   assert(!serializedAccounts.includes("protocol_fee_vault"));
   assert(!serializedAccounts.includes("pool_treasury_vault"));
   assert(!serializedAccounts.includes("pool_oracle_fee_vault"));
-  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.open_claim_case.some((account) => account.name === "protocol_governance"));
   for (const accountName of [
-    "protocol_governance",
     "health_plan",
     "funding_line",
     "liquidity_pool",
@@ -153,7 +153,6 @@ test("canonical contract exposes the health-capital-markets surface", () => {
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.fund_sponsor_budget.some((account) => account.name === "vault_token_account"));
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.record_premium_payment.some((account) => account.name === "token_program"));
   assert(PROTOCOL_INSTRUCTION_ACCOUNTS.deposit_into_capital_class.some((account) => account.name === "source_token_account"));
-  assert(PROTOCOL_INSTRUCTION_ACCOUNTS.request_redemption.some((account) => account.name === "protocol_governance"));
   assert.equal(depositArgs?.type.kind, "struct");
   assert.deepEqual(
     depositArgs?.type.fields?.map((field) => field.name),

@@ -27,7 +27,6 @@ pub mod instruction {
     pub const IX_DEALLOCATE_CAPITAL: [u8; 8] = [10, 97, 97, 189, 60, 170, 102, 29];
     pub const IX_DEPOSIT_INTO_CAPITAL_CLASS: [u8; 8] = [40, 215, 33, 115, 185, 101, 196, 167];
     pub const IX_FUND_SPONSOR_BUDGET: [u8; 8] = [150, 210, 161, 31, 50, 12, 224, 32];
-    pub const IX_INITIALIZE_PROTOCOL_GOVERNANCE: [u8; 8] = [220, 188, 231, 198, 20, 71, 42, 123];
     pub const IX_INITIALIZE_SERIES_RESERVE_LEDGER: [u8; 8] =
         [113, 155, 191, 126, 81, 152, 220, 249];
     pub const IX_MARK_IMPAIRMENT: [u8; 8] = [58, 97, 30, 157, 211, 45, 174, 238];
@@ -45,7 +44,6 @@ pub mod instruction {
     pub const IX_SET_POOL_ORACLE: [u8; 8] = [140, 225, 146, 45, 210, 81, 225, 223];
     pub const IX_SET_POOL_ORACLE_PERMISSIONS: [u8; 8] = [168, 14, 22, 106, 118, 145, 105, 44];
     pub const IX_SET_POOL_ORACLE_POLICY: [u8; 8] = [190, 13, 51, 113, 230, 140, 103, 82];
-    pub const IX_SET_PROTOCOL_EMERGENCY_PAUSE: [u8; 8] = [180, 209, 92, 144, 227, 14, 97, 94];
     pub const IX_SETTLE_CLAIM_CASE: [u8; 8] = [178, 123, 229, 204, 50, 204, 91, 71];
     pub const IX_SETTLE_CLAIM_CASE_SELECTED_ASSET: [u8; 8] = [21, 218, 248, 73, 41, 97, 47, 212];
     pub const IX_SETTLE_OBLIGATION: [u8; 8] = [209, 166, 218, 35, 147, 139, 238, 208];
@@ -83,7 +81,6 @@ pub mod account {
     pub const ACCOUNT_POOL_ORACLE_APPROVAL: [u8; 8] = [116, 241, 25, 184, 205, 21, 153, 29];
     pub const ACCOUNT_POOL_ORACLE_PERMISSION_SET: [u8; 8] = [3, 136, 243, 231, 172, 143, 123, 245];
     pub const ACCOUNT_POOL_ORACLE_POLICY: [u8; 8] = [246, 134, 133, 108, 100, 203, 226, 43];
-    pub const ACCOUNT_PROTOCOL_GOVERNANCE: [u8; 8] = [71, 235, 253, 251, 202, 254, 132, 177];
     pub const ACCOUNT_RESERVE_ASSET_RAIL: [u8; 8] = [48, 92, 233, 170, 158, 126, 122, 67];
     pub const ACCOUNT_RESERVE_DOMAIN: [u8; 8] = [119, 76, 223, 192, 177, 116, 88, 178];
     pub const ACCOUNT_SCHEMA_DEPENDENCY_LEDGER: [u8; 8] = [87, 115, 211, 54, 36, 177, 77, 131];
@@ -125,8 +122,6 @@ pub mod event {
         [151, 96, 35, 111, 20, 154, 112, 211];
     pub const EVENT_POOL_ORACLE_POLICY_CHANGED_EVENT: [u8; 8] =
         [142, 195, 149, 88, 218, 243, 91, 84];
-    pub const EVENT_PROTOCOL_GOVERNANCE_INITIALIZED_EVENT: [u8; 8] =
-        [89, 34, 67, 141, 79, 64, 188, 254];
     pub const EVENT_REDEMPTION_REQUESTED_EVENT: [u8; 8] = [202, 47, 51, 231, 221, 144, 164, 57];
     pub const EVENT_RESERVE_ASSET_RAIL_CONFIGURED_EVENT: [u8; 8] =
         [33, 112, 220, 210, 144, 2, 40, 234];

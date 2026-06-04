@@ -9,11 +9,7 @@ pub(crate) fn create_allocation_position(
     ctx: Context<CreateAllocationPosition>,
     args: CreateAllocationPositionArgs,
 ) -> Result<()> {
-    require_allocator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_allocator(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     require_keys_eq!(
         ctx.accounts.funding_line.asset_mint,
         ctx.accounts.liquidity_pool.deposit_asset_mint,
@@ -101,11 +97,7 @@ pub(crate) fn create_allocation_position<'info>(
     deallocation_only: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_allocator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_allocator(&authority, &ctx.accounts.liquidity_pool)?;
     require_keys_eq!(
         ctx.accounts.funding_line.asset_mint,
         ctx.accounts.liquidity_pool.deposit_asset_mint,
@@ -189,11 +181,7 @@ pub(crate) fn update_allocation_caps(
         ctx.accounts.liquidity_pool.key(),
         OmegaXProtocolError::LiquidityPoolMismatch
     );
-    require_allocator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_allocator(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
 
     let allocation = &mut ctx.accounts.allocation_position;
     allocation.cap_amount = args.cap_amount;
@@ -219,15 +207,8 @@ pub(crate) fn update_allocation_caps(
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_allocator(
-    authority: &Pubkey,
-    governance: &ProtocolGovernance,
-    pool: &LiquidityPoolAccountData<'_>,
-) -> Result<()> {
-    if *authority == pool.allocator
-        || *authority == pool.curator
-        || *authority == governance.governance_authority
-    {
+fn require_quasar_allocator(authority: &Pubkey, pool: &LiquidityPoolAccountData<'_>) -> Result<()> {
+    if *authority == pool.allocator || *authority == pool.curator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -246,16 +227,6 @@ fn quasar_checked_add(lhs: u64, rhs: u64) -> Result<u64> {
 fn quasar_checked_sub(lhs: u64, rhs: u64) -> Result<u64> {
     lhs.checked_sub(rhs)
         .ok_or(OmegaXProtocolError::ArithmeticError.into())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
 }
 
 #[cfg(feature = "quasar")]
@@ -356,11 +327,7 @@ pub(crate) fn update_allocation_caps<'info>(
     );
 
     let authority = *ctx.accounts.authority.address();
-    require_quasar_allocator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_allocator(&authority, &ctx.accounts.liquidity_pool)?;
 
     let allocation = &mut ctx.accounts.allocation_position;
     let reserve_domain = allocation.reserve_domain;
@@ -403,12 +370,7 @@ pub(crate) fn allocate_capital(
     ctx: Context<AllocateCapital>,
     args: AllocateCapitalArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_allocator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_allocator(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     require_liquidity_pool_active(&ctx.accounts.liquidity_pool)?;
     require_capital_class_active(&ctx.accounts.capital_class)?;
     require_allocation_position_allocatable(&ctx.accounts.allocation_position)?;
@@ -453,13 +415,8 @@ pub(crate) fn allocate_capital<'info>(
     ctx: &mut Ctx<'info, AllocateCapital<'info>>,
     amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_allocator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_allocator(&authority, &ctx.accounts.liquidity_pool)?;
     require_quasar_liquidity_pool_active(&ctx.accounts.liquidity_pool)?;
     require_quasar_capital_class_active(&ctx.accounts.capital_class)?;
     require_quasar_allocation_position_allocatable(&ctx.accounts.allocation_position)?;
@@ -661,12 +618,7 @@ pub(crate) fn deallocate_capital(
     ctx: Context<DeallocateCapital>,
     args: DeallocateCapitalArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
-    require_allocator(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_allocator(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
 
     let amount = args.amount;
     require_positive_amount(amount)?;
@@ -703,13 +655,8 @@ pub(crate) fn deallocate_capital<'info>(
     ctx: &mut Ctx<'info, DeallocateCapital<'info>>,
     amount: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_allocator(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_allocator(&authority, &ctx.accounts.liquidity_pool)?;
     require_quasar_positive_amount(amount)?;
     require_keys_eq!(
         ctx.accounts.funding_line.asset_mint,
@@ -911,12 +858,6 @@ pub struct CreateAllocationPosition<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
     #[cfg(feature = "quasar")]
@@ -1032,12 +973,6 @@ pub struct UpdateAllocationCaps<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[cfg(feature = "quasar")]
@@ -1071,12 +1006,6 @@ pub struct AllocateCapital<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
@@ -1167,12 +1096,6 @@ pub struct DeallocateCapital<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Box<Account<'info, LiquidityPool>>,

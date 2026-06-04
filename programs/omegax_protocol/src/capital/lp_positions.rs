@@ -9,16 +9,6 @@ use quasar_lang::sysvars::Sysvar;
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
-fn require_quasar_protocol_not_paused(governance: &ProtocolGovernance) -> Result<()> {
-    require!(
-        !governance.emergency_pause.get(),
-        OmegaXProtocolError::ProtocolEmergencyPaused
-    );
-    Ok(())
-}
-
-#[cfg(feature = "quasar")]
-#[inline(always)]
 fn require_quasar_positive_amount(amount: u64) -> Result<()> {
     require!(amount > 0, OmegaXProtocolError::AmountMustBePositive);
     Ok(())
@@ -115,11 +105,7 @@ pub(crate) fn update_lp_position_credentialing(
     ctx: Context<UpdateLpPositionCredentialing>,
     args: UpdateLpPositionCredentialingArgs,
 ) -> Result<()> {
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
 
     let capital_class_key = ctx.accounts.capital_class.key();
     let lp_position = &mut ctx.accounts.lp_position;
@@ -146,10 +132,9 @@ pub(crate) fn update_lp_position_credentialing(
 #[inline(always)]
 fn require_quasar_curator_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
-    if *authority == pool.curator || *authority == governance.governance_authority {
+    if *authority == pool.curator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -163,11 +148,7 @@ pub(crate) fn update_lp_position_credentialing<'info>(
     credentialed: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
 
     let capital_class = *ctx.accounts.capital_class.address();
     let lp_position = &mut ctx.accounts.lp_position;
@@ -223,7 +204,6 @@ pub(crate) fn deposit_into_capital_class(
     ctx: Context<DepositIntoCapitalClass>,
     args: DepositIntoCapitalClassArgs,
 ) -> Result<()> {
-    require_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_positive_amount(args.amount)?;
     require_capital_class_active(&ctx.accounts.capital_class)?;
     require!(
@@ -289,7 +269,6 @@ pub(crate) fn deposit_into_capital_class<'info>(
     amount: u64,
     min_shares_out: u64,
 ) -> Result<()> {
-    require_quasar_protocol_not_paused(&ctx.accounts.protocol_governance)?;
     require_quasar_positive_amount(amount)?;
     require_quasar_capital_class_active(&ctx.accounts.capital_class)?;
     require!(
@@ -536,12 +515,6 @@ pub struct UpdateLpPositionCredentialing<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[cfg(feature = "quasar")]
@@ -605,12 +578,6 @@ pub struct DepositIntoCapitalClass<'info> {
     pub owner: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub owner: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Box<Account<'info, ProtocolGovernance>>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(mut, seeds = [SEED_DOMAIN_ASSET_VAULT, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.deposit_asset_mint.as_ref()], bump = domain_asset_vault.bump)]
     pub domain_asset_vault: Box<Account<'info, DomainAssetVault>>,

@@ -90,7 +90,6 @@ import type {
   LPPositionSnapshot,
   AllocationPositionSnapshot,
   AllocationLedgerSnapshot,
-  ProtocolGovernanceSnapshot,
   OracleProfileSnapshot,
   PoolOracleApprovalSnapshot,
   PoolOraclePolicySnapshot,
@@ -175,8 +174,6 @@ import {
   derivePoolOracleApprovalPda,
   derivePoolOraclePermissionSetPda,
   derivePoolOraclePolicyPda,
-  deriveProgramDataAddress,
-  deriveProtocolGovernancePda,
   deriveReserveAssetRailPda,
   deriveReserveDomainPda,
   deriveSchemaDependencyLedgerPda,
@@ -1228,14 +1225,6 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
     const address = row.pubkey.toBase58();
 
     switch (accountName) {
-      case "ProtocolGovernance":
-        snapshot.protocolGovernance = {
-          address,
-          governanceAuthority: asAddress(decodedField(decoded, "governanceAuthority")),
-          emergencyPause: Boolean(decodedField(decoded, "emergencyPause")),
-          auditNonce: bigintFromAnchorValue(decodedField(decoded, "auditNonce")),
-        };
-        break;
       case "ReserveDomain":
         snapshot.reserveDomains.push({
           address,
@@ -1971,23 +1960,6 @@ export function hasConfiguredPoolTerms(
   );
 }
 
-function protocolConfigFromSnapshot(snapshot: ProtocolConsoleSnapshot): ProtocolConfigSummary | null {
-  if (!snapshot.protocolGovernance) return null;
-  const governanceRealm = configuredPublicKeyFromEnv(process.env.NEXT_PUBLIC_GOVERNANCE_REALM);
-  const governanceConfig = configuredPublicKeyFromEnv(process.env.NEXT_PUBLIC_GOVERNANCE_CONFIG);
-  return {
-    address: snapshot.protocolGovernance.address,
-    admin: snapshot.protocolGovernance.governanceAuthority,
-    governanceAuthority: snapshot.protocolGovernance.governanceAuthority,
-    governanceRealm,
-    governanceConfig,
-    defaultStakeMint: ZERO_PUBKEY,
-    minOracleStake: 0n,
-    emergencyPaused: snapshot.protocolGovernance.emergencyPause,
-    allowedPayoutMintsHashHex: ZERO_HASH_HEX,
-  };
-}
-
 function poolOrganizationRef(
   pool: LiquidityPoolSnapshot,
   snapshot: Pick<ProtocolConsoleSnapshot, "reserveDomains" | "allocationPositions" | "healthPlans">,
@@ -2130,8 +2102,8 @@ export async function listPoolOraclePermissionSets(params: {
 export async function fetchProtocolConfig(params: {
   connection: Connection;
 }): Promise<ProtocolConfigSummary | null> {
-  const snapshot = await loadProtocolConsoleSnapshot(params.connection);
-  return protocolConfigFromSnapshot(snapshot);
+  void params;
+  return null;
 }
 
 export async function listProtocolConfig(params: {
@@ -2353,7 +2325,7 @@ export async function fetchProtocolReadiness(params: {
   const poolTermsConfigured = hasConfiguredPoolTerms(pool);
 
   return {
-    protocolConfigExists: Boolean(snapshot.protocolGovernance),
+    protocolConfigExists: true,
     poolExists: Boolean(pool),
     oracleRegistered: Boolean(oracleProfile),
     oracleProfileExists: Boolean(oracleProfile),
@@ -2371,7 +2343,7 @@ export async function fetchProtocolReadiness(params: {
     coveragePolicyNftExists: false,
     premiumLedgerTracked: premiumIncomeTracked,
     derived: {
-      configAddress: snapshot.protocolGovernance?.address ?? null,
+      configAddress: null,
       poolAddress: pool?.address ?? poolAddress,
       poolTermsAddress: poolTermsConfigured ? pool?.address ?? null : null,
       poolAssetVaultAddress: domainAssetVault?.address ?? null,
@@ -2390,29 +2362,6 @@ export async function fetchProtocolReadiness(params: {
       premiumLedgerAddress: premiumIncomeTracked ? matchingFundingLine : null,
     },
   };
-}
-
-export function buildInitializeProtocolGovernanceTx(params: {
-  governanceAuthority: PublicKeyish;
-  recentBlockhash: string;
-  emergencyPaused: boolean;
-}): Transaction {
-  const governanceAuthority = toPublicKey(params.governanceAuthority);
-  return buildProtocolTransactionFromInstruction({
-    feePayer: governanceAuthority,
-    recentBlockhash: params.recentBlockhash,
-    instructionName: "initialize_protocol_governance",
-    args: {
-      emergency_pause: params.emergencyPaused,
-    },
-    accounts: [
-      { pubkey: governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
-      { pubkey: getProgramId() },
-      { pubkey: deriveProgramDataAddress() },
-      { pubkey: SystemProgram.programId },
-    ],
-  });
 }
 
 export function buildCreateReserveDomainTx(params: {
@@ -2446,7 +2395,6 @@ export function buildCreateReserveDomainTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       {
         pubkey: deriveReserveDomainPda({ domainId: params.domainId }),
         isWritable: true,
@@ -2475,7 +2423,6 @@ export function buildCreateDomainAssetVaultTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.reserveDomainAddress, isWritable: true },
       {
         pubkey: deriveDomainAssetVaultPda({
@@ -2552,7 +2499,6 @@ export function buildConfigureReserveAssetRailTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.reserveDomainAddress },
       {
         pubkey: deriveReserveAssetRailPda({ reserveDomain: params.reserveDomainAddress, assetMint }),
@@ -2587,33 +2533,10 @@ export function buildPublishReserveAssetRailPriceTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       {
         pubkey: deriveReserveAssetRailPda({ reserveDomain: params.reserveDomainAddress, assetMint }),
         isWritable: true,
       },
-    ],
-  });
-}
-
-export function buildSetProtocolEmergencyPauseTx(params: {
-  authority: PublicKeyish;
-  recentBlockhash: string;
-  emergencyPaused: boolean;
-  reasonHashHex?: string | null;
-}): Transaction {
-  const authority = toPublicKey(params.authority);
-  return buildProtocolTransactionFromInstruction({
-    feePayer: authority,
-    recentBlockhash: params.recentBlockhash,
-    instructionName: "set_protocol_emergency_pause",
-    args: {
-      emergency_pause: params.emergencyPaused,
-      reason_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.reasonHashHex), 32)),
-    },
-    accounts: [
-      { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda(), isWritable: true },
     ],
   });
 }
@@ -2640,7 +2563,6 @@ export function buildUpdateReserveDomainControlsTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.reserveDomainAddress, isWritable: true },
     ],
   });
@@ -2692,7 +2614,6 @@ export function buildUpdateHealthPlanControlsTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress, isWritable: true },
     ],
   });
@@ -2748,7 +2669,6 @@ export function buildVersionPolicySeriesTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.currentPolicySeriesAddress, isWritable: true },
       { pubkey: nextPolicySeries, isWritable: true },
@@ -2816,7 +2736,6 @@ export function buildCreatePolicySeriesTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: policySeries, isWritable: true },
       { pubkey: seriesReserveLedger, isWritable: true },
@@ -2847,7 +2766,6 @@ export function buildInitializeSeriesReserveLedgerTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.policySeriesAddress },
       { pubkey: seriesReserveLedger, isWritable: true },
@@ -2890,7 +2808,6 @@ export function buildOpenFundingLineTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveDomainAssetVaultPda({
@@ -2963,7 +2880,6 @@ export function buildOpenMemberPositionTx(params: {
     },
     accounts: [
       { pubkey: wallet, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       optionalNonZeroProtocolAccount(params.seriesScopeAddress),
       { pubkey: memberPosition, isWritable: true },
@@ -3003,7 +2919,6 @@ export function buildUpdateMemberEligibilityTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: memberPosition, isWritable: true },
     ],
@@ -3032,7 +2947,6 @@ export function buildFundSponsorBudgetTx(params: {
     args: { amount: params.amount },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveDomainAssetVaultPda({
@@ -3096,7 +3010,6 @@ export function buildRecordPremiumPaymentTx(params: {
     args: { amount: params.amount },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveDomainAssetVaultPda({
@@ -3181,7 +3094,6 @@ export function buildCreateObligationTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveDomainAssetLedgerPda({
@@ -3245,7 +3157,6 @@ export function buildOpenClaimCaseTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.memberPositionAddress },
       { pubkey: params.fundingLineAddress },
@@ -3274,7 +3185,6 @@ export function buildAttachClaimEvidenceRefTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.claimCaseAddress, isWritable: true },
     ],
@@ -3356,7 +3266,6 @@ export function buildAttestClaimCaseTx(params: {
     },
     accounts: [
       { pubkey: oracle, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: healthPlan },
       { pubkey: oracleProfile },
       { pubkey: params.claimCaseAddress, isWritable: true },
@@ -3400,7 +3309,6 @@ export function buildAdjudicateClaimCaseTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       { pubkey: params.claimCaseAddress, isWritable: true },
       optionalProtocolAccount(params.obligationAddress, true),
@@ -3459,7 +3367,6 @@ function buildObligationFlowTx(params: {
     args: params.args,
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       ...(params.instructionName === "settle_obligation" ? [{
         pubkey: deriveReserveAssetRailPda({
@@ -3612,7 +3519,6 @@ export function buildSettleClaimCaseTx(params: {
     args: { amount: params.amount },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveReserveAssetRailPda({
@@ -3701,7 +3607,6 @@ export function buildSettleClaimCaseSelectedAssetTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveReserveAssetRailPda({
@@ -3796,7 +3701,6 @@ export function buildCreateLiquidityPoolTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.reserveDomainAddress },
       {
         pubkey: deriveDomainAssetVaultPda({
@@ -3855,7 +3759,6 @@ export function buildCreateCapitalClassTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress },
       { pubkey: capitalClass, isWritable: true },
       { pubkey: poolClassLedger, isWritable: true },
@@ -3887,7 +3790,6 @@ export function buildUpdateCapitalClassControlsTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress },
       { pubkey: params.capitalClassAddress, isWritable: true },
     ],
@@ -3924,7 +3826,6 @@ export function buildDepositIntoCapitalClassTx(params: {
     },
     accounts: [
       { pubkey: owner, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       {
         pubkey: deriveDomainAssetVaultPda({
           reserveDomain: params.reserveDomainAddress,
@@ -3979,7 +3880,6 @@ export function buildUpdateLpPositionCredentialingTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress },
       { pubkey: params.capitalClassAddress },
       {
@@ -4018,7 +3918,6 @@ export function buildRequestRedemptionTx(params: {
     },
     accounts: [
       { pubkey: owner, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress, isWritable: true },
       { pubkey: params.capitalClassAddress, isWritable: true },
       {
@@ -4069,7 +3968,6 @@ export function buildProcessRedemptionQueueTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       {
         pubkey: deriveDomainAssetVaultPda({
           reserveDomain: params.reserveDomainAddress,
@@ -4138,7 +4036,6 @@ export function buildCreateAllocationPositionTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress },
       { pubkey: params.capitalClassAddress },
       { pubkey: params.healthPlanAddress },
@@ -4175,7 +4072,6 @@ export function buildUpdateAllocationCapsTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress },
       { pubkey: params.allocationPositionAddress, isWritable: true },
     ],
@@ -4209,7 +4105,6 @@ function buildAllocationCapitalFlowTx(params: {
     args: { amount: params.amount },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.poolAddress, isWritable: true },
       { pubkey: params.capitalClassAddress, isWritable: true },
       {
@@ -4284,7 +4179,6 @@ export function buildMarkImpairmentTx(params: {
     },
     accounts: [
       { pubkey: authority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: params.healthPlanAddress },
       {
         pubkey: deriveDomainAssetLedgerPda({
@@ -4394,7 +4288,6 @@ export function buildUpdateOracleProfileTx(params: {
   supportedSchemaKeyHashesHex: string[];
 }): Transaction {
   const authority = toPublicKey(params.authority);
-  const protocolGovernance = deriveProtocolGovernancePda();
   const oracleProfile = deriveOracleProfilePda({ oracle: params.oracle });
   const instruction = buildProtocolInstruction(
     "update_oracle_profile",
@@ -4410,7 +4303,6 @@ export function buildUpdateOracleProfileTx(params: {
     },
     [
       { pubkey: authority, isSigner: true },
-      { pubkey: protocolGovernance },
       { pubkey: oracleProfile, isWritable: true },
     ],
   );
@@ -4437,7 +4329,6 @@ export function buildSetPoolOracleTx(params: {
     { active: params.active },
     [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: pool },
       { pubkey: oracleProfile },
       { pubkey: approval, isWritable: true },
@@ -4468,7 +4359,6 @@ export function buildSetPoolOraclePermissionsTx(params: {
     { permissions: params.permissions },
     [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: pool },
       { pubkey: oracleProfile },
       { pubkey: approval },
@@ -4507,7 +4397,6 @@ export function buildSetPoolOraclePolicyTx(params: {
     },
     [
       { pubkey: authority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: pool },
       { pubkey: policy, isWritable: true },
       { pubkey: SystemProgram.programId },
@@ -4573,7 +4462,6 @@ export function buildVerifyOutcomeSchemaTx(params: {
     { verified: params.verified },
     [
       { pubkey: governanceAuthority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: outcomeSchema, isWritable: true },
     ],
   );
@@ -4602,7 +4490,6 @@ export function buildBackfillSchemaDependencyLedgerTx(params: {
     },
     [
       { pubkey: governanceAuthority, isSigner: true, isWritable: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: outcomeSchema },
       { pubkey: dependencyLedger, isWritable: true },
       { pubkey: SystemProgram.programId },
@@ -4631,7 +4518,6 @@ export function buildCloseOutcomeSchemaTx(params: {
     {},
     [
       { pubkey: governanceAuthority, isSigner: true },
-      { pubkey: deriveProtocolGovernancePda() },
       { pubkey: outcomeSchema, isWritable: true },
       { pubkey: dependencyLedger, isWritable: true },
       { pubkey: recipient, isWritable: true },

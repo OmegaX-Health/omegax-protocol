@@ -20,11 +20,7 @@ pub(crate) fn create_capital_class(
     args: CreateCapitalClassArgs,
 ) -> Result<()> {
     require_id(&args.class_id)?;
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
     require!(
         args.min_lockup_seconds >= 0,
         OmegaXProtocolError::InvalidLockupSeconds
@@ -75,11 +71,7 @@ pub(crate) fn update_capital_class_controls(
     ctx: Context<UpdateCapitalClassControls>,
     args: UpdateCapitalClassControlsArgs,
 ) -> Result<()> {
-    require_curator_control(
-        &ctx.accounts.authority.key(),
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_curator_control(&ctx.accounts.authority.key(), &ctx.accounts.liquidity_pool)?;
 
     let capital_class = &mut ctx.accounts.capital_class;
     capital_class.pause_flags = args.pause_flags;
@@ -118,11 +110,7 @@ pub(crate) fn create_capital_class<'info>(
 ) -> Result<()> {
     require_quasar_id(class_id)?;
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
     require!(
         min_lockup_seconds >= 0,
         OmegaXProtocolError::InvalidLockupSeconds
@@ -181,10 +169,9 @@ pub(crate) fn create_capital_class<'info>(
 #[inline(always)]
 fn require_quasar_curator_control(
     authority: &Pubkey,
-    governance: &ProtocolGovernance,
     pool: &LiquidityPoolAccountData<'_>,
 ) -> Result<()> {
-    if *authority == pool.curator || *authority == governance.governance_authority {
+    if *authority == pool.curator {
         Ok(())
     } else {
         Err(OmegaXProtocolError::Unauthorized.into())
@@ -205,11 +192,7 @@ pub(crate) fn update_capital_class_controls<'info>(
     active: bool,
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
-    require_quasar_curator_control(
-        &authority,
-        &ctx.accounts.protocol_governance,
-        &ctx.accounts.liquidity_pool,
-    )?;
+    require_quasar_curator_control(&authority, &ctx.accounts.liquidity_pool)?;
 
     let capital_class = &mut ctx.accounts.capital_class;
     let queue_only_redemptions = derive_quasar_queue_only_redemptions(
@@ -294,12 +277,6 @@ pub struct CreateCapitalClass<'info> {
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
     #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
-    #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[cfg(feature = "quasar")]
@@ -375,12 +352,6 @@ pub struct UpdateCapitalClassControls<'info> {
     pub authority: Signer<'info>,
     #[cfg(feature = "quasar")]
     pub authority: &'info Signer,
-    #[cfg(not(feature = "quasar"))]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: Account<'info, ProtocolGovernance>,
-    #[cfg(feature = "quasar")]
-    #[account(seeds = [SEED_PROTOCOL_GOVERNANCE], bump = protocol_governance.bump)]
-    pub protocol_governance: &'info Account<ProtocolGovernance>,
     #[cfg(not(feature = "quasar"))]
     #[account(seeds = [SEED_LIQUIDITY_POOL, liquidity_pool.reserve_domain.as_ref(), liquidity_pool.pool_id.as_bytes()], bump = liquidity_pool.bump)]
     pub liquidity_pool: Account<'info, LiquidityPool>,
