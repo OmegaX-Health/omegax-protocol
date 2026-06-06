@@ -223,6 +223,8 @@ pub struct ClaimCase {
     // if non-zero, else `claimant`. Off-chain buyer/oracle systems own member
     // eligibility; the protocol only stores the payout claimant.
     pub delegate_recipient: Pubkey,
+    pub evidence_ref_hash: [u8; 32],
+    pub decision_support_hash: [u8; 32],
     pub intake_status: u8,
     pub review_state: u8,
     pub approved_amount: u64,
@@ -252,6 +254,8 @@ pub struct ClaimCase<'info> {
     // if non-zero, else `claimant`. Off-chain buyer/oracle systems own member
     // eligibility; the protocol only stores the payout claimant.
     pub delegate_recipient: Pubkey,
+    pub evidence_ref_hash: [u8; 32],
+    pub decision_support_hash: [u8; 32],
     pub intake_status: u8,
     pub review_state: u8,
     pub approved_amount: u64,

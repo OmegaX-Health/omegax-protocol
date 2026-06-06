@@ -222,6 +222,7 @@ pub struct OpenClaimCaseArgs {
     pub claim_id: String,
     pub policy_series: Pubkey,
     pub claimant: Pubkey,
+    pub evidence_ref_hash: [u8; 32],
 }
 
 #[cfg_attr(
@@ -233,6 +234,8 @@ pub struct AdjudicateClaimCaseArgs {
     pub approved_amount: u64,
     pub denied_amount: u64,
     pub reserve_amount: u64,
+    pub evidence_ref_hash: [u8; 32],
+    pub decision_support_hash: [u8; 32],
 }
 
 #[cfg_attr(

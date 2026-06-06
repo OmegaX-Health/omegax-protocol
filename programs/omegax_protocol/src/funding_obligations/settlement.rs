@@ -54,6 +54,10 @@ pub(crate) fn settle_obligation(
                 amount <= remaining_claim_amount(claim_case),
                 OmegaXProtocolError::AmountExceedsApprovedClaim
             );
+            require_claim_proof_fingerprints(
+                &claim_case.evidence_ref_hash,
+                &claim_case.decision_support_hash,
+            )?;
             require!(
                 ctx.accounts.asset_mint.is_some()
                     && ctx.accounts.vault_token_account.is_some()
@@ -497,6 +501,14 @@ pub(crate) fn settle_obligation<'info>(
                 OmegaXProtocolError::AmountExceedsApprovedClaim
             );
             require!(
+                !claim_case.evidence_ref_hash.iter().all(|byte| *byte == 0)
+                    && !claim_case
+                        .decision_support_hash
+                        .iter()
+                        .all(|byte| *byte == 0),
+                OmegaXProtocolError::ClaimProofFingerprintRequired
+            );
+            require!(
                 ctx.accounts.asset_mint.is_some()
                     && ctx.accounts.vault_token_account.is_some()
                     && ctx.accounts.recipient_token_account.is_some()
@@ -700,6 +712,8 @@ pub(crate) fn settle_obligation<'info>(
         let claimant = claim_case.claimant;
         let adjudicator = claim_case.adjudicator;
         let delegate_recipient = claim_case.delegate_recipient;
+        let evidence_ref_hash = claim_case.evidence_ref_hash;
+        let decision_support_hash = claim_case.decision_support_hash;
         let review_state = claim_case.review_state;
         let approved_amount = claim_case.approved_amount.get();
         let denied_amount = claim_case.denied_amount.get();
@@ -717,6 +731,8 @@ pub(crate) fn settle_obligation<'info>(
             claimant,
             adjudicator,
             delegate_recipient,
+            evidence_ref_hash,
+            decision_support_hash,
             intake_status,
             review_state,
             approved_amount,

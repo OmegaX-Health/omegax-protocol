@@ -70,9 +70,9 @@ operator workflow for a nonzero claimant. The funding line must belong to the se
 policy series, and the funding line must still be open. Off-chain buyer, eligibility, and coverage
 activation systems own member eligibility before claims reach the protocol.
 
-Evidence review, evidence packet hashes, and oracle attestations are off-chain or adjunct-program
-concerns. The base protocol intentionally stores only the claim case, adjudication amounts, optional
-linked obligation, reserve impact, and settlement state.
+Evidence review payloads and oracle attestations are off-chain or adjunct-program concerns. The base
+protocol stores only claim proof fingerprints, the claim case, adjudication amounts, optional linked
+obligation, reserve impact, and settlement state.
 
 - proposed
 - reserved

@@ -152,6 +152,8 @@ export type ClaimCaseSnapshot = {
   claimant: string;
   adjudicator?: string | null;
   claimId: string;
+  evidenceRefHashHex?: string;
+  decisionSupportHashHex?: string;
   intakeStatus: number;
   approvedAmount: BigNumberish;
   deniedAmount?: BigNumberish;

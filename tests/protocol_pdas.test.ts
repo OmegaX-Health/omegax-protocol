@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 
 import fixturesModule from "../frontend/lib/devnet-fixtures.ts";
 import protocolModule from "../frontend/lib/protocol.ts";
@@ -12,6 +13,8 @@ const {
 const {
   buildAttachClaimEvidenceRefTx,
   buildAttestClaimCaseTx,
+  buildAdjudicateClaimCaseTx,
+  buildOpenClaimCaseTx,
   buildOpenMemberPositionTx,
   deriveHealthPlanPda,
   deriveLiquidityPoolPda,
@@ -38,6 +41,68 @@ test("fixture addresses stay deterministic under canonical seeds", () => {
   assert.equal(
     deriveLiquidityPoolPda({ reserveDomain: pool.reserveDomain, poolId: pool.poolId }).toBase58(),
     DEFAULT_LIQUIDITY_POOL_ADDRESS,
+  );
+});
+
+test("claim builders serialize proof fingerprints without restoring attestation builders", () => {
+  const plan = DEVNET_PROTOCOL_FIXTURE_STATE.healthPlans[0]!;
+  const fundingLine = DEVNET_PROTOCOL_FIXTURE_STATE.fundingLines[0]!;
+  const claim = DEVNET_PROTOCOL_FIXTURE_STATE.claimCases[0]!;
+  const evidenceHashHex = "11".repeat(32);
+  const decisionHashHex = "22".repeat(32);
+
+  const openClaim = buildOpenClaimCaseTx({
+    authority: DEFAULT_HEALTH_PLAN_ADDRESS,
+    healthPlanAddress: plan.address,
+    fundingLineAddress: fundingLine.address,
+    recentBlockhash: "11111111111111111111111111111111",
+    claimId: "claim-proof-001",
+    policySeriesAddress: fundingLine.policySeries,
+    claimantAddress: claim.claimant,
+    evidenceRefHashHex: evidenceHashHex,
+  });
+  assert.notEqual(openClaim.instructions[0]!.data.indexOf(Buffer.from("11".repeat(32), "hex")), -1);
+
+  const adjudicateClaim = buildAdjudicateClaimCaseTx({
+    authority: DEFAULT_HEALTH_PLAN_ADDRESS,
+    healthPlanAddress: plan.address,
+    claimCaseAddress: claim.address,
+    recentBlockhash: "11111111111111111111111111111111",
+    reviewState: 1,
+    approvedAmount: 100n,
+    deniedAmount: 0n,
+    reserveAmount: 0n,
+    evidenceRefHashHex: evidenceHashHex,
+    decisionSupportHashHex: decisionHashHex,
+  });
+  assert.notEqual(adjudicateClaim.instructions[0]!.data.indexOf(Buffer.from(evidenceHashHex, "hex")), -1);
+  assert.notEqual(adjudicateClaim.instructions[0]!.data.indexOf(Buffer.from(decisionHashHex, "hex")), -1);
+
+  const reviewOnlyAdjudication = buildAdjudicateClaimCaseTx({
+    authority: DEFAULT_HEALTH_PLAN_ADDRESS,
+    healthPlanAddress: plan.address,
+    claimCaseAddress: claim.address,
+    recentBlockhash: "11111111111111111111111111111111",
+    reviewState: 1,
+    approvedAmount: 0n,
+    deniedAmount: 0n,
+    reserveAmount: 0n,
+  });
+  assert.equal(reviewOnlyAdjudication.instructions.length, 1);
+
+  assert.throws(
+    () =>
+      buildAdjudicateClaimCaseTx({
+        authority: DEFAULT_HEALTH_PLAN_ADDRESS,
+        healthPlanAddress: plan.address,
+        claimCaseAddress: claim.address,
+        recentBlockhash: "11111111111111111111111111111111",
+        reviewState: 1,
+        approvedAmount: 100n,
+        deniedAmount: 0n,
+        reserveAmount: 0n,
+      }),
+    /claim proof fingerprints are required/,
   );
 });
 

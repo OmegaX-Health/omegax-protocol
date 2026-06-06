@@ -94,6 +94,62 @@ pub(crate) fn require_direct_claim_case_settlement(
     Ok(())
 }
 
+pub(crate) fn claim_proof_hash_is_zero(hash: &[u8; 32]) -> bool {
+    hash.iter().all(|byte| *byte == 0)
+}
+
+pub(crate) fn require_claim_proof_fingerprints(
+    evidence_ref_hash: &[u8; 32],
+    decision_support_hash: &[u8; 32],
+) -> Result<()> {
+    require!(
+        !claim_proof_hash_is_zero(evidence_ref_hash)
+            && !claim_proof_hash_is_zero(decision_support_hash),
+        OmegaXProtocolError::ClaimProofFingerprintRequired
+    );
+    Ok(())
+}
+
+pub(crate) fn resolve_claim_proof_fingerprints(
+    claim_case: &ClaimCaseAccountData<'_>,
+    evidence_ref_hash: [u8; 32],
+    decision_support_hash: [u8; 32],
+    requires_final_proof: bool,
+    proof_locked: bool,
+) -> Result<([u8; 32], [u8; 32])> {
+    if proof_locked {
+        require!(
+            claim_proof_hash_is_zero(&evidence_ref_hash)
+                || claim_proof_hash_is_zero(&claim_case.evidence_ref_hash)
+                || evidence_ref_hash == claim_case.evidence_ref_hash,
+            OmegaXProtocolError::ClaimProofFingerprintLocked
+        );
+        require!(
+            claim_proof_hash_is_zero(&decision_support_hash)
+                || claim_proof_hash_is_zero(&claim_case.decision_support_hash)
+                || decision_support_hash == claim_case.decision_support_hash,
+            OmegaXProtocolError::ClaimProofFingerprintLocked
+        );
+    }
+
+    let final_evidence_ref_hash = if claim_proof_hash_is_zero(&evidence_ref_hash) {
+        claim_case.evidence_ref_hash
+    } else {
+        evidence_ref_hash
+    };
+    let final_decision_support_hash = if claim_proof_hash_is_zero(&decision_support_hash) {
+        claim_case.decision_support_hash
+    } else {
+        decision_support_hash
+    };
+
+    if requires_final_proof {
+        require_claim_proof_fingerprints(&final_evidence_ref_hash, &final_decision_support_hash)?;
+    }
+
+    Ok((final_evidence_ref_hash, final_decision_support_hash))
+}
+
 pub(crate) fn require_matching_linked_claim_case(
     claim_case: &ClaimCaseAccountData<'_>,
     claim_case_key: Pubkey,

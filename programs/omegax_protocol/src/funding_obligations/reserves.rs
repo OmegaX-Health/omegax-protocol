@@ -48,6 +48,10 @@ pub(crate) fn reserve_obligation(
     book_reserve(&mut ctx.accounts.funding_line_ledger.sheet, reserve_amount)?;
 
     if let Some(claim_case) = ctx.accounts.claim_case.as_deref_mut() {
+        require_claim_proof_fingerprints(
+            &claim_case.evidence_ref_hash,
+            &claim_case.decision_support_hash,
+        )?;
         let claim_case_key = claim_case.key();
         sync_linked_claim_case_reserve(
             claim_case,
@@ -250,6 +254,14 @@ pub(crate) fn reserve_obligation<'info>(
             obligation_key,
             *ctx.accounts.health_plan.address(),
         )?;
+        require!(
+            !claim_case.evidence_ref_hash.iter().all(|byte| *byte == 0)
+                && !claim_case
+                    .decision_support_hash
+                    .iter()
+                    .all(|byte| *byte == 0),
+            OmegaXProtocolError::ClaimProofFingerprintRequired
+        );
         claim_case_key
     } else {
         ctx.accounts.obligation.claim_case
@@ -377,6 +389,8 @@ pub(crate) fn reserve_obligation<'info>(
         let claimant = claim_case.claimant;
         let adjudicator = claim_case.adjudicator;
         let delegate_recipient = claim_case.delegate_recipient;
+        let evidence_ref_hash = claim_case.evidence_ref_hash;
+        let decision_support_hash = claim_case.decision_support_hash;
         let intake_status = claim_case.intake_status;
         let review_state = claim_case.review_state;
         let approved_amount = claim_case.approved_amount.get();
@@ -397,6 +411,8 @@ pub(crate) fn reserve_obligation<'info>(
             claimant,
             adjudicator,
             delegate_recipient,
+            evidence_ref_hash,
+            decision_support_hash,
             intake_status,
             review_state,
             approved_amount,
@@ -597,6 +613,8 @@ pub(crate) fn release_reserve<'info>(
         let claimant = claim_case.claimant;
         let adjudicator = claim_case.adjudicator;
         let delegate_recipient = claim_case.delegate_recipient;
+        let evidence_ref_hash = claim_case.evidence_ref_hash;
+        let decision_support_hash = claim_case.decision_support_hash;
         let intake_status = if should_close_claim {
             CLAIM_INTAKE_CLOSED
         } else {
@@ -625,6 +643,8 @@ pub(crate) fn release_reserve<'info>(
             claimant,
             adjudicator,
             delegate_recipient,
+            evidence_ref_hash,
+            decision_support_hash,
             intake_status,
             review_state,
             approved_amount,

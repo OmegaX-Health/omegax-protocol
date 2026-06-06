@@ -23,6 +23,8 @@ test("canonical contract exposes the reserve-accounting surface", () => {
   const healthPlanAccount = idl.types.find((entry) => entry.name === "HealthPlan");
   const policySeriesAccount = idl.types.find((entry) => entry.name === "PolicySeries");
   const claimCaseAccount = idl.types.find((entry) => entry.name === "ClaimCase");
+  const openClaimCaseArgs = idl.types.find((entry) => entry.name === "OpenClaimCaseArgs");
+  const adjudicateClaimCaseArgs = idl.types.find((entry) => entry.name === "AdjudicateClaimCaseArgs");
 
   assert(!instructionNames.includes("initialize_protocol_governance"));
   assert(!instructionNames.includes("set_protocol_emergency_pause"));
@@ -174,11 +176,12 @@ test("canonical contract exposes the reserve-accounting surface", () => {
     assert(!healthPlanAccount?.type.fields?.some((field) => field.name === removedHealthPlanField));
   }
   assert(!claimCaseAccount?.type.fields?.some((field) => field.name === "member_position"));
-  for (const removedClaimField of [
-    "evidence_ref_hash",
-    "decision_support_hash",
-    "attestation_count",
-  ]) {
+  assert(claimCaseAccount?.type.fields?.some((field) => field.name === "evidence_ref_hash"));
+  assert(claimCaseAccount?.type.fields?.some((field) => field.name === "decision_support_hash"));
+  assert(openClaimCaseArgs?.type.fields?.some((field) => field.name === "evidence_ref_hash"));
+  assert(adjudicateClaimCaseArgs?.type.fields?.some((field) => field.name === "evidence_ref_hash"));
+  assert(adjudicateClaimCaseArgs?.type.fields?.some((field) => field.name === "decision_support_hash"));
+  for (const removedClaimField of ["attestation_count"]) {
     assert(!claimCaseAccount?.type.fields?.some((field) => field.name === removedClaimField));
   }
 });

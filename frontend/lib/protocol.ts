@@ -1248,6 +1248,8 @@ export async function loadProtocolConsoleSnapshot(connection: Connection): Promi
           claimant: asAddress(decodedField(decoded, "claimant")),
           adjudicator: asOptionalAddress(decodedField(decoded, "adjudicator")),
           claimId: stringFromAnchorValue(decodedField(decoded, "claimId")),
+          evidenceRefHashHex: bytesToHex(decodedField(decoded, "evidenceRefHash")),
+          decisionSupportHashHex: bytesToHex(decodedField(decoded, "decisionSupportHash")),
           intakeStatus: Number(decodedField(decoded, "intakeStatus") ?? 0),
           approvedAmount: bigintFromAnchorValue(decodedField(decoded, "approvedAmount")),
           deniedAmount: bigintFromAnchorValue(decodedField(decoded, "deniedAmount")),
@@ -2689,6 +2691,7 @@ export function buildOpenClaimCaseTx(params: {
       claim_id: params.claimId,
       policy_series: toPublicKey(params.policySeriesAddress ?? ZERO_PUBKEY_KEY),
       claimant: toPublicKey(params.claimantAddress ?? authority),
+      evidence_ref_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.evidenceRefHashHex), 32)),
     },
     accounts: [
       { pubkey: authority, isSigner: true, isWritable: true },
@@ -2736,10 +2739,15 @@ export function buildAdjudicateClaimCaseTx(params: {
   approvedAmount: bigint;
   deniedAmount: bigint;
   reserveAmount: bigint;
+  evidenceRefHashHex?: string | null;
   decisionSupportHashHex?: string | null;
   obligationAddress?: PublicKeyish | null;
 }): Transaction {
   const authority = toPublicKey(params.authority);
+  const requiresProof = params.approvedAmount > 0n || params.reserveAmount > 0n;
+  if (requiresProof && (!params.evidenceRefHashHex || !params.decisionSupportHashHex)) {
+    throw new Error("claim proof fingerprints are required for money-moving adjudication");
+  }
   return buildProtocolTransactionFromInstruction({
     feePayer: authority,
     recentBlockhash: params.recentBlockhash,
@@ -2749,6 +2757,8 @@ export function buildAdjudicateClaimCaseTx(params: {
       approved_amount: params.approvedAmount,
       denied_amount: params.deniedAmount,
       reserve_amount: params.reserveAmount,
+      evidence_ref_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.evidenceRefHashHex), 32)),
+      decision_support_hash: Array.from(hexToFixedBytes(normalizeOptionalHex32(params.decisionSupportHashHex), 32)),
     },
     accounts: [
       { pubkey: authority, isSigner: true },

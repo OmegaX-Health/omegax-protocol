@@ -87,6 +87,10 @@ pub enum OmegaXProtocolError {
     HealthPlanInactive,
     #[msg("Direct claim reserves require linked obligation settlement")]
     DirectClaimReserveUnsupported,
+    #[msg("Claim proof fingerprints are required before approval, reserve, or payout")]
+    ClaimProofFingerprintRequired,
+    #[msg("Claim proof fingerprints are locked after reserve or payout")]
+    ClaimProofFingerprintLocked,
 }
 
 #[cfg(feature = "quasar")]
@@ -132,4 +136,6 @@ pub enum OmegaXProtocolError {
     ClaimAdjudicationLocked,
     HealthPlanInactive,
     DirectClaimReserveUnsupported,
+    ClaimProofFingerprintRequired,
+    ClaimProofFingerprintLocked,
 }

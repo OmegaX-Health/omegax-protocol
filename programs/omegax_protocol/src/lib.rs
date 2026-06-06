@@ -463,9 +463,16 @@ pub mod omegax_protocol {
         ctx: Ctx<OpenClaimCase>,
         policy_series: Pubkey,
         claimant: Pubkey,
+        evidence_ref_hash: [u8; 32],
         claim_id: String<u32, 32>,
     ) -> Result<()> {
-        crate::claims::open_claim_case(&mut ctx, policy_series, claimant, claim_id)
+        crate::claims::open_claim_case(
+            &mut ctx,
+            policy_series,
+            claimant,
+            evidence_ref_hash,
+            claim_id,
+        )
     }
 
     #[instruction(discriminator = [112, 97, 129, 42, 125, 165, 226, 163])]
@@ -483,6 +490,8 @@ pub mod omegax_protocol {
         approved_amount: u64,
         denied_amount: u64,
         reserve_amount: u64,
+        evidence_ref_hash: [u8; 32],
+        decision_support_hash: [u8; 32],
     ) -> Result<()> {
         crate::claims::adjudicate_claim_case(
             &mut ctx,
@@ -490,6 +499,8 @@ pub mod omegax_protocol {
             approved_amount,
             denied_amount,
             reserve_amount,
+            evidence_ref_hash,
+            decision_support_hash,
         )
     }
 

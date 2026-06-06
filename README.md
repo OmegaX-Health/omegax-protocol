@@ -116,7 +116,7 @@ This patch hardens the first publishable canonical OmegaX reserve, obligation, a
 - the mounted Genesis treasury tab now behaves as a reserve console with lane filters, per-SKU reserve attribution, degraded-visibility warnings, and treasury actions scoped from the selected live funding lane
 - `/members` and `/claims` now route into the mounted plan/operator workspace instead of advertising standalone self-serve dapp actions
 - mounted workbenches now include sponsor-side post-launch series, funding-line actions, claim intake, and payout handling
-- evidence review and oracle attestations are off-chain/adjunct concerns; the live program stores claim intake, adjudication, reserve, and settlement state
+- raw evidence review and oracle attestations are off-chain/adjunct concerns; the live program stores claim intake, proof fingerprints, adjudication, reserve, and settlement state
 
 Genesis Protect Acute sprint-1 launch truth is frozen in the public metadata and fixture surface for the April 16-20, 2026 implementation window.
 

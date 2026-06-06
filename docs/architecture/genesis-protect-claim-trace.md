@@ -48,11 +48,11 @@ The default recipient is the member's own wallet. This step lets the member rout
 
 ### Step 3 — off-chain or adjunct evidence review
 
-Raw medical content, evidence packet hashes, AI review output, and optional MagicBlock private-review receipts stay outside the base `omegax_protocol` account surface. The operator/oracle workflow verifies the packet and produces a decision artifact for internal audit, but the base program no longer stores `ClaimAttestation` accounts or evidence hashes.
+Raw medical content, AI review output, and optional MagicBlock private-review receipts stay outside the base `omegax_protocol` account surface. The operator/oracle workflow verifies the packet and produces evidence and decision fingerprints for the claim case, but the base program still does not store `ClaimAttestation` accounts.
 
 **Member-visible**: the claim shows review progress through OmegaX Health/operator systems. The public protocol console should not imply that raw evidence or attestation state lives in the base program.
 
-**Truth chain**: the base chain records the claim identity and later adjudication, reserve, and settlement consequences. Evidence provenance is auditable through authorized off-chain manifests or adjunct receipt verification.
+**Truth chain**: the base chain records the claim identity, evidence/decision fingerprints, and later adjudication, reserve, and settlement consequences. Evidence provenance is auditable through authorized off-chain manifests or adjunct receipt verification.
 
 ### Step 4 — `adjudicate_claim_case`
 

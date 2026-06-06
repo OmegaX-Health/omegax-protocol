@@ -3782,6 +3782,16 @@
       "code": 6039,
       "name": "DirectClaimReserveUnsupported",
       "msg": "Direct claim reserves require linked obligation settlement"
+    },
+    {
+      "code": 6040,
+      "name": "ClaimProofFingerprintRequired",
+      "msg": "Claim proof fingerprints are required before approval, reserve, or payout"
+    },
+    {
+      "code": 6041,
+      "name": "ClaimProofFingerprintLocked",
+      "msg": "Claim proof fingerprints are locked after reserve or payout"
     }
   ],
   "types": [
@@ -3805,6 +3815,24 @@
           {
             "name": "reserve_amount",
             "type": "u64"
+          },
+          {
+            "name": "evidence_ref_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "decision_support_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }
@@ -3861,6 +3889,24 @@
           {
             "name": "delegate_recipient",
             "type": "pubkey"
+          },
+          {
+            "name": "evidence_ref_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "decision_support_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "intake_status",
@@ -4735,6 +4781,15 @@
           {
             "name": "claimant",
             "type": "pubkey"
+          },
+          {
+            "name": "evidence_ref_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }

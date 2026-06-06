@@ -2,6 +2,10 @@
 
 use crate::*;
 
+const SAMPLE_EVIDENCE_HASH: [u8; 32] = [0x11; 32];
+const SAMPLE_DECISION_HASH: [u8; 32] = [0x22; 32];
+const SAMPLE_ALT_EVIDENCE_HASH: [u8; 32] = [0x33; 32];
+
 #[test]
 fn inactive_health_plan_guard_blocks_fresh_intake() {
     let plan_admin = Pubkey::new_unique();
@@ -279,6 +283,8 @@ fn sample_claim_case(
         claimant: Pubkey::new_unique(),
         adjudicator: ZERO_PUBKEY,
         delegate_recipient: ZERO_PUBKEY,
+        evidence_ref_hash: SAMPLE_EVIDENCE_HASH,
+        decision_support_hash: SAMPLE_DECISION_HASH,
         intake_status: CLAIM_INTAKE_APPROVED,
         review_state: 0,
         approved_amount: 100,
@@ -673,6 +679,95 @@ fn terminal_or_settled_obligation_locks_adjudication() {
         .contains("Claim adjudication is locked after payout or terminal state"));
 }
 
+#[test]
+fn claim_proof_fingerprints_require_both_hashes() {
+    require_claim_proof_fingerprints(&SAMPLE_EVIDENCE_HASH, &SAMPLE_DECISION_HASH).unwrap();
+
+    let missing_evidence =
+        require_claim_proof_fingerprints(&[0u8; 32], &SAMPLE_DECISION_HASH).unwrap_err();
+    assert!(missing_evidence
+        .to_string()
+        .contains("Claim proof fingerprints are required"));
+
+    let missing_decision =
+        require_claim_proof_fingerprints(&SAMPLE_EVIDENCE_HASH, &[0u8; 32]).unwrap_err();
+    assert!(missing_decision
+        .to_string()
+        .contains("Claim proof fingerprints are required"));
+}
+
+#[test]
+fn adjudication_can_set_final_fingerprints_before_money_moves() {
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let funding_line = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut claim_case = sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+    claim_case.evidence_ref_hash = [0u8; 32];
+    claim_case.decision_support_hash = [0u8; 32];
+    claim_case.reserved_amount = 0;
+    claim_case.paid_amount = 0;
+
+    let (evidence_ref_hash, decision_support_hash) = resolve_claim_proof_fingerprints(
+        &claim_case,
+        SAMPLE_EVIDENCE_HASH,
+        SAMPLE_DECISION_HASH,
+        true,
+        false,
+    )
+    .unwrap();
+
+    assert_eq!(evidence_ref_hash, SAMPLE_EVIDENCE_HASH);
+    assert_eq!(decision_support_hash, SAMPLE_DECISION_HASH);
+}
+
+#[test]
+fn positive_adjudication_rejects_missing_fingerprints() {
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let funding_line = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut claim_case = sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+    claim_case.evidence_ref_hash = [0u8; 32];
+    claim_case.decision_support_hash = [0u8; 32];
+    claim_case.reserved_amount = 0;
+    claim_case.paid_amount = 0;
+
+    let error = resolve_claim_proof_fingerprints(&claim_case, [0u8; 32], [0u8; 32], true, false)
+        .unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Claim proof fingerprints are required"));
+}
+
+#[test]
+fn settled_or_reserved_claim_proof_fingerprints_are_locked() {
+    let health_plan = Pubkey::new_unique();
+    let policy_series = Pubkey::new_unique();
+    let funding_line = Pubkey::new_unique();
+    let asset_mint = Pubkey::new_unique();
+    let mut claim_case = sample_claim_case(health_plan, policy_series, funding_line, asset_mint);
+    claim_case.reserved_amount = 1;
+    claim_case.paid_amount = 0;
+
+    let error = resolve_claim_proof_fingerprints(
+        &claim_case,
+        SAMPLE_ALT_EVIDENCE_HASH,
+        SAMPLE_DECISION_HASH,
+        true,
+        true,
+    )
+    .unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Claim proof fingerprints are locked"));
+
+    let (evidence_ref_hash, decision_support_hash) =
+        resolve_claim_proof_fingerprints(&claim_case, [0u8; 32], [0u8; 32], true, true).unwrap();
+    assert_eq!(evidence_ref_hash, SAMPLE_EVIDENCE_HASH);
+    assert_eq!(decision_support_hash, SAMPLE_DECISION_HASH);
+}
+
 fn sample_health_plan_roles(
     plan_admin: Pubkey,
     sponsor_operator: Pubkey,
@@ -707,6 +802,7 @@ fn sample_open_claim_case_args(claimant: Pubkey, policy_series: Pubkey) -> OpenC
         claim_id: "claim-protect-001".to_string(),
         policy_series,
         claimant,
+        evidence_ref_hash: [0u8; 32],
     }
 }
 

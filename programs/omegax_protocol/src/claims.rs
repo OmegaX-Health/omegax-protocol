@@ -103,6 +103,69 @@ fn require_quasar_positive_amount(amount: u64) -> Result<()> {
 
 #[cfg(feature = "quasar")]
 #[inline(always)]
+fn quasar_claim_proof_hash_is_zero(hash: &[u8; 32]) -> bool {
+    hash.iter().all(|byte| *byte == 0)
+}
+
+#[cfg(feature = "quasar")]
+fn require_quasar_claim_proof_fingerprints(
+    evidence_ref_hash: &[u8; 32],
+    decision_support_hash: &[u8; 32],
+) -> Result<()> {
+    require!(
+        !quasar_claim_proof_hash_is_zero(evidence_ref_hash)
+            && !quasar_claim_proof_hash_is_zero(decision_support_hash),
+        OmegaXProtocolError::ClaimProofFingerprintRequired
+    );
+    Ok(())
+}
+
+#[cfg(feature = "quasar")]
+fn resolve_quasar_claim_proof_fingerprints(
+    claim_case: &ClaimCaseAccountData<'_>,
+    evidence_ref_hash: [u8; 32],
+    decision_support_hash: [u8; 32],
+    requires_final_proof: bool,
+    proof_locked: bool,
+) -> Result<([u8; 32], [u8; 32])> {
+    if proof_locked {
+        require!(
+            quasar_claim_proof_hash_is_zero(&evidence_ref_hash)
+                || quasar_claim_proof_hash_is_zero(&claim_case.evidence_ref_hash)
+                || evidence_ref_hash == claim_case.evidence_ref_hash,
+            OmegaXProtocolError::ClaimProofFingerprintLocked
+        );
+        require!(
+            quasar_claim_proof_hash_is_zero(&decision_support_hash)
+                || quasar_claim_proof_hash_is_zero(&claim_case.decision_support_hash)
+                || decision_support_hash == claim_case.decision_support_hash,
+            OmegaXProtocolError::ClaimProofFingerprintLocked
+        );
+    }
+
+    let final_evidence_ref_hash = if quasar_claim_proof_hash_is_zero(&evidence_ref_hash) {
+        claim_case.evidence_ref_hash
+    } else {
+        evidence_ref_hash
+    };
+    let final_decision_support_hash = if quasar_claim_proof_hash_is_zero(&decision_support_hash) {
+        claim_case.decision_support_hash
+    } else {
+        decision_support_hash
+    };
+
+    if requires_final_proof {
+        require_quasar_claim_proof_fingerprints(
+            &final_evidence_ref_hash,
+            &final_decision_support_hash,
+        )?;
+    }
+
+    Ok((final_evidence_ref_hash, final_decision_support_hash))
+}
+
+#[cfg(feature = "quasar")]
+#[inline(always)]
 fn quasar_remaining_claim_amount(claim_case: &ClaimCaseAccountData<'_>) -> u64 {
     claim_case
         .approved_amount
@@ -205,6 +268,8 @@ pub(crate) fn open_claim_case(ctx: Context<OpenClaimCase>, args: OpenClaimCaseAr
     claim_case.claimant = args.claimant;
     claim_case.adjudicator = ZERO_PUBKEY;
     claim_case.delegate_recipient = ZERO_PUBKEY;
+    claim_case.evidence_ref_hash = args.evidence_ref_hash;
+    claim_case.decision_support_hash = [0u8; 32];
     claim_case.intake_status = CLAIM_INTAKE_OPEN;
     claim_case.review_state = 0;
     claim_case.approved_amount = 0;
@@ -233,6 +298,7 @@ pub(crate) fn open_claim_case<'info>(
     ctx: &mut Ctx<'info, OpenClaimCase<'info>>,
     policy_series: Pubkey,
     claimant: Pubkey,
+    evidence_ref_hash: [u8; 32],
     claim_id: &str,
 ) -> Result<()> {
     require_quasar_id(claim_id)?;
@@ -255,6 +321,8 @@ pub(crate) fn open_claim_case<'info>(
         claimant,
         ZERO_PUBKEY,
         ZERO_PUBKEY,
+        evidence_ref_hash,
+        [0u8; 32],
         CLAIM_INTAKE_OPEN,
         0,
         0,
@@ -312,6 +380,8 @@ pub(crate) fn authorize_claim_recipient<'info>(
     let asset_mint = claim_case.asset_mint;
     let claimant = claim_case.claimant;
     let adjudicator = claim_case.adjudicator;
+    let evidence_ref_hash = claim_case.evidence_ref_hash;
+    let decision_support_hash = claim_case.decision_support_hash;
     let intake_status = claim_case.intake_status;
     let review_state = claim_case.review_state;
     let approved_amount = claim_case.approved_amount.get();
@@ -335,6 +405,8 @@ pub(crate) fn authorize_claim_recipient<'info>(
         claimant,
         adjudicator,
         delegate_recipient,
+        evidence_ref_hash,
+        decision_support_hash,
         intake_status,
         review_state,
         approved_amount,
@@ -373,8 +445,20 @@ pub(crate) fn adjudicate_claim_case(
         obligation
     });
     require_claim_adjudication_mutable(claim_case, adjudication_obligation)?;
+    let obligation_has_money_state = adjudication_obligation
+        .map(|obligation| obligation.reserved_amount > 0 || obligation.settled_amount > 0)
+        .unwrap_or(false);
+    let (evidence_ref_hash, decision_support_hash) = resolve_claim_proof_fingerprints(
+        claim_case,
+        args.evidence_ref_hash,
+        args.decision_support_hash,
+        args.approved_amount > 0 || args.reserve_amount > 0 || obligation_has_money_state,
+        claim_case.reserved_amount > 0 || claim_case.paid_amount > 0 || obligation_has_money_state,
+    )?;
     let claim_case_key = claim_case.key();
     claim_case.adjudicator = ctx.accounts.authority.key();
+    claim_case.evidence_ref_hash = evidence_ref_hash;
+    claim_case.decision_support_hash = decision_support_hash;
     claim_case.review_state = args.review_state;
     claim_case.approved_amount = args.approved_amount;
     claim_case.denied_amount = args.denied_amount;
@@ -476,6 +560,8 @@ pub(crate) fn adjudicate_claim_case<'info>(
     approved_amount: u64,
     denied_amount: u64,
     reserve_amount: u64,
+    evidence_ref_hash: [u8; 32],
+    decision_support_hash: [u8; 32],
 ) -> Result<()> {
     let authority = *ctx.accounts.authority.address();
     require_quasar_claim_operator(&authority, &ctx.accounts.health_plan)?;
@@ -499,6 +585,23 @@ pub(crate) fn adjudicate_claim_case<'info>(
             .obligation
             .as_ref()
             .map(|obligation| &**obligation),
+    )?;
+    let obligation_has_money_state = ctx
+        .accounts
+        .obligation
+        .as_ref()
+        .map(|obligation| {
+            obligation.reserved_amount.get() > 0 || obligation.settled_amount.get() > 0
+        })
+        .unwrap_or(false);
+    let (evidence_ref_hash, decision_support_hash) = resolve_quasar_claim_proof_fingerprints(
+        &ctx.accounts.claim_case,
+        evidence_ref_hash,
+        decision_support_hash,
+        approved_amount > 0 || reserve_amount > 0 || obligation_has_money_state,
+        ctx.accounts.claim_case.reserved_amount.get() > 0
+            || ctx.accounts.claim_case.paid_amount.get() > 0
+            || obligation_has_money_state,
     )?;
 
     let (linked_obligation, adjudicated_reserved_amount) =
@@ -607,6 +710,8 @@ pub(crate) fn adjudicate_claim_case<'info>(
         claimant,
         authority,
         delegate_recipient,
+        evidence_ref_hash,
+        decision_support_hash,
         intake_status,
         review_state,
         approved_amount,
@@ -639,6 +744,10 @@ pub(crate) fn settle_claim_case(
         args.amount <= remaining_claim_amount(&ctx.accounts.claim_case),
         OmegaXProtocolError::AmountExceedsApprovedClaim
     );
+    require_claim_proof_fingerprints(
+        &ctx.accounts.claim_case.evidence_ref_hash,
+        &ctx.accounts.claim_case.decision_support_hash,
+    )?;
     require_positive_amount(args.amount)?;
     validate_direct_claim_settlement_bindings(
         &ctx.accounts.claim_case,
@@ -721,6 +830,10 @@ pub(crate) fn settle_claim_case<'info>(
         amount <= quasar_remaining_claim_amount(&ctx.accounts.claim_case),
         OmegaXProtocolError::AmountExceedsApprovedClaim
     );
+    require_quasar_claim_proof_fingerprints(
+        &ctx.accounts.claim_case.evidence_ref_hash,
+        &ctx.accounts.claim_case.decision_support_hash,
+    )?;
     require_quasar_positive_amount(amount)?;
 
     validate_quasar_direct_claim_settlement_bindings(
@@ -772,6 +885,8 @@ pub(crate) fn settle_claim_case<'info>(
     let claimant = claim_case.claimant;
     let adjudicator = claim_case.adjudicator;
     let delegate_recipient = claim_case.delegate_recipient;
+    let evidence_ref_hash = claim_case.evidence_ref_hash;
+    let decision_support_hash = claim_case.decision_support_hash;
     let review_state = claim_case.review_state;
     let approved_amount = claim_case.approved_amount.get();
     let denied_amount = claim_case.denied_amount.get();
@@ -802,6 +917,8 @@ pub(crate) fn settle_claim_case<'info>(
         claimant,
         adjudicator,
         delegate_recipient,
+        evidence_ref_hash,
+        decision_support_hash,
         intake_status,
         review_state,
         approved_amount,
@@ -898,6 +1015,7 @@ pub(crate) fn settle_claim_case<'info>(
     instruction(
         policy_series: Pubkey,
         _claimant: Pubkey,
+        _evidence_ref_hash: [u8; 32],
         claim_id: String<u32, 32>
     )
 )]

@@ -191,7 +191,7 @@ Onchain:
 - `reserve_obligation`
 - `settle_claim_case` / `settle_obligation`
 
-Raw medical payloads, evidence packet hashes, and oracle review artifacts remain offchain or in adjunct receipt systems. The base chain records claim intake, adjudication, reserve effect, and settlement.
+Raw medical payloads and oracle review artifacts remain offchain or in adjunct receipt systems. The base chain records claim intake, evidence/decision proof fingerprints, adjudication, reserve effect, and settlement.
 
 The detailed truth-chain walkthrough is in `docs/architecture/genesis-protect-claim-trace.md`.
 

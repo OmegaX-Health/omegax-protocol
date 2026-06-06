@@ -281,7 +281,8 @@ If the operator discovers an issue that was not caught by the AI:
 
 After evidence review, the oracle/operator workflow produces a decision artifact for internal audit
 and hands the decision to the base-program adjudication path. The base `omegax_protocol` program no
-longer stores evidence hashes or `ClaimAttestation` accounts.
+longer stores `ClaimAttestation` accounts; it stores only evidence and decision proof fingerprints
+on the claim case.
 
 ### 8.1 Decision-handoff requirements
 

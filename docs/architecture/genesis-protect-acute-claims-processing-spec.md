@@ -106,8 +106,8 @@ Failure at any of these gates results in an immediate denial without entering th
 
 All evidence is submitted **offchain** through the OmegaX Health oracle portal. The operator
 computes and retains a SHA-256 hash of the evidence packet in the offchain claim manifest or adjunct
-receipt system. Raw medical documents and evidence hashes are not stored in the base `omegax_protocol`
-accounts or published publicly.
+receipt system. Raw medical documents are not stored in the base `omegax_protocol` accounts or
+published publicly; the base claim case stores only evidence and decision proof fingerprints.
 
 ### 5.1 Mandatory Documents (all claims)
 
