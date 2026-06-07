@@ -28,6 +28,7 @@ This path is intentionally launch-truth-first: `Travel 30` is the primary reserv
 ### Architecture
 
 - [Repository Layout](./architecture/repository-layout.md)
+- [Protocol Vision and Capability Narrative](./architecture/protocol-vision-and-capability-narrative.md)
 - [Solana Program Architecture](./architecture/solana-program-architecture.md)
 - [Solana Instruction Map](./architecture/solana-instruction-map.md)
 - [Decentralized Coverage Claims](./architecture/decentralized-coverage-claims.md) — abstract claim model
@@ -92,6 +93,7 @@ This path is intentionally launch-truth-first: `Travel 30` is the primary reserv
 - Use [What Exists Today](https://docs.omegax.health/docs/protocol/current-program-surface) when you need the current public protocol boundary before reading repo internals.
 - Use [OmegaX Docs](https://docs.omegax.health/docs) when you want the polished public overview, product story, and external documentation hub rather than repo-specific workflow details.
 - Use [Why OmegaX](https://docs.omegax.health/docs/thesis/why-omegax) when you need the clearest public statement of the protocol’s purpose and long-range destination.
+- Use [Protocol Vision and Capability Narrative](./architecture/protocol-vision-and-capability-narrative.md) when you need the repo-local explanation of the trimmed protocol vision, current accounts, current functions, and community-owned coverage narrative.
 - Start with [Repository Layout](./architecture/repository-layout.md) if you are new to the repo and need the internal file map.
 - Use [Solana Program Architecture](./architecture/solana-program-architecture.md) to understand the on-chain program layout and reviewer read order.
 - Use [Solana Instruction Map](./architecture/solana-instruction-map.md) when tracing an instruction from entrypoint to handler, accounts, and helpers.
