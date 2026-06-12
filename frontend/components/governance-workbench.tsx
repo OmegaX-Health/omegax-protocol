@@ -112,16 +112,21 @@ type GovernanceAuthorityLane = {
   configured: boolean;
 };
 
+// Canonical on-chain instructions each governance lane controls. Strings must
+// match instruction names in the deployed program surface (shared/protocol_contract.json).
 const GOVERNANCE_ROLE_ACTIONS: Record<GovernanceAuthorityRole, string[]> = {
-  protocol_governance: ["set_protocol_emergency_pause", "governance_execute"],
-  domain_admin: ["update_reserve_domain_controls", "rail_posture"],
-  plan_admin: ["update_health_plan_controls", "update_policy_series_controls"],
-  sponsor_operator: ["create_funding_line", "fund_plan_liabilities"],
+  protocol_governance: ["set_protocol_emergency_pause", "rotate_protocol_governance_authority"],
+  domain_admin: ["update_reserve_domain_controls", "configure_reserve_asset_rail"],
+  plan_admin: ["update_health_plan_controls", "version_policy_series"],
+  sponsor_operator: ["open_funding_line", "fund_sponsor_budget"],
   claims_operator: ["adjudicate_claim_case", "settle_claim_case", "settle_obligation"],
   oracle_authority: ["reserve_obligation", "release_reserve"],
   pool_curator: ["update_liquidity_pool_controls", "update_capital_class_controls"],
   pool_allocator: ["create_allocation_position", "allocate_capital"],
-  pool_sentinel: ["queue_only_controls", "capital_pause"],
+  // Pool sentinel is a configured guardian field but holds no direct instruction
+  // authority on-chain today (the program rejects sentinel curator/allocator calls),
+  // so it advertises no callable instructions.
+  pool_sentinel: [],
 };
 
 function isConfiguredAuthority(address?: string | null): address is string {
