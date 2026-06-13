@@ -51,53 +51,5 @@ test("overview audit trail uses live source when supplied instead of fixture fal
   assert.equal(auditTrail.some((item) => item.detail.includes("fixture set")), false);
 });
 
-test("capital audit trail names pending redemption ledger units consistently", () => {
-  const auditTrail = buildAuditTrail({ section: "capital" });
-  const queueItem = auditTrail.find((item) => item.label === "Queue watch");
-
-  assert(queueItem, "expected capital queue audit item");
-  assert.match(queueItem.detail, /settlement units pending in the redemption queue/);
-  assert.doesNotMatch(queueItem.detail, /shares waiting in the redemption queue/);
-});
-
-test("overview audit trail names class-ledger queue state as redemption sources", () => {
-  const auditTrail = buildAuditTrail({
-    section: "overview",
-    persona: "capital",
-    source: {
-      ...EMPTY_OVERVIEW_STATS_SOURCE,
-      liquidityPools: [{
-        address: "pool-1",
-        poolId: "pool-1",
-        displayName: "Pool 1",
-        depositAssetMint: "asset-1",
-        strategyThesis: "Queue test",
-        redemptionPolicy: 1,
-        totalValueLocked: 100_000n,
-        totalAllocated: 25_000n,
-        totalPendingRedemptions: 0n,
-        active: true,
-      }],
-      capitalClasses: [{
-        address: "class-1",
-        liquidityPool: "pool-1",
-        classId: "senior",
-        displayName: "Senior",
-        priority: 1,
-        restrictionMode: 0,
-        totalShares: 100_000n,
-        navAssets: 100_000n,
-        allocatedAssets: 25_000n,
-        pendingRedemptions: 25_000n,
-        active: true,
-      }],
-      lpPositions: [],
-    },
-    demo: false,
-  });
-  const queueItem = auditTrail.find((item) => item.label === "Queue watch");
-
-  assert(queueItem, "expected overview queue audit item");
-  assert.equal(queueItem.detail, "1 redemption source remains across 1 pool using queued redemptions.");
-  assert.doesNotMatch(queueItem.detail, /LP queue record/);
-});
+// Capital/oracle audit-trail copy tests were removed with the trimmed
+// liquidity-pool / capital-class / redemption surface.

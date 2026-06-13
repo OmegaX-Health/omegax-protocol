@@ -229,13 +229,6 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
     [demo, effectivePersona, governanceQueue, statsSource],
   );
   const overviewCards = useMemo(() => {
-    const topClasses = [...stats.classBreakdown]
-      .sort((left, right) => Number(right.nav - left.nav))
-      .slice(0, 2)
-      .map((item) => ({
-        label: item.name,
-        value: `${formatCompact(item.nav)} NAV`,
-      }));
     const topPlans = stats.plans.slice(0, 2).map((plan) => ({
       label: plan.name,
       value: plan.sponsor,
@@ -256,11 +249,6 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
         label: cleanLabel(label),
         value: `${value} lane${value === 1 ? "" : "s"}`,
       }));
-    const schemaRows = snapshot.outcomeSchemas.slice(0, 2).map((schema, index) => ({
-      label: `Schema ${String(index + 1).padStart(2, "0")}`,
-      value: `${schema.schemaKey} · v${schema.version}${schema.verified ? " · verified" : ""}`,
-    }));
-    const verifiedSchemaCount = snapshot.outcomeSchemas.filter((schema) => schema.verified).length;
 
     return [
       {
@@ -275,7 +263,7 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
         metrics: [
           { label: "Plans", value: String(stats.planCount) },
           { label: "Series", value: String(stats.seriesCount) },
-          { label: "Members", value: String(stats.memberCount) },
+          { label: "Claims", value: String(stats.activeClaimCount) },
         ],
         details: topPlans,
         note: "Sponsor and member coverage telemetry",
@@ -283,23 +271,6 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
       {
         align: "end" as const,
         entry: "Surface 02",
-        href: "/capital",
-        status: `${stats.poolCount} pools`,
-        title: "Capital",
-        summary: "Liquidity routing, class depth, and redemption pressure across the reserve-backed treasury rail.",
-        highlightLabel: "Aggregate value locked",
-        highlightValue: formatCompact(stats.tvl),
-        metrics: [
-          { label: "Utilization", value: `${stats.utilization}%` },
-          { label: "Classes", value: String(stats.classCount) },
-          { label: "Pending", value: formatCompact(stats.pendingRedemptions) },
-        ],
-        details: topClasses,
-        note: "Pool capital, queue, and class allocation routing",
-      },
-      {
-        align: "start" as const,
-        entry: "Surface 03",
         href: "/governance",
         status: governanceQueueError ? "degraded" : governanceQueueLoaded ? "live" : "syncing",
         title: "Governance",
@@ -315,40 +286,21 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
         note: governanceQueueError ? governanceQueueError : "Proposal execution and queue visibility",
       },
       {
-        align: "end" as const,
-        entry: "Surface 04",
-        href: "/oracles",
-        status: `${stats.oracleCount} operators`,
-        title: "Oracles",
-        summary: "Operator coverage, reserve obligations, and public proof telemetry across the protocol attestation mesh.",
+        align: "start" as const,
+        entry: "Surface 03",
+        href: "/plans?tab=claims",
+        status: `${stats.obligationCount} obligations`,
+        title: "Reserves & claims",
+        summary: "Reserve obligations, approved settlements, and protected principal across the reserve-backed treasury rail.",
         highlightLabel: "Protected principal",
         highlightValue: formatCompact(stats.totalObligationPrincipal),
         metrics: [
-          { label: "Operators", value: String(stats.oracleCount) },
           { label: "Obligations", value: String(stats.obligationCount) },
           { label: "Approved", value: formatCompact(stats.totalApprovedAmount) },
+          { label: "Reserved", value: formatCompact(stats.totalReservedAmount) },
         ],
         details: obligationDetails,
-        note: "Attestation operators and reserve-obligation integrity",
-      },
-      {
-        align: "start" as const,
-        entry: "Surface 05",
-        href: "/schemas",
-        status: `${snapshot.outcomeSchemas.length} schemas`,
-        title: "Schemas",
-        summary: "Outcome definitions, versioned terms, and series comparability across live coverage products.",
-        highlightLabel: "Verified schemas",
-        highlightValue: String(verifiedSchemaCount),
-        metrics: [
-          { label: "Schemas", value: String(snapshot.outcomeSchemas.length) },
-          { label: "Series", value: String(stats.seriesCount) },
-          { label: "Plans", value: String(stats.planCount) },
-        ],
-        details: schemaRows.length > 0
-          ? schemaRows
-          : [{ label: "Registry", value: "No live schemas visible" }],
-        note: "Schema registry and versioned policy-series truth",
+        note: "Reserve-obligation integrity and settlement readiness",
       },
     ];
   }, [
@@ -359,35 +311,27 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
     governanceQueueStatus.emptyTitle,
     governanceQueueStatus.metricValue,
     stats.activeClaimCount,
-    stats.classBreakdown,
-    stats.classCount,
     stats.domainCount,
-    stats.memberCount,
     stats.obligationCount,
     stats.obligationStatuses,
-    stats.oracleCount,
-    stats.pendingRedemptions,
     stats.planCount,
     stats.plans,
-    stats.poolCount,
     stats.reservedObligationCount,
     stats.seriesCount,
     stats.totalApprovedAmount,
     stats.totalObligationPrincipal,
-    stats.tvl,
-    stats.utilization,
-    snapshot.outcomeSchemas,
+    stats.totalReservedAmount,
   ]);
   const signalMetrics = useMemo(() => [
-    { label: "Utilization", value: `${stats.utilization}%` },
-    { label: "Capacity", value: formatCompact(stats.available) },
-    { label: "Pending exits", value: String(stats.pendingRedemptionCount) },
+    { label: "Plans", value: String(stats.planCount) },
+    { label: "Claims", value: String(stats.activeClaimCount) },
+    { label: "Obligations", value: String(stats.obligationCount) },
     { label: "Reserves", value: String(stats.reservedObligationCount) },
   ], [
-    stats.available,
-    stats.pendingRedemptionCount,
+    stats.activeClaimCount,
+    stats.obligationCount,
+    stats.planCount,
     stats.reservedObligationCount,
-    stats.utilization,
   ]);
 
   useEffect(() => {
@@ -429,15 +373,15 @@ export function OverviewWorkbench({ demo = false }: OverviewWorkbenchProps) {
               </div>
 
               <div className="ov-total-stack">
-                <span className="ov-total-value">{formatSettlementUnits(stats.tvl)}</span>
+                <span className="ov-total-value">{formatSettlementUnits(stats.totalObligationPrincipal)}</span>
                 <span className="ov-total-label">
                   {statsMode === "demo"
-                    ? "Demo fixture value locked"
+                    ? "Demo fixture reserve-obligation principal"
                     : loading
-                      ? "Syncing live network value locked"
+                      ? "Syncing live reserve-obligation principal"
                       : error
                         ? "Live RPC unavailable; no fixture fallback"
-                        : "Live network value locked"}
+                        : "Live reserve-obligation principal"}
                 </span>
               </div>
 

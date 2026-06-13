@@ -6,7 +6,6 @@ import { RefreshCw } from "lucide-react";
 
 import { useNetworkContext } from "@/components/network-context";
 import { NETWORK_OPTIONS } from "@/lib/network-config";
-import { countPendingRedemptionSources } from "@/lib/overview-metrics";
 import { useProtocolConsoleSnapshot } from "@/lib/use-protocol-console-snapshot";
 
 function formatUpdatedAt(value: Date | null): string {
@@ -32,18 +31,12 @@ export function NetworkHealthWorkbench() {
   } = useProtocolConsoleSnapshot();
   const networkLabel = NETWORK_OPTIONS.find((option) => option.id === selectedNetwork)?.label ?? selectedNetwork;
   const activePlans = snapshot.healthPlans.filter((plan) => plan.active).length;
-  const activePools = snapshot.liquidityPools.filter((pool) => pool.active).length;
-  const activeOracles = snapshot.oracleProfiles.filter((profile) => profile.active && profile.claimed).length;
-  const queueSources = countPendingRedemptionSources(snapshot);
   const totalRecords =
     snapshot.reserveDomains.length
     + snapshot.healthPlans.length
     + snapshot.policySeries.length
     + snapshot.claimCases.length
-    + snapshot.obligations.length
-    + snapshot.liquidityPools.length
-    + snapshot.capitalClasses.length
-    + snapshot.oracleProfiles.length;
+    + snapshot.obligations.length;
   const healthLabel = error ? "Degraded" : hasCurrentSnapshot ? "Synced" : loading ? "Checking" : "Standby";
 
   const cards = [
@@ -53,14 +46,9 @@ export function NetworkHealthWorkbench() {
       detail: `${activePlans} active plans, ${snapshot.policySeries.length} series, ${snapshot.reserveDomains.length} domains`,
     },
     {
-      label: "Capital lanes",
-      value: String(activePools),
-      detail: `${snapshot.capitalClasses.length} classes, ${queueSources} redemption source${queueSources === 1 ? "" : "s"} pending`,
-    },
-    {
-      label: "Oracle mesh",
-      value: String(activeOracles),
-      detail: `${snapshot.outcomeSchemas.length} outcome schemas, ${snapshot.claimAttestations.length} attestations`,
+      label: "Reserve domains",
+      value: String(snapshot.reserveDomains.length),
+      detail: `${snapshot.fundingLines.length} funding lines across the reserve-backed treasury rail`,
     },
     {
       label: "Claims watch",
