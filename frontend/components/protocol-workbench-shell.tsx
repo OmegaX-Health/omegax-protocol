@@ -38,8 +38,6 @@ function personaBadgeForNav(
 ) {
 
   if (persona === "sponsor" && sectionId === "plans") return String(metrics.activeClaims);
-  if (persona === "capital" && sectionId === "capital") return String(metrics.pendingRedemptions);
-  if (persona === "governance" && sectionId === "oracles") return String(metrics.reservedObligations);
   return null;
 }
 
@@ -69,10 +67,7 @@ export default function ProtocolWorkbenchShell({ children }: { children: React.R
   const useFullscreenWorkbenchChrome = [
     "/overview",
     "/plans",
-    "/capital",
     "/governance",
-    "/oracles",
-    "/schemas",
     "/coverage",
     "/magicblock-claim-room",
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));

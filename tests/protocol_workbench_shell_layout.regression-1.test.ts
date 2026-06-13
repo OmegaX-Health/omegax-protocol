@@ -5,15 +5,12 @@ import test from "node:test";
 const protocolWorkbenchShell = readFileSync("frontend/components/protocol-workbench-shell.tsx", "utf8");
 const workbenchModel = readFileSync("frontend/lib/workbench.ts", "utf8");
 
-test("schemas route uses fullscreen workbench chrome", () => {
-  // Regression: ISSUE-001 - /schemas kept the default inner-scroll shell, so the footer consumed viewport space and hid the lower registry rail.
-  // Found by /qa on 2026-05-11.
-  // Report: .gstack/qa-reports/qa-report-127-0-0-1-3001-2026-05-11.md
-  assert.match(protocolWorkbenchShell, /"\/schemas"/);
-});
-
-test("primary workbench navigation exposes schemas and docs", () => {
-  assert.match(workbenchModel, /href: "\/schemas", label: "Schemas"/);
+test("primary workbench navigation exposes plans, governance, and docs", () => {
+  // The /capital, /oracles, /schemas surfaces were trimmed with the program; nav
+  // now exposes only the kept overview/plans/governance sections plus external Docs.
+  assert.match(workbenchModel, /href: "\/plans", label: "Plans"/);
+  assert.match(workbenchModel, /href: "\/governance", label: "Governance"/);
+  assert.doesNotMatch(workbenchModel, /href: "\/(capital|oracles|schemas)"/);
   assert.match(protocolWorkbenchShell, /className="protocol-topbar-tab protocol-topbar-tab-external"/);
   assert.match(protocolWorkbenchShell, />\s*Docs\s*</);
 });

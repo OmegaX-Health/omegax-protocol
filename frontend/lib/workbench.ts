@@ -25,7 +25,7 @@ import {
 
 import type { GovernanceProposalSummary } from "@/lib/governance-readonly";
 
-export type WorkbenchSection = "overview" | "plans" | "capital" | "governance" | "oracles" | "schemas";
+export type WorkbenchSection = "overview" | "plans" | "governance";
 
 export type WorkbenchPersona = "observer" | "sponsor" | "capital" | "governance";
 
@@ -55,14 +55,11 @@ export const WORKBENCH_NAV: Array<{
   id: WorkbenchSection;
   href: `/${WorkbenchSection}`;
   label: string;
-  icon: "overview" | "plans" | "capital" | "governance" | "oracles" | "schemas";
+  icon: "overview" | "plans" | "governance";
 }> = [
   { id: "overview", href: "/overview", label: "Overview", icon: "overview" },
   { id: "plans", href: "/plans", label: "Plans", icon: "plans" },
-  { id: "capital", href: "/capital", label: "Capital", icon: "capital" },
   { id: "governance", href: "/governance", label: "Governance", icon: "governance" },
-  { id: "oracles", href: "/oracles", label: "Oracles", icon: "oracles" },
-  { id: "schemas", href: "/schemas", label: "Schemas", icon: "schemas" },
 ] as const;
 
 export const PLAN_TABS = [
@@ -73,15 +70,6 @@ export const PLAN_TABS = [
   { id: "treasury", label: "Treasury" },
 ] as const satisfies readonly WorkbenchTab[];
 
-export const CAPITAL_TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "classes", label: "Classes" },
-  { id: "allocations", label: "Allocations" },
-  { id: "queue", label: "Queue" },
-  { id: "linked-plans", label: "Linked plans" },
-  { id: "treasury", label: "Treasury" },
-] as const satisfies readonly WorkbenchTab[];
-
 export const GOVERNANCE_TABS = [
   { id: "overview", label: "Overview" },
   { id: "queue", label: "Queue" },
@@ -89,18 +77,8 @@ export const GOVERNANCE_TABS = [
   { id: "templates", label: "Templates" },
 ] as const satisfies readonly WorkbenchTab[];
 
-export const ORACLE_TABS = [
-  { id: "registry", label: "Registry" },
-  { id: "bindings", label: "Bindings" },
-  { id: "attestations", label: "Attestations" },
-  { id: "disputes", label: "Disputes" },
-  { id: "staking", label: "Staking" },
-] as const satisfies readonly WorkbenchTab[];
-
 export type PlanTabId = (typeof PLAN_TABS)[number]["id"];
-export type CapitalTabId = (typeof CAPITAL_TABS)[number]["id"];
 export type GovernanceTabId = (typeof GOVERNANCE_TABS)[number]["id"];
-export type OracleTabId = (typeof ORACLE_TABS)[number]["id"];
 
 export const GOVERNANCE_TEMPLATE_ROWS = [
   {
@@ -393,10 +371,7 @@ function stageLabelForProposal(proposal: GovernanceProposalSummary): string {
 }
 
 export function sectionFromPathname(pathname: string): WorkbenchSection {
-  if (pathname.startsWith("/capital")) return "capital";
   if (pathname.startsWith("/governance")) return "governance";
-  if (pathname.startsWith("/oracles")) return "oracles";
-  if (pathname.startsWith("/schemas")) return "schemas";
   if (pathname.startsWith("/plans")) return "plans";
   return "overview";
 }
@@ -413,29 +388,11 @@ export function sectionChrome(section: WorkbenchSection): {
         eyebrow: "Sponsor, series, claims, and funding lanes",
         description: "Manage health plans as one continuous operational surface.",
       };
-    case "capital":
-      return {
-        title: "Capital",
-        eyebrow: "Liquidity pools, classes, and queue posture",
-        description: "Keep pool mechanics, class posture, and allocation routing in one stable context.",
-      };
     case "governance":
       return {
         title: "Governance",
         eyebrow: "Proposal queue and scoped control lanes",
         description: "Coordinate proposals, templates, and authority posture without fragmenting the operating model.",
-      };
-    case "oracles":
-      return {
-        title: "Oracles",
-        eyebrow: "Registry, attestations, and dispute posture",
-        description: "Track verification operators and settlement-sensitive bindings without exposing raw health data.",
-      };
-    case "schemas":
-      return {
-        title: "Schemas",
-        eyebrow: "Outcome schemas and series comparability",
-        description: "Audit the live schema registry and versioned series rules without losing route context.",
       };
     case "overview":
     default:
@@ -474,28 +431,15 @@ export function defaultTabForPersona(
   section: Exclude<WorkbenchSection, "overview">,
   persona: WorkbenchPersona,
 ): string {
-  if (section === "schemas") return "registry";
-
   if (section === "plans") {
     if (persona === "capital") return "treasury";
     if (persona === "governance") return "claims";
     return "overview";
   }
 
-  if (section === "capital") {
-    if (persona === "sponsor") return "linked-plans";
-    if (persona === "governance") return "queue";
-    return "overview";
-  }
-
-  if (section === "governance") {
-    if (persona === "capital") return "templates";
-    return "queue";
-  }
-
-  if (persona === "governance") return "attestations";
-  if (persona === "capital") return "bindings";
-  return "registry";
+  // governance
+  if (persona === "capital") return "templates";
+  return "queue";
 }
 
 export function linkedContextForPool(poolAddress?: string | null): {
