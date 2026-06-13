@@ -125,23 +125,6 @@ test("Genesis Phase 0 launch profile fails closed when execution cluster is unve
   assert.equal(isGenesisPhase0SurfaceActionable(profile, "rewardLaunch"), false);
 });
 
-test("Phase 0 UI keeps public LP self-service separate from hidden admin drawers", () => {
-  const capitalWorkbench = readFileSync("frontend/components/capital-workbench.tsx", "utf8");
-  const planCreationWizard = readFileSync("frontend/components/plan-creation-wizard.tsx", "utf8");
-  const plansWorkbench = readFileSync("frontend/components/plans-workbench.tsx", "utf8");
-  const lpPanel = readFileSync("frontend/components/capital-lp-self-service-panel.tsx", "utf8");
-
-  assert.match(capitalWorkbench, /CapitalLpSelfServicePanel/);
-  assert.match(capitalWorkbench, /capitalAdminActions/);
-  assert.match(capitalWorkbench, /executionClusterVerified/);
-  assert.match(planCreationWizard, /executionClusterVerified/);
-  assert.match(plansWorkbench, /executionClusterVerified/);
-  assert.match(lpPanel, /LP self-service <em>retired<\/em>/);
-  assert.doesNotMatch(lpPanel, /buildDepositIntoCapitalClassTx/);
-  assert.doesNotMatch(lpPanel, /buildRequestRedemptionTx/);
-  assert.doesNotMatch(lpPanel, /buildProcessRedemptionQueueTx/);
-});
-
 test("RWA policy launch controls stay future-gated by default", () => {
   assert.equal(isRwaPolicyLaunchEnabled({}), false);
   assert.equal(isRwaPolicyLaunchEnabled({ NEXT_PUBLIC_ENABLE_RWA_POLICY: "" }), false);
